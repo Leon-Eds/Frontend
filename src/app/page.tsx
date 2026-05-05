@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Search, Shield, GraduationCap, CheckCircle2, ChevronRight, Zap, Database, Globe, User } from "lucide-react";
+import Image from "next/image";
+import { CheckCircle2, ChevronRight, Zap, Globe } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -9,22 +10,19 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <div className="flex items-center gap-2">
-              <Shield className="h-8 w-8 text-[#053d26]" />
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/logo.png" alt="LeonEd Africa" width={40} height={40} className="object-contain" />
               <span className="text-xl font-bold text-gray-900">LeonEd Africa</span>
-            </div>
+            </Link>
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#" className="text-sm font-semibold text-gray-900 hover:text-[#053d26] transition-colors">Platform Architecture</a>
-              <a href="#" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">Schedule</a>
+              <a href="#architecture" className="text-sm font-semibold text-gray-900 hover:text-[#053d26] transition-colors">Term Overview</a>
+              <a href="#why-leoned" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">Schedule</a>
             </div>
 
             {/* Right side Actions */}
             <div className="flex items-center gap-6">
-              <button className="text-gray-500 hover:text-gray-900">
-                <Search className="h-5 w-5" />
-              </button>
               <Link href="/login" className="px-6 py-2.5 rounded-full bg-[#053d26] text-white text-sm font-bold hover:bg-[#042c1b] transition-colors">
                 Login
               </Link>
@@ -47,12 +45,12 @@ export default function LandingPage() {
               The complete digital management solution for student records, automated result processing, and secure portal access. Built for the future of African education.
             </p>
             <div className="flex flex-wrap gap-4">
-              <button className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20">
+              <Link href="/register" className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20">
                 Register Your School
-              </button>
-              <button className="px-8 py-4 rounded-full bg-white text-gray-900 font-bold border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm">
+              </Link>
+              <Link href="/register" className="px-8 py-4 rounded-full bg-white text-gray-900 font-bold border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm">
                 Request Demo
-              </button>
+              </Link>
             </div>
             
             <div className="pt-8 flex items-center gap-4">
@@ -71,10 +69,14 @@ export default function LandingPage() {
             <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 to-transparent rounded-[3rem] transform rotate-3" />
             <div className="relative bg-white rounded-[3rem] p-4 shadow-2xl border border-gray-100">
               <div className="aspect-[4/3] rounded-[2.5rem] bg-gray-100 overflow-hidden relative">
-                {/* Simulated Image */}
-                <div className="absolute inset-0 bg-[#053d26]/5 flex items-center justify-center">
-                  <GraduationCap className="h-32 w-32 text-[#053d26]/20" />
-                </div>
+                {/* Hero Image */}
+                <Image
+                  src="/hero-classroom.png"
+                  alt="African students engaged in digital learning in a modern classroom"
+                  fill
+                  className="object-cover"
+                  priority
+                />
                 {/* Floating element */}
                 <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 shadow-lg border border-white/20">
                   <div className="h-10 w-10 rounded-xl bg-orange-100 text-[#b05e1c] flex items-center justify-center">
@@ -94,7 +96,7 @@ export default function LandingPage() {
       </section>
 
       {/* Architecture Section */}
-      <section className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
+      <section id="architecture" className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-2">Platform Architecture</p>
@@ -105,9 +107,6 @@ export default function LandingPage() {
             {/* Feature Card 1 - Large */}
             <div className="lg:col-span-2 bg-white rounded-[2rem] p-10 shadow-sm border border-gray-100 flex flex-col justify-between">
               <div>
-                <div className="h-12 w-12 rounded-2xl bg-orange-100 text-[#b05e1c] flex items-center justify-center mb-6">
-                  <Database className="h-6 w-6" />
-                </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Digital Student Records</h3>
                 <p className="text-gray-500 max-w-md leading-relaxed">
                   Centralize comprehensive student data from enrollment to graduation. One source of truth for demographics, attendance, and behavioral history.
@@ -122,24 +121,18 @@ export default function LandingPage() {
             {/* Feature Card 2 - Dark */}
             <div className="bg-[#053d26] rounded-[2rem] p-10 shadow-sm text-white flex flex-col justify-between">
               <div>
-                <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
-                  <Globe className="h-6 w-6" />
-                </div>
                 <h3 className="text-2xl font-bold mb-4">Multi-school platform</h3>
                 <p className="text-green-100/80 leading-relaxed">
                   Manage multiple campuses or an entire school district from a single, unified dashboard with tiered access controls.
                 </p>
               </div>
-              <button className="flex items-center gap-2 text-sm font-bold mt-10 hover:text-green-200 transition-colors w-fit">
+              <Link href="/register" className="flex items-center gap-2 text-sm font-bold mt-10 hover:text-green-200 transition-colors w-fit">
                 Learn More <ChevronRight className="h-4 w-4" />
-              </button>
+              </Link>
             </div>
 
             {/* Feature Card 3 */}
             <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-gray-100">
-              <div className="h-12 w-12 rounded-2xl bg-orange-100 text-[#b05e1c] flex items-center justify-center mb-6">
-                <Shield className="h-6 w-6" />
-              </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Secure Portals</h3>
               <p className="text-sm text-gray-500 leading-relaxed">
                 Dedicated, encrypted access for parents, teachers, and students to view progress in real-time.
@@ -148,9 +141,6 @@ export default function LandingPage() {
 
             {/* Feature Card 4 */}
             <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-gray-100">
-              <div className="h-12 w-12 rounded-2xl bg-orange-100 text-[#b05e1c] flex items-center justify-center mb-6">
-                <Zap className="h-6 w-6" />
-              </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Automated Results</h3>
               <p className="text-sm text-gray-500 leading-relaxed">
                 Generate report cards and transcripts in seconds with our intelligent computation engine.
@@ -167,14 +157,18 @@ export default function LandingPage() {
       </section>
 
       {/* Why LeonEd Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <section id="why-leoned" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="rounded-[3rem] bg-[#053d26] aspect-[4/3] overflow-hidden relative shadow-2xl flex items-center justify-center">
-            {/* Simulated image of academic architect */}
-            <div className="text-white/20 text-center">
-              <User className="h-32 w-32 mx-auto mb-4" />
-              <p className="font-bold text-2xl tracking-widest">SAFE TO WORK</p>
-            </div>
+          <div className="rounded-[3rem] bg-[#053d26] aspect-[4/3] overflow-hidden relative shadow-2xl">
+            {/* Academic Architect Image */}
+            <Image
+              src="/academic-architect.png"
+              alt="School administrator managing digital education platform"
+              fill
+              className="object-cover"
+            />
+            {/* Subtle overlay for text contrast if needed */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#053d26]/40 to-transparent" />
           </div>
 
           <div>
@@ -213,8 +207,8 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto mb-20">
         <div className="bg-[#053d26] rounded-[3rem] p-12 md:p-16 text-center text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-12 opacity-10">
-            <Shield className="w-64 h-64 transform rotate-12 translate-x-16 -translate-y-16" />
+          <div className="absolute top-0 right-0 opacity-10 translate-x-16 -translate-y-16">
+            <Image src="/logo.png" alt="" width={256} height={256} className="transform rotate-12" />
           </div>
           <div className="relative z-10">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to transform your institution?</h2>
@@ -222,12 +216,12 @@ export default function LandingPage() {
               Join hundreds of schools already paving the way for digital excellence in Africa.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <button className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20">
+              <Link href="/register" className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20">
                 Register Your School
-              </button>
-              <button className="px-8 py-4 rounded-full bg-[#042c1b] text-white font-bold hover:bg-black/40 border border-white/10 transition-all">
+              </Link>
+              <Link href="/register" className="px-8 py-4 rounded-full bg-[#042c1b] text-white font-bold hover:bg-black/40 border border-white/10 transition-all">
                 Contact Support
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -237,8 +231,8 @@ export default function LandingPage() {
       <footer className="bg-[#032416] text-white py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="md:col-span-2 space-y-6">
-            <div className="flex items-center gap-2">
-              <Shield className="h-8 w-8 text-white" />
+            <div className="flex items-center gap-3">
+              <Image src="/logo.png" alt="LeonEd Africa" width={40} height={40} className="object-contain" />
               <span className="text-xl font-bold">LeonEd Africa</span>
             </div>
             <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
@@ -249,26 +243,26 @@ export default function LandingPage() {
           <div>
             <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">Solutions</h4>
             <ul className="space-y-4">
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Digital Records</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Result Processing</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Parent Portals</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Multi-school System</a></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Digital Records</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Result Processing</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Parent Portals</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Multi-school System</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">Support</h4>
             <ul className="space-y-4">
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Help Center</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Documentation</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Privacy Policy</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Terms of Service</a></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Help Center</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Documentation</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Privacy Policy</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Terms of Service</Link></li>
             </ul>
           </div>
         </div>
         
         <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
-          <p>© 2024 LeonEd Africa. All rights reserved.</p>
+          <p>© 2026 LeonEd Africa. All rights reserved.</p>
           <div className="flex gap-4">
             <Globe className="h-4 w-4" />
           </div>

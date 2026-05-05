@@ -1,4 +1,5 @@
-import { Shield, User, Lock } from "lucide-react";
+import { User, Lock } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -8,19 +9,14 @@ export default function LoginPage() {
         
         {/* Logo Section */}
         <div className="flex flex-col items-center justify-center mb-10">
-          <div className="relative mb-4">
-            {/* Using a placeholder for the complex logo - shield with tree/africa map */}
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[#053d26] to-[#0a7a4c] text-white shadow-lg">
-              <Shield className="h-10 w-10" />
-            </div>
-            <div className="absolute -right-2 -bottom-2 h-8 w-8 rounded-full bg-[#b05e1c] flex items-center justify-center text-white border-2 border-white">
-              <span className="text-xs font-bold font-serif text-white">L</span>
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <span className="text-[#053d26]">LeonEd</span>
-            <span className="text-[#b05e1c]">Africa</span>
-          </h1>
+          <Image
+            src="/logo.png"
+            alt="LeonEd Africa"
+            width={120}
+            height={120}
+            className="object-contain mb-2"
+            priority
+          />
         </div>
 
         {/* Login Form */}
@@ -68,9 +64,9 @@ export default function LoginPage() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-semibold text-gray-600 hover:text-[#053d26]">
+                <Link href="/login" className="font-semibold text-gray-600 hover:text-[#053d26]">
                   Forgot Password?
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -82,10 +78,10 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-8 text-center text-sm">
-            <span className="text-gray-500">Don't have an account? </span>
-            <a href="#" className="font-semibold text-[#b05e1c] hover:underline">
+            <span className="text-gray-500">Don&apos;t have an account? </span>
+            <Link href="/register" className="font-semibold text-[#b05e1c] hover:underline">
               Register School
-            </a>
+            </Link>
           </div>
         </div>
 

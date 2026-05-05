@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
@@ -11,7 +12,6 @@ import {
   Settings, 
   HelpCircle,
   LogOut,
-  Shield,
   UserPlus
 } from "lucide-react";
 
@@ -31,15 +31,19 @@ export default function Sidebar() {
     <div className="flex h-screen w-64 flex-col bg-[#053d26] text-white shrink-0">
       {/* Logo Area */}
       <div className="flex h-20 items-center px-6 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8f5e9] text-[#053d26]">
-            <Shield className="h-6 w-6" />
-          </div>
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <Image
+            src="/logo.png"
+            alt="LeonEd Africa"
+            width={40}
+            height={40}
+            className="object-contain rounded-lg"
+          />
           <div>
             <h1 className="text-lg font-bold leading-none tracking-tight">LeonEd Africa</h1>
             <p className="text-[10px] uppercase tracking-wider text-green-200 mt-1">Academic Architect</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Main Navigation */}
@@ -77,7 +81,7 @@ export default function Sidebar() {
       {/* Bottom Navigation */}
       <div className="border-t border-white/10 p-4 space-y-1">
         <Link
-          href="#"
+          href="/dashboard"
           className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
         >
           <HelpCircle className="h-5 w-5 text-green-300" />

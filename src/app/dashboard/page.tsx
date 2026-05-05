@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { mockStats, mockUpcomingEvents } from "@/lib/mocks/dashboard";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/dashboard/DataTable";
@@ -79,7 +80,7 @@ export default function DashboardOverview() {
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
             <div className="space-y-4">
-              <button className="w-full rounded-2xl bg-[#053d26] p-4 text-left flex items-center gap-4 transition-transform hover:scale-[1.02]">
+              <Link href="/dashboard/students/new" className="w-full rounded-2xl bg-[#053d26] p-4 text-left flex items-center gap-4 transition-transform hover:scale-[1.02]">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white shrink-0">
                   <UserPlus className="h-6 w-6" />
                 </div>
@@ -87,9 +88,9 @@ export default function DashboardOverview() {
                   <div className="font-bold text-white text-lg">Add New Student</div>
                   <div className="text-sm text-green-200">Onboard a fresh learner profile</div>
                 </div>
-              </button>
+              </Link>
 
-              <button className="w-full rounded-2xl bg-[#b05e1c] p-4 text-left flex items-center gap-4 transition-transform hover:scale-[1.02]">
+              <Link href="/dashboard/classes" className="w-full rounded-2xl bg-[#b05e1c] p-4 text-left flex items-center gap-4 transition-transform hover:scale-[1.02]">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-white shrink-0">
                   <FileOutput className="h-6 w-6" />
                 </div>
@@ -97,7 +98,7 @@ export default function DashboardOverview() {
                   <div className="font-bold text-white text-lg">Generate Report Cards</div>
                   <div className="text-sm text-orange-100 leading-tight mt-1">Bulk process academic summaries</div>
                 </div>
-              </button>
+              </Link>
 
               <button className="w-full rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/50 p-4 text-center transition-colors hover:border-gray-400 hover:bg-gray-100 flex flex-col items-center justify-center h-28 gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-600">
