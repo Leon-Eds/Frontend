@@ -13,6 +13,7 @@ const steps = [
 
 export default function RegisterSchoolPage() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     schoolName: "",
     schoolType: "",
@@ -31,9 +32,53 @@ export default function RegisterSchoolPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error for this field when user types
+    if (errors[e.target.name]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[e.target.name];
+        return next;
+      });
+    }
   };
 
-  const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 3));
+  const validateStep1 = () => {
+    const errs: Record<string, string> = {};
+    if (!formData.schoolName.trim()) errs.schoolName = "School name is required";
+    if (!formData.schoolType) errs.schoolType = "Please select a school type";
+    if (!formData.city.trim()) errs.city = "City is required";
+    if (!formData.country.trim()) errs.country = "Country is required";
+    if (!formData.address.trim()) errs.address = "Address is required";
+    return errs;
+  };
+
+  const validateStep2 = () => {
+    const errs: Record<string, string> = {};
+    if (!formData.adminName.trim()) errs.adminName = "Full name is required";
+    if (!formData.adminRole) errs.adminRole = "Please select a role";
+    if (!formData.adminEmail.trim()) errs.adminEmail = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminEmail)) errs.adminEmail = "Enter a valid email address";
+    if (!formData.adminPhone.trim()) errs.adminPhone = "Phone number is required";
+    if (!formData.password) errs.password = "Password is required";
+    else if (formData.password.length < 6) errs.password = "Password must be at least 6 characters";
+    if (!formData.confirmPassword) errs.confirmPassword = "Please confirm your password";
+    else if (formData.password !== formData.confirmPassword) errs.confirmPassword = "Passwords do not match";
+    return errs;
+  };
+
+  const nextStep = () => {
+    let stepErrors: Record<string, string> = {};
+    if (currentStep === 1) stepErrors = validateStep1();
+    if (currentStep === 2) stepErrors = validateStep2();
+
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
+      return;
+    }
+    setErrors({});
+    setCurrentStep((prev) => Math.min(prev + 1, 3));
+  };
+
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
   return (
@@ -130,11 +175,9 @@ export default function RegisterSchoolPage() {
                     School Information
                   </h2>
                   <p className="text-sm text-gray-500">Tell us about your institution.</p>
-                </div>
-
-                <div className="space-y-4">
+                </div>                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">School Name</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">School Name <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <School className="h-5 w-5 text-gray-400" />
@@ -144,39 +187,42 @@ export default function RegisterSchoolPage() {
                         name="schoolName"
                         value={formData.schoolName}
                         onChange={handleChange}
-                        className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                        className={`block w-full rounded-xl border ${errors.schoolName ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="e.g. St. Patrick's Academy"
                       />
                     </div>
+                    {errors.schoolName && <p className="text-xs text-red-500 mt-1">{errors.schoolName}</p>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">School Type</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">School Type <span className="text-red-500">*</span></label>
                     <select
                       name="schoolType"
                       value={formData.schoolType}
                       onChange={handleChange}
-                      className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors appearance-none"
+                      className={`block w-full rounded-xl border ${errors.schoolType ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors appearance-none`}
                     >
                       <option value="">Select school type</option>
                       <option value="primary">Primary School</option>
                       <option value="secondary">Secondary School</option>
-                      <option value="combined">Combined (Primary & Secondary)</option>
+                      <option value="combined">Combined (Primary &amp; Secondary)</option>
                       <option value="tertiary">Tertiary Institution</option>
                     </select>
+                    {errors.schoolType && <p className="text-xs text-red-500 mt-1">{errors.schoolType}</p>}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">City</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">City <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         name="city"
                         value={formData.city}
                         onChange={handleChange}
-                        className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                        className={`block w-full rounded-xl border ${errors.city ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="Lagos"
                       />
+                      {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">State / Province</label>
@@ -193,7 +239,7 @@ export default function RegisterSchoolPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                           <Globe className="h-5 w-5 text-gray-400" />
@@ -203,10 +249,11 @@ export default function RegisterSchoolPage() {
                           name="country"
                           value={formData.country}
                           onChange={handleChange}
-                          className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                          className={`block w-full rounded-xl border ${errors.country ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                           placeholder="Nigeria"
                         />
                       </div>
+                      {errors.country && <p className="text-xs text-red-500 mt-1">{errors.country}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Est. Student Count</label>
@@ -222,7 +269,7 @@ export default function RegisterSchoolPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Address</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Address <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <MapPin className="h-5 w-5 text-gray-400" />
@@ -232,10 +279,11 @@ export default function RegisterSchoolPage() {
                         name="address"
                         value={formData.address}
                         onChange={handleChange}
-                        className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                        className={`block w-full rounded-xl border ${errors.address ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="12 Academy Drive, Ikeja"
                       />
                     </div>
+                    {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address}</p>}
                   </div>
                 </div>
               </div>
@@ -254,7 +302,7 @@ export default function RegisterSchoolPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <User className="h-5 w-5 text-gray-400" />
@@ -264,19 +312,20 @@ export default function RegisterSchoolPage() {
                         name="adminName"
                         value={formData.adminName}
                         onChange={handleChange}
-                        className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                        className={`block w-full rounded-xl border ${errors.adminName ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="Dr. Aisha Johnson"
                       />
                     </div>
+                    {errors.adminName && <p className="text-xs text-red-500 mt-1">{errors.adminName}</p>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Official Role</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Official Role <span className="text-red-500">*</span></label>
                     <select
                       name="adminRole"
                       value={formData.adminRole}
                       onChange={handleChange}
-                      className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors appearance-none"
+                      className={`block w-full rounded-xl border ${errors.adminRole ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors appearance-none`}
                     >
                       <option value="">Select your role</option>
                       <option value="principal">Principal / Headmaster</option>
@@ -285,10 +334,11 @@ export default function RegisterSchoolPage() {
                       <option value="it">IT Administrator</option>
                       <option value="owner">School Owner / Director</option>
                     </select>
+                    {errors.adminRole && <p className="text-xs text-red-500 mt-1">{errors.adminRole}</p>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <Mail className="h-5 w-5 text-gray-400" />
@@ -298,14 +348,15 @@ export default function RegisterSchoolPage() {
                         name="adminEmail"
                         value={formData.adminEmail}
                         onChange={handleChange}
-                        className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                        className={`block w-full rounded-xl border ${errors.adminEmail ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="admin@school.edu.ng"
                       />
                     </div>
+                    {errors.adminEmail && <p className="text-xs text-red-500 mt-1">{errors.adminEmail}</p>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <Phone className="h-5 w-5 text-gray-400" />
@@ -315,34 +366,37 @@ export default function RegisterSchoolPage() {
                         name="adminPhone"
                         value={formData.adminPhone}
                         onChange={handleChange}
-                        className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                        className={`block w-full rounded-xl border ${errors.adminPhone ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="+234 801 234 5678"
                       />
                     </div>
+                    {errors.adminPhone && <p className="text-xs text-red-500 mt-1">{errors.adminPhone}</p>}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password <span className="text-red-500">*</span></label>
                       <input
                         type="password"
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                        className={`block w-full rounded-xl border ${errors.password ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="••••••••"
                       />
+                      {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password <span className="text-red-500">*</span></label>
                       <input
                         type="password"
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                        className={`block w-full rounded-xl border ${errors.confirmPassword ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="••••••••"
                       />
+                      {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
                     </div>
                   </div>
                 </div>
