@@ -79,11 +79,11 @@ export default function FacultyDirectory() {
       accessor: (teacher) => (
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-sm">
-            {teacher.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+            {teacher.fullName ? teacher.fullName.split(' ').filter(Boolean).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() : 'T'}
           </div>
           <div>
-            <div className="font-bold text-gray-900 text-sm leading-tight">{teacher.fullName}</div>
-            <div className="text-xs text-gray-500 mt-1">{teacher.email}</div>
+            <div className="font-bold text-gray-900 text-sm leading-tight">{teacher.fullName || 'Unnamed Teacher'}</div>
+            <div className="text-xs text-gray-500 mt-1">{teacher.email || 'No email'}</div>
           </div>
         </div>
       ),
