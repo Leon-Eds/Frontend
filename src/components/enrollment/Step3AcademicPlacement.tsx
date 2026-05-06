@@ -88,11 +88,13 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
             <Select
               label="Arm / Section"
               options={[
+                { label: 'Select arm', value: '' },
                 { label: 'Emerald (Science)', value: 'Emerald' },
                 { label: 'Ruby (Arts)', value: 'Ruby' },
                 { label: 'Sapphire (Commerce)', value: 'Sapphire' },
               ]}
-              defaultValue=""
+              value={(data as any).arm || ''}
+              onChange={(e) => updateData({ ...data, arm: e.target.value } as any)}
             />
           </div>
 

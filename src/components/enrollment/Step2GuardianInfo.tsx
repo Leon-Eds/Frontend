@@ -1,7 +1,8 @@
-import React from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import { Input } from '../ui/form/Input';
 import { Select } from '../ui/form/Select';
-import { Toggle } from '../ui/form/Toggle';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { CreateStudentRequest } from '@/lib/api';
 
@@ -13,6 +14,10 @@ interface Step2Props {
 }
 
 export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNext, onBack }) => {
+  const [relationship, setRelationship] = useState('');
+  const [homeAddress, setHomeAddress] = useState('');
+  const [isEmergencyContact, setIsEmergencyContact] = useState(true);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Left Sidebar Layout */}
@@ -78,11 +83,16 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
               <Select
                 label="Relationship to Student"
                 options={[
+                  { label: 'Select relationship', value: '' },
                   { label: 'Mother', value: 'Mother' },
                   { label: 'Father', value: 'Father' },
                   { label: 'Guardian', value: 'Guardian' },
+                  { label: 'Grandparent', value: 'Grandparent' },
+                  { label: 'Sibling', value: 'Sibling' },
+                  { label: 'Other', value: 'Other' },
                 ]}
-                defaultValue=""
+                value={relationship}
+                onChange={(e) => setRelationship(e.target.value)}
               />
             </div>
 
@@ -109,16 +119,31 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
               <textarea
                 className="w-full rounded-2xl border-0 bg-gray-100 py-4 px-5 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors resize-none h-24"
                 placeholder="Street, City, County, Postal Code"
+                value={homeAddress}
+                onChange={(e) => setHomeAddress(e.target.value)}
               />
             </div>
 
-            <Toggle
-              label="Emergency Contact"
-              description="Use these details as primary emergency contact?"
-              checked={true}
-              onChange={() => {}}
-              icon={<span className="font-bold">*</span>}
-            />
+            {/* Emergency Contact Toggle */}
+            <label className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+              <div className="flex items-center gap-3">
+                <span className="font-bold text-gray-900 text-sm">*</span>
+                <div>
+                  <h4 className="font-bold text-gray-900 text-sm">Emergency Contact</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">Use these details as primary emergency contact?</p>
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={isEmergencyContact}
+                  onChange={(e) => setIsEmergencyContact(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-[#053d26] transition-colors" />
+                <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform" />
+              </div>
+            </label>
           </div>
         </div>
 

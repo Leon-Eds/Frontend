@@ -1,8 +1,10 @@
-import React from 'react';
+"use client";
+
+import React, { useRef, useState } from 'react';
 import { Input } from '../ui/form/Input';
 import { DatePicker } from '../ui/form/DatePicker';
 import { Select } from '../ui/form/Select';
-import { Camera } from 'lucide-react';
+import { Camera, X } from 'lucide-react';
 import { CreateStudentRequest } from '@/lib/api';
 
 interface Step1Props {
@@ -13,6 +15,41 @@ interface Step1Props {
 }
 
 export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext, onCancel }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoFileName, setPhotoFileName] = useState<string>("");
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate type
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      alert('Please upload a JPG or PNG image.');
+      return;
+    }
+
+    // Validate size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image must be smaller than 2MB.');
+      return;
+    }
+
+    setPhotoFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setPhotoPreview(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = () => {
+    setPhotoPreview(null);
+    setPhotoFileName("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <div className="bg-white rounded-3xl p-10 shadow-sm">
       <div className="flex justify-between items-start mb-8">
@@ -33,11 +70,53 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
             Profile Portrait
           </label>
-          <div className="border-2 border-dashed border-gray-300 rounded-[2rem] bg-gray-50 h-72 flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-gray-100 transition-colors">
-            <Camera className="h-10 w-10 text-gray-400 mb-4" />
-            <span className="font-bold text-gray-700">Click to Upload</span>
-            <span className="text-xs text-gray-500 mt-2">Standard passport size image, JPG or PNG (max 2MB)</span>
-          </div>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/jpg"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+
+          {photoPreview ? (
+            <div className="relative rounded-[2rem] overflow-hidden h-72 bg-gray-100 group">
+              <img
+                src={photoPreview}
+                alt="Student portrait preview"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 rounded-full bg-white text-gray-900 text-xs font-bold hover:bg-gray-100 transition-colors"
+                >
+                  Change Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="px-4 py-2 rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-colors flex items-center gap-1"
+                >
+                  <X className="h-3 w-3" /> Remove
+                </button>
+              </div>
+              <p className="absolute bottom-3 left-3 right-3 text-[10px] text-white bg-black/50 rounded-full px-3 py-1 truncate text-center">
+                {photoFileName}
+              </p>
+            </div>
+          ) : (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-gray-300 rounded-[2rem] bg-gray-50 h-72 flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-gray-100 hover:border-gray-400 transition-colors"
+            >
+              <Camera className="h-10 w-10 text-gray-400 mb-4" />
+              <span className="font-bold text-gray-700">Click to Upload</span>
+              <span className="text-xs text-gray-500 mt-2">Standard passport size image, JPG or PNG (max 2MB)</span>
+            </div>
+          )}
         </div>
 
         {/* Form Fields */}
@@ -58,12 +137,18 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
             <Select
               label="Blood Group"
               options={[
+                { label: 'Select blood group', value: '' },
                 { label: 'A+', value: 'A+' },
-                { label: 'O+', value: 'O+' },
+                { label: 'A-', value: 'A-' },
                 { label: 'B+', value: 'B+' },
+                { label: 'B-', value: 'B-' },
                 { label: 'AB+', value: 'AB+' },
+                { label: 'AB-', value: 'AB-' },
+                { label: 'O+', value: 'O+' },
+                { label: 'O-', value: 'O-' },
               ]}
-              defaultValue=""
+              value={(data as any).bloodGroup || ''}
+              onChange={(e) => updateData({ ...data, bloodGroup: e.target.value } as any)}
             />
           </div>
 
@@ -83,7 +168,6 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
                       : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
                   }`}
                 >
-                  {/* Just simple text for now, could add icons if requested */}
                   {gender}
                 </button>
               ))}
@@ -100,9 +184,6 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
           &larr; Cancel
         </button>
         <div className="flex gap-4">
-          <button className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors">
-            Save Draft
-          </button>
           <button
             onClick={onNext}
             disabled={!data.fullName || !data.dateOfBirth || !data.gender}

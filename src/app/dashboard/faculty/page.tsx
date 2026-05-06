@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { UserPlus, MoreVertical, X, Loader2, AlertCircle } from 'lucide-react';
+import { UserPlus, X, Loader2, AlertCircle } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { teacherApi, Teacher, CreateTeacherRequest } from '@/lib/api';
 
@@ -221,9 +221,23 @@ export default function FacultyDirectory() {
             <DataTable 
               columns={columns} 
               data={teachers} 
-              actions={() => (
-                <button className="text-gray-400 hover:text-[#053d26] transition-colors p-2">
-                  <MoreVertical className="h-5 w-5" />
+              actions={(teacher) => (
+                <button
+                  onClick={async () => {
+                    try {
+                      await teacherApi.updateStatus(teacher.id, !teacher.isActive);
+                      fetchTeachers();
+                    } catch (err) {
+                      alert(err instanceof Error ? err.message : "Failed to update status");
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-colors ${
+                    teacher.isActive
+                      ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                      : 'bg-green-100 text-[#053d26] hover:bg-green-200'
+                  }`}
+                >
+                  {teacher.isActive ? 'Deactivate' : 'Activate'}
                 </button>
               )}
             />
