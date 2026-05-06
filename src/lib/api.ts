@@ -299,6 +299,7 @@ export interface Term {
 export interface DashboardStats {
   totalStudents?: number;
   totalTeachers?: number;
+  totalFaculty?: number;
   totalClasses?: number;
   totalSubjects?: number;
   activeStudents?: number;

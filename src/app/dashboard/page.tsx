@@ -86,12 +86,14 @@ export default function DashboardOverview() {
     );
   }
 
-  const totalStudents = stats?.totalStudents ?? 0;
-  const totalTeachers = stats?.totalTeachers ?? 0;
-  const pendingResults = stats?.pendingResults ?? 0;
-  const currentTerm = stats?.currentTerm ?? "N/A";
-  const currentSession = stats?.currentSession ?? "";
-  const termProgress = stats?.termProgress ?? 0;
+  // Support nested data property and fallback field names
+  const s = (stats as any)?.data || stats;
+  const totalStudents = s?.totalStudents ?? s?.totalCount ?? 0;
+  const totalTeachers = s?.totalTeachers ?? s?.totalFaculty ?? s?.facultyCount ?? 0;
+  const pendingResults = s?.pendingResults ?? 0;
+  const currentTerm = s?.currentTerm ?? "N/A";
+  const currentSession = s?.currentSession ?? "";
+  const termProgress = s?.termProgress ?? 0;
   const termLabel = currentTerm + (currentSession ? ` ${currentSession}` : "");
 
   return (

@@ -62,15 +62,23 @@ export default function SetupGuide() {
         : [];
       
       const teacherCount = teacherRes.status === 'fulfilled'
-        ? (typeof teacherRes.value === 'object' && !Array.isArray(teacherRes.value)
-            ? (teacherRes.value.totalCount ?? (teacherRes.value.items || teacherRes.value.data || []).length)
-            : (Array.isArray(teacherRes.value) ? teacherRes.value.length : 0))
+        ? (() => {
+            const val = teacherRes.value as any;
+            if (val?.totalCount !== undefined) return val.totalCount;
+            if (val?.data?.totalCount !== undefined) return val.data.totalCount;
+            const list = val?.items || val?.data || (Array.isArray(val) ? val : []);
+            return Array.isArray(list) ? list.length : (list?.items?.length || list?.data?.length || 0);
+          })()
         : 0;
-
+      
       const studentCount = studentRes.status === 'fulfilled'
-        ? (typeof studentRes.value === 'object' && !Array.isArray(studentRes.value)
-            ? (studentRes.value.totalCount ?? (studentRes.value.items || studentRes.value.data || []).length)
-            : (Array.isArray(studentRes.value) ? studentRes.value.length : 0))
+        ? (() => {
+            const val = studentRes.value as any;
+            if (val?.totalCount !== undefined) return val.totalCount;
+            if (val?.data?.totalCount !== undefined) return val.data.totalCount;
+            const list = val?.items || val?.data || (Array.isArray(val) ? val : []);
+            return Array.isArray(list) ? list.length : (list?.items?.length || list?.data?.length || 0);
+          })()
         : 0;
 
       const hasCurrentSession = sessionList.some(s => s.isCurrent);
