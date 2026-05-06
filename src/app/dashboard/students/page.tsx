@@ -58,6 +58,7 @@ export default function StudentsPage() {
   }, [page]);
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchStudents();
   }, [fetchStudents]);
 

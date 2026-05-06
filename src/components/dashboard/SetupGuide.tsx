@@ -9,7 +9,6 @@ import {
   Users,
   ChevronRight,
   CheckCircle2,
-  Circle,
   Sparkles,
   X,
   Loader2,
@@ -146,6 +145,7 @@ export default function SetupGuide() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line
     checkSetup();
   }, [checkSetup]);
 

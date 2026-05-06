@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Search, Bell, HelpCircle, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,7 +18,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuToggle }: HeaderProps) {
   const pathname = usePathname();
-  const [userName, setUserName] = useState(() => {
+  const [userName] = useState(() => {
     if (typeof window !== "undefined") {
       try {
         const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");

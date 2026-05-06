@@ -174,10 +174,10 @@ export default function LandingPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4">Why LeonEd Africa?</p>
             <h2 className="text-4xl lg:text-5xl font-bold text-[#053d26] leading-tight mb-6">
-              The Academic Architect for Your School's Future.
+              The Academic Architect for Your School&apos;s Future.
             </h2>
             <p className="text-gray-600 leading-relaxed mb-10 text-lg">
-              We don't just provide software; we design digital ecosystems. Our platform is built with a deep understanding of the unique challenges faced by African educational institutions, from connectivity hurdles to administrative complexity.
+              We don&apos;t just provide software; we design digital ecosystems. Our platform is built with a deep understanding of the unique challenges faced by African educational institutions, from connectivity hurdles to administrative complexity.
             </p>
 
             <div className="space-y-6">

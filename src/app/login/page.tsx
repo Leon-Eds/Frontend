@@ -29,8 +29,10 @@ export default function LoginPage() {
       const response = await authApi.login({ email, password });
       
       // Extract token with fallbacks for different backend structures
-      const token = (response as any).token || (response as any).accessToken || (response as any).data?.token;
-      const refreshToken = (response as any).refreshToken || (response as any).data?.refreshToken;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = response as Record<string, any>;
+      const token = r.token || r.accessToken || r.data?.token;
+      const refreshToken = r.refreshToken || r.data?.refreshToken;
       
       if (!token) {
         throw new Error("Login succeeded but no security token was returned. Please contact support.");
@@ -39,6 +41,7 @@ export default function LoginPage() {
       // Store auth data
       localStorage.setItem("leoned_token", token);
       if (refreshToken) localStorage.setItem("leoned_refresh_token", refreshToken);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       localStorage.setItem("leoned_user", JSON.stringify(response.user || (response as any).data?.user));
       
       router.push("/dashboard");
