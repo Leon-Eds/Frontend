@@ -38,9 +38,9 @@ export default function StudentsPage() {
       let respTotalPages = typeof response === 'object' && !Array.isArray(response) ? response.totalPages : undefined;
       
       if (response?.data) {
-        extractedItems = Array.isArray(response.data) ? response.data : (response.data.items || response.data.data || response.data);
-        if (response.data.totalCount !== undefined) respTotalCount = response.data.totalCount;
-        if (response.data.totalPages !== undefined) respTotalPages = response.data.totalPages;
+        extractedItems = Array.isArray(response.data) ? response.data : ((response.data as any).items || (response.data as any).data || response.data);
+        if ((response.data as any).totalCount !== undefined) respTotalCount = (response.data as any).totalCount;
+        if ((response.data as any).totalPages !== undefined) respTotalPages = (response.data as any).totalPages;
       } else if (response?.items) {
         extractedItems = response.items;
       }

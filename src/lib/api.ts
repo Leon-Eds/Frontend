@@ -97,7 +97,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
-export type Gender = 'Male' | 'Female';
+export type Gender = 'Male' | 'Female' | 'Other';
 export type StudentStatus = 'Active' | 'Graduated' | 'Archived' | 'Suspended';
 export type SubscriptionPlan = 'Free' | 'Plus' | 'Premium';
 export type TermNumber = 'First' | 'Second' | 'Third';

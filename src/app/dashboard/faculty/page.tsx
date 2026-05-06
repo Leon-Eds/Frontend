@@ -30,7 +30,7 @@ export default function FacultyDirectory() {
       // Safely unwrap data from .NET paginated wrapper structures
       let extractedItems: unknown = response;
       if (response?.data) {
-        extractedItems = Array.isArray(response.data) ? response.data : (response.data.items || response.data.data || response.data);
+        extractedItems = Array.isArray(response.data) ? response.data : ((response.data as any).items || (response.data as any).data || response.data);
       } else if (response?.items) {
         extractedItems = response.items;
       }
