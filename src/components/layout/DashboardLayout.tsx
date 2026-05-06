@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
@@ -43,8 +44,8 @@ export default function DashboardLayout({
                 © 2026 LeonEd Africa. Academic Architect System.
               </p>
               <div className="flex gap-6 text-xs text-gray-400 font-medium">
-                <a href="#" className="hover:text-gray-600 transition-colors uppercase tracking-wider">Privacy Protocol</a>
-                <a href="#" className="hover:text-gray-600 transition-colors uppercase tracking-wider">System Support</a>
+                <Link href="/privacy" className="hover:text-gray-600 transition-colors uppercase tracking-wider">Privacy Protocol</Link>
+                <Link href="/support" className="hover:text-gray-600 transition-colors uppercase tracking-wider">System Support</Link>
               </div>
             </div>
           </footer>

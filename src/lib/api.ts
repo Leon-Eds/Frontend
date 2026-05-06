@@ -333,6 +333,13 @@ export interface PaginatedResponse<T> {
 
 // ─── API Functions ─────────────────────────────────────────────────────
 
+export interface CreateSuperAdminRequest {
+  name: string;
+  email: string;
+  password: string;
+  secretKey: string;
+}
+
 // Auth
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
@@ -346,6 +353,15 @@ export const authApi = {
 
   register: async (data: RegisterSchoolRequest) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  createSuperAdmin: async (data: CreateSuperAdminRequest) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/create-super-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -679,5 +695,20 @@ export const schoolApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);
+  },
+};
+
+// Global Users (for superadmin)
+export const userApi = {
+  getAllAdmins: async (page = 1, pageSize = 20, search = '') => {
+    const params = new URLSearchParams({
+      PageNumber: String(page),
+      PageSize: String(pageSize),
+    });
+    if (search) params.set('Search', search);
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/admins?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<PaginatedResponse<unknown>>(res);
   },
 };

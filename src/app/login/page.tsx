@@ -47,7 +47,12 @@ export default function LoginPage() {
       if (refreshToken) localStorage.setItem("leoned_refresh_token", refreshToken);
       if (user) localStorage.setItem("leoned_user", JSON.stringify(user));
       
-      router.push("/dashboard");
+      // Redirect based on role
+      if (user?.role === "SuperAdmin") {
+        router.push("/super-admin");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Login failed. Please check your credentials.";
       setError(message);

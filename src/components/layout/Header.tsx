@@ -1,15 +1,20 @@
-"use client";
-
-import { useState } from "react";
-import { Search, Bell, HelpCircle, Menu } from "lucide-react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Search as SearchIcon, Bell as BellIcon, HelpCircle as HelpIcon, Menu as MenuIcon } from "lucide-react";
 
-const headerTabs = [
+const schoolTabs = [
   { name: "Dashboard", href: "/dashboard" },
   { name: "Students", href: "/dashboard/students" },
   { name: "Faculty", href: "/dashboard/faculty" },
   { name: "Classes", href: "/dashboard/classes" },
+];
+
+const superAdminTabs = [
+  { name: "Overview", href: "/super-admin" },
+  { name: "Schools", href: "/super-admin/schools" },
+  { name: "Users", href: "/super-admin/users" },
+  { name: "Billing", href: "/super-admin/plans" },
 ];
 
 interface HeaderProps {
@@ -18,17 +23,22 @@ interface HeaderProps {
 
 export default function Header({ onMenuToggle }: HeaderProps) {
   const pathname = usePathname();
-  const [userName] = useState(() => {
+  const [userName, setUserName] = useState("Admin");
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
       try {
         const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
-        return user.name || "Admin";
+        setUserName(user.name || "Admin");
+        setRole(user.role);
       } catch {
-        return "Admin";
+        setUserName("Admin");
       }
     }
-    return "Admin";
-  });
+  }, []);
+
+  const headerTabs = role === "SuperAdmin" ? superAdminTabs : schoolTabs;
 
   const initials = userName
     .split(" ")
@@ -47,7 +57,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           className="lg:hidden text-gray-600 hover:text-gray-900 transition-colors p-1.5 -ml-1"
           aria-label="Open menu"
         >
-          <Menu className="h-6 w-6" />
+          <MenuIcon className="h-6 w-6" />
         </button>
 
         <div className="hidden xl:block shrink-0">
@@ -59,7 +69,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         {/* Nav tabs — scroll horizontally on medium, hide on very small */}
         <nav className="hidden sm:flex items-center gap-1 h-full overflow-x-auto no-scrollbar">
           {headerTabs.map((tab) => {
-            const isActive = pathname === tab.href || (tab.href !== "/dashboard" && pathname.startsWith(tab.href));
+            const isActive = pathname === tab.href || (tab.href !== "/dashboard" && tab.href !== "/super-admin" && pathname.startsWith(tab.href));
             return (
               <Link
                 key={tab.name}
@@ -81,7 +91,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       <div className="flex items-center gap-3 sm:gap-5 shrink-0">
         <div className="relative hidden lg:block">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search className="h-4 w-4 text-gray-400" />
+            <SearchIcon className="h-4 w-4 text-gray-400" />
           </div>
           <input
             type="text"
@@ -92,20 +102,20 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
         {/* Search icon on mobile */}
         <button className="lg:hidden text-gray-500 hover:text-gray-900 transition-colors p-1">
-          <Search className="h-5 w-5" />
+          <SearchIcon className="h-5 w-5" />
         </button>
 
-        <Link href="/dashboard/settings" className="relative text-gray-500 hover:text-gray-900 transition-colors p-1">
-          <Bell className="h-5 w-5" />
+        <Link href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"} className="relative text-gray-500 hover:text-gray-900 transition-colors p-1">
+          <BellIcon className="h-5 w-5" />
           <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-[#b05e1c] border border-white"></span>
         </Link>
 
-        <Link href="/dashboard/settings" className="text-gray-500 hover:text-gray-900 transition-colors p-1 hidden sm:block">
-          <HelpCircle className="h-5 w-5" />
+        <Link href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"} className="text-gray-500 hover:text-gray-900 transition-colors p-1 hidden sm:block">
+          <HelpIcon className="h-5 w-5" />
         </Link>
 
         <Link
-          href="/dashboard/settings"
+          href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"}
           className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden border-2 border-gray-200 shadow-sm hover:border-[#053d26] transition-colors bg-[#053d26] flex items-center justify-center shrink-0"
         >
           <span className="text-white text-xs font-bold">{initials}</span>
@@ -114,3 +124,4 @@ export default function Header({ onMenuToggle }: HeaderProps) {
     </header>
   );
 }
+

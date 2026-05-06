@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,10 +15,13 @@ import {
   LogOut,
   UserPlus,
   X,
-  CalendarClock
+  CalendarClock,
+  School,
+  ShieldCheck,
+  CreditCard
 } from "lucide-react";
 
-const navigation = [
+const schoolNavigation = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "Student Registry", href: "/dashboard/students", icon: GraduationCap },
   { name: "Academic Flow", href: "/dashboard/classes", icon: BookOpen },
@@ -27,6 +31,14 @@ const navigation = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
+const superAdminNavigation = [
+  { name: "Platform Overview", href: "/super-admin", icon: ShieldCheck },
+  { name: "Manage Schools", href: "/super-admin/schools", icon: School },
+  { name: "Global Users", href: "/super-admin/users", icon: Users },
+  { name: "Billing & Plans", href: "/super-admin/plans", icon: CreditCard },
+  { name: "System Settings", href: "/super-admin/settings", icon: Settings },
+];
+
 interface SidebarProps {
   onClose?: () => void;
 }
@@ -34,6 +46,23 @@ interface SidebarProps {
 export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userStr = localStorage.getItem("leoned_user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          setRole(user.role);
+        } catch (e) {
+          console.error("Failed to parse user from localStorage", e);
+        }
+      }
+    }
+  }, []);
+
+  const navigation = role === "SuperAdmin" ? superAdminNavigation : schoolNavigation;
 
   const handleLogout = () => {
     localStorage.removeItem("leoned_token");
@@ -51,7 +80,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     <div className="flex h-screen w-64 flex-col bg-[#053d26] text-white shrink-0">
       {/* Logo Area */}
       <div className="flex h-20 items-center justify-between px-6 border-b border-white/10">
-        <Link href="/dashboard" className="flex items-center gap-3" onClick={handleNavClick}>
+        <Link href={role === "SuperAdmin" ? "/super-admin" : "/dashboard"} className="flex items-center gap-3" onClick={handleNavClick}>
           <Image
             src="/logo.png"
             alt="LeonEd Africa"
@@ -61,7 +90,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
           />
           <div>
             <h1 className="text-lg font-bold leading-none tracking-tight">LeonEd Africa</h1>
-            <p className="text-[10px] uppercase tracking-wider text-green-200 mt-1">Academic Architect</p>
+            <p className="text-[10px] uppercase tracking-wider text-green-200 mt-1">
+              {role === "SuperAdmin" ? "Super Admin" : "Academic Architect"}
+            </p>
           </div>
         </Link>
         {/* Close button visible only on mobile */}
@@ -77,7 +108,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Main Navigation */}
       <nav className="flex-1 space-y-1 px-4 py-6 overflow-y-auto">
         {navigation.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const isActive = pathname === item.href || (item.href !== "/dashboard" && item.href !== "/super-admin" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.name}
@@ -96,22 +127,38 @@ export default function Sidebar({ onClose }: SidebarProps) {
         })}
       </nav>
 
-      {/* Enroll CTA */}
-      <div className="px-4 pb-4">
-        <Link
-          href="/dashboard/students/new"
-          onClick={handleNavClick}
-          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[#b05e1c] text-white font-bold text-sm hover:bg-[#965017] transition-colors shadow-sm"
-        >
-          <UserPlus className="h-5 w-5" />
-          Enroll New Student
-        </Link>
-      </div>
+      {/* Enroll CTA - Only for Schools */}
+      {role !== "SuperAdmin" && (
+        <div className="px-4 pb-4">
+          <Link
+            href="/dashboard/students/new"
+            onClick={handleNavClick}
+            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[#b05e1c] text-white font-bold text-sm hover:bg-[#965017] transition-colors shadow-sm"
+          >
+            <UserPlus className="h-5 w-5" />
+            Enroll New Student
+          </Link>
+        </div>
+      )}
+
+      {/* Super Admin CTA - Quick Invite */}
+      {role === "SuperAdmin" && (
+        <div className="px-4 pb-4">
+          <Link
+            href="/super-admin/schools"
+            onClick={handleNavClick}
+            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[#b05e1c] text-white font-bold text-sm hover:bg-[#965017] transition-colors shadow-sm"
+          >
+            <School className="h-5 w-5" />
+            Register New School
+          </Link>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <div className="border-t border-white/10 p-4 space-y-1">
         <Link
-          href="/dashboard/settings"
+          href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"}
           onClick={handleNavClick}
           className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
         >
@@ -129,3 +176,4 @@ export default function Sidebar({ onClose }: SidebarProps) {
     </div>
   );
 }
+
