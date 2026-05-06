@@ -10,15 +10,41 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
+/** Fetch with a timeout so requests don't hang forever on cold-starting backends */
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 30000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Request timed out. The server may be starting up — please try again in a moment.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const errorBody = await res.text().catch(() => '');
     let message = `API Error ${res.status}`;
     try {
       const parsed = JSON.parse(errorBody);
-      message = parsed.message || parsed.title || parsed.errors
-        ? JSON.stringify(parsed.errors || parsed)
-        : errorBody || message;
+      // Extract the most useful error message from the response
+      if (typeof parsed.message === 'string' && parsed.message) {
+        message = parsed.message;
+      } else if (typeof parsed.title === 'string' && parsed.title) {
+        message = parsed.title;
+      } else if (parsed.errors) {
+        // .NET validation errors come as { errors: { Field: ["msg"] } }
+        const errMessages = Object.values(parsed.errors).flat();
+        message = errMessages.join('. ') || JSON.stringify(parsed.errors);
+      } else if (errorBody) {
+        message = errorBody;
+      }
     } catch {
       if (errorBody) message = errorBody;
     }
@@ -256,7 +282,7 @@ export interface PaginatedResponse<T> {
 // Auth
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
-    const res = await fetch(`${API_BASE_URL}/Auth/login`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -265,7 +291,7 @@ export const authApi = {
   },
 
   register: async (data: RegisterSchoolRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Auth/register`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -274,7 +300,7 @@ export const authApi = {
   },
 
   refreshToken: async (data: RefreshTokenRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Auth/refresh-token`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/refresh-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -283,7 +309,7 @@ export const authApi = {
   },
 
   changePassword: async (data: ChangePasswordRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Auth/change-password`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/change-password`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -295,14 +321,14 @@ export const authApi = {
 // Dashboard
 export const dashboardApi = {
   getSchoolDashboard: async (): Promise<DashboardStats> => {
-    const res = await fetch(`${API_BASE_URL}/Dashboard/school`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Dashboard/school`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<DashboardStats>(res);
   },
 
   getSuperAdminDashboard: async (): Promise<DashboardStats> => {
-    const res = await fetch(`${API_BASE_URL}/Dashboard/superadmin`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Dashboard/superadmin`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<DashboardStats>(res);
@@ -317,21 +343,21 @@ export const studentApi = {
       PageSize: String(pageSize),
     });
     if (search) params.set('Search', search);
-    const res = await fetch(`${API_BASE_URL}/Student?${params}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Student?${params}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<PaginatedResponse<Student>>(res);
   },
 
   getById: async (id: string): Promise<Student> => {
-    const res = await fetch(`${API_BASE_URL}/Student/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Student/${id}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<Student>(res);
   },
 
   create: async (data: CreateStudentRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Student`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Student`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -340,7 +366,7 @@ export const studentApi = {
   },
 
   update: async (id: string, data: UpdateStudentRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Student/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Student/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -349,7 +375,7 @@ export const studentApi = {
   },
 
   delete: async (id: string) => {
-    const res = await fetch(`${API_BASE_URL}/Student/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Student/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -357,7 +383,7 @@ export const studentApi = {
   },
 
   search: async (q: string) => {
-    const res = await fetch(`${API_BASE_URL}/Student/search?q=${encodeURIComponent(q)}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Student/search?q=${encodeURIComponent(q)}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<Student[]>(res);
@@ -372,21 +398,21 @@ export const teacherApi = {
       PageSize: String(pageSize),
     });
     if (search) params.set('Search', search);
-    const res = await fetch(`${API_BASE_URL}/Teacher?${params}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher?${params}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<PaginatedResponse<Teacher>>(res);
   },
 
   getById: async (id: string): Promise<Teacher> => {
-    const res = await fetch(`${API_BASE_URL}/Teacher/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher/${id}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<Teacher>(res);
   },
 
   create: async (data: CreateTeacherRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Teacher`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -395,7 +421,7 @@ export const teacherApi = {
   },
 
   update: async (id: string, data: UpdateTeacherRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Teacher/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -404,7 +430,7 @@ export const teacherApi = {
   },
 
   updateStatus: async (id: string, isActive: boolean) => {
-    const res = await fetch(`${API_BASE_URL}/Teacher/${id}/status?isActive=${isActive}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher/${id}/status?isActive=${isActive}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
     });
@@ -412,7 +438,7 @@ export const teacherApi = {
   },
 
   assign: async (id: string, data: AssignTeacherRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Teacher/${id}/assign`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher/${id}/assign`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -421,7 +447,7 @@ export const teacherApi = {
   },
 
   removeAssignment: async (assignmentId: string) => {
-    const res = await fetch(`${API_BASE_URL}/Teacher/assignment/${assignmentId}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher/assignment/${assignmentId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -432,21 +458,21 @@ export const teacherApi = {
 // Classes
 export const classApi = {
   getAll: async () => {
-    const res = await fetch(`${API_BASE_URL}/Class`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Class`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<SchoolClass[]>(res);
   },
 
   getById: async (id: string): Promise<SchoolClass> => {
-    const res = await fetch(`${API_BASE_URL}/Class/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Class/${id}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<SchoolClass>(res);
   },
 
   create: async (data: CreateClassRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Class`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Class`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -455,7 +481,7 @@ export const classApi = {
   },
 
   update: async (id: string, data: UpdateClassRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Class/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Class/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -464,7 +490,7 @@ export const classApi = {
   },
 
   delete: async (id: string) => {
-    const res = await fetch(`${API_BASE_URL}/Class/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Class/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -472,7 +498,7 @@ export const classApi = {
   },
 
   assignSubjects: async (id: string, data: AssignSubjectsToClassRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Class/${id}/subjects`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Class/${id}/subjects`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -484,14 +510,14 @@ export const classApi = {
 // Subjects
 export const subjectApi = {
   getAll: async () => {
-    const res = await fetch(`${API_BASE_URL}/Subject`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Subject`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<Subject[]>(res);
   },
 
   create: async (data: CreateSubjectRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Subject`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Subject`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -500,7 +526,7 @@ export const subjectApi = {
   },
 
   update: async (id: string, data: UpdateSubjectRequest) => {
-    const res = await fetch(`${API_BASE_URL}/Subject/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Subject/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -509,7 +535,7 @@ export const subjectApi = {
   },
 
   delete: async (id: string) => {
-    const res = await fetch(`${API_BASE_URL}/Subject/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/Subject/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -520,14 +546,14 @@ export const subjectApi = {
 // Academic Sessions
 export const sessionApi = {
   getAll: async () => {
-    const res = await fetch(`${API_BASE_URL}/AcademicSession`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<AcademicSession[]>(res);
   },
 
   create: async (data: CreateSessionRequest) => {
-    const res = await fetch(`${API_BASE_URL}/AcademicSession`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -536,7 +562,7 @@ export const sessionApi = {
   },
 
   setCurrent: async (id: string) => {
-    const res = await fetch(`${API_BASE_URL}/AcademicSession/${id}/current`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession/${id}/current`, {
       method: 'PUT',
       headers: getAuthHeaders(),
     });
@@ -544,7 +570,7 @@ export const sessionApi = {
   },
 
   addTerm: async (sessionId: string, data: CreateTermRequest) => {
-    const res = await fetch(`${API_BASE_URL}/AcademicSession/${sessionId}/terms`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession/${sessionId}/terms`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -553,7 +579,7 @@ export const sessionApi = {
   },
 
   setCurrentTerm: async (termId: string) => {
-    const res = await fetch(`${API_BASE_URL}/AcademicSession/terms/${termId}/current`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession/terms/${termId}/current`, {
       method: 'PUT',
       headers: getAuthHeaders(),
     });
@@ -569,14 +595,14 @@ export const schoolApi = {
       PageSize: String(pageSize),
     });
     if (search) params.set('Search', search);
-    const res = await fetch(`${API_BASE_URL}/School?${params}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/School?${params}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<PaginatedResponse<unknown>>(res);
   },
 
   getPlans: async () => {
-    const res = await fetch(`${API_BASE_URL}/School/plans`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/School/plans`, {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);

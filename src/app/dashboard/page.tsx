@@ -14,6 +14,13 @@ export default function DashboardOverview() {
   const [userName, setUserName] = useState("Admin");
 
   useEffect(() => {
+    // Check for auth token first
+    const token = localStorage.getItem("leoned_token");
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+
     // Get user name from stored auth data
     try {
       const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
@@ -26,6 +33,14 @@ export default function DashboardOverview() {
         setStats(data);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Failed to load dashboard";
+        // If unauthorized, redirect to login
+        if (message.includes("401") || message.toLowerCase().includes("unauthorized")) {
+          localStorage.removeItem("leoned_token");
+          localStorage.removeItem("leoned_refresh_token");
+          localStorage.removeItem("leoned_user");
+          window.location.href = "/login";
+          return;
+        }
         setError(message);
       } finally {
         setIsLoading(false);
