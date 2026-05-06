@@ -597,7 +597,8 @@ export const sessionApi = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<AcademicSession[]>(res);
+    const result = await handleResponse<any>(res);
+    return (result?.data || result?.items || result) as AcademicSession[];
   },
 
   create: async (data: CreateSessionRequest) => {
