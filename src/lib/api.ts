@@ -14,6 +14,14 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
+/** Convert a date-only string (YYYY-MM-DD) to ISO date-time for the .NET backend */
+function toDateTime(dateStr: string): string {
+  if (!dateStr) return dateStr;
+  // Already has time component
+  if (dateStr.includes('T')) return dateStr;
+  return `${dateStr}T00:00:00`;
+}
+
 /** Fetch with timeout + automatic retry for cold-starting backends */
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 60000): Promise<Response> {
   const maxRetries = 1;
@@ -384,10 +392,14 @@ export const studentApi = {
   },
 
   create: async (data: CreateStudentRequest) => {
+    const payload = { ...data };
+    if (payload.dateOfBirth) {
+      payload.dateOfBirth = toDateTime(payload.dateOfBirth);
+    }
     const res = await fetchWithTimeout(`${API_BASE_URL}/Student`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     return handleResponse(res);
   },
@@ -584,10 +596,15 @@ export const sessionApi = {
   },
 
   create: async (data: CreateSessionRequest) => {
+    const payload = {
+      ...data,
+      startDate: toDateTime(data.startDate),
+      endDate: toDateTime(data.endDate),
+    };
     const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     return handleResponse(res);
   },
@@ -601,10 +618,15 @@ export const sessionApi = {
   },
 
   addTerm: async (sessionId: string, data: CreateTermRequest) => {
+    const payload = {
+      ...data,
+      startDate: toDateTime(data.startDate),
+      endDate: toDateTime(data.endDate),
+    };
     const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession/${sessionId}/terms`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     return handleResponse(res);
   },
