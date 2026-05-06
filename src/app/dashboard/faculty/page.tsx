@@ -27,8 +27,15 @@ export default function FacultyDirectory() {
     setError("");
     try {
       const response = await teacherApi.getAll(page, 20);
-      const items = Array.isArray(response) ? response : (response?.items || response?.data || []);
-      const validItems = Array.isArray(items) ? items : [];
+      // Safely unwrap data from .NET paginated wrapper structures
+      let extractedItems: any = response;
+      if (response?.data) {
+        extractedItems = Array.isArray(response.data) ? response.data : (response.data.items || response.data.data || response.data);
+      } else if (response?.items) {
+        extractedItems = response.items;
+      }
+      
+      const validItems = Array.isArray(extractedItems) ? extractedItems : [];
       setTeachers(validItems);
       setTotalCount(typeof response === 'object' && !Array.isArray(response) ? (response.totalCount ?? validItems.length) : validItems.length);
       setTotalPages(typeof response === 'object' && !Array.isArray(response) ? (response.totalPages ?? 1) : 1);

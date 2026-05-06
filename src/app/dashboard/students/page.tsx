@@ -32,10 +32,23 @@ export default function StudentsPage() {
     setError("");
     try {
       const response = await studentApi.getAll(page, 20);
-      const items = Array.isArray(response) ? response : (response.items || response.data || []);
-      setStudents(items);
-      setTotalCount(typeof response === 'object' && !Array.isArray(response) ? (response.totalCount ?? items.length) : items.length);
-      setTotalPages(typeof response === 'object' && !Array.isArray(response) ? (response.totalPages ?? 1) : 1);
+      // Safely unwrap data from .NET paginated wrapper structures
+      let extractedItems: any = response;
+      let respTotalCount = typeof response === 'object' && !Array.isArray(response) ? response.totalCount : undefined;
+      let respTotalPages = typeof response === 'object' && !Array.isArray(response) ? response.totalPages : undefined;
+      
+      if (response?.data) {
+        extractedItems = Array.isArray(response.data) ? response.data : (response.data.items || response.data.data || response.data);
+        if (response.data.totalCount !== undefined) respTotalCount = response.data.totalCount;
+        if (response.data.totalPages !== undefined) respTotalPages = response.data.totalPages;
+      } else if (response?.items) {
+        extractedItems = response.items;
+      }
+      
+      const validItems = Array.isArray(extractedItems) ? extractedItems : [];
+      setStudents(validItems);
+      setTotalCount(respTotalCount ?? validItems.length);
+      setTotalPages(respTotalPages ?? 1);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load students";
       setError(message);
