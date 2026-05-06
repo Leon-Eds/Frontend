@@ -27,10 +27,10 @@ export default function FacultyDirectory() {
     setError("");
     try {
       const response = await teacherApi.getAll(page, 20);
-      // The API might return { items: [...] } or it might be an array directly
-      const items = Array.isArray(response) ? response : (response.items || response.data || []);
-      setTeachers(items);
-      setTotalCount(typeof response === 'object' && !Array.isArray(response) ? (response.totalCount ?? items.length) : items.length);
+      const items = Array.isArray(response) ? response : (response?.items || response?.data || []);
+      const validItems = Array.isArray(items) ? items : [];
+      setTeachers(validItems);
+      setTotalCount(typeof response === 'object' && !Array.isArray(response) ? (response.totalCount ?? validItems.length) : validItems.length);
       setTotalPages(typeof response === 'object' && !Array.isArray(response) ? (response.totalPages ?? 1) : 1);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load teachers";
