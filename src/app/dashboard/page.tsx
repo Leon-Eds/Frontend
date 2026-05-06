@@ -5,6 +5,7 @@ import Link from "next/link";
 import { dashboardApi, DashboardStats } from "@/lib/api";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/dashboard/DataTable";
+import SetupGuide from "@/components/dashboard/SetupGuide";
 import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus, Loader2 } from "lucide-react";
 
 export default function DashboardOverview() {
@@ -82,6 +83,9 @@ export default function DashboardOverview() {
           Welcome back, {userName}. Here is your campus overview for the <span className="text-[#b05e1c] font-semibold">{termLabel}</span>.
         </p>
       </div>
+
+      {/* Admin Setup Guide */}
+      <SetupGuide />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

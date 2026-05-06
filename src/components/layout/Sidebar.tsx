@@ -13,7 +13,8 @@ import {
   HelpCircle,
   LogOut,
   UserPlus,
-  X
+  X,
+  CalendarClock
 } from "lucide-react";
 
 const navigation = [
@@ -22,6 +23,7 @@ const navigation = [
   { name: "Academic Flow", href: "/dashboard/classes", icon: BookOpen },
   { name: "Financials", href: "/dashboard/finance", icon: Banknote },
   { name: "Staff Directory", href: "/dashboard/faculty", icon: Users },
+  { name: "Session Rollover", href: "/dashboard/rollover", icon: CalendarClock },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

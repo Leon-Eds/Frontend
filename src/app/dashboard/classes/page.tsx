@@ -1,19 +1,22 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote, X, Loader2, AlertCircle, Trash2 } from 'lucide-react';
-import { classApi, subjectApi, SchoolClass, Subject, CreateClassRequest, CreateSubjectRequest } from '@/lib/api';
+import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote, X, Loader2, AlertCircle, Trash2, CheckCircle2 } from 'lucide-react';
+import { classApi, subjectApi, sessionApi, SchoolClass, Subject, AcademicSession, CreateClassRequest, CreateSubjectRequest } from '@/lib/api';
+import Link from 'next/link';
 
 type ModalType = 'createClass' | 'subjectLibrary' | null;
 
 export default function AcademicFlow() {
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [currentSession, setCurrentSession] = useState<AcademicSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Create Class form
@@ -27,14 +30,20 @@ export default function AcademicFlow() {
     setIsLoading(true);
     setError("");
     try {
-      const [classData, subjectData] = await Promise.all([
+      const [classData, subjectData, sessionData] = await Promise.all([
         classApi.getAll(),
         subjectApi.getAll(),
+        sessionApi.getAll().catch(() => []),
       ]);
       const classItems = Array.isArray(classData) ? classData : [];
       const subjectItems = Array.isArray(subjectData) ? subjectData : [];
       setClasses(classItems);
       setSubjects(subjectItems);
+
+      // Find current session
+      const sessions = Array.isArray(sessionData) ? sessionData : [];
+      const active = sessions.find(s => s.isCurrent);
+      setCurrentSession(active || null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load academic data";
       setError(message);
@@ -47,6 +56,14 @@ export default function AcademicFlow() {
     fetchData();
   }, [fetchData]);
 
+  // Auto-clear success messages
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(""), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
+
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
@@ -56,13 +73,28 @@ export default function AcademicFlow() {
     }
     setIsSubmitting(true);
     try {
-      await classApi.create({ name: className.trim(), arm: classArm.trim() || undefined });
+      const payload: CreateClassRequest = {
+        name: className.trim(),
+        arm: classArm.trim() || undefined,
+      };
+      // Include current session ID if available
+      if (currentSession?.id) {
+        payload.academicSessionId = currentSession.id;
+      }
+      
+      console.log('[Create Class] Sending payload:', JSON.stringify(payload));
+      await classApi.create(payload);
+      
+      // Success — close modal, reset form, refresh
       setActiveModal(null);
       setClassName('');
       setClassArm('');
+      setSuccessMsg(`Class "${payload.name}" created successfully!`);
       await fetchData();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to create class");
+      const msg = err instanceof Error ? err.message : "Failed to create class";
+      console.error('[Create Class] Error:', msg);
+      setFormError(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -80,6 +112,7 @@ export default function AcademicFlow() {
       await subjectApi.create({ name: subjectName.trim() });
       setSubjectName('');
       setFormError("");
+      setSuccessMsg(`Subject "${subjectName.trim()}" added!`);
       // Refresh subjects list
       const freshSubjects = await subjectApi.getAll();
       setSubjects(Array.isArray(freshSubjects) ? freshSubjects : []);
@@ -104,6 +137,7 @@ export default function AcademicFlow() {
     try {
       await classApi.delete(id);
       setClasses(prev => prev.filter(c => c.id !== id));
+      setSuccessMsg("Class deleted successfully.");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to delete class");
     }
@@ -114,6 +148,19 @@ export default function AcademicFlow() {
   return (
     <div className="max-w-7xl mx-auto space-y-8 sm:space-y-10 pb-10">
       
+      {/* Success Toast */}
+      {successMsg && (
+        <div className="fixed top-6 right-6 z-[60] animate-in slide-in-from-top fade-in duration-300">
+          <div className="flex items-center gap-3 bg-[#053d26] text-white px-6 py-4 rounded-2xl shadow-2xl">
+            <CheckCircle2 className="h-5 w-5 text-green-300 shrink-0" />
+            <span className="text-sm font-semibold">{successMsg}</span>
+            <button onClick={() => setSuccessMsg("")} className="text-green-200 hover:text-white ml-2">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
         <div className="max-w-2xl">
@@ -186,12 +233,21 @@ export default function AcademicFlow() {
           </div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">No classes created yet</h3>
           <p className="text-sm text-gray-500 mb-6">Add your first class to start building your academic structure.</p>
-          <button
-            onClick={() => { setActiveModal('createClass'); setFormError(''); }}
-            className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
-          >
-            Add New Class
-          </button>
+          {!currentSession && (
+            <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 inline-block">
+              <p className="text-sm text-amber-800 font-medium">
+                💡 Tip: <Link href="/dashboard/rollover" className="underline font-bold hover:text-amber-900">Create an academic session</Link> first for best results.
+              </p>
+            </div>
+          )}
+          <div>
+            <button
+              onClick={() => { setActiveModal('createClass'); setFormError(''); }}
+              className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
+            >
+              Add New Class
+            </button>
+          </div>
         </div>
       ) : (
         <div>
@@ -320,7 +376,28 @@ export default function AcademicFlow() {
             </button>
 
             <h2 className="text-2xl font-bold text-[#053d26] mb-2">Add New Class</h2>
-            <p className="text-sm text-gray-500 mb-8">Create a new class level for your school.</p>
+            <p className="text-sm text-gray-500 mb-6">Create a new class level for your school.</p>
+
+            {/* No-session warning */}
+            {!currentSession && (
+              <div className="mb-6 p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800">
+                <strong>Note:</strong> No active academic session found. It&apos;s recommended to{' '}
+                <Link href="/dashboard/rollover" className="underline font-bold" onClick={() => setActiveModal(null)}>
+                  create a session
+                </Link>{' '}
+                first, but you can still create a class.
+              </div>
+            )}
+
+            {/* Session badge */}
+            {currentSession && (
+              <div className="mb-6 p-3 rounded-xl bg-green-50 border border-green-200 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                <span className="text-sm text-green-800">
+                  Session: <strong>{currentSession.name}</strong> (will be auto-linked)
+                </span>
+              </div>
+            )}
 
             {formError && (
               <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{formError}</div>
@@ -336,6 +413,7 @@ export default function AcademicFlow() {
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                   placeholder="e.g. SSS 1, JSS 2, Grade 5"
                   disabled={isSubmitting}
+                  autoFocus
                 />
               </div>
               <div>
@@ -371,7 +449,7 @@ export default function AcademicFlow() {
             </button>
 
             <h2 className="text-2xl font-bold text-[#053d26] mb-2">Subject Library</h2>
-            <p className="text-sm text-gray-500 mb-6">Manage your school's curriculum subjects.</p>
+            <p className="text-sm text-gray-500 mb-6">Manage your school&apos;s curriculum subjects.</p>
 
             {/* Add new subject form */}
             <form onSubmit={handleCreateSubject} className="flex gap-2 mb-6">

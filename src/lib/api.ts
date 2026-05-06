@@ -468,7 +468,9 @@ export const classApi = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/Class`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<SchoolClass[]>(res);
+    const data = await handleResponse<SchoolClass[] | PaginatedResponse<SchoolClass>>(res);
+    if (Array.isArray(data)) return data;
+    return data.items || data.data || [];
   },
 
   getById: async (id: string): Promise<SchoolClass> => {
@@ -520,7 +522,9 @@ export const subjectApi = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/Subject`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<Subject[]>(res);
+    const data = await handleResponse<Subject[] | PaginatedResponse<Subject>>(res);
+    if (Array.isArray(data)) return data;
+    return data.items || data.data || [];
   },
 
   create: async (data: CreateSubjectRequest) => {
