@@ -14,21 +14,41 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
-/** Fetch with a timeout so requests don't hang forever on cold-starting backends */
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 30000): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    return res;
-  } catch (err: unknown) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error('Request timed out. The server may be starting up — please try again in a moment.');
+/** Fetch with timeout + automatic retry for cold-starting backends */
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 60000): Promise<Response> {
+  const maxRetries = 1;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (err: unknown) {
+      clearTimeout(timer);
+      lastError = err;
+
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw new Error('Request timed out. The server may be starting up — please try again in a moment.');
+      }
+
+      // On network error ("Failed to fetch"), retry once after a short delay
+      if (attempt < maxRetries) {
+        console.warn(`[API] Network error on attempt ${attempt + 1}, retrying in 2s...`, url);
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
+      }
     }
-    throw err;
-  } finally {
-    clearTimeout(timer);
   }
+
+  // If we exhausted retries, throw a helpful message
+  const errMsg = lastError instanceof Error ? lastError.message : String(lastError);
+  if (errMsg === 'Failed to fetch' || errMsg.includes('fetch')) {
+    throw new Error('Could not reach the server. It may be starting up — please wait a moment and try again.');
+  }
+  throw lastError;
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
