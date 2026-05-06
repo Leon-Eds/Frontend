@@ -17,9 +17,14 @@ function getAuthHeaders(): HeadersInit {
 /** Convert a date-only string (YYYY-MM-DD) to ISO date-time for the .NET backend */
 function toDateTime(dateStr: string): string {
   if (!dateStr) return dateStr;
-  // Already has time component
-  if (dateStr.includes('T')) return dateStr;
-  return `${dateStr}T00:00:00`;
+  let result = dateStr;
+  if (!result.includes('T')) {
+    result = `${result}T00:00:00`;
+  }
+  if (!result.endsWith('Z')) {
+    result = `${result}Z`;
+  }
+  return result;
 }
 
 /** Fetch with timeout + automatic retry for cold-starting backends */
