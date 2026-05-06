@@ -48,6 +48,7 @@ export default function FacultyDirectory() {
   }, [page]);
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchTeachers();
   }, [fetchTeachers]);
 

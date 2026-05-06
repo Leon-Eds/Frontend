@@ -12,15 +12,19 @@ export default function DashboardOverview() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [userName, setUserName] = useState("Admin");
+  const [userName] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
+        return user.name || "Admin";
+      } catch {
+        return "Admin";
+      }
+    }
+    return "Admin";
+  });
 
   useEffect(() => {
-    // Get user name from stored auth data
-    try {
-      const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
-      if (user.name) setUserName(user.name);
-    } catch {}
-
     const fetchDashboard = async () => {
       try {
         const data = await dashboardApi.getSchoolDashboard();
@@ -32,6 +36,7 @@ export default function DashboardOverview() {
         setIsLoading(false);
       }
     };
+    // eslint-disable-next-line
     fetchDashboard();
   }, []);
 

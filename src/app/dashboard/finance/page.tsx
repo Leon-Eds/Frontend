@@ -1,6 +1,7 @@
 import { Banknote, TrendingUp, ArrowDownCircle, ArrowUpCircle, PieChart } from "lucide-react";
 
 export default function FinancialsPage() {
+
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-10">
       {/* Header */}

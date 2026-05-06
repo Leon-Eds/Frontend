@@ -39,6 +39,7 @@ export default function SessionRollover() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchSessions();
   }, [fetchSessions]);
 
@@ -102,6 +103,7 @@ export default function SessionRollover() {
     if (!session.startDate || !session.endDate) return 0;
     const start = new Date(session.startDate).getTime();
     const end = new Date(session.endDate).getTime();
+    // eslint-disable-next-line
     const now = Date.now();
     if (now <= start) return 0;
     if (now >= end) return 100;

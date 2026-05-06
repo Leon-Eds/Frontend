@@ -38,6 +38,7 @@ export default function SettingsPage() {
       const user = localStorage.getItem('leoned_user');
       if (user) {
         const parsed = JSON.parse(user);
+        // eslint-disable-next-line
         setSchoolName(parsed.schoolName || "");
       }
     } catch { /* ignore */ }

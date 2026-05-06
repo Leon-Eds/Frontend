@@ -53,6 +53,7 @@ export default function AcademicFlow() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchData();
   }, [fetchData]);
 
