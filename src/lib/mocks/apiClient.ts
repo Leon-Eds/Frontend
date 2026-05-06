@@ -32,7 +32,7 @@ export interface CreateSessionRequest {
   endDate: string;
 }
 
-export const submitStudentEnrollment = async (data: CreateStudentRequest): Promise<{ success: boolean; data: any }> => {
+export const submitStudentEnrollment = async (data: CreateStudentRequest): Promise<{ success: boolean; data: Record<string, unknown> }> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({

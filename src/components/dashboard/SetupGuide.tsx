@@ -32,7 +32,12 @@ interface SetupStep {
 export default function SetupGuide() {
   const [steps, setSteps] = useState<SetupStep[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('leoned_setup_dismissed') === 'true';
+    }
+    return false;
+  });
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
   const checkSetup = useCallback(async () => {
@@ -141,11 +146,6 @@ export default function SetupGuide() {
   }, []);
 
   useEffect(() => {
-    // Check if user previously dismissed the guide
-    const wasDismissed = localStorage.getItem('leoned_setup_dismissed');
-    if (wasDismissed === 'true') {
-      setDismissed(true);
-    }
     checkSetup();
   }, [checkSetup]);
 

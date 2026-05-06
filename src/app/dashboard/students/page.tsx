@@ -33,7 +33,7 @@ export default function StudentsPage() {
     try {
       const response = await studentApi.getAll(page, 20);
       // Safely unwrap data from .NET paginated wrapper structures
-      let extractedItems: any = response;
+      let extractedItems: unknown = response;
       let respTotalCount = typeof response === 'object' && !Array.isArray(response) ? response.totalCount : undefined;
       let respTotalPages = typeof response === 'object' && !Array.isArray(response) ? response.totalPages : undefined;
       

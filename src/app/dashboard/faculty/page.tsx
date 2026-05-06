@@ -28,7 +28,7 @@ export default function FacultyDirectory() {
     try {
       const response = await teacherApi.getAll(page, 20);
       // Safely unwrap data from .NET paginated wrapper structures
-      let extractedItems: any = response;
+      let extractedItems: unknown = response;
       if (response?.data) {
         extractedItems = Array.isArray(response.data) ? response.data : (response.data.items || response.data.data || response.data);
       } else if (response?.items) {

@@ -18,14 +18,17 @@ interface HeaderProps {
 
 export default function Header({ onMenuToggle }: HeaderProps) {
   const pathname = usePathname();
-  const [userName, setUserName] = useState("Admin");
-
-  useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
-      if (user.name) setUserName(user.name);
-    } catch {}
-  }, []);
+  const [userName, setUserName] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
+        return user.name || "Admin";
+      } catch {
+        return "Admin";
+      }
+    }
+    return "Admin";
+  });
 
   const initials = userName
     .split(" ")

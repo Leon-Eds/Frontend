@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { MoreVertical, Check } from 'lucide-react';
+import { MoreVertical } from 'lucide-react';
 
 export interface Column<T> {
   header: string;

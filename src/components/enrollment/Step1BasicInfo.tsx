@@ -147,8 +147,8 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
                 { label: 'O+', value: 'O+' },
                 { label: 'O-', value: 'O-' },
               ]}
-              value={(data as any).bloodGroup || ''}
-              onChange={(e) => updateData({ ...data, bloodGroup: e.target.value } as any)}
+              value={data.bloodGroup || ''}
+              onChange={(e) => updateData({ ...data, bloodGroup: e.target.value })}
             />
           </div>
 
@@ -161,7 +161,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
                 <button
                   key={gender}
                   type="button"
-                  onClick={() => updateData({ gender: gender as any })}
+                  onClick={() => updateData({ gender: gender as 'Male' | 'Female' | 'Other' })}
                   className={`flex-1 py-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
                     data.gender === gender
                       ? 'bg-white border-2 border-[#053d26] text-[#053d26] shadow-sm'

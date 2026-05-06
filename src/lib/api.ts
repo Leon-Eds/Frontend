@@ -150,6 +150,8 @@ export interface CreateStudentRequest {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
+  bloodGroup?: string;
+  arm?: string;
 }
 
 export interface UpdateStudentRequest {
@@ -597,7 +599,7 @@ export const sessionApi = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession`, {
       headers: getAuthHeaders(),
     });
-    const result = await handleResponse<any>(res);
+    const result = await handleResponse<Record<string, unknown>>(res);
     return (result?.data || result?.items || result) as AcademicSession[];
   },
 
