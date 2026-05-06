@@ -6,7 +6,11 @@ function getAuthHeaders(): HeadersInit {
   if (typeof window === 'undefined') return { 'Content-Type': 'application/json' };
   const token = localStorage.getItem('leoned_token');
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  
+  // Defensive check: don't send "Bearer undefined" or "Bearer null"
+  if (token && token !== 'undefined' && token !== 'null') {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   return headers;
 }
 
@@ -48,6 +52,9 @@ async function handleResponse<T>(res: Response): Promise<T> {
     } catch {
       if (errorBody) message = errorBody;
     }
+    
+    // Log the error for easier debugging in the console
+    console.error(`[API Error] ${res.status} ${res.url}:`, message);
     throw new Error(message);
   }
   const text = await res.text();

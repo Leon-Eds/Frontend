@@ -27,10 +27,20 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const response = await authApi.login({ email, password });
+      
+      // Extract token with fallbacks for different backend structures
+      const token = (response as any).token || (response as any).accessToken || (response as any).data?.token;
+      const refreshToken = (response as any).refreshToken || (response as any).data?.refreshToken;
+      
+      if (!token) {
+        throw new Error("Login succeeded but no security token was returned. Please contact support.");
+      }
+
       // Store auth data
-      localStorage.setItem("leoned_token", response.token);
-      localStorage.setItem("leoned_refresh_token", response.refreshToken);
-      localStorage.setItem("leoned_user", JSON.stringify(response.user));
+      localStorage.setItem("leoned_token", token);
+      if (refreshToken) localStorage.setItem("leoned_refresh_token", refreshToken);
+      localStorage.setItem("leoned_user", JSON.stringify(response.user || (response as any).data?.user));
+      
       router.push("/dashboard");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Login failed. Please check your credentials.";
