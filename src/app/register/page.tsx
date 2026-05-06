@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Lock, School, User, Mail, Phone, MapPin, Globe, ChevronRight, ChevronLeft, CheckCircle2, Building2, BookOpen } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Lock, School, User, Mail, Phone, MapPin, Globe, ChevronRight, ChevronLeft, CheckCircle2, Building2, BookOpen, Loader2 } from "lucide-react";
+import { authApi } from "@/lib/api";
 
 const steps = [
   { id: 1, label: "School Info" },
@@ -12,8 +14,11 @@ const steps = [
 ];
 
 export default function RegisterSchoolPage() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState("");
   const [formData, setFormData] = useState({
     schoolName: "",
     schoolType: "",
@@ -76,7 +81,29 @@ export default function RegisterSchoolPage() {
       return;
     }
     setErrors({});
+    setApiError("");
     setCurrentStep((prev) => Math.min(prev + 1, 3));
+  };
+
+  const handleRegister = async () => {
+    setIsSubmitting(true);
+    setApiError("");
+    try {
+      await authApi.register({
+        schoolName: formData.schoolName,
+        adminName: formData.adminName,
+        email: formData.adminEmail,
+        password: formData.password,
+        phone: formData.adminPhone || undefined,
+        address: formData.address || undefined,
+      });
+      router.push("/login");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Registration failed. Please try again.";
+      setApiError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
@@ -414,6 +441,12 @@ export default function RegisterSchoolPage() {
                   <p className="text-sm text-gray-500">Review your details before submitting.</p>
                 </div>
 
+                {apiError && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                    {apiError}
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4">School Details</h3>
@@ -495,13 +528,24 @@ export default function RegisterSchoolPage() {
                   <ChevronRight className="h-4 w-4" />
                 </button>
               ) : (
-                <Link
-                  href="/login"
-                  className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20"
+                <button
+                  type="button"
+                  onClick={handleRegister}
+                  disabled={isSubmitting}
+                  className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Complete Registration
-                </Link>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Complete Registration
+                    </>
+                  )}
+                </button>
               )}
             </div>
           </div>

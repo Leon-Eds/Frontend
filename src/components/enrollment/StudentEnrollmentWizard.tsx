@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState } from 'react';
-import { CreateStudentRequest, submitStudentEnrollment } from '@/lib/mocks/apiClient';
+import { useRouter } from 'next/navigation';
+import { CreateStudentRequest, studentApi } from '@/lib/api';
 import { Step1BasicInfo } from './Step1BasicInfo';
 import { Step2GuardianInfo } from './Step2GuardianInfo';
 import { Step3AcademicPlacement } from './Step3AcademicPlacement';
 import { Step4Success } from './Step4Success';
 
 export const StudentEnrollmentWizard = () => {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<CreateStudentRequest>>({
@@ -28,15 +30,12 @@ export const StudentEnrollmentWizard = () => {
   const handleNext = async () => {
     if (currentStep === 3) {
       setIsSubmitting(true);
-      // Simulate API call
       try {
-        const response = await submitStudentEnrollment(formData as CreateStudentRequest);
-        if (response.success) {
-          // Add generated ID if needed, but the mock just simulates it
-          setCurrentStep(4);
-        }
+        await studentApi.create(formData as CreateStudentRequest);
+        setCurrentStep(4);
       } catch (error) {
         console.error("Failed to submit student", error);
+        alert(error instanceof Error ? error.message : "Failed to enroll student. Please try again.");
       } finally {
         setIsSubmitting(false);
       }
@@ -50,8 +49,9 @@ export const StudentEnrollmentWizard = () => {
   };
 
   const handleCancel = () => {
-    // In a real app, this might navigate away or show a confirmation modal
-    console.log("Enrollment cancelled");
+    if (window.confirm('Are you sure you want to cancel? All unsaved data will be lost.')) {
+      router.push('/dashboard/students');
+    }
   };
 
   const handleReset = () => {
@@ -73,9 +73,9 @@ export const StudentEnrollmentWizard = () => {
       {/* Top Header Section inside the page (optional, matches design) */}
       <div className="mb-8">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-          <span>Dashboard</span>
+          <button onClick={() => router.push('/dashboard')} className="hover:text-gray-900 transition-colors">Dashboard</button>
           <span>&rsaquo;</span>
-          <span className="font-semibold text-gray-900">Students</span>
+          <button onClick={() => router.push('/dashboard/students')} className="font-semibold text-gray-900 hover:text-[#b05e1c] transition-colors">Students</button>
           <span>&rsaquo;</span>
           <span>Add New Student</span>
         </div>
@@ -89,9 +89,8 @@ export const StudentEnrollmentWizard = () => {
           
           {[
             { step: 1, label: 'BASIC INFO' },
-            { step: 2, label: 'ACADEMIC' },
-            { step: 3, label: 'PARENTAL' },
-            { step: 4, label: 'REVIEW' },
+            { step: 2, label: 'GUARDIAN' },
+            { step: 3, label: 'ACADEMIC' },
           ].map((item) => (
             <div key={item.step} className="flex flex-col items-center gap-2 bg-[#f8f9fa] px-4">
               <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm transition-colors ${

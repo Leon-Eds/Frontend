@@ -3,7 +3,7 @@ import { Input } from '../ui/form/Input';
 import { DatePicker } from '../ui/form/DatePicker';
 import { Select } from '../ui/form/Select';
 import { Camera } from 'lucide-react';
-import { CreateStudentRequest } from '@/lib/mocks/apiClient';
+import { CreateStudentRequest } from '@/lib/api';
 
 interface Step1Props {
   data: Partial<CreateStudentRequest>;

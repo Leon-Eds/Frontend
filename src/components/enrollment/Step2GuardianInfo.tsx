@@ -3,7 +3,7 @@ import { Input } from '../ui/form/Input';
 import { Select } from '../ui/form/Select';
 import { Toggle } from '../ui/form/Toggle';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
-import { CreateStudentRequest } from '@/lib/mocks/apiClient';
+import { CreateStudentRequest } from '@/lib/api';
 
 interface Step2Props {
   data: Partial<CreateStudentRequest>;

@@ -1,9 +1,11 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
 import { Input } from '../ui/form/Input';
 import { Select } from '../ui/form/Select';
 import { DatePicker } from '../ui/form/DatePicker';
-import { Wand2, Info, CheckCircle2 } from 'lucide-react';
-import { CreateStudentRequest } from '@/lib/mocks/apiClient';
+import { Wand2, Info, CheckCircle2, Loader2 } from 'lucide-react';
+import { CreateStudentRequest, classApi, SchoolClass } from '@/lib/api';
 
 interface Step3Props {
   data: Partial<CreateStudentRequest>;
@@ -14,10 +16,32 @@ interface Step3Props {
 }
 
 export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData, onNext, onBack, isSubmitting }) => {
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const result = await classApi.getAll();
+        const items = Array.isArray(result) ? result : [];
+        setClasses(items);
+      } catch (err) {
+        console.error('Failed to load classes', err);
+      } finally {
+        setLoadingClasses(false);
+      }
+    };
+    fetchClasses();
+  }, []);
+
+  const classOptions = classes.map((c) => ({ label: c.name + (c.arm ? ` – ${c.arm}` : ''), value: c.id }));
+
   const generateAdmissionNumber = () => {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     updateData({ admissionNumber: `LEA-2024-${randomNum}` });
   };
+
+  const selectedClass = classes.find((c) => c.id === data.classId);
 
   return (
     <div className="bg-white rounded-3xl p-10 shadow-sm">
@@ -48,19 +72,19 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
         {/* Left Form Area */}
         <div className="lg:col-span-8 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Select
-              label="Class / Grade Level"
-              options={[
-                { label: 'JSS 1', value: 'JSS1' },
-                { label: 'JSS 2', value: 'JSS2' },
-                { label: 'JSS 3', value: 'JSS3' },
-                { label: 'SS 1', value: 'SS1' },
-                { label: 'SS 2', value: 'SS2' },
-                { label: 'SS 3', value: 'SS3' },
-              ]}
-              value={data.classId || ''}
-              onChange={(e) => updateData({ classId: e.target.value })}
-            />
+            {loadingClasses ? (
+              <div className="flex items-center gap-2 py-4 text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Loading classes...</span>
+              </div>
+            ) : (
+              <Select
+                label="Class / Grade Level"
+                options={classOptions.length > 0 ? classOptions : [{ label: 'No classes available', value: '' }]}
+                value={data.classId || ''}
+                onChange={(e) => updateData({ classId: e.target.value })}
+              />
+            )}
             <Select
               label="Arm / Section"
               options={[
@@ -92,7 +116,7 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
             
             <DatePicker
               label="Enrollment Date"
-              defaultValue="2024-09-15"
+              defaultValue={new Date().toISOString().split('T')[0]}
             />
           </div>
 
@@ -109,7 +133,14 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
               disabled={!data.classId || !data.admissionNumber || isSubmitting}
               className="px-8 py-4 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              {isSubmitting ? 'Processing...' : 'Save and Continue'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Save and Continue'
+              )}
             </button>
           </div>
         </div>
@@ -124,13 +155,13 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
               <h3 className="font-bold">Placement Logic</h3>
             </div>
             <p className="text-sm text-green-100/80 leading-relaxed mb-8">
-              Academic arms are dynamically generated based on student performance profiles and stream availability. Ensure the "Arm" selection aligns with the student's chosen curriculum focus (Science, Arts, or Commerce).
+              Academic arms are dynamically generated based on student performance profiles and stream availability. Ensure the &quot;Arm&quot; selection aligns with the student&apos;s chosen curriculum focus (Science, Arts, or Commerce).
             </p>
             <div className="bg-[#042c1b] rounded-2xl p-4 border border-white/5">
-              <p className="text-xs font-bold text-green-200/50 uppercase mb-1">Available Capacity</p>
+              <p className="text-xs font-bold text-green-200/50 uppercase mb-1">Selected Class</p>
               <div className="flex justify-between font-bold text-sm">
-                <span>SS2 - Emerald</span>
-                <span className="text-[#b05e1c]">12 / 30 Seats</span>
+                <span>{selectedClass ? selectedClass.name : 'None selected'}</span>
+                <span className="text-[#b05e1c]">{selectedClass?.studentCount ?? '—'} Students</span>
               </div>
             </div>
           </div>

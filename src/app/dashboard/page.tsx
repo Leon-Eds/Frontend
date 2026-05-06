@@ -1,17 +1,85 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { mockStats, mockUpcomingEvents } from "@/lib/mocks/dashboard";
+import { dashboardApi, DashboardStats } from "@/lib/api";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/dashboard/DataTable";
-import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus } from "lucide-react";
+import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus, Loader2 } from "lucide-react";
 
 export default function DashboardOverview() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [userName, setUserName] = useState("Admin");
+
+  useEffect(() => {
+    // Get user name from stored auth data
+    try {
+      const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
+      if (user.name) setUserName(user.name);
+    } catch {}
+
+    const fetchDashboard = async () => {
+      try {
+        const data = await dashboardApi.getSchoolDashboard();
+        setStats(data);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to load dashboard";
+        setError(message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-[#053d26]" />
+          <p className="text-gray-500 font-medium">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+            <FileText className="h-8 w-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Failed to load dashboard</h2>
+          <p className="text-sm text-gray-500 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const totalStudents = stats?.totalStudents ?? 0;
+  const totalTeachers = stats?.totalTeachers ?? 0;
+  const pendingResults = stats?.pendingResults ?? 0;
+  const currentTerm = stats?.currentTerm ?? "N/A";
+  const currentSession = stats?.currentSession ?? "";
+  const termProgress = stats?.termProgress ?? 0;
+  const termLabel = currentTerm + (currentSession ? ` ${currentSession}` : "");
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Welcome Section */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">School Dashboard</h1>
         <p className="text-gray-600">
-          Welcome back, Academic Architect. Here is your campus overview for the <span className="text-[#b05e1c] font-semibold">{mockStats.activeTerm.term}</span>.
+          Welcome back, {userName}. Here is your campus overview for the <span className="text-[#b05e1c] font-semibold">{termLabel}</span>.
         </p>
       </div>
 
@@ -19,20 +87,19 @@ export default function DashboardOverview() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Students"
-          value={mockStats.totalStudents.value}
+          value={totalStudents.toLocaleString()}
           icon={<GraduationCap className="h-6 w-6" />}
-          badge={mockStats.totalStudents.change}
         />
         <StatCard
           title="Total Teachers"
-          value={mockStats.totalTeachers.value}
+          value={totalTeachers.toLocaleString()}
           icon={<Users className="h-6 w-6" />}
           iconBgColor="bg-gray-100"
           iconTextColor="text-gray-600"
         />
         <StatCard
           title="Results Pending"
-          value={mockStats.resultsPending.value}
+          value={String(pendingResults)}
           icon={<FileText className="h-6 w-6" />}
           iconBgColor="bg-orange-100"
           iconTextColor="text-orange-600"
@@ -48,7 +115,7 @@ export default function DashboardOverview() {
               Active Term
             </p>
             <p className="text-3xl font-bold mb-8 leading-tight">
-              {mockStats.activeTerm.term.split(' ').map((word, i) => (
+              {termLabel.split(' ').map((word, i) => (
                 <span key={i} className="block">{word}</span>
               ))}
             </p>
@@ -57,11 +124,11 @@ export default function DashboardOverview() {
               <div className="h-2 w-full bg-black/20 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-green-200 rounded-full" 
-                  style={{ width: `${mockStats.activeTerm.progress}%` }}
+                  style={{ width: `${termProgress}%` }}
                 />
               </div>
               <p className="text-xs text-green-200 font-medium">
-                {mockStats.activeTerm.progress}% of term completed
+                {termProgress}% of term completed
               </p>
             </div>
           </div>
@@ -71,7 +138,7 @@ export default function DashboardOverview() {
       {/* Main Content Area: Table and Quick Actions side-by-side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <DataTable />
+          <DataTable activities={stats?.recentActivities} />
         </div>
         
         {/* Right Sidebar Area */}
@@ -106,27 +173,6 @@ export default function DashboardOverview() {
                 </div>
                 <div className="font-bold text-gray-700">Customize Shortcuts</div>
               </button>
-            </div>
-          </div>
-
-          {/* Upcoming Events */}
-          <div className="rounded-3xl bg-white p-6 shadow-sm border border-gray-100">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-6">
-              Upcoming Events
-            </h3>
-            <div className="space-y-6">
-              {mockUpcomingEvents.map((event) => (
-                <div key={event.id} className="flex gap-4">
-                  <div className="text-center shrink-0">
-                    <div className="text-xl font-bold text-gray-900 leading-none">{event.date}</div>
-                    <div className="text-xs font-semibold text-gray-500 mt-1">{event.month}</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-gray-900 leading-tight">{event.title}</div>
-                    <div className="text-xs text-gray-500 mt-1">{event.details}</div>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>

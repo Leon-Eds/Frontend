@@ -1,24 +1,139 @@
-import React from 'react';
-import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote } from 'lucide-react';
+"use client";
+
+import React, { useEffect, useState, useCallback } from 'react';
+import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote, X, Loader2, AlertCircle, Trash2 } from 'lucide-react';
+import { classApi, subjectApi, SchoolClass, Subject, CreateClassRequest, CreateSubjectRequest } from '@/lib/api';
+
+type ModalType = 'createClass' | 'subjectLibrary' | null;
 
 export default function AcademicFlow() {
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Create Class form
+  const [className, setClassName] = useState('');
+  const [classArm, setClassArm] = useState('');
+
+  // Create Subject form
+  const [subjectName, setSubjectName] = useState('');
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const [classData, subjectData] = await Promise.all([
+        classApi.getAll(),
+        subjectApi.getAll(),
+      ]);
+      const classItems = Array.isArray(classData) ? classData : [];
+      const subjectItems = Array.isArray(subjectData) ? subjectData : [];
+      setClasses(classItems);
+      setSubjects(subjectItems);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to load academic data";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleCreateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+    if (!className.trim()) {
+      setFormError("Class name is required.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await classApi.create({ name: className.trim(), arm: classArm.trim() || undefined });
+      setActiveModal(null);
+      setClassName('');
+      setClassArm('');
+      await fetchData();
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Failed to create class");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+    if (!subjectName.trim()) {
+      setFormError("Subject name is required.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await subjectApi.create({ name: subjectName.trim() });
+      setSubjectName('');
+      setFormError("");
+      // Refresh subjects list
+      const freshSubjects = await subjectApi.getAll();
+      setSubjects(Array.isArray(freshSubjects) ? freshSubjects : []);
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Failed to create subject");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteSubject = async (id: string) => {
+    try {
+      await subjectApi.delete(id);
+      setSubjects(prev => prev.filter(s => s.id !== id));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to delete subject");
+    }
+  };
+
+  const handleDeleteClass = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this class?")) return;
+    try {
+      await classApi.delete(id);
+      setClasses(prev => prev.filter(c => c.id !== id));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to delete class");
+    }
+  };
+
+  const totalStudents = classes.reduce((acc, c) => acc + (c.studentCount || 0), 0);
+
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-10">
+    <div className="max-w-7xl mx-auto space-y-8 sm:space-y-10 pb-10">
       
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
         <div className="max-w-2xl">
-          <h1 className="text-4xl font-bold text-[#053d26] mb-3">Academic Flow</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-[#053d26] mb-3">Academic Flow</h1>
           <p className="text-gray-600 text-sm leading-relaxed">
-            Architecting the intellectual structure of LeonEd. Manage classroom tiers, departmental alignment, and subject distribution across all grade levels.
+            Manage classroom tiers, departmental alignment, and subject distribution across all grade levels.
           </p>
         </div>
-        <div className="flex gap-4 shrink-0">
-          <button className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm">
+        <div className="flex flex-wrap gap-3 shrink-0">
+          <button
+            onClick={() => { setActiveModal('createClass'); setFormError(''); }}
+            className="flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm text-sm"
+          >
             <Plus className="h-5 w-5" />
             Add New Class
           </button>
-          <button className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white border border-gray-200 text-gray-900 font-bold hover:bg-gray-50 transition-colors shadow-sm">
+          <button
+            onClick={() => { setActiveModal('subjectLibrary'); setFormError(''); }}
+            className="flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full bg-white border border-gray-200 text-gray-900 font-bold hover:bg-gray-50 transition-colors shadow-sm text-sm"
+          >
             <BookOpen className="h-5 w-5" />
             Subject Library
           </button>
@@ -26,238 +141,295 @@ export default function AcademicFlow() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-4">Total Capacity</p>
-          <div className="text-5xl font-bold text-gray-900 mb-2">1,240</div>
-          <p className="text-xs text-gray-500 font-semibold">Active Students</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        <div className="bg-white rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-4">Total Classes</p>
+          <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-2">{classes.length}</div>
+          <p className="text-xs text-gray-500 font-semibold">Registered Classes</p>
         </div>
-        <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div className="bg-white rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-4">Curriculum Units</p>
-          <div className="text-5xl font-bold text-gray-900 mb-2">48</div>
-          <p className="text-xs text-gray-500 font-semibold">Assigned Subjects</p>
+          <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-2">{subjects.length}</div>
+          <p className="text-xs text-gray-500 font-semibold">Registered Subjects</p>
         </div>
-        <div className="bg-[#053d26] rounded-[2rem] p-8 shadow-sm text-white relative overflow-hidden flex flex-col justify-between">
+        <div className="bg-[#053d26] rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-sm text-white relative overflow-hidden flex flex-col justify-between">
           <div className="absolute right-0 bottom-0 opacity-10">
              <Settings className="w-32 h-32 -mb-8 -mr-8" />
           </div>
           <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-green-200/80 mb-4">Academic Efficiency</p>
-            <div className="text-5xl font-bold mb-2">94.2%</div>
-            <p className="text-xs text-green-100 font-semibold">Staff to Student Ratio Optimized</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-green-200/80 mb-4">Total Student Slots</p>
+            <div className="text-4xl sm:text-5xl font-bold mb-2">{totalStudents.toLocaleString()}</div>
+            <p className="text-xs text-green-100 font-semibold">Students across all classes</p>
           </div>
         </div>
       </div>
 
-      {/* Senior Secondary Level */}
-      <div>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Senior Secondary Level</h2>
-          <div className="bg-gray-100 rounded-full p-1 flex text-xs font-bold">
-            <button className="px-4 py-1.5 rounded-full bg-white text-gray-900 shadow-sm">Grid View</button>
-            <button className="px-4 py-1.5 rounded-full text-gray-500 hover:text-gray-900 transition-colors">List View</button>
-          </div>
+      {/* Classes Section */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
+          <span className="ml-3 text-gray-500 font-medium">Loading academic data...</span>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* SS3 Card */}
-          <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col h-full">
-            <div className="flex justify-between items-start mb-6">
-              <div className="h-14 w-14 rounded-2xl bg-[#053d26] text-white flex items-center justify-center text-xl font-bold">
-                SS3
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] font-bold text-[#b05e1c] uppercase tracking-widest block mb-1">Graduating Class</span>
-                <div className="flex -space-x-2 justify-end">
-                  <img src="https://i.pravatar.cc/150?u=a" className="w-6 h-6 rounded-full border border-white" alt="student" />
-                  <img src="https://i.pravatar.cc/150?u=b" className="w-6 h-6 rounded-full border border-white" alt="student" />
-                  <div className="w-6 h-6 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[8px] font-bold text-gray-600">+119</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Senior Secondary Three</h3>
-              <p className="text-xs text-gray-500">Total Students: 121 (4 Sections)</p>
-            </div>
-
-            <div className="space-y-3 mb-8 flex-1">
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
-                    <Calculator className="h-4 w-4 text-gray-600" />
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">Science Section</span>
-                </div>
-                <span className="text-xs font-semibold text-gray-500">42 Students</span>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
-                    <BookText className="h-4 w-4 text-gray-600" />
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">Arts Section</span>
-                </div>
-                <span className="text-xs font-semibold text-gray-500">38 Students</span>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button className="flex-1 py-3 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-xs font-bold text-gray-900 flex items-center justify-center gap-2">
-                <Edit2 className="w-3 h-3" /> Configure Arms
-              </button>
-              <button className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 transition-colors shrink-0">
-                <Plus className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* SS2 Card */}
-          <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col h-full">
-            <div className="flex justify-between items-start mb-6">
-              <div className="h-14 w-14 rounded-2xl bg-gray-200 text-gray-600 flex items-center justify-center text-xl font-bold">
-                SS2
-              </div>
-              <div className="text-right">
-                <span className="inline-block px-2 py-1 rounded-full bg-[#b2f2bb] text-[#053d26] text-[10px] font-bold uppercase tracking-widest mb-1">Active Term</span>
-                <div className="flex -space-x-2 justify-end">
-                  <img src="https://i.pravatar.cc/150?u=c" className="w-6 h-6 rounded-full border border-white" alt="student" />
-                  <img src="https://i.pravatar.cc/150?u=d" className="w-6 h-6 rounded-full border border-white" alt="student" />
-                  <div className="w-6 h-6 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[8px] font-bold text-gray-600">+142</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Senior Secondary Two</h3>
-              <p className="text-xs text-gray-500">Total Students: 145 (5 Sections)</p>
-            </div>
-
-            <div className="space-y-3 mb-8 flex-1">
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
-                    <Banknote className="h-4 w-4 text-gray-600" />
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">Commercial Section</span>
-                </div>
-                <span className="text-xs font-semibold text-gray-500">55 Students</span>
-              </div>
-              <button className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white border-2 border-dashed border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center">
-                  <Plus className="h-4 w-4" />
-                </div>
-                <span className="text-sm font-bold italic">Add New Arm</span>
-              </button>
-            </div>
-
-            <div className="flex gap-2">
-              <button className="flex-1 py-3 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-xs font-bold text-gray-900 flex items-center justify-center gap-2">
-                <Edit2 className="w-3 h-3" /> Configure Arms
-              </button>
-              <button className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 transition-colors shrink-0">
-                <Plus className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Assign Subjects Action Card */}
-          <div className="bg-gray-50 rounded-[2rem] p-8 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center relative h-full">
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-14 h-14 rounded-full bg-[#b05e1c] text-white flex items-center justify-center shadow-lg cursor-pointer hover:bg-[#965017] transition-colors">
-              <Edit2 className="w-5 h-5" />
-            </div>
-            
-            <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-sm text-[#b05e1c] mb-6">
-              <BookOpen className="w-8 h-8" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Assign Subjects</h3>
-            <p className="text-sm text-gray-500 mb-6 max-w-[200px]">
-              Link academic curricula to specific class arms and sections.
-            </p>
-            <button className="text-sm font-bold text-[#b05e1c] hover:underline">
-              Open Matrix Editor
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Subject Assignments */}
-      <div className="bg-gray-50 rounded-[2rem] p-8 border border-gray-100">
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Recent Subject Assignments</h2>
-        <p className="text-sm text-gray-500 mb-8">Audit trail for global academic structure changes</p>
-
-        <div className="space-y-4 mb-8">
-          {/* Row 1 */}
-          <div className="flex items-center justify-between p-4 rounded-full bg-white shadow-sm border border-gray-100">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="w-10 h-10 rounded-full bg-orange-100 text-[#b05e1c] flex items-center justify-center font-serif text-lg font-bold">
-                Σ
-              </div>
-              <div>
-                <div className="font-bold text-sm text-gray-900">Further Mathematics</div>
-                <div className="text-[10px] text-gray-500">Stem Curriculum • Core</div>
-              </div>
-            </div>
-            <div className="flex-1 text-sm font-bold text-gray-600">SS3 Science</div>
-            <div className="flex items-center gap-3 flex-1">
-              <img src="https://i.pravatar.cc/150?u=dradebayo" className="w-8 h-8 rounded-full object-cover" alt="Dr. Adebayo" />
-              <span className="text-sm font-semibold text-gray-700">Dr. Adebayo</span>
-            </div>
-            <button className="text-gray-400 hover:text-gray-600 transition-colors px-2">
-              <MoreVertical className="h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Row 2 */}
-          <div className="flex items-center justify-between p-4 rounded-full bg-white shadow-sm border border-gray-100">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="w-10 h-10 rounded-full bg-green-100 text-[#053d26] flex items-center justify-center font-bold">
-                <BookText className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="font-bold text-sm text-gray-900">African Literature</div>
-                <div className="text-[10px] text-gray-500">Humanities • Elective</div>
-              </div>
-            </div>
-            <div className="flex-1 text-sm font-bold text-gray-600">SS2 Arts</div>
-            <div className="flex items-center gap-3 flex-1">
-              <img src="https://i.pravatar.cc/150?u=profnkechi" className="w-8 h-8 rounded-full object-cover" alt="Prof. Nkechi" />
-              <span className="text-sm font-semibold text-gray-700">Prof. Nkechi</span>
-            </div>
-            <button className="text-gray-400 hover:text-gray-600 transition-colors px-2">
-              <MoreVertical className="h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Row 3 */}
-          <div className="flex items-center justify-between p-4 rounded-full bg-white shadow-sm border border-gray-100">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="w-10 h-10 rounded-full bg-orange-100 text-[#b05e1c] flex items-center justify-center">
-                <Banknote className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="font-bold text-sm text-gray-900">Economics & Finance</div>
-                <div className="text-[10px] text-gray-500">Social Sciences • Core</div>
-              </div>
-            </div>
-            <div className="flex-1 text-sm font-bold text-gray-600">SS3 Commercial</div>
-            <div className="flex items-center gap-3 flex-1">
-              <img src="https://i.pravatar.cc/150?u=mribrahim" className="w-8 h-8 rounded-full object-cover" alt="Mr. Ibrahim" />
-              <span className="text-sm font-semibold text-gray-700">Mr. Ibrahim</span>
-            </div>
-            <button className="text-gray-400 hover:text-gray-600 transition-colors px-2">
-              <MoreVertical className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        <div className="text-center">
-          <button className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-gray-200 text-gray-900 text-sm font-bold hover:bg-gray-50 transition-colors shadow-sm">
-            View Entire Academic Catalog <ChevronRight className="w-4 h-4" />
+      ) : error ? (
+        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-12 text-center">
+          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Failed to load academic data</h3>
+          <p className="text-sm text-gray-500 mb-6">{error}</p>
+          <button onClick={fetchData} className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors">
+            Retry
           </button>
         </div>
-      </div>
+      ) : classes.length === 0 ? (
+        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-12 text-center">
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">No classes created yet</h3>
+          <p className="text-sm text-gray-500 mb-6">Add your first class to start building your academic structure.</p>
+          <button
+            onClick={() => { setActiveModal('createClass'); setFormError(''); }}
+            className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
+          >
+            Add New Class
+          </button>
+        </div>
+      ) : (
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-gray-900">All Classes</h2>
+            <div className="bg-gray-100 rounded-full p-1 flex text-xs font-bold">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Grid View
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                List View
+              </button>
+            </div>
+          </div>
 
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {classes.map((cls) => (
+                <div key={cls.id} className="bg-white rounded-2xl sm:rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col h-full">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="h-14 w-14 rounded-2xl bg-[#053d26] text-white flex items-center justify-center text-lg font-bold">
+                      {cls.name.slice(0, 3).toUpperCase()}
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-block px-2 py-1 rounded-full bg-[#b2f2bb] text-[#053d26] text-[10px] font-bold uppercase tracking-widest mb-1">
+                        Active
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <h3 className="text-lg font-bold text-gray-900">{cls.name}</h3>
+                    <p className="text-xs text-gray-500">
+                      {cls.arm ? `Arm: ${cls.arm} • ` : ''}{cls.studentCount ?? 0} Students
+                    </p>
+                  </div>
+
+                  {cls.subjects && cls.subjects.length > 0 && (
+                    <div className="space-y-2 mb-6 flex-1">
+                      {cls.subjects.slice(0, 3).map(subject => (
+                        <div key={subject.id} className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm">
+                              <BookText className="h-3.5 w-3.5 text-gray-600" />
+                            </div>
+                            <span className="text-sm font-bold text-gray-900">{subject.name}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {cls.subjects.length > 3 && (
+                        <p className="text-xs text-gray-400 text-center">+{cls.subjects.length - 3} more subjects</p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 mt-auto">
+                    <button
+                      onClick={() => handleDeleteClass(cls.id)}
+                      className="flex-1 py-3 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-600 transition-colors text-xs font-bold text-gray-900 flex items-center justify-center gap-2"
+                    >
+                      <Trash2 className="w-3 h-3" /> Remove
+                    </button>
+                    <button className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 transition-colors shrink-0">
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add another class card */}
+              <button
+                onClick={() => { setActiveModal('createClass'); setFormError(''); }}
+                className="bg-gray-50 rounded-2xl sm:rounded-[2rem] p-8 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center min-h-[240px] hover:border-gray-400 hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-sm text-[#b05e1c] mb-4">
+                  <Plus className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Add New Class</h3>
+                <p className="text-sm text-gray-500">Create a new class level</p>
+              </button>
+            </div>
+          ) : (
+            /* List View */
+            <div className="bg-white rounded-2xl sm:rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+              <div className="divide-y divide-gray-100">
+                {classes.map(cls => (
+                  <div key={cls.id} className="flex items-center justify-between p-4 sm:p-6 hover:bg-gray-50/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-[#053d26] text-white flex items-center justify-center text-sm font-bold shrink-0">
+                        {cls.name.slice(0, 3).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-bold text-gray-900">{cls.name}</div>
+                        <div className="text-xs text-gray-500">{cls.arm ? `${cls.arm} • ` : ''}{cls.studentCount ?? 0} students • {cls.subjects?.length ?? 0} subjects</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-[#b2f2bb] text-[#053d26] text-[10px] font-bold uppercase tracking-wider">Active</span>
+                      <button
+                        onClick={() => handleDeleteClass(cls.id)}
+                        className="text-gray-400 hover:text-red-500 transition-colors p-1.5"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Create Class Modal */}
+      {activeModal === 'createClass' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl sm:rounded-[2rem] w-full max-w-lg p-6 sm:p-8 shadow-2xl relative">
+            <button onClick={() => setActiveModal(null)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Add New Class</h2>
+            <p className="text-sm text-gray-500 mb-8">Create a new class level for your school.</p>
+
+            {formError && (
+              <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{formError}</div>
+            )}
+
+            <form onSubmit={handleCreateClass} className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Class Name <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
+                  className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                  placeholder="e.g. SSS 1, JSS 2, Grade 5"
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Arm / Section (optional)</label>
+                <input
+                  type="text"
+                  value={classArm}
+                  onChange={(e) => setClassArm(e.target.value)}
+                  className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                  placeholder="e.g. Science, Arts, Gold"
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setActiveModal(null)} className="flex-1 py-3 rounded-full border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors" disabled={isSubmitting}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={isSubmitting} className="flex-1 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                  {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating...</> : <><Plus className="h-4 w-4" /> Create Class</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Subject Library Modal */}
+      {activeModal === 'subjectLibrary' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl sm:rounded-[2rem] w-full max-w-lg p-6 sm:p-8 shadow-2xl relative max-h-[85vh] flex flex-col">
+            <button onClick={() => setActiveModal(null)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Subject Library</h2>
+            <p className="text-sm text-gray-500 mb-6">Manage your school's curriculum subjects.</p>
+
+            {/* Add new subject form */}
+            <form onSubmit={handleCreateSubject} className="flex gap-2 mb-6">
+              <input
+                type="text"
+                value={subjectName}
+                onChange={(e) => setSubjectName(e.target.value)}
+                className="flex-1 rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                placeholder="New subject name..."
+                disabled={isSubmitting}
+              />
+              <button
+                type="submit"
+                disabled={isSubmitting || !subjectName.trim()}
+                className="px-5 py-2.5 rounded-xl bg-[#053d26] text-white font-bold text-sm hover:bg-[#042c1b] transition-colors disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+              >
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+              </button>
+            </form>
+
+            {formError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">{formError}</div>
+            )}
+
+            {/* Subject list */}
+            <div className="overflow-y-auto flex-1 -mx-2 px-2">
+              {subjects.length === 0 ? (
+                <div className="text-center py-12 text-gray-400 text-sm">No subjects yet. Add one above.</div>
+              ) : (
+                <div className="space-y-2">
+                  {subjects.map(subject => (
+                    <div key={subject.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                          <BookText className="h-4 w-4 text-[#053d26]" />
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">{subject.name}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteSubject(subject.id)}
+                        className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <button onClick={() => setActiveModal(null)} className="w-full py-3 rounded-full border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

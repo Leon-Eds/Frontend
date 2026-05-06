@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, 
   GraduationCap, 
@@ -12,7 +12,8 @@ import {
   Settings, 
   HelpCircle,
   LogOut,
-  UserPlus
+  UserPlus,
+  X
 } from "lucide-react";
 
 const navigation = [
@@ -24,14 +25,31 @@ const navigation = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("leoned_token");
+    localStorage.removeItem("leoned_refresh_token");
+    localStorage.removeItem("leoned_user");
+    router.push("/");
+  };
+
+  const handleNavClick = () => {
+    // Close sidebar on mobile after navigating
+    onClose?.();
+  };
 
   return (
     <div className="flex h-screen w-64 flex-col bg-[#053d26] text-white shrink-0">
       {/* Logo Area */}
-      <div className="flex h-20 items-center px-6 border-b border-white/10">
-        <Link href="/dashboard" className="flex items-center gap-3">
+      <div className="flex h-20 items-center justify-between px-6 border-b border-white/10">
+        <Link href="/dashboard" className="flex items-center gap-3" onClick={handleNavClick}>
           <Image
             src="/logo.png"
             alt="LeonEd Africa"
@@ -44,6 +62,14 @@ export default function Sidebar() {
             <p className="text-[10px] uppercase tracking-wider text-green-200 mt-1">Academic Architect</p>
           </div>
         </Link>
+        {/* Close button visible only on mobile */}
+        <button
+          onClick={onClose}
+          className="lg:hidden text-green-200 hover:text-white transition-colors p-1"
+          aria-label="Close sidebar"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
       {/* Main Navigation */}
@@ -54,6 +80,7 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={handleNavClick}
               className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors ${
                 isActive 
                   ? "bg-[#095838] text-white" 
@@ -71,6 +98,7 @@ export default function Sidebar() {
       <div className="px-4 pb-4">
         <Link
           href="/dashboard/students/new"
+          onClick={handleNavClick}
           className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[#b05e1c] text-white font-bold text-sm hover:bg-[#965017] transition-colors shadow-sm"
         >
           <UserPlus className="h-5 w-5" />
@@ -81,19 +109,20 @@ export default function Sidebar() {
       {/* Bottom Navigation */}
       <div className="border-t border-white/10 p-4 space-y-1">
         <Link
-          href="/dashboard"
+          href="/dashboard/settings"
+          onClick={handleNavClick}
           className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
         >
           <HelpCircle className="h-5 w-5 text-green-300" />
           Help Center
         </Link>
-        <Link
-          href="/"
-          className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors w-full text-left"
         >
           <LogOut className="h-5 w-5 text-green-300" />
           Logout
-        </Link>
+        </button>
       </div>
     </div>
   );
