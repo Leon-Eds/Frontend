@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { dashboardApi, DashboardStats } from "@/lib/api";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/dashboard/DataTable";
@@ -9,36 +10,50 @@ import SetupGuide from "@/components/dashboard/SetupGuide";
 import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus, Loader2 } from "lucide-react";
 
 export default function DashboardOverview() {
+  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [userName] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
-        return user.name || "Admin";
-      } catch {
-        return "Admin";
-      }
-    }
-    return "Admin";
-  });
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const data = await dashboardApi.getSchoolDashboard();
-        setStats(data);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Failed to load dashboard";
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    // eslint-disable-next-line
-    fetchDashboard();
-  }, []);
+    if (typeof window === "undefined") return;
+
+    const storedUser = localStorage.getItem("leoned_user");
+    const token = localStorage.getItem("leoned_token");
+
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const parsedUser = JSON.parse(storedUser || "{}");
+      setUser(parsedUser);
+
+      const fetchDashboard = async () => {
+        try {
+          // Choose appropriate endpoint based on role
+          const data = parsedUser.role === "SuperAdmin" 
+            ? await dashboardApi.getSuperAdminDashboard()
+            : await dashboardApi.getSchoolDashboard();
+          
+          setStats(data);
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : "Failed to load dashboard";
+          setError(message);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchDashboard();
+    } catch (err) {
+      router.push("/login");
+    }
+  }, [router]);
+
+  const userName = user?.name || "Admin";
 
   if (isLoading) {
     return (

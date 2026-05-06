@@ -66,6 +66,17 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    // Automatically handle auth errors (unauthorized or session expired)
+    if (res.status === 401 || res.status === 403) {
+      if (typeof window !== 'undefined') {
+        console.warn(`[API] Auth error ${res.status} on ${res.url}. Redirecting to login...`);
+        localStorage.removeItem('leoned_token');
+        localStorage.removeItem('leoned_refresh_token');
+        localStorage.removeItem('leoned_user');
+        window.location.href = '/login';
+      }
+    }
+
     const errorBody = await res.text().catch(() => '');
     let message = `API Error ${res.status}`;
     try {

@@ -31,18 +31,21 @@ export default function LoginPage() {
       // Extract token with fallbacks for different backend structures
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const r = response as Record<string, any>;
-      const token = r.token || r.accessToken || r.data?.token;
-      const refreshToken = r.refreshToken || r.data?.refreshToken;
+      
+      // Handle both { token: "..." } and { data: { token: "..." } } and { Token: "..." }
+      const token = r.token || r.accessToken || r.data?.token || r.Token || r.data?.Token;
+      const refreshToken = r.refreshToken || r.data?.refreshToken || r.RefreshToken || r.data?.RefreshToken;
+      const user = r.user || r.data?.user || r.User || r.data?.User;
       
       if (!token) {
+        console.error("[Login] No token found in response:", r);
         throw new Error("Login succeeded but no security token was returned. Please contact support.");
       }
 
       // Store auth data
       localStorage.setItem("leoned_token", token);
       if (refreshToken) localStorage.setItem("leoned_refresh_token", refreshToken);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      localStorage.setItem("leoned_user", JSON.stringify(response.user || (response as any).data?.user));
+      if (user) localStorage.setItem("leoned_user", JSON.stringify(user));
       
       router.push("/dashboard");
     } catch (err: unknown) {
