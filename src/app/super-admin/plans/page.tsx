@@ -11,7 +11,8 @@ import {
   Package,
   Shield,
   Zap,
-  Globe
+  Globe,
+  Loader2
 } from "lucide-react";
 
 import { dashboardApi, schoolApi } from "@/lib/api";
@@ -29,8 +30,8 @@ export default function BillingPlansManagement() {
           dashboardApi.getSuperAdminDashboard(),
           schoolApi.getPlans()
         ]);
-        setStats(statsData?.data || statsData);
-        setPlans(plansData?.data || plansData || []);
+        setStats((statsData as any)?.data || statsData);
+        setPlans((plansData as any)?.data || plansData || []);
       } catch (err) {
         console.error("Failed to fetch billing data", err);
       } finally {
