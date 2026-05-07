@@ -83,9 +83,19 @@ export default function SuperAdminOnboarding() {
 
           <form className="p-8 space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-sm text-red-600 flex items-start gap-3">
-                <ShieldAlert className="h-5 w-5 shrink-0" />
-                {error}
+              <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-sm text-red-600 space-y-3">
+                <div className="flex items-start gap-3">
+                  <ShieldAlert className="h-5 w-5 shrink-0" />
+                  <p>{error}</p>
+                </div>
+                {(error.toLowerCase().includes("already exists") || error.toLowerCase().includes("conflict")) && (
+                  <Link 
+                    href="/login" 
+                    className="flex items-center justify-center gap-2 w-full py-2 bg-white border border-red-200 rounded-xl font-bold text-red-600 hover:bg-red-50 transition-all"
+                  >
+                    Login Instead
+                  </Link>
+                )}
               </div>
             )}
 

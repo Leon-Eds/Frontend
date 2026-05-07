@@ -34,7 +34,7 @@ export default function SuperAdminDashboard() {
     const token = localStorage.getItem("leoned_token");
 
     if (!token) {
-      setIsLoading(false); // Stop loading and let the render show the onboarding/login choice
+      router.push("/login");
       return;
     }
 
@@ -114,24 +114,8 @@ export default function SuperAdminDashboard() {
     );
   }
 
-  // Unauthenticated State: Show Onboarding
-  if (!user) {
-    return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center p-4 space-y-8 text-gray-900">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Platform Security Terminal</h1>
-          <p className="text-gray-500 max-w-md">Access to this terminal is restricted to platform architects and system administrators.</p>
-        </div>
-        <OnboardingForm onSuccess={() => router.push("/login")} />
-        <div className="text-center">
-          <p className="text-sm text-gray-400 mb-4">Already have an authorized account?</p>
-          <Link href="/login" className="px-8 py-3 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors">
-            Access Login Terminal
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // Unauthenticated users are redirected by the useEffect above
+  if (!user) return null;
 
   if (error) {
     return (

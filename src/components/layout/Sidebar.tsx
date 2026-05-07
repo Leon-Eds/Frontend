@@ -68,7 +68,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     localStorage.removeItem("leoned_token");
     localStorage.removeItem("leoned_refresh_token");
     localStorage.removeItem("leoned_user");
-    router.push("/");
+    router.push("/login");
   };
 
   const handleNavClick = () => {
