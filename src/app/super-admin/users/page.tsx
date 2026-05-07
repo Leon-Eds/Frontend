@@ -30,8 +30,14 @@ export default function GlobalUsersManagement() {
         let extractedUsers = [];
         if (Array.isArray(data)) {
           extractedUsers = data;
-        } else if (data) {
-          extractedUsers = (data as any).items || (data as any).data || (data as any).users || [];
+        } else if (data && typeof data === 'object') {
+          // Aggressively look for arrays in the response
+          const possibleArrays = Object.values(data).filter(val => Array.isArray(val));
+          if (possibleArrays.length > 0) {
+            extractedUsers = possibleArrays[0];
+          } else {
+            extractedUsers = (data as any).items || (data as any).data || (data as any).users || (data as any).admins || [];
+          }
         }
         
         setUsers(extractedUsers);
@@ -79,6 +85,14 @@ export default function GlobalUsersManagement() {
             <Loader2 className="h-10 w-10 animate-spin text-[#053d26]" />
             <p className="text-gray-500 font-medium">Retrieving authorized users...</p>
           </div>
+        ) : error ? (
+          <div className="py-20 flex flex-col items-center gap-4 text-center px-4">
+            <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 mb-2">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <p className="text-red-600 font-bold">Failed to load directory</p>
+            <p className="text-sm text-gray-500 max-w-md">{error}</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -92,15 +106,15 @@ export default function GlobalUsersManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {users.map((user) => (
+                {users.length > 0 ? users.map((user) => (
                   <tr key={user.id} className="group hover:bg-gray-50/30 transition-colors">
                     <td className="py-6 px-8">
                       <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold border border-gray-200">
-                          {user.name[0]}
+                        <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold border border-gray-200 uppercase">
+                          {(user.name || user.fullName || "A")[0]}
                         </div>
                         <div>
-                          <div className="font-bold text-gray-900">{user.name}</div>
+                          <div className="font-bold text-gray-900">{user.name || user.fullName || 'Unknown User'}</div>
                           <div className="text-xs text-gray-500 flex items-center gap-1">
                             <Mail className="h-3 w-3" />
                             {user.email}
@@ -130,14 +144,23 @@ export default function GlobalUsersManagement() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="py-20 text-center">
+                      <div className="flex flex-col items-center gap-3 opacity-60">
+                        <Users className="h-10 w-10 text-gray-400" />
+                        <p className="text-gray-500 font-medium">No administrators found</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         )}
 
         <div className="px-8 py-6 bg-gray-50/30 border-t border-gray-100 flex items-center justify-between">
-          <p className="text-sm text-gray-500 font-medium">Showing 3 Platform Administrators</p>
+          <p className="text-sm text-gray-500 font-medium">Showing {users.length} Platform Administrators</p>
           <div className="flex items-center gap-2">
             <button disabled className="p-2 rounded-xl border border-gray-200 bg-white opacity-50"><ChevronLeft className="h-5 w-5 text-gray-400" /></button>
             <button disabled className="p-2 rounded-xl border border-gray-200 bg-white opacity-50"><ChevronRight className="h-5 w-5 text-gray-400" /></button>
