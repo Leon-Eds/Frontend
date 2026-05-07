@@ -150,6 +150,7 @@ export default function SchoolsManagement() {
                   <th className="py-5 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider">Institution</th>
                   <th className="py-5 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Contact Info</th>
                   <th className="py-5 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Plan & Billing</th>
+                  <th className="py-5 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Users</th>
                   <th className="py-5 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
@@ -194,6 +195,18 @@ export default function SchoolsManagement() {
                       </div>
                     </td>
 
+                    <td className="py-6 px-4">
+                      <div className="flex items-center gap-4">
+                        <div className="text-xs">
+                          <span className="font-bold text-gray-900">{school.studentCount || school.studentsCount || school.totalStudents || school.students?.length || 0}</span>
+                          <span className="text-gray-400 ml-1">Students</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-bold text-gray-900">{school.teacherCount || school.teachersCount || school.totalTeachers || school.teachers?.length || school.staffCount || 0}</span>
+                          <span className="text-gray-400 ml-1">Staff</span>
+                        </div>
+                      </div>
+                    </td>
                     <td className="py-6 px-8 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link href={`/dashboard`} className="p-2 text-gray-400 hover:text-[#053d26] hover:bg-green-50 rounded-xl transition-all" title="Access School Portal">
@@ -210,7 +223,7 @@ export default function SchoolsManagement() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={4} className="py-20 text-center">
+                    <td colSpan={5} className="py-20 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <SchoolIcon className="h-12 w-12 text-gray-200" />
                         <p className="text-gray-500 font-medium">No schools found matching your criteria.</p>

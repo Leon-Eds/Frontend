@@ -140,6 +140,7 @@ export default function SuperAdminDashboard() {
   const s = (stats as any)?.data || stats;
   const reportedTotalSchools = s?.totalSchools || 0;
   const totalStudents = s?.totalStudents || 0;
+  const totalTeachers = s?.totalTeachers || s?.totalStaff || s?.totalFaculty || 0;
   const activeSubscriptions = s?.activeSubscriptions || 0;
   const platformGrowth = s?.platformGrowth || "Live";
 
@@ -169,7 +170,7 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <StatCard
           title="Total Institutions"
           value={displayTotalSchools}
@@ -181,6 +182,12 @@ export default function SuperAdminDashboard() {
           value={totalStudents.toLocaleString()}
           icon={<Users className="h-6 w-6" />}
           iconTextColor="text-blue-600"
+        />
+        <StatCard
+          title="Global Teachers"
+          value={totalTeachers.toLocaleString()}
+          icon={<Users className="h-6 w-6" />}
+          iconTextColor="text-[#053d26]"
         />
         <StatCard
           title="Active Subscriptions"
