@@ -211,6 +211,7 @@ export default function SchoolsManagement() {
                                 // Check direct keys
                                 for (const key of Object.keys(obj)) {
                                   const lowerKey = key.toLowerCase();
+                                  if (lowerKey.includes('max') || lowerKey.includes('limit')) continue;
                                   if (keywords.some(kw => lowerKey.includes(kw))) {
                                     if (typeof obj[key] === 'number') return obj[key];
                                     if (Array.isArray(obj[key])) return obj[key].length;
@@ -238,6 +239,7 @@ export default function SchoolsManagement() {
                                 }
                                 for (const key of Object.keys(obj)) {
                                   const lowerKey = key.toLowerCase();
+                                  if (lowerKey.includes('max') || lowerKey.includes('limit')) continue;
                                   if (keywords.some(kw => lowerKey.includes(kw))) {
                                     if (typeof obj[key] === 'number') return obj[key];
                                     if (Array.isArray(obj[key])) return obj[key].length;
