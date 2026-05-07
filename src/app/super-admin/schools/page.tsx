@@ -198,11 +198,58 @@ export default function SchoolsManagement() {
                     <td className="py-6 px-4">
                       <div className="flex items-center gap-4">
                         <div className="text-xs">
-                          <span className="font-bold text-gray-900">{school.studentCount || school.studentsCount || school.totalStudents || school.students?.length || 0}</span>
+                          <span className="font-bold text-gray-900">
+                            {(() => {
+                              const findCount = (obj: any, keywords: string[]): number => {
+                                if (!obj || typeof obj !== 'object') return 0;
+                                // Prisma style _count
+                                if (obj._count) {
+                                  for (const key of Object.keys(obj._count)) {
+                                    if (keywords.some(kw => key.toLowerCase().includes(kw))) return obj._count[key];
+                                  }
+                                }
+                                // Check direct keys
+                                for (const key of Object.keys(obj)) {
+                                  const lowerKey = key.toLowerCase();
+                                  if (keywords.some(kw => lowerKey.includes(kw))) {
+                                    if (typeof obj[key] === 'number') return obj[key];
+                                    if (Array.isArray(obj[key])) return obj[key].length;
+                                  }
+                                }
+                                // Check nested stats objects
+                                if (obj.stats) return findCount(obj.stats, keywords);
+                                if (obj.statistics) return findCount(obj.statistics, keywords);
+                                return 0;
+                              };
+                              return findCount(school, ['student', 'pupil', 'learner']);
+                            })()}
+                          </span>
                           <span className="text-gray-400 ml-1">Students</span>
                         </div>
                         <div className="text-xs">
-                          <span className="font-bold text-gray-900">{school.teacherCount || school.teachersCount || school.totalTeachers || school.teachers?.length || school.staffCount || 0}</span>
+                          <span className="font-bold text-gray-900">
+                            {(() => {
+                              const findCount = (obj: any, keywords: string[]): number => {
+                                if (!obj || typeof obj !== 'object') return 0;
+                                if (obj._count) {
+                                  for (const key of Object.keys(obj._count)) {
+                                    if (keywords.some(kw => key.toLowerCase().includes(kw))) return obj._count[key];
+                                  }
+                                }
+                                for (const key of Object.keys(obj)) {
+                                  const lowerKey = key.toLowerCase();
+                                  if (keywords.some(kw => lowerKey.includes(kw))) {
+                                    if (typeof obj[key] === 'number') return obj[key];
+                                    if (Array.isArray(obj[key])) return obj[key].length;
+                                  }
+                                }
+                                if (obj.stats) return findCount(obj.stats, keywords);
+                                if (obj.statistics) return findCount(obj.statistics, keywords);
+                                return 0;
+                              };
+                              return findCount(school, ['teacher', 'staff', 'faculty']);
+                            })()}
+                          </span>
                           <span className="text-gray-400 ml-1">Staff</span>
                         </div>
                       </div>

@@ -224,6 +224,7 @@ export default function SuperAdminDashboard() {
                   <tr className="border-b border-gray-100">
                     <th className="pb-5 font-bold text-gray-400 text-[10px] uppercase tracking-[0.2em]">School Name</th>
                     <th className="pb-5 font-bold text-gray-400 text-[10px] uppercase tracking-[0.2em] px-4">Admin</th>
+                    <th className="pb-5 font-bold text-gray-400 text-[10px] uppercase tracking-[0.2em] px-4">Users</th>
                     <th className="pb-5 font-bold text-gray-400 text-[10px] uppercase tracking-[0.2em] px-4">Plan</th>
                     <th className="pb-5 font-bold text-gray-400 text-[10px] uppercase tracking-[0.2em] text-right">Status</th>
                   </tr>
@@ -247,6 +248,60 @@ export default function SuperAdminDashboard() {
                         <div className="text-[10px] text-gray-400 font-medium">Administrator</div>
                       </td>
                       <td className="py-6 px-4">
+                        <div className="flex gap-3">
+                          <div className="text-[10px]">
+                            <span className="font-bold text-gray-900">
+                              {(() => {
+                                const findCount = (obj: any, keywords: string[]): number => {
+                                  if (!obj || typeof obj !== 'object') return 0;
+                                  if (obj._count) {
+                                    for (const key of Object.keys(obj._count)) {
+                                      if (keywords.some(kw => key.toLowerCase().includes(kw))) return obj._count[key];
+                                    }
+                                  }
+                                  for (const key of Object.keys(obj)) {
+                                    const lowerKey = key.toLowerCase();
+                                    if (keywords.some(kw => lowerKey.includes(kw))) {
+                                      if (typeof obj[key] === 'number') return obj[key];
+                                      if (Array.isArray(obj[key])) return obj[key].length;
+                                    }
+                                  }
+                                  if (obj.stats) return findCount(obj.stats, keywords);
+                                  return 0;
+                                };
+                                return findCount(school, ['student', 'pupil', 'learner']);
+                              })()}
+                            </span>
+                            <span className="text-gray-400 ml-1">Students</span>
+                          </div>
+                          <div className="text-[10px]">
+                            <span className="font-bold text-gray-900">
+                              {(() => {
+                                const findCount = (obj: any, keywords: string[]): number => {
+                                  if (!obj || typeof obj !== 'object') return 0;
+                                  if (obj._count) {
+                                    for (const key of Object.keys(obj._count)) {
+                                      if (keywords.some(kw => key.toLowerCase().includes(kw))) return obj._count[key];
+                                    }
+                                  }
+                                  for (const key of Object.keys(obj)) {
+                                    const lowerKey = key.toLowerCase();
+                                    if (keywords.some(kw => lowerKey.includes(kw))) {
+                                      if (typeof obj[key] === 'number') return obj[key];
+                                      if (Array.isArray(obj[key])) return obj[key].length;
+                                    }
+                                  }
+                                  if (obj.stats) return findCount(obj.stats, keywords);
+                                  return 0;
+                                };
+                                return findCount(school, ['teacher', 'staff', 'faculty']);
+                              })()}
+                            </span>
+                            <span className="text-gray-400 ml-1">Staff</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-6 px-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-[0.1em] ${
                           school.subscriptionPlan === 'Premium' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
                           school.subscriptionPlan === 'Plus' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
@@ -266,7 +321,7 @@ export default function SuperAdminDashboard() {
                     </tr>
                   )) : reportedTotalSchools > 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-20 text-center">
+                      <td colSpan={5} className="py-20 text-center">
                         <div className="flex flex-col items-center gap-4">
                           <div className="relative">
                             <div className="h-12 w-12 rounded-full border-2 border-gray-100 border-t-[#053d26] animate-spin"></div>
@@ -281,7 +336,7 @@ export default function SuperAdminDashboard() {
                     </tr>
                   ) : (
                     <tr>
-                      <td colSpan={4} className="py-16 text-center">
+                      <td colSpan={5} className="py-16 text-center">
                         <div className="flex flex-col items-center gap-4 opacity-40">
                           <School className="h-12 w-12 text-gray-300" />
                           <div className="space-y-1">
