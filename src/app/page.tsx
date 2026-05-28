@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle2, ChevronRight, Zap, Globe } from "lucide-react";
+import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
 
 export default function LandingPage() {
+  const { t } = useLanguage();
+
   return (
     <div className="min-h-screen bg-[#fafafa]">
       {/* Navigation */}
@@ -17,14 +22,19 @@ export default function LandingPage() {
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#architecture" className="text-sm font-semibold text-gray-900 hover:text-[#053d26] transition-colors">Term Overview</a>
-              <a href="#why-leoned" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">Schedule</a>
+              <a href="#architecture" className="text-sm font-semibold text-gray-900 hover:text-[#053d26] transition-colors">
+                {t("nav.overview")}
+              </a>
+              <a href="#why-leoned" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">
+                {t("nav.schedule")}
+              </a>
             </div>
 
             {/* Right side Actions */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
+              <LanguageSelector />
               <Link href="/login" className="px-6 py-2.5 rounded-full bg-[#053d26] text-white text-sm font-bold hover:bg-[#042c1b] transition-colors">
-                Login
+                {t("nav.login")}
               </Link>
             </div>
           </div>
@@ -36,20 +46,20 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8">
             <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold text-[#053d26] bg-green-100">
-              THE ACADEMIC ARCHITECT
+              {t("hero.architect")}
             </div>
             <h1 className="text-5xl lg:text-6xl font-bold text-[#053d26] leading-[1.1] tracking-tight">
-              Digitizing African Classrooms, One School at a Time.
+              {t("hero.title")}
             </h1>
             <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
-              The complete digital management solution for student records, automated result processing, and secure portal access. Built for the future of African education.
+              {t("hero.subtitle")}
             </p>
             <div className="flex flex-wrap gap-4">
               <Link href="/register" className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20">
-                Register Your School
+                {t("hero.cta.register")}
               </Link>
               <Link href="/demo" className="px-8 py-4 rounded-full bg-white text-gray-900 font-bold border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm">
-                Request Demo
+                {t("hero.cta.demo")}
               </Link>
             </div>
             
@@ -60,7 +70,7 @@ export default function LandingPage() {
                 <div className="h-10 w-10 rounded-full border-2 border-white bg-gray-400" />
               </div>
               <p className="text-sm text-gray-500">
-                Trusted by <span className="font-bold text-gray-900">500+ institutions</span> across the continent
+                {t("hero.trusted")}
               </p>
             </div>
           </div>
@@ -83,7 +93,7 @@ export default function LandingPage() {
                     <Zap className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900 text-sm">Automated Result Processing</p>
+                    <p className="font-bold text-gray-900 text-sm">{t("hero.automated_processing")}</p>
                     <div className="h-1.5 w-32 bg-gray-200 rounded-full mt-2">
                       <div className="h-full w-2/3 bg-[#053d26] rounded-full" />
                     </div>
@@ -99,51 +109,55 @@ export default function LandingPage() {
       <section id="architecture" className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-2">Platform Architecture</p>
-            <h2 className="text-4xl font-bold text-[#053d26]">Built for Educational Excellence</h2>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-2">
+              {t("features.subtitle")}
+            </p>
+            <h2 className="text-4xl font-bold text-[#053d26]">
+              {t("features.title")}
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Feature Card 1 - Large */}
             <div className="lg:col-span-2 bg-white rounded-[2rem] p-10 shadow-sm border border-gray-100 flex flex-col justify-between">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Digital Student Records</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">{t("features.card1.title")}</h3>
                 <p className="text-gray-500 max-w-md leading-relaxed">
-                  Centralize comprehensive student data from enrollment to graduation. One source of truth for demographics, attendance, and behavioral history.
+                  {t("features.card1.desc")}
                 </p>
               </div>
               <div className="flex gap-3 mt-10">
-                <span className="px-4 py-2 rounded-full bg-green-100 text-[#053d26] text-xs font-bold">Secure Storage</span>
-                <span className="px-4 py-2 rounded-full bg-green-100 text-[#053d26] text-xs font-bold">Instant Retrieval</span>
+                <span className="px-4 py-2 rounded-full bg-green-100 text-[#053d26] text-xs font-bold">{t("features.card1.tag1")}</span>
+                <span className="px-4 py-2 rounded-full bg-green-100 text-[#053d26] text-xs font-bold">{t("features.card1.tag2")}</span>
               </div>
             </div>
 
             {/* Feature Card 2 - Dark */}
             <div className="bg-[#053d26] rounded-[2rem] p-10 shadow-sm text-white flex flex-col justify-between">
               <div>
-                <h3 className="text-2xl font-bold mb-4">Multi-school platform</h3>
+                <h3 className="text-2xl font-bold mb-4">{t("features.card2.title")}</h3>
                 <p className="text-green-100/80 leading-relaxed">
-                  Manage multiple campuses or an entire school district from a single, unified dashboard with tiered access controls.
+                  {t("features.card2.desc")}
                 </p>
               </div>
               <Link href="/register" className="flex items-center gap-2 text-sm font-bold mt-10 hover:text-green-200 transition-colors w-fit">
-                Learn More <ChevronRight className="h-4 w-4" />
+                {t("features.card2.more")} <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
 
             {/* Feature Card 3 */}
             <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-gray-100">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Secure Portals</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">{t("features.card3.title")}</h3>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Dedicated, encrypted access for parents, teachers, and students to view progress in real-time.
+                {t("features.card3.desc")}
               </p>
             </div>
 
             {/* Feature Card 4 */}
             <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-gray-100">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Automated Results</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">{t("features.card4.title")}</h3>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Generate report cards and transcripts in seconds with our intelligent computation engine.
+                {t("features.card4.desc")}
               </p>
             </div>
 
@@ -166,6 +180,7 @@ export default function LandingPage() {
               alt="School administrator managing digital education platform"
               fill
               className="object-cover"
+              p-index={0}
             />
             {/* Subtle overlay for text contrast if needed */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#053d26]/40 to-transparent" />
@@ -217,7 +232,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link href="/register" className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20">
-                Register Your School
+                {t("hero.cta.register")}
               </Link>
               <Link href="/demo" className="px-8 py-4 rounded-full bg-[#042c1b] text-white font-bold hover:bg-black/40 border border-white/10 transition-all">
                 Contact Support

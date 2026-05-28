@@ -2,20 +2,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search as SearchIcon, Bell as BellIcon, HelpCircle as HelpIcon, Menu as MenuIcon } from "lucide-react";
-
-const schoolTabs = [
-  { name: "Dashboard", href: "/dashboard" },
-  { name: "Students", href: "/dashboard/students" },
-  { name: "Faculty", href: "/dashboard/faculty" },
-  { name: "Classes", href: "/dashboard/classes" },
-];
-
-const superAdminTabs = [
-  { name: "Overview", href: "/super-admin" },
-  { name: "Schools", href: "/super-admin/schools" },
-  { name: "Users", href: "/super-admin/users" },
-  { name: "Billing", href: "/super-admin/plans" },
-];
+import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -23,8 +10,23 @@ interface HeaderProps {
 
 export default function Header({ onMenuToggle }: HeaderProps) {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const [userName, setUserName] = useState("Admin");
   const [role, setRole] = useState<string | null>(null);
+
+  const schoolTabs = [
+    { name: t("nav.dashboard"), href: "/dashboard" },
+    { name: t("nav.students"), href: "/dashboard/students" },
+    { name: t("nav.faculty"), href: "/dashboard/faculty" },
+    { name: t("nav.classes"), href: "/dashboard/classes" },
+  ];
+
+  const superAdminTabs = [
+    { name: t("nav.overview"), href: "/super-admin" },
+    { name: t("nav.schools"), href: "/super-admin/schools" },
+    { name: t("nav.users"), href: "/super-admin/users" },
+    { name: t("nav.billing"), href: "/super-admin/plans" },
+  ];
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -87,7 +89,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         </nav>
       </div>
 
-      {/* Right: Search, Icons, Profile */}
+      {/* Right: Search, Language Switcher, Icons, Profile */}
       <div className="flex items-center gap-3 sm:gap-5 shrink-0">
         <div className="relative hidden lg:block">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -96,7 +98,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           <input
             type="text"
             className="block w-44 xl:w-56 rounded-full border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
-            placeholder="Search records..."
+            placeholder={t("header.search")}
           />
         </div>
 
@@ -104,6 +106,9 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         <button className="lg:hidden text-gray-500 hover:text-gray-900 transition-colors p-1">
           <SearchIcon className="h-5 w-5" />
         </button>
+
+        {/* Language Selector Dropdown */}
+        <LanguageSelector />
 
         <Link href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"} className="relative text-gray-500 hover:text-gray-900 transition-colors p-1">
           <BellIcon className="h-5 w-5" />
@@ -124,4 +129,3 @@ export default function Header({ onMenuToggle }: HeaderProps) {
     </header>
   );
 }
-

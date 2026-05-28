@@ -6,9 +6,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
+import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -62,16 +64,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 relative">
+      {/* Top Right Floating Language Switcher */}
+      <div className="absolute top-4 right-4 z-50">
+        <LanguageSelector />
+      </div>
+
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-10 border border-gray-100">
         
         {/* Logo Section */}
-        <div className="flex flex-col items-center justify-center mb-10">
+        <div className="flex flex-col items-center justify-center mb-8">
           <Image
             src="/logo.png"
             alt="LeonEd Africa"
-            width={120}
-            height={120}
+            width={100}
+            height={100}
             className="object-contain mb-2"
             priority
           />
@@ -79,7 +86,8 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Login</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t("login.title")}</h2>
+          <p className="text-sm text-gray-500 mb-6">{t("login.subtitle")}</p>
           
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -98,7 +106,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder="Email or username"
+                  placeholder={t("login.email")}
                   disabled={isLoading}
                 />
               </div>
@@ -114,7 +122,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder="Password"
+                  placeholder={t("login.password")}
                   disabled={isLoading}
                 />
               </div>
@@ -130,14 +138,14 @@ export default function LoginPage() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-[#053d26] focus:ring-[#053d26]"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                  Remember Me
+                <label htmlFor="remember-me" className="ml-2 block text-sm font-semibold text-gray-700">
+                  {t("login.remember")}
                 </label>
               </div>
 
               <div className="text-sm">
                 <Link href="/login" className="font-semibold text-gray-600 hover:text-[#053d26]">
-                  Forgot Password?
+                  {t("login.forgot")}
                 </Link>
               </div>
             </div>
@@ -151,19 +159,19 @@ export default function LoginPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    Logging in...
+                    <span>{t("register.registering")}</span>
                   </>
                 ) : (
-                  "Login"
+                  <span>{t("login.signin")}</span>
                 )}
               </button>
             </div>
           </form>
 
           <div className="mt-8 text-center text-sm">
-            <span className="text-gray-500">Don&apos;t have an account? </span>
+            <span className="text-gray-500">{t("login.no_account")} </span>
             <Link href="/register" className="font-semibold text-[#b05e1c] hover:underline">
-              Register School
+              {t("login.register_here")}
             </Link>
           </div>
         </div>

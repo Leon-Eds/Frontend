@@ -6,15 +6,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Lock, School, User, Mail, Phone, MapPin, Globe, ChevronRight, ChevronLeft, CheckCircle2, Building2, Loader2 } from "lucide-react";
 import { authApi } from "@/lib/api";
-
-const steps = [
-  { id: 1, label: "School Info" },
-  { id: 2, label: "Admin Details" },
-  { id: 3, label: "Confirmation" },
-];
+import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
 
 export default function RegisterSchoolPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,6 +30,12 @@ export default function RegisterSchoolPage() {
     password: "",
     confirmPassword: "",
   });
+
+  const steps = [
+    { id: 1, label: t("register.school_name") },
+    { id: 2, label: t("register.admin_name") },
+    { id: 3, label: t("register.review") },
+  ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -121,14 +123,15 @@ export default function RegisterSchoolPage() {
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/#architecture" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">Term Overview</Link>
-              <Link href="/#why-leoned" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">Schedule</Link>
+              <Link href="/#architecture" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">{t("nav.overview")}</Link>
+              <Link href="/#why-leoned" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">{t("nav.schedule")}</Link>
             </div>
 
             {/* Right side Actions */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
+              <LanguageSelector />
               <Link href="/login" className="px-6 py-2.5 rounded-full bg-[#053d26] text-white text-sm font-bold hover:bg-[#042c1b] transition-colors">
-                Login
+                {t("nav.login")}
               </Link>
             </div>
           </div>
@@ -142,13 +145,13 @@ export default function RegisterSchoolPage() {
           <div className="text-center mb-10">
             <div className="inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold text-[#053d26] bg-green-100 mb-4">
               <School className="h-3.5 w-3.5 mr-1.5" />
-              SCHOOL REGISTRATION
+              {t("register.title").toUpperCase()}
             </div>
             <h1 className="text-3xl lg:text-4xl font-bold text-[#053d26] mb-2">
-              Register Your School
+              {t("register.title")}
             </h1>
             <p className="text-gray-600 max-w-md mx-auto">
-              Join 500+ institutions transforming education across Africa with LeonEd.
+              {t("register.subtitle")}
             </p>
           </div>
 
@@ -199,12 +202,13 @@ export default function RegisterSchoolPage() {
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-[#b05e1c]" />
-                    School Information
+                    {t("register.school_name")}
                   </h2>
                   <p className="text-sm text-gray-500">Tell us about your institution.</p>
-                </div>                <div className="space-y-4">
+                </div>
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">School Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.school_name")} <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <School className="h-5 w-5 text-gray-400" />
@@ -222,7 +226,7 @@ export default function RegisterSchoolPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">School Type <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.school_type")} <span className="text-red-500">*</span></label>
                     <select
                       name="schoolType"
                       value={formData.schoolType}
@@ -240,7 +244,7 @@ export default function RegisterSchoolPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">City <span className="text-red-500">*</span></label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.city")} <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         name="city"
@@ -252,7 +256,7 @@ export default function RegisterSchoolPage() {
                       {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">State / Province</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.state")}</label>
                       <input
                         type="text"
                         name="state"
@@ -266,7 +270,7 @@ export default function RegisterSchoolPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Country <span className="text-red-500">*</span></label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.country")} <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                           <Globe className="h-5 w-5 text-gray-400" />
@@ -283,7 +287,7 @@ export default function RegisterSchoolPage() {
                       {errors.country && <p className="text-xs text-red-500 mt-1">{errors.country}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Est. Student Count</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.est_students")}</label>
                       <input
                         type="number"
                         name="studentCount"
@@ -296,7 +300,7 @@ export default function RegisterSchoolPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Address <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.address")} <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <MapPin className="h-5 w-5 text-gray-400" />
@@ -322,14 +326,14 @@ export default function RegisterSchoolPage() {
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
                     <User className="h-5 w-5 text-[#b05e1c]" />
-                    Administrator Details
+                    {t("register.admin_name")}
                   </h2>
                   <p className="text-sm text-gray-500">This will be the primary admin account for your school.</p>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.admin_name")} <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <User className="h-5 w-5 text-gray-400" />
@@ -347,7 +351,7 @@ export default function RegisterSchoolPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Official Role <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.official_role")} <span className="text-red-500">*</span></label>
                     <select
                       name="adminRole"
                       value={formData.adminRole}
@@ -365,7 +369,7 @@ export default function RegisterSchoolPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("login.email")} <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <Mail className="h-5 w-5 text-gray-400" />
@@ -383,7 +387,7 @@ export default function RegisterSchoolPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.phone")} <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <Phone className="h-5 w-5 text-gray-400" />
@@ -402,7 +406,7 @@ export default function RegisterSchoolPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password <span className="text-red-500">*</span></label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("login.password")} <span className="text-red-500">*</span></label>
                       <input
                         type="password"
                         name="password"
@@ -414,7 +418,7 @@ export default function RegisterSchoolPage() {
                       {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password <span className="text-red-500">*</span></label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("register.confirm_password")} <span className="text-red-500">*</span></label>
                       <input
                         type="password"
                         name="confirmPassword"
@@ -437,8 +441,8 @@ export default function RegisterSchoolPage() {
                   <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
                     <CheckCircle2 className="h-8 w-8 text-[#053d26]" />
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Confirm Registration</h2>
-                  <p className="text-sm text-gray-500">Review your details before submitting.</p>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">{t("register.review")}</h2>
+                  <p className="text-sm text-gray-500">{t("register.review_sub")}</p>
                 </div>
 
                 {apiError && (
@@ -449,46 +453,46 @@ export default function RegisterSchoolPage() {
 
                 <div className="space-y-4">
                   <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4">School Details</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4">{t("register.school_name")}</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">School Name</span>
+                        <span className="text-sm text-gray-500">{t("register.school_name")}</span>
                         <span className="text-sm font-semibold text-gray-900">{formData.schoolName || "—"}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Type</span>
+                        <span className="text-sm text-gray-500">{t("register.school_type")}</span>
                         <span className="text-sm font-semibold text-gray-900 capitalize">{formData.schoolType || "—"}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Location</span>
+                        <span className="text-sm text-gray-500">{t("register.city")}</span>
                         <span className="text-sm font-semibold text-gray-900">
                           {formData.city && formData.country ? `${formData.city}, ${formData.country}` : "—"}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Est. Students</span>
+                        <span className="text-sm text-gray-500">{t("register.est_students")}</span>
                         <span className="text-sm font-semibold text-gray-900">{formData.studentCount || "—"}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4">Admin Account</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4">{t("register.admin_name")}</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Name</span>
+                        <span className="text-sm text-gray-500">{t("register.admin_name")}</span>
                         <span className="text-sm font-semibold text-gray-900">{formData.adminName || "—"}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Email</span>
+                        <span className="text-sm text-gray-500">{t("login.email")}</span>
                         <span className="text-sm font-semibold text-gray-900">{formData.adminEmail || "—"}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Phone</span>
+                        <span className="text-sm text-gray-500">{t("register.phone")}</span>
                         <span className="text-sm font-semibold text-gray-900">{formData.adminPhone || "—"}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Role</span>
+                        <span className="text-sm text-gray-500">{t("register.official_role")}</span>
                         <span className="text-sm font-semibold text-gray-900 capitalize">{formData.adminRole || "—"}</span>
                       </div>
                     </div>
@@ -506,7 +510,7 @@ export default function RegisterSchoolPage() {
                   className="flex items-center gap-2 px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Back
+                  {t("register.back")}
                 </button>
               ) : (
                 <Link
@@ -524,7 +528,7 @@ export default function RegisterSchoolPage() {
                   onClick={nextStep}
                   className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-lg shadow-green-900/20"
                 >
-                  Continue
+                  {t("register.continue")}
                   <ChevronRight className="h-4 w-4" />
                 </button>
               ) : (
@@ -537,12 +541,12 @@ export default function RegisterSchoolPage() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Registering...
+                      {t("register.registering")}
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="h-4 w-4" />
-                      Complete Registration
+                      {t("register.complete")}
                     </>
                   )}
                 </button>
