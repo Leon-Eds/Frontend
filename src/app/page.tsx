@@ -164,7 +164,7 @@ export default function LandingPage() {
             {/* Feature Card 5 - Orange Focus */}
             <div className="bg-[#b05e1c] rounded-[2rem] p-10 shadow-sm text-white flex flex-col items-center justify-center text-center">
               <h3 className="text-6xl font-bold mb-4">99%</h3>
-              <p className="font-medium text-orange-100">Efficiency increase reported by headmasters</p>
+              <p className="font-medium text-orange-100">{t("features.card5.stat_desc")}</p>
             </div>
           </div>
         </div>
@@ -187,12 +187,12 @@ export default function LandingPage() {
           </div>
 
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4">Why LeonEd Africa?</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4">{t("why.category")}</p>
             <h2 className="text-4xl lg:text-5xl font-bold text-[#053d26] leading-tight mb-6">
-              The Academic Architect for Your School&apos;s Future.
+              {t("why.title")}
             </h2>
             <p className="text-gray-600 leading-relaxed mb-10 text-lg">
-              We don&apos;t just provide software; we design digital ecosystems. Our platform is built with a deep understanding of the unique challenges faced by African educational institutions, from connectivity hurdles to administrative complexity.
+              {t("why.desc")}
             </p>
 
             <div className="space-y-6">
@@ -201,8 +201,8 @@ export default function LandingPage() {
                   <CheckCircle2 className="h-6 w-6 text-[#053d26]" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-900 mb-1">Tailored for Local Curriculums</h4>
-                  <p className="text-sm text-gray-500">Flexible result processing that adapts to national standards.</p>
+                  <h4 className="font-bold text-gray-900 mb-1">{t("why.item1.title")}</h4>
+                  <p className="text-sm text-gray-500">{t("why.item1.desc")}</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -210,8 +210,8 @@ export default function LandingPage() {
                   <CheckCircle2 className="h-6 w-6 text-[#053d26]" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-900 mb-1">Enterprise Grade Security</h4>
-                  <p className="text-sm text-gray-500">Advanced encryption ensuring student data privacy.</p>
+                  <h4 className="font-bold text-gray-900 mb-1">{t("why.item2.title")}</h4>
+                  <p className="text-sm text-gray-500">{t("why.item2.desc")}</p>
                 </div>
               </div>
             </div>
@@ -226,16 +226,16 @@ export default function LandingPage() {
             <Image src="/logo.png" alt="" width={256} height={256} className="transform rotate-12" />
           </div>
           <div className="relative z-10">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to transform your institution?</h2>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">{t("cta.title")}</h2>
             <p className="text-lg text-green-100/80 mb-10 max-w-2xl mx-auto">
-              Join hundreds of schools already paving the way for digital excellence in Africa.
+              {t("cta.desc")}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link href="/register" className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20">
                 {t("hero.cta.register")}
               </Link>
               <Link href="/demo" className="px-8 py-4 rounded-full bg-[#042c1b] text-white font-bold hover:bg-black/40 border border-white/10 transition-all">
-                Contact Support
+                {t("cta.contact")}
               </Link>
             </div>
           </div>
@@ -251,33 +251,33 @@ export default function LandingPage() {
               <span className="text-xl font-bold">LeonEd Africa</span>
             </div>
             <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
-              The leading Academic Architect for digital transformation in African education. Empowering schools through intelligent automation and secure data management.
+              {t("footer.desc")}
             </p>
           </div>
           
           <div>
-            <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">Solutions</h4>
+            <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">{t("footer.solutions")}</h4>
             <ul className="space-y-4">
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Digital Records</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Result Processing</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Parent Portals</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Multi-school System</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item1")}</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item2")}</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item3")}</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item4")}</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">Support</h4>
+            <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">{t("footer.support")}</h4>
             <ul className="space-y-4">
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Help Center</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Documentation</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Privacy Policy</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">Terms of Service</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item1")}</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item2")}</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item3")}</Link></li>
+              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item4")}</Link></li>
             </ul>
           </div>
         </div>
         
         <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
-          <p>© 2026 LeonEd Africa. All rights reserved.</p>
+          <p>{t("footer.rights")}</p>
           <div className="flex gap-4">
             <Globe className="h-4 w-4" />
           </div>
