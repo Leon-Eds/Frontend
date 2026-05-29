@@ -567,6 +567,28 @@ export function LanguageSelector() {
     return () => window.removeEventListener("click", handleClose);
   }, [isOpen]);
 
+  const renderFlag = (code: Language) => {
+    if (code === "en") {
+      return (
+        <svg viewBox="0 0 60 30" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+          <rect width="60" height="30" fill="#012169"/>
+          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6"/>
+          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#c8102e" strokeWidth="4"/>
+          <path d="M30,0 L30,30 M0,15 L60,15" stroke="#fff" strokeWidth="10"/>
+          <path d="M30,0 L30,30 M0,15 L60,15" stroke="#c8102e" strokeWidth="6"/>
+        </svg>
+      );
+    }
+    // Nigerian languages (ig, yo, ha)
+    return (
+      <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+        <rect width="3" height="6" fill="#008751"/>
+        <rect x="3" width="3" height="6" fill="#fff"/>
+        <rect x="6" width="3" height="6" fill="#008751"/>
+      </svg>
+    );
+  };
+
   return (
     <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
       <div>
@@ -578,9 +600,9 @@ export function LanguageSelector() {
           aria-expanded={isOpen}
           aria-haspopup="true"
         >
-          <span className="text-lg leading-none">{activeLang.flag}</span>
-          <span className="hidden sm:inline">{activeLang.nativeName}</span>
-          <span className="sm:hidden uppercase">{activeLang.code}</span>
+          {renderFlag(activeLang.code)}
+          <span className="hidden sm:inline font-bold text-gray-700">{activeLang.nativeName}</span>
+          <span className="sm:hidden uppercase font-bold text-gray-700">{activeLang.code}</span>
           <svg
             className={`h-5 w-5 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
             xmlns="http://www.w3.org/2000/svg"
@@ -619,10 +641,10 @@ export function LanguageSelector() {
                 }`}
                 role="menuitem"
               >
-                <span className="text-lg leading-none">{lang.flag}</span>
+                {renderFlag(lang.code)}
                 <div className="flex flex-col">
-                  <span className="font-bold text-gray-900">{lang.nativeName}</span>
-                  <span className="text-xs text-gray-400 font-medium">{lang.name}</span>
+                  <span className="font-bold text-gray-900 text-xs sm:text-sm">{lang.nativeName}</span>
+                  <span className="text-[10px] text-gray-400 font-bold">{lang.name}</span>
                 </div>
               </button>
             ))}
