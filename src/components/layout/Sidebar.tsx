@@ -58,7 +58,7 @@ const facultyNavigation = [
 const studentNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Students", href: "/dashboard/student-portal", icon: GraduationCap },
-  { name: "Faculty", href: "/dashboard", icon: Users },
+  { name: "Teachers", href: "/dashboard", icon: Users },
   { name: "Classes", href: "/dashboard", icon: BookOpen },
   { name: "Finance", href: "/dashboard", icon: Banknote },
   { name: "Reports", href: "/dashboard/student-portal", icon: FileText },

@@ -62,7 +62,7 @@ export const Step4Success: React.FC<Step4Props> = ({ data, onReset }) => {
             <div className="flex gap-4">
               <div className="h-8 w-8 rounded-full border border-white/20 flex items-center justify-center font-bold text-sm shrink-0 text-green-300">1</div>
               <div>
-                <h4 className="font-bold text-sm mb-1">Assign Faculty Advisor</h4>
+                <h4 className="font-bold text-sm mb-1">Assign Teacher Advisor</h4>
                 <p className="text-xs text-green-100/70">Select from the Academic Flow directory.</p>
               </div>
             </div>

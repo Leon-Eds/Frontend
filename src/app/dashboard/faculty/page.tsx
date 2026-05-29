@@ -84,7 +84,7 @@ export function FacultyDirectory() {
 
   const columns: Column<Teacher>[] = [
     {
-      header: 'Faculty Member',
+      header: 'Teacher',
       accessor: (teacher) => (
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-sm">
@@ -135,7 +135,7 @@ export function FacultyDirectory() {
         <div className="max-w-2xl">
           <h1 className="text-4xl font-bold text-[#053d26] mb-3">Staff Directory</h1>
           <p className="text-gray-600 text-sm leading-relaxed">
-            Manage your intellectual capital. Coordinate faculty assignments, track performance indicators, and maintain pedagogical standards across all departments.
+            Manage your intellectual capital. Coordinate teacher assignments, track performance indicators, and maintain pedagogical standards across all departments.
           </p>
         </div>
         <button
@@ -150,7 +150,7 @@ export function FacultyDirectory() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Total Faculty</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Total Teachers</p>
           <div className="text-5xl font-bold text-[#053d26] mb-2">{totalCount}</div>
           <p className="text-xs text-[#20c997] font-semibold">All registered teachers</p>
         </div>
@@ -287,7 +287,7 @@ export function FacultyDirectory() {
             </button>
 
             <h2 className="text-2xl font-bold text-[#053d26] mb-2">Add New Teacher</h2>
-            <p className="text-sm text-gray-500 mb-8">Fill in the details to register a new faculty member.</p>
+            <p className="text-sm text-gray-500 mb-8">Fill in the details to register a new teacher.</p>
 
             {formError && (
               <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -439,7 +439,7 @@ export function FacultyHomepage() {
             </div>
             <div>
               <p className="font-bold text-sm">Dr. Elena Rodriguez</p>
-              <p className="text-xs text-green-200">Senior Faculty Member</p>
+              <p className="text-xs text-green-200">Senior Teacher</p>
             </div>
           </div>
         </div>

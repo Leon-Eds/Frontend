@@ -81,7 +81,6 @@ export default function FacultyResultEntry() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
-      
       {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-2">
@@ -93,13 +92,14 @@ export default function FacultyResultEntry() {
               SS2 Mathematics
             </span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 leading-tight">Faculty Score Entry Ledger</h1>
+          <h1 className="text-3xl font-bold text-gray-900 leading-tight">Teacher Score Entry Ledger</h1>
           <p className="text-gray-500 max-w-2xl leading-relaxed text-sm">
             Dr. Elena Rodriguez • Department of Mathematical Sciences. Enter and verify results for SS2-A Mathematics. Auto-saves changes securely.
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+
           <button className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all text-sm shadow-sm">
             <Save className="h-4 w-4" />
             Save Draft

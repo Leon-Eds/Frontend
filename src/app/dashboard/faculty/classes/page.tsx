@@ -74,7 +74,7 @@ export default function MyClasses() {
               Term 2, 2024
             </span>
             <span className="bg-green-100 text-[#053d26] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              Faculty Portal
+              Teacher Portal
             </span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 leading-tight">My Classes</h1>
@@ -253,7 +253,7 @@ export default function MyClasses() {
                 As per institutional standards, CA 1 and CA 2 must represent 20% of the total student grade each. Real-time entries must be finalized at least 72 hours before the start of general semester exams.
               </p>
               <button className="flex items-center gap-1.5 text-xs font-bold text-green-300 hover:text-white transition-colors">
-                Read Faculty Manual
+                Read Teacher Manual
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>

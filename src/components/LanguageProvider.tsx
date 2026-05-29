@@ -27,7 +27,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.register": "Register",
     "nav.dashboard": "Dashboard",
     "nav.students": "Students",
-    "nav.faculty": "Faculty",
+    "nav.faculty": "Teachers",
     "nav.classes": "Classes",
     "nav.schools": "Schools",
     "nav.users": "Users",
@@ -135,7 +135,7 @@ const translations: Record<Language, Record<string, string>> = {
     "guide.step2.desc": "Create standard arms, classes, and subjects.",
     "guide.step3": "Import Students",
     "guide.step3.desc": "Add students individually or import them via Excel.",
-    "guide.step4": "Onboard Faculty",
+    "guide.step4": "Onboard Teachers",
     "guide.step4.desc": "Invite teachers and assign them to classes."
   },
   ig: {

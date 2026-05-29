@@ -71,7 +71,7 @@ export default function DashboardLayout({
                 : "bg-white/10 text-green-100 hover:bg-white/20"
             }`}
           >
-            Faculty View (Dr. Elena)
+            Teacher View (Dr. Elena)
           </button>
           <button
             onClick={() => handleRoleChange("Student")}
