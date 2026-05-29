@@ -18,7 +18,14 @@ import {
   CalendarClock,
   School,
   ShieldCheck,
-  CreditCard
+  CreditCard,
+  ClipboardList,
+  FileCheck,
+  FileText,
+  DollarSign,
+  FolderKanban,
+  CheckSquare,
+  Calendar
 } from "lucide-react";
 
 const schoolNavigation = [
@@ -28,6 +35,33 @@ const schoolNavigation = [
   { name: "Financials", href: "/dashboard/finance", icon: Banknote },
   { name: "Staff Directory", href: "/dashboard/faculty", icon: Users },
   { name: "Session Rollover", href: "/dashboard/rollover", icon: CalendarClock },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+];
+
+const adminNavigation = [
+  { name: "Academic Overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Teacher Grading", href: "/dashboard/teacher-grading", icon: ClipboardList },
+  { name: "Admin Approvals", href: "/dashboard/approvals", icon: FileCheck },
+  { name: "Student Reports", href: "/dashboard/student-reports", icon: FileText },
+  { name: "Fee Clearance", href: "/dashboard/finance", icon: DollarSign },
+  { name: "Directory", href: "/dashboard/students", icon: Users },
+];
+
+const facultyNavigation = [
+  { name: "My Classes", href: "/dashboard/faculty/classes", icon: FolderKanban },
+  { name: "Result Entry", href: "/dashboard/faculty/result-entry", icon: CheckSquare },
+  { name: "Schedule", href: "/dashboard/faculty", icon: Calendar },
+  { name: "My Profile", href: "/dashboard/faculty", icon: Users },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+];
+
+const studentNavigation = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Students", href: "/dashboard/student-portal", icon: GraduationCap },
+  { name: "Faculty", href: "/dashboard", icon: Users },
+  { name: "Classes", href: "/dashboard", icon: BookOpen },
+  { name: "Finance", href: "/dashboard", icon: Banknote },
+  { name: "Reports", href: "/dashboard/student-portal", icon: FileText },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -47,6 +81,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
+  const [demoRole, setDemoRole] = useState<string>("Admin");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -59,10 +94,19 @@ export default function Sidebar({ onClose }: SidebarProps) {
           console.error("Failed to parse user from localStorage", e);
         }
       }
+      const activeDemo = localStorage.getItem("leoned_demo_role") || "Admin";
+      setDemoRole(activeDemo);
     }
   }, []);
 
-  const navigation = role === "SuperAdmin" ? superAdminNavigation : schoolNavigation;
+  let navigation = schoolNavigation;
+  if (role === "SuperAdmin") {
+    navigation = superAdminNavigation;
+  } else {
+    if (demoRole === "Admin") navigation = adminNavigation;
+    else if (demoRole === "Faculty") navigation = facultyNavigation;
+    else if (demoRole === "Student") navigation = studentNavigation;
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("leoned_token");

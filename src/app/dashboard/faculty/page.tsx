@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { UserPlus, X, Loader2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { teacherApi, Teacher, CreateTeacherRequest } from '@/lib/api';
 
-export default function FacultyDirectory() {
+export function FacultyDirectory() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -384,4 +385,271 @@ export default function FacultyDirectory() {
       )}
     </div>
   );
+}
+
+// ==========================================
+// Faculty Homepage Component (Dr. Elena)
+// ==========================================
+
+export function FacultyHomepage() {
+  const [currentDate, setCurrentDate] = useState("");
+
+  useEffect(() => {
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    setCurrentDate(new Date().toLocaleDateString('en-US', options));
+  }, []);
+
+  const stats = [
+    { title: "Assigned Classes", value: "3", desc: "SS2 Math, SS1 Further Math, JSS3 Tech", icon: BookOpen, color: "text-[#053d26] bg-[#053d26]/10" },
+    { title: "Students Taught", value: "114", desc: "Across all class arms", icon: Users, color: "text-[#b05e1c] bg-[#b05e1c]/10" },
+    { title: "Average Performance", value: "84%", desc: "Term 2 class average", icon: TrendingUp, color: "text-green-600 bg-green-50" },
+    { title: "Active Tasks", value: "2 Pending", desc: "Grade submissions due soon", icon: Clock, color: "text-orange-600 bg-orange-50" }
+  ];
+
+  const schedule = [
+    { id: "1", subject: "Mathematics", time: "09:00 AM - 10:30 AM", class: "SS2-A Math", status: "Complete", color: "bg-green-500" },
+    { id: "2", subject: "Further Mathematics", time: "11:30 AM - 01:00 PM", class: "SS1-B Further Math", status: "In Progress", color: "bg-amber-500 animate-pulse" },
+    { id: "3", subject: "Basic Technology", time: "02:00 PM - 03:00 PM", class: "JSS3-C Tech", status: "Upcoming", color: "bg-gray-300" }
+  ];
+
+  const classPerformance = [
+    { name: "SS2 Mathematics", average: 87, count: 42, color: "bg-[#053d26]" },
+    { name: "SS1 Further Mathematics", average: 78, count: 38, color: "bg-[#b05e1c]" },
+    { name: "JSS3 Basic Technology", average: 81, count: 34, color: "bg-teal-600" }
+  ];
+
+  return (
+    <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
+      {/* Welcome Banner */}
+      <div className="relative rounded-[2rem] bg-[#053d26] text-white p-8 sm:p-10 overflow-hidden shadow-lg border border-[#042c1b]">
+        <div className="absolute right-0 top-0 opacity-10 translate-x-12 -translate-y-12">
+          <Award className="w-64 h-64" />
+        </div>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-green-300">{currentDate}</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight">Welcome Back, Dr. Elena</h1>
+            <p className="text-sm text-green-100 max-w-xl">
+              Academic Fellow • Department of Mathematical Sciences. View your schedules, manage classes, and enter grades below.
+            </p>
+          </div>
+          <div className="flex items-center gap-4 shrink-0 bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10">
+            <div className="h-12 w-12 rounded-full bg-[#b05e1c] text-white font-bold flex items-center justify-center text-lg shadow-inner">
+              ER
+            </div>
+            <div>
+              <p className="font-bold text-sm">Dr. Elena Rodriguez</p>
+              <p className="text-xs text-green-200">Senior Faculty Member</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, i) => (
+          <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-start gap-4 transition-all hover:shadow-md hover:scale-[1.01]">
+            <div className={`p-3 rounded-2xl shrink-0 ${stat.color}`}>
+              <stat.icon className="h-6 w-6" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{stat.title}</p>
+              <p className="text-2xl font-black text-gray-900 leading-none">{stat.value}</p>
+              <p className="text-[11px] text-gray-500 font-medium pt-1">{stat.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left 2 Columns: Schedule & Class Performance */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Today's Schedule */}
+          <div className="bg-white rounded-[2rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-50 pb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-[#b05e1c]" />
+                Today's Schedule
+              </h2>
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">3 sessions today</span>
+            </div>
+
+            <div className="relative border-l border-gray-100 pl-6 ml-3 space-y-8">
+              {schedule.map((item) => (
+                <div key={item.id} className="relative group">
+                  {/* Dot indicator */}
+                  <span className={`absolute -left-[31px] top-1.5 h-4.5 w-4.5 rounded-full border-4 border-white shadow-sm ring-1 ring-gray-100 ${item.color}`} />
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gray-50/50 border border-gray-100 hover:bg-gray-50 transition-all">
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-[#b05e1c] uppercase tracking-wider">{item.time}</p>
+                      <h4 className="font-extrabold text-gray-900 text-base">{item.subject}</h4>
+                      <p className="text-xs text-gray-500 font-semibold">{item.class} • Room 104</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        item.status === "Complete" 
+                          ? "bg-green-100 text-green-800" 
+                          : item.status === "In Progress"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-gray-100 text-gray-500"
+                      }`}>
+                        {item.status}
+                      </span>
+                      {item.status === "In Progress" && (
+                        <Link 
+                          href="/dashboard/faculty/result-entry" 
+                          className="px-4 py-2 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all flex items-center gap-1 shadow-sm"
+                        >
+                          Result Entry <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Class Performance Overview */}
+          <div className="bg-white rounded-[2rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-50 pb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-[#b05e1c]" />
+                Class Performance Overview
+              </h2>
+              <span className="text-xs font-bold text-[#053d26] bg-[#053d26]/10 px-3 py-1 rounded-full">Term 2 Analytics</span>
+            </div>
+
+            <div className="space-y-6">
+              {classPerformance.map((classData, idx) => (
+                <div key={idx} className="space-y-2">
+                  <div className="flex justify-between items-center text-sm font-bold text-gray-900">
+                    <span>{classData.name} <span className="text-xs text-gray-400 font-semibold">({classData.count} students)</span></span>
+                    <span className="text-[#053d26] font-extrabold">{classData.average}% Avg</span>
+                  </div>
+                  <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden flex items-center">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${classData.color}`} 
+                      style={{ width: `${classData.average}%` }} 
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Right 1 Column: Quick Actions & Alerts */}
+        <div className="space-y-6">
+          
+          {/* Quick Actions Panel */}
+          <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm space-y-6">
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-50 pb-4">
+              <Sparkles className="h-4.5 w-4.5 text-[#b05e1c]" />
+              Quick Actions
+            </h3>
+
+            <div className="grid grid-cols-1 gap-3">
+              <Link 
+                href="/dashboard/faculty/result-entry" 
+                className="w-full rounded-2xl bg-[#053d26] p-4 text-left flex items-center gap-3 transition-transform hover:scale-[1.02] text-white shadow-sm"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white shrink-0">
+                  <CheckSquare className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm">Submit Grades</div>
+                  <div className="text-[11px] text-green-200">Enter CA and Exam marks</div>
+                </div>
+              </Link>
+
+              <Link 
+                href="/dashboard/faculty/classes" 
+                className="w-full rounded-2xl bg-[#b05e1c] p-4 text-left flex items-center gap-3 transition-transform hover:scale-[1.02] text-white shadow-sm"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white shrink-0">
+                  <BookOpen className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm">View Classes</div>
+                  <div className="text-[11px] text-orange-100">Review SS2, SS1, and JSS3 class files</div>
+                </div>
+              </Link>
+
+              <Link 
+                href="/dashboard/students" 
+                className="w-full rounded-2xl border border-gray-200 p-4 text-left flex items-center gap-3 transition-transform hover:scale-[1.02] bg-gray-50/50 hover:bg-gray-100 text-gray-800"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-gray-600 shrink-0">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm text-gray-900">Student Directory</div>
+                  <div className="text-[11px] text-gray-500">Access student profiles and contacts</div>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* Pending Tasks & Memos */}
+          <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm space-y-6">
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-50 pb-4">
+              <ClipboardList className="h-4.5 w-4.5 text-gray-400" />
+              Pending Tasks
+            </h3>
+
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-xs font-extrabold text-gray-900">Enter CA 2 grades for SS2 Math</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Due in 2 days</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-xs font-extrabold text-gray-900">Approve SS1 Further Math CA 1 submissions</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Due tomorrow</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+export default function FacultyPageWrapper() {
+  const [demoRole, setDemoRole] = useState<string>("Admin");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setDemoRole(localStorage.getItem("leoned_demo_role") || "Admin");
+      setMounted(true);
+    }
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
+      </div>
+    );
+  }
+
+  if (demoRole === "Faculty") {
+    return <FacultyHomepage />;
+  }
+
+  return <FacultyDirectory />;
 }
