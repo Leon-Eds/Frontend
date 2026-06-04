@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText } from 'lucide-react';
+import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { teacherApi, Teacher, CreateTeacherRequest } from '@/lib/api';
 
@@ -393,10 +393,19 @@ export function FacultyDirectory() {
 
 export function FacultyHomepage() {
   const [currentDate, setCurrentDate] = useState("");
+  const [announcements, setAnnouncements] = useState<any[]>([]);
 
   useEffect(() => {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     setCurrentDate(new Date().toLocaleDateString('en-US', options));
+
+    // Synchronize administrative announcements broadcast by School Admin
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("leoned_announcements");
+      if (stored) {
+        setAnnouncements(JSON.parse(stored));
+      }
+    }
   }, []);
 
   const stats = [
@@ -466,6 +475,53 @@ export function FacultyHomepage() {
         
         {/* Left 2 Columns: Schedule & Class Performance */}
         <div className="lg:col-span-2 space-y-8">
+
+          {/* Administrative Broadcasts Megaphone Board */}
+          {announcements.length > 0 && (
+            <div className="bg-white rounded-[2rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+              <div className="flex justify-between items-center border-b border-gray-50 pb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Megaphone className="h-5 w-5 text-[#b05e1c]" />
+                  Administrative Broadcasts
+                </h2>
+                <span className="text-[9px] font-black text-[#053d26] bg-[#053d26]/5 border border-[#053d26]/10 px-3 py-1 rounded-full uppercase tracking-widest flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#053d26] animate-pulse"></span>
+                  Active Notices
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {announcements.slice(0, 2).map((ann, idx) => (
+                  <div 
+                    key={ann.id || idx} 
+                    className="p-5 rounded-2xl bg-gray-50/20 hover:bg-gray-50/60 border border-gray-100 hover:border-gray-200 transition-all duration-300 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase tracking-wider">
+                        <span className={`px-2 py-0.5 rounded ${
+                          ann.category === "Academic" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                          ann.category === "Finance" ? "bg-amber-50 text-amber-700 border border-amber-100" :
+                          ann.category === "Emergency" ? "bg-rose-50 text-rose-700 border border-rose-100 animate-pulse" :
+                          "bg-gray-100 text-gray-500"
+                        }`}>
+                          {ann.category}
+                        </span>
+                        <span>
+                          {new Date(ann.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <h4 className="font-extrabold text-gray-900 text-sm leading-snug">{ann.title}</h4>
+                      <p className="text-[11px] text-gray-500 font-medium leading-relaxed line-clamp-3">{ann.content}</p>
+                    </div>
+                    <div className="pt-3 mt-4 border-t border-gray-100/60 flex justify-between items-center text-[9px] text-gray-400 font-semibold uppercase tracking-wider">
+                      <span>By: {ann.author}</span>
+                      <span className="text-emerald-600 font-extrabold">Active</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           {/* Today's Schedule */}
           <div className="bg-white rounded-[2rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">

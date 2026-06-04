@@ -25,7 +25,8 @@ import {
   DollarSign,
   FolderKanban,
   CheckSquare,
-  Calendar
+  Calendar,
+  Megaphone
 } from "lucide-react";
 
 const schoolNavigation = [
@@ -45,6 +46,7 @@ const adminNavigation = [
   { name: "Student Reports", href: "/dashboard/student-reports", icon: FileText },
   { name: "Fee Clearance", href: "/dashboard/finance", icon: DollarSign },
   { name: "Directory", href: "/dashboard/students", icon: Users },
+  { name: "Broadcast Hub", href: "/dashboard/communications", icon: Megaphone },
 ];
 
 const facultyNavigation = [
