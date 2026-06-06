@@ -47,8 +47,8 @@ export default function SetupGuide() {
         sessionApi.getAll(),
         classApi.getAll(),
         subjectApi.getAll(),
-        teacherApi.getAll(1, 1),
-        studentApi.getAll(1, 1),
+        teacherApi.getAll(),
+        studentApi.getAll(),
       ]);
 
       const sessionList: AcademicSession[] = sessions.status === 'fulfilled'
@@ -62,23 +62,11 @@ export default function SetupGuide() {
         : [];
       
       const teacherCount = teacherRes.status === 'fulfilled'
-        ? (() => {
-            const val = teacherRes.value as any;
-            if (val?.totalCount !== undefined) return val.totalCount;
-            if (val?.data?.totalCount !== undefined) return val.data.totalCount;
-            const list = val?.items || val?.data || (Array.isArray(val) ? val : []);
-            return Array.isArray(list) ? list.length : (list?.items?.length || list?.data?.length || 0);
-          })()
+        ? (Array.isArray(teacherRes.value) ? teacherRes.value.length : 0)
         : 0;
       
       const studentCount = studentRes.status === 'fulfilled'
-        ? (() => {
-            const val = studentRes.value as any;
-            if (val?.totalCount !== undefined) return val.totalCount;
-            if (val?.data?.totalCount !== undefined) return val.data.totalCount;
-            const list = val?.items || val?.data || (Array.isArray(val) ? val : []);
-            return Array.isArray(list) ? list.length : (list?.items?.length || list?.data?.length || 0);
-          })()
+        ? (Array.isArray(studentRes.value) ? studentRes.value.length : 0)
         : 0;
 
       const hasCurrentSession = sessionList.some(s => s.isCurrent);

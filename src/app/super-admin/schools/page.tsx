@@ -1,18 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { schoolApi, dashboardApi, PaginatedResponse } from "@/lib/api";
+import { schoolApi, dashboardApi } from "@/lib/api";
 import { 
   Search, 
   Filter, 
-  MoreHorizontal, 
   ExternalLink, 
   Shield, 
   Settings, 
   Loader2, 
   School as SchoolIcon,
-  ChevronLeft,
-  ChevronRight,
   MoreVertical,
   Mail,
   Calendar
@@ -23,46 +20,13 @@ export default function SchoolsManagement() {
   const [schools, setSchools] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
 
   const fetchSchools = async () => {
     setIsLoading(true);
     try {
-      const [schoolsData, statsData] = await Promise.all([
-        schoolApi.getAll(page, 10, search).catch(() => null),
-        dashboardApi.getSuperAdminDashboard().catch(() => null)
-      ]);
-      
-      let extractedSchools = [];
-      
-      // Fallback Strategy from Dashboard (Exhaustive search)
-      const s = (statsData as any)?.data || statsData;
-      if (Array.isArray(s?.recentSchools)) {
-        extractedSchools = s.recentSchools;
-      } else if (Array.isArray(s?.schools)) {
-        extractedSchools = s.schools;
-      } else if (Array.isArray(s?.latestSchools)) {
-        extractedSchools = s.latestSchools;
-      } else if (Array.isArray(s?.topSchools)) {
-        extractedSchools = s.topSchools;
-      } else if (Array.isArray(s?.recentInstitutions)) {
-        extractedSchools = s.recentInstitutions;
-      } else if (schoolsData) {
-        // Normal data extraction
-        const d = (schoolsData as any)?.data || schoolsData;
-        if (Array.isArray(d)) {
-          extractedSchools = d;
-        } else if (Array.isArray(d?.items)) {
-          extractedSchools = d.items;
-        } else if (Array.isArray((schoolsData as any).items)) {
-          extractedSchools = (schoolsData as any).items;
-        }
-      }
-      
-      setSchools(extractedSchools);
-      setTotalPages((schoolsData as any)?.totalPages || 1);
+      const data = await schoolApi.getAll();
+      setSchools(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load schools");
     } finally {
@@ -72,11 +36,10 @@ export default function SchoolsManagement() {
 
   useEffect(() => {
     fetchSchools();
-  }, [page]);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setPage(1);
     fetchSchools();
   };
 
@@ -285,28 +248,11 @@ export default function SchoolsManagement() {
           </div>
         )}
 
-        {/* Pagination */}
         {!isLoading && schools.length > 0 && (
           <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Showing page <span className="font-bold text-gray-900">{page}</span> of <span className="font-bold text-gray-900">{totalPages}</span>
+              Showing <span className="font-bold text-gray-900">{schools.length}</span> institutions
             </p>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <button 
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
           </div>
         )}
       </div>

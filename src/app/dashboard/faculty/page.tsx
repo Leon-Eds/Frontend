@@ -13,9 +13,7 @@ export function FacultyDirectory() {
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+
   const [formData, setFormData] = useState<CreateTeacherRequest>({
     fullName: '',
     email: '',
@@ -27,26 +25,16 @@ export function FacultyDirectory() {
     setIsLoading(true);
     setError("");
     try {
-      const response = await teacherApi.getAll(page, 20);
-      // Safely unwrap data from .NET paginated wrapper structures
-      let extractedItems: unknown = response;
-      if (response?.data) {
-        extractedItems = Array.isArray(response.data) ? response.data : ((response.data as any).items || (response.data as any).data || response.data);
-      } else if (response?.items) {
-        extractedItems = response.items;
-      }
-      
-      const validItems = Array.isArray(extractedItems) ? extractedItems : [];
+      const data = await teacherApi.getAll();
+      const validItems = Array.isArray(data) ? data : [];
       setTeachers(validItems);
-      setTotalCount(typeof response === 'object' && !Array.isArray(response) ? (response.totalCount ?? validItems.length) : validItems.length);
-      setTotalPages(typeof response === 'object' && !Array.isArray(response) ? (response.totalPages ?? 1) : 1);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load teachers";
       setError(message);
     } finally {
       setIsLoading(false);
     }
-  }, [page]);
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line
@@ -151,7 +139,7 @@ export function FacultyDirectory() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Total Teachers</p>
-          <div className="text-5xl font-bold text-[#053d26] mb-2">{totalCount}</div>
+          <div className="text-5xl font-bold text-[#053d26] mb-2">{teachers.length}</div>
           <p className="text-xs text-[#20c997] font-semibold">All registered teachers</p>
         </div>
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
@@ -170,9 +158,9 @@ export function FacultyDirectory() {
           <p className="text-xs text-gray-500 font-semibold">Currently inactive</p>
         </div>
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">On This Page</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Displayed</p>
           <div className="text-5xl font-bold text-[#053d26] mb-2">{teachers.length}</div>
-          <p className="text-xs text-gray-500">Showing this page</p>
+          <p className="text-xs text-gray-500">Currently showing</p>
         </div>
       </div>
 
@@ -221,7 +209,7 @@ export function FacultyDirectory() {
               </select>
             </div>
             <div className="text-xs text-gray-500 font-medium">
-              Showing {teachers.length} of {totalCount} Educators
+              Showing {teachers.length} Educators
             </div>
           </div>
 
@@ -234,7 +222,7 @@ export function FacultyDirectory() {
                 <button
                   onClick={async () => {
                     try {
-                      await teacherApi.updateStatus(teacher.id, !teacher.isActive);
+                      await teacherApi.updateStatus(teacher.id);
                       fetchTeachers();
                     } catch (err) {
                       alert(err instanceof Error ? err.message : "Failed to update status");
@@ -252,25 +240,8 @@ export function FacultyDirectory() {
             />
           </div>
 
-          {/* Pagination Footer */}
           <div className="flex justify-between items-center p-6 border-t border-gray-50">
-            <span className="text-xs text-gray-500">Page {page} of {totalPages}</span>
-            <div className="flex gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-4 py-2 rounded-full bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => p + 1)}
-                className="px-4 py-2 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
+            <span className="text-xs text-gray-500">Showing {teachers.length} educators</span>
           </div>
         </div>
       )}

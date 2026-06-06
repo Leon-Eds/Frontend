@@ -51,7 +51,7 @@ export default function SuperAdminDashboard() {
         try {
           const [statsData, schoolsData] = await Promise.all([
             dashboardApi.getSuperAdminDashboard(),
-            schoolApi.getAll(1, 10).catch(() => null)
+            schoolApi.getAll().catch(() => null)
           ]);
           
           setStats(statsData);

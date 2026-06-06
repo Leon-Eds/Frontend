@@ -14,7 +14,7 @@ import {
   ChevronRight,
   UserPlus
 } from "lucide-react";
-import { userApi } from "@/lib/api";
+import { schoolApi } from "@/lib/api";
 
 export default function GlobalUsersManagement() {
   const [isLoading, setIsLoading] = useState(true);
@@ -25,21 +25,8 @@ export default function GlobalUsersManagement() {
     const fetchUsers = async () => {
       setIsLoading(true);
       try {
-        const data = await userApi.getAllAdmins();
-        
-        let extractedUsers = [];
-        if (Array.isArray(data)) {
-          extractedUsers = data;
-        } else if (data && typeof data === 'object') {
-          // Aggressively look for arrays in the response
-          const possibleArrays = Object.values(data).filter(val => Array.isArray(val));
-          if (possibleArrays.length > 0) {
-            extractedUsers = possibleArrays[0];
-          } else {
-            extractedUsers = (data as any).items || (data as any).data || (data as any).users || (data as any).admins || [];
-          }
-        }
-        
+        const data = await schoolApi.getAll();
+        const extractedUsers = Array.isArray(data) ? data : [];
         setUsers(extractedUsers);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load users");
@@ -47,7 +34,6 @@ export default function GlobalUsersManagement() {
         setIsLoading(false);
       }
     };
-
     fetchUsers();
   }, []);
 
@@ -111,10 +97,10 @@ export default function GlobalUsersManagement() {
                     <td className="py-6 px-8">
                       <div className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold border border-gray-200 uppercase">
-                          {(user.name || user.fullName || "A")[0]}
+                          {(user.adminName || user.name || "A")[0]}
                         </div>
                         <div>
-                          <div className="font-bold text-gray-900">{user.name || user.fullName || 'Unknown User'}</div>
+                          <div className="font-bold text-gray-900">{user.adminName || user.name || 'Unknown User'}</div>
                           <div className="text-xs text-gray-500 flex items-center gap-1">
                             <Mail className="h-3 w-3" />
                             {user.email}
@@ -123,19 +109,17 @@ export default function GlobalUsersManagement() {
                       </div>
                     </td>
                     <td className="py-6 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
-                        user.role === 'SuperAdmin' ? 'bg-[#053d26]/10 text-[#053d26]' : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {user.role === 'SuperAdmin' ? <ShieldCheck className="h-3.5 w-3.5" /> : <ShieldAlert className="h-3.5 w-3.5" />}
-                        {user.role}
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-700">
+                        <ShieldAlert className="h-3.5 w-3.5" />
+                        SchoolAdmin
                       </span>
                     </td>
-                    <td className="py-6 px-4 text-sm text-gray-500 font-medium">{user.lastLogin}</td>
+                    <td className="py-6 px-4 text-sm text-gray-500 font-medium">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</td>
                     <td className="py-6 px-4 text-right">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                        user.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+                        user.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
                       }`}>
-                        {user.status}
+                        {user.isActive !== false ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="py-6 px-8 text-right">
@@ -160,7 +144,7 @@ export default function GlobalUsersManagement() {
         )}
 
         <div className="px-8 py-6 bg-gray-50/30 border-t border-gray-100 flex items-center justify-between">
-          <p className="text-sm text-gray-500 font-medium">Showing {users.length} Platform Administrators</p>
+          <p className="text-sm text-gray-500 font-medium">Showing {users.length} Registered Schools</p>
           <div className="flex items-center gap-2">
             <button disabled className="p-2 rounded-xl border border-gray-200 bg-white opacity-50"><ChevronLeft className="h-5 w-5 text-gray-400" /></button>
             <button disabled className="p-2 rounded-xl border border-gray-200 bg-white opacity-50"><ChevronRight className="h-5 w-5 text-gray-400" /></button>

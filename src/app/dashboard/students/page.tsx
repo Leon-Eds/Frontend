@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Eye, Edit2, Download, TrendingUp, AlertCircle, CheckCircle2, Loader2, UserPlus, X, Trash2, Save } from 'lucide-react';
+import { Eye, Edit2, Download, TrendingUp, AlertCircle, CheckCircle2, Loader2, UserPlus, X, Trash2, Save, GraduationCap } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { studentApi, Student, UpdateStudentRequest } from '@/lib/api';
 import Link from 'next/link';
@@ -10,9 +10,7 @@ export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // View modal
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
@@ -31,31 +29,15 @@ export default function StudentsPage() {
     setIsLoading(true);
     setError("");
     try {
-      const response = await studentApi.getAll(page, 20);
-      // Safely unwrap data from .NET paginated wrapper structures
-      let extractedItems: unknown = response;
-      let respTotalCount = typeof response === 'object' && !Array.isArray(response) ? response.totalCount : undefined;
-      let respTotalPages = typeof response === 'object' && !Array.isArray(response) ? response.totalPages : undefined;
-      
-      if (response?.data) {
-        extractedItems = Array.isArray(response.data) ? response.data : ((response.data as any).items || (response.data as any).data || response.data);
-        if ((response.data as any).totalCount !== undefined) respTotalCount = (response.data as any).totalCount;
-        if ((response.data as any).totalPages !== undefined) respTotalPages = (response.data as any).totalPages;
-      } else if (response?.items) {
-        extractedItems = response.items;
-      }
-      
-      const validItems = Array.isArray(extractedItems) ? extractedItems : [];
-      setStudents(validItems);
-      setTotalCount(respTotalCount ?? validItems.length);
-      setTotalPages(respTotalPages ?? 1);
+      const data = await studentApi.getAll();
+      setStudents(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load students";
       setError(message);
     } finally {
       setIsLoading(false);
     }
-  }, [page]);
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line
@@ -183,6 +165,7 @@ export default function StudentsPage() {
   ];
 
   const activeCount = students.filter(s => s.status === 'Active').length;
+  const graduatedCount = students.filter(s => s.status === 'Graduated').length;
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-10">
@@ -208,7 +191,7 @@ export default function StudentsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Total Students</p>
-          <div className="text-5xl font-bold text-[#053d26] mb-4">{totalCount.toLocaleString()}</div>
+          <div className="text-5xl font-bold text-[#053d26] mb-4">{students.length.toLocaleString()}</div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500 font-semibold">
             <TrendingUp className="h-4 w-4 text-[#20c997]" /> All registered students
           </div>
@@ -225,18 +208,18 @@ export default function StudentsPage() {
         </div>
 
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">On This Page</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Loaded</p>
           <div className="text-5xl font-bold text-gray-700 mb-4">{students.length}</div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500 font-semibold">
-            Showing current page results
+            Students loaded
           </div>
         </div>
 
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Pages</p>
-          <div className="text-5xl font-bold text-gray-700 mb-4">{totalPages}</div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Graduated</p>
+          <div className="text-5xl font-bold text-gray-700 mb-4">{graduatedCount}</div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500 font-semibold">
-            <CheckCircle2 className="h-4 w-4 text-[#20c997]" /> Total pages
+            <GraduationCap className="h-4 w-4 text-[#20c997]" /> Completed program
           </div>
         </div>
       </div>
@@ -324,25 +307,9 @@ export default function StudentsPage() {
             />
           </div>
 
-          {/* Pagination Footer */}
+          {/* Results Footer */}
           <div className="flex justify-between items-center p-6 border-t border-gray-50">
-            <span className="text-xs text-gray-500 font-medium">Page {page} of {totalPages} ({totalCount} total students)</span>
-            <div className="flex gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-4 py-2 rounded-full bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => p + 1)}
-                className="px-4 py-2 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
+            <span className="text-xs text-gray-500 font-medium">Showing {students.length} students</span>
           </div>
         </div>
       )}

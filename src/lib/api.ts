@@ -1,30 +1,28 @@
-const API_BASE_URL = 'https://backend-4h8h.onrender.com/api';
+const API_BASE_URL = 'https://leoned.vercel.app/api';
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 
 function getAuthHeaders(): HeadersInit {
   if (typeof window === 'undefined') return { 'Content-Type': 'application/json' };
   const token = localStorage.getItem('leoned_token');
-  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   
   // Defensive check: don't send "Bearer undefined" or "Bearer null"
   if (token && token !== 'undefined' && token !== 'null') {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  return headers;
-}
 
-/** Convert a date-only string (YYYY-MM-DD) to ISO date-time for the .NET backend */
-function toDateTime(dateStr: string): string {
-  if (!dateStr) return dateStr;
-  let result = dateStr;
-  if (!result.includes('T')) {
-    result = `${result}T00:00:00`;
+  // Attach School-Id header from stored user data for school-scoped endpoints
+  try {
+    const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
+    if (user.schoolId) {
+      headers['School-Id'] = user.schoolId;
+    }
+  } catch {
+    // Silently ignore parse errors
   }
-  if (!result.endsWith('Z')) {
-    result = `${result}Z`;
-  }
-  return result;
+
+  return headers;
 }
 
 /** Fetch with timeout + automatic retry for cold-starting backends */
@@ -84,10 +82,11 @@ async function handleResponse<T>(res: Response): Promise<T> {
       // Extract the most useful error message from the response
       if (typeof parsed.message === 'string' && parsed.message) {
         message = parsed.message;
+      } else if (typeof parsed.error === 'string' && parsed.error) {
+        message = parsed.error;
       } else if (typeof parsed.title === 'string' && parsed.title) {
         message = parsed.title;
       } else if (parsed.errors) {
-        // .NET validation errors come as { errors: { Field: ["msg"] } }
         const errMessages = Object.values(parsed.errors).flat();
         message = errMessages.join('. ') || JSON.stringify(parsed.errors);
       } else if (errorBody) {
@@ -103,7 +102,14 @@ async function handleResponse<T>(res: Response): Promise<T> {
   }
   const text = await res.text();
   if (!text) return {} as T;
-  return JSON.parse(text) as T;
+  const parsed = JSON.parse(text);
+
+  // Unwrap Node.js backend { success, message, data } envelope
+  if (parsed && typeof parsed === 'object' && 'success' in parsed && 'data' in parsed) {
+    return parsed.data as T;
+  }
+
+  return parsed as T;
 }
 
 // ─── Types ─────────────────────────────────────────────────────────────
@@ -112,6 +118,7 @@ export type Gender = 'Male' | 'Female' | 'Other';
 export type StudentStatus = 'Active' | 'Graduated' | 'Archived' | 'Suspended';
 export type SubscriptionPlan = 'Free' | 'Plus' | 'Premium';
 export type TermNumber = 'First' | 'Second' | 'Third';
+export type GradeLetter = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
 // Auth
 export interface LoginRequest {
@@ -320,7 +327,80 @@ export interface DashboardActivity {
   userName?: string;
 }
 
-// Paginated response wrapper
+// Score types
+export interface EnterScoreRequest {
+  studentId: string;
+  subjectId: string;
+  classId: string;
+  termId: string;
+  academicSessionId: string;
+  firstCA: number;
+  secondCA: number;
+  exam: number;
+  remark?: string;
+}
+
+export interface BulkScoreEntry {
+  studentId: string;
+  firstCA: number;
+  secondCA: number;
+  exam: number;
+  remark?: string;
+}
+
+export interface BulkEnterScoresRequest {
+  subjectId: string;
+  classId: string;
+  termId: string;
+  academicSessionId: string;
+  scores: BulkScoreEntry[];
+}
+
+// Result types
+export interface SubmitResultsRequest {
+  teacherComment?: string;
+}
+
+export interface ApproveResultsRequest {
+  approve: boolean;
+  adminComment?: string;
+}
+
+// Grading types
+export interface GradingRule {
+  grade: GradeLetter;
+  minScore: number;
+  maxScore: number;
+  remark?: string;
+}
+
+export interface SetGradingRulesRequest {
+  rules: GradingRule[];
+}
+
+// Fee types
+export interface RecordFeeRequest {
+  studentId: string;
+  termId: string;
+  academicSessionId: string;
+  amountDue: number;
+  amountPaid: number;
+}
+
+// School types
+export interface UpdateSchoolRequest {
+  name?: string;
+  address?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  logoUrl?: string;
+}
+
+export interface UpdateSchoolPlanRequest {
+  subscriptionPlan: SubscriptionPlan;
+}
+
+// Paginated response wrapper (kept for backward compat, but new backend returns arrays)
 export interface PaginatedResponse<T> {
   items: T[];
   data?: T[];
@@ -343,7 +423,7 @@ export interface CreateSuperAdminRequest {
 // Auth
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/login`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -352,7 +432,7 @@ export const authApi = {
   },
 
   register: async (data: RegisterSchoolRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/register`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -361,7 +441,7 @@ export const authApi = {
   },
 
   createSuperAdmin: async (data: CreateSuperAdminRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/create-super-admin`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/create-super-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -370,7 +450,7 @@ export const authApi = {
   },
 
   refreshToken: async (data: RefreshTokenRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/refresh-token`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/refresh-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -379,7 +459,7 @@ export const authApi = {
   },
 
   changePassword: async (data: ChangePasswordRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/change-password`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/change-password`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -391,14 +471,28 @@ export const authApi = {
 // Dashboard
 export const dashboardApi = {
   getSchoolDashboard: async (): Promise<DashboardStats> => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Dashboard/school`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/dashboard/school`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<DashboardStats>(res);
   },
 
   getSuperAdminDashboard: async (): Promise<DashboardStats> => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Dashboard/superadmin`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/dashboard/superadmin`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<DashboardStats>(res);
+  },
+
+  getTeacherDashboard: async (): Promise<DashboardStats> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/dashboard/teacher`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<DashboardStats>(res);
+  },
+
+  getStudentDashboard: async (): Promise<DashboardStats> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/dashboard/student`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<DashboardStats>(res);
@@ -407,40 +501,33 @@ export const dashboardApi = {
 
 // Students
 export const studentApi = {
-  getAll: async (page = 1, pageSize = 20, search = '') => {
-    const params = new URLSearchParams({
-      PageNumber: String(page),
-      PageSize: String(pageSize),
-    });
-    if (search) params.set('Search', search);
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Student?${params}`, {
+  getAll: async (): Promise<Student[]> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<PaginatedResponse<Student>>(res);
+    const data = await handleResponse<Student[] | PaginatedResponse<Student>>(res);
+    if (Array.isArray(data)) return data;
+    return data.items || data.data || [];
   },
 
   getById: async (id: string): Promise<Student> => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Student/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<Student>(res);
   },
 
   create: async (data: CreateStudentRequest) => {
-    const payload = { ...data };
-    if (payload.dateOfBirth) {
-      payload.dateOfBirth = toDateTime(payload.dateOfBirth);
-    }
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Student`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
     });
     return handleResponse(res);
   },
 
   update: async (id: string, data: UpdateStudentRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Student/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -449,7 +536,7 @@ export const studentApi = {
   },
 
   delete: async (id: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Student/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -457,7 +544,7 @@ export const studentApi = {
   },
 
   search: async (q: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Student/search?q=${encodeURIComponent(q)}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/search?q=${encodeURIComponent(q)}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<Student[]>(res);
@@ -466,27 +553,24 @@ export const studentApi = {
 
 // Teachers
 export const teacherApi = {
-  getAll: async (page = 1, pageSize = 20, search = '') => {
-    const params = new URLSearchParams({
-      PageNumber: String(page),
-      PageSize: String(pageSize),
-    });
-    if (search) params.set('Search', search);
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher?${params}`, {
+  getAll: async (): Promise<Teacher[]> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<PaginatedResponse<Teacher>>(res);
+    const data = await handleResponse<Teacher[] | PaginatedResponse<Teacher>>(res);
+    if (Array.isArray(data)) return data;
+    return data.items || data.data || [];
   },
 
   getById: async (id: string): Promise<Teacher> => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/${id}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<Teacher>(res);
   },
 
   create: async (data: CreateTeacherRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -495,7 +579,7 @@ export const teacherApi = {
   },
 
   update: async (id: string, data: UpdateTeacherRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -503,8 +587,8 @@ export const teacherApi = {
     return handleResponse(res);
   },
 
-  updateStatus: async (id: string, isActive: boolean) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher/${id}/status?isActive=${isActive}`, {
+  updateStatus: async (id: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/${id}/status`, {
       method: 'PUT',
       headers: getAuthHeaders(),
     });
@@ -512,7 +596,7 @@ export const teacherApi = {
   },
 
   assign: async (id: string, data: AssignTeacherRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher/${id}/assign`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/${id}/assign`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -521,7 +605,7 @@ export const teacherApi = {
   },
 
   removeAssignment: async (assignmentId: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Teacher/assignment/${assignmentId}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/assignment/${assignmentId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -532,7 +616,7 @@ export const teacherApi = {
 // Classes
 export const classApi = {
   getAll: async () => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Class`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/class`, {
       headers: getAuthHeaders(),
     });
     const data = await handleResponse<SchoolClass[] | PaginatedResponse<SchoolClass>>(res);
@@ -541,14 +625,14 @@ export const classApi = {
   },
 
   getById: async (id: string): Promise<SchoolClass> => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Class/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/class/${id}`, {
       headers: getAuthHeaders(),
     });
     return handleResponse<SchoolClass>(res);
   },
 
   create: async (data: CreateClassRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Class`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/class`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -557,7 +641,7 @@ export const classApi = {
   },
 
   update: async (id: string, data: UpdateClassRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Class/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/class/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -566,7 +650,7 @@ export const classApi = {
   },
 
   delete: async (id: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Class/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/class/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -574,7 +658,7 @@ export const classApi = {
   },
 
   assignSubjects: async (id: string, data: AssignSubjectsToClassRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Class/${id}/subjects`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/class/${id}/subjects`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -586,7 +670,7 @@ export const classApi = {
 // Subjects
 export const subjectApi = {
   getAll: async () => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Subject`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/subject`, {
       headers: getAuthHeaders(),
     });
     const data = await handleResponse<Subject[] | PaginatedResponse<Subject>>(res);
@@ -595,7 +679,7 @@ export const subjectApi = {
   },
 
   create: async (data: CreateSubjectRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Subject`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/subject`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -604,7 +688,7 @@ export const subjectApi = {
   },
 
   update: async (id: string, data: UpdateSubjectRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Subject/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/subject/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -613,7 +697,7 @@ export const subjectApi = {
   },
 
   delete: async (id: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Subject/${id}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/subject/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -623,30 +707,26 @@ export const subjectApi = {
 
 // Academic Sessions
 export const sessionApi = {
-  getAll: async () => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession`, {
+  getAll: async (): Promise<AcademicSession[]> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/academicsession`, {
       headers: getAuthHeaders(),
     });
-    const result = await handleResponse<Record<string, unknown>>(res);
-    return (result?.data || result?.items || result) as AcademicSession[];
+    const data = await handleResponse<AcademicSession[] | Record<string, unknown>>(res);
+    if (Array.isArray(data)) return data;
+    return ((data as Record<string, unknown>)?.data || (data as Record<string, unknown>)?.items || data) as AcademicSession[];
   },
 
   create: async (data: CreateSessionRequest) => {
-    const payload = {
-      ...data,
-      startDate: toDateTime(data.startDate),
-      endDate: toDateTime(data.endDate),
-    };
-    const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/academicsession`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
     });
     return handleResponse(res);
   },
 
   setCurrent: async (id: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession/${id}/current`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/academicsession/${id}/current`, {
       method: 'PUT',
       headers: getAuthHeaders(),
     });
@@ -654,21 +734,16 @@ export const sessionApi = {
   },
 
   addTerm: async (sessionId: string, data: CreateTermRequest) => {
-    const payload = {
-      ...data,
-      startDate: toDateTime(data.startDate),
-      endDate: toDateTime(data.endDate),
-    };
-    const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession/${sessionId}/terms`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/academicsession/${sessionId}/terms`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
     });
     return handleResponse(res);
   },
 
   setCurrentTerm: async (termId: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/AcademicSession/terms/${termId}/current`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/academicsession/terms/${termId}/current`, {
       method: 'PUT',
       headers: getAuthHeaders(),
     });
@@ -678,37 +753,235 @@ export const sessionApi = {
 
 // Schools (for superadmin)
 export const schoolApi = {
-  getAll: async (page = 1, pageSize = 20, search = '') => {
-    const params = new URLSearchParams({
-      PageNumber: String(page),
-      PageSize: String(pageSize),
-    });
-    if (search) params.set('Search', search);
-    const res = await fetchWithTimeout(`${API_BASE_URL}/School?${params}`, {
+  getAll: async (): Promise<unknown[]> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/school`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<PaginatedResponse<unknown>>(res);
+    const data = await handleResponse<unknown[] | PaginatedResponse<unknown>>(res);
+    if (Array.isArray(data)) return data;
+    return (data as PaginatedResponse<unknown>).items || (data as PaginatedResponse<unknown>).data || [];
   },
 
   getPlans: async () => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/School/plans`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/school/plans`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  getById: async (id: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/school/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  update: async (id: string, data: UpdateSchoolRequest) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/school/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  updatePlan: async (id: string, data: UpdateSchoolPlanRequest) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/school/${id}/plan`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  toggleStatus: async (id: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/school/${id}/status`, {
+      method: 'PUT',
       headers: getAuthHeaders(),
     });
     return handleResponse(res);
   },
 };
 
-// Global Users (for superadmin)
-export const userApi = {
-  getAllAdmins: async (page = 1, pageSize = 20, search = '') => {
-    const params = new URLSearchParams({
-      PageNumber: String(page),
-      PageSize: String(pageSize),
+// Scores
+export const scoreApi = {
+  enter: async (data: EnterScoreRequest) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/score/enter`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
     });
-    if (search) params.set('Search', search);
-    const res = await fetchWithTimeout(`${API_BASE_URL}/Auth/admins?${params}`, {
+    return handleResponse(res);
+  },
+
+  bulkEnter: async (data: BulkEnterScoresRequest) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/score/bulk-enter`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  getScoresheet: async (classId: string, subjectId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/score/class/${classId}/subject/${subjectId}/term/${termId}`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse<PaginatedResponse<unknown>>(res);
+    return handleResponse(res);
+  },
+
+  getStudentScores: async (studentId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/score/student/${studentId}/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+};
+
+// Results
+export const resultApi = {
+  compute: async (classId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/compute/${classId}/${termId}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  submit: async (classId: string, termId: string, data?: SubmitResultsRequest) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/submit/${classId}/${termId}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data || {}),
+    });
+    return handleResponse(res);
+  },
+
+  approve: async (classId: string, termId: string, data: ApproveResultsRequest) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/approve/${classId}/${termId}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  publish: async (classId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/publish/${classId}/${termId}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  getClassResults: async (classId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/class/${classId}/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  getStudentResults: async (studentId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/student/${studentId}/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  getMyResults: async (termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/my/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+};
+
+// Report Cards
+export const reportCardApi = {
+  getData: async (studentId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/reportcard/${studentId}/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  downloadPdf: async (studentId: string, termId: string): Promise<Blob> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/reportcard/${studentId}/${termId}/pdf`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to download report card PDF (${res.status})`);
+    return res.blob();
+  },
+
+  downloadMyPdf: async (termId: string): Promise<Blob> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/reportcard/my/${termId}/pdf`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to download report card PDF (${res.status})`);
+    return res.blob();
+  },
+};
+
+// Grading
+export const gradingApi = {
+  setRules: async (data: SetGradingRulesRequest) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/grading/rules`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  getRules: async (): Promise<GradingRule[]> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/grading/rules`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<GradingRule[]>(res);
+  },
+};
+
+// Fees
+export const feeApi = {
+  record: async (data: RecordFeeRequest) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee/record`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  clearFees: async (studentId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee/clear/${studentId}/${termId}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  getStudentFees: async (studentId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee/student/${studentId}/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  getClassFees: async (classId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee/class/${classId}/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+};
+
+// Global Users (for superadmin) — NOTE: /api/auth/admins endpoint was removed in Node.js backend
+// Falling back to schoolApi.getAll() which returns schools with admin info
+export const userApi = {
+  getAllAdmins: async () => {
+    // The dedicated admins endpoint no longer exists in the new backend.
+    // We use the schools list as a proxy — each school has admin info attached.
+    const schools = await schoolApi.getAll();
+    return schools;
   },
 };
