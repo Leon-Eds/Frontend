@@ -110,12 +110,12 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         {/* Language Selector Dropdown */}
         <LanguageSelector />
 
-        <Link href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"} className="relative text-gray-500 hover:text-gray-900 transition-colors p-1">
+        <Link href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings?section=notifications"} className="relative text-gray-500 hover:text-gray-900 transition-colors p-1">
           <BellIcon className="h-5 w-5" />
           <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-[#b05e1c] border border-white"></span>
         </Link>
 
-        <Link href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"} className="text-gray-500 hover:text-gray-900 transition-colors p-1 hidden sm:block">
+        <Link href="/support" className="text-gray-500 hover:text-gray-900 transition-colors p-1 hidden sm:block">
           <HelpIcon className="h-5 w-5" />
         </Link>
 

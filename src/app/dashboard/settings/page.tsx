@@ -32,7 +32,7 @@ export default function SettingsPage() {
     }
   }, [toast]);
 
-  // Load school info from localStorage
+  // Load school info from localStorage & handle deep linking
   useEffect(() => {
     try {
       const user = localStorage.getItem('leoned_user');
@@ -40,6 +40,13 @@ export default function SettingsPage() {
         const parsed = JSON.parse(user);
         // eslint-disable-next-line
         setSchoolName(parsed.schoolName || "");
+      }
+
+      // Check query params for active section
+      const params = new URLSearchParams(window.location.search);
+      const section = params.get("section") as SettingsSection;
+      if (section && ['school', 'notifications', 'security', 'appearance', 'localization', 'advanced'].includes(section)) {
+        setActiveSection(section);
       }
     } catch { /* ignore */ }
   }, []);
