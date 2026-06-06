@@ -661,7 +661,17 @@ export default function FacultyPageWrapper() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setDemoRole(localStorage.getItem("leoned_demo_role") || "Admin");
+      const storedUser = localStorage.getItem("leoned_user");
+      try {
+        const user = JSON.parse(storedUser || "{}");
+        if (user.role === "Teacher" || user.role === "Faculty") {
+          setDemoRole("Faculty");
+        } else {
+          setDemoRole(localStorage.getItem("leoned_demo_role") || "Admin");
+        }
+      } catch (e) {
+        setDemoRole(localStorage.getItem("leoned_demo_role") || "Admin");
+      }
       setMounted(true);
     }
   }, []);

@@ -20,17 +20,6 @@ export default function DashboardOverview() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1. Redirect if previewing as Faculty or Student
-    const demoRole = localStorage.getItem("leoned_demo_role") || "Admin";
-    if (demoRole === "Faculty") {
-      router.push("/dashboard/faculty");
-      return;
-    }
-    if (demoRole === "Student") {
-      router.push("/dashboard/student-portal");
-      return;
-    }
-
     const storedUser = localStorage.getItem("leoned_user");
     const token = localStorage.getItem("leoned_token");
 
@@ -42,6 +31,27 @@ export default function DashboardOverview() {
     try {
       const parsedUser = JSON.parse(storedUser || "{}");
       setUser(parsedUser);
+
+      // Redirect if user has Faculty/Teacher or Student role
+      if (parsedUser.role === "Teacher" || parsedUser.role === "Faculty") {
+        router.push("/dashboard/faculty");
+        return;
+      }
+      if (parsedUser.role === "Student") {
+        router.push("/dashboard/student-portal");
+        return;
+      }
+
+      // 1. Fallback redirect if legacy demo role is set
+      const demoRole = localStorage.getItem("leoned_demo_role");
+      if (demoRole === "Faculty") {
+        router.push("/dashboard/faculty");
+        return;
+      }
+      if (demoRole === "Student") {
+        router.push("/dashboard/student-portal");
+        return;
+      }
 
       const fetchDashboard = async () => {
         try {
