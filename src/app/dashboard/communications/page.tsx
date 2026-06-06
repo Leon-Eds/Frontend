@@ -60,78 +60,15 @@ export default function BroadcastHub() {
   const [receiptDetails, setReceiptDetails] = useState<any>(null);
   const [formError, setFormError] = useState("");
 
-  // Seed initial data to localStorage
+  // Load existing data from localStorage (no mock seeding)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Seed announcements if empty
     const storedAnnouncements = localStorage.getItem("leoned_announcements");
-    if (!storedAnnouncements) {
-      const initialAnnouncements: Announcement[] = [
-        {
-          id: "ann-1",
-          title: "Term 2 Mid-Term Grade Submissions Due",
-          content: "Please ensure all Mathematics and Further Mathematics continuous assessment records are fully entered by Friday, 6:00 PM. The approvals queue will open immediately after.",
-          category: "Academic",
-          date: new Date(Date.now() - 86400000 * 2).toISOString(),
-          author: "Vice Principal (Academic)",
-          channels: ["megaphone", "email"],
-          views: 42
-        },
-        {
-          id: "ann-2",
-          title: "Pedagogical Excellence Workshop",
-          content: "Join us in the Main Hall this Thursday at 2:00 PM for our monthly staff development workshop. Attendance is mandatory for all primary and secondary teachers.",
-          category: "General",
-          date: new Date(Date.now() - 86400000 * 5).toISOString(),
-          author: "School Administration",
-          channels: ["megaphone"],
-          views: 38
-        }
-      ];
-      localStorage.setItem("leoned_announcements", JSON.stringify(initialAnnouncements));
-      setAnnouncements(initialAnnouncements);
-    } else {
-      setAnnouncements(JSON.parse(storedAnnouncements));
-    }
+    setAnnouncements(storedAnnouncements ? JSON.parse(storedAnnouncements) : []);
 
-    // Seed logs if empty
     const storedLogs = localStorage.getItem("leoned_dispatch_logs");
-    if (!storedLogs) {
-      const initialLogs: DispatchLog[] = [
-        {
-          id: "log-1",
-          subject: "Term 2 Mid-Term Grade Submissions Due",
-          date: new Date(Date.now() - 86400000 * 2).toISOString(),
-          recipientsCount: 48,
-          channels: ["megaphone", "email"],
-          deliveryRate: "100%",
-          cost: "$0.00"
-        },
-        {
-          id: "log-2",
-          subject: "Pedagogical Excellence Workshop Invitation",
-          date: new Date(Date.now() - 86400000 * 5).toISOString(),
-          recipientsCount: 48,
-          channels: ["megaphone"],
-          deliveryRate: "100%",
-          cost: "$0.00"
-        },
-        {
-          id: "log-3",
-          subject: "Important: Staff Salary Remittance Advice",
-          date: new Date(Date.now() - 86400000 * 12).toISOString(),
-          recipientsCount: 48,
-          channels: ["email"],
-          deliveryRate: "98.2%",
-          cost: "$0.00"
-        }
-      ];
-      localStorage.setItem("leoned_dispatch_logs", JSON.stringify(initialLogs));
-      setDispatchLogs(initialLogs);
-    } else {
-      setDispatchLogs(JSON.parse(storedLogs));
-    }
+    setDispatchLogs(storedLogs ? JSON.parse(storedLogs) : []);
   }, []);
 
   const handleChannelToggle = (channel: string) => {

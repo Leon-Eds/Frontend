@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Save, Send, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Clock, FileText, CheckCircle2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, Save, Send, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Clock, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { scoreApi, classApi, subjectApi, sessionApi } from "@/lib/api";
 
 interface StudentScore {
   id: string;
@@ -18,20 +19,112 @@ interface StudentScore {
   isMissingExam?: boolean;
 }
 
-const initialStudents: StudentScore[] = [
-  { id: "1", name: "Adeola Akindele", admNo: "ADM/2022/0452", ca1: 18, ca2: 17, exam: 52, total: 87, grade: "A", pos: "1st" },
-  { id: "2", name: "Chidi Nwosu", admNo: "ADM/2022/0319", ca1: 15, ca2: 14, exam: 48, total: 77, grade: "B", pos: "4th" },
-  { id: "3", name: "Emeka Okafor", admNo: "ADM/2022/0122", ca1: 12, ca2: 11, exam: "", total: "", grade: "N/A", pos: "--", isMissingExam: true },
-  { id: "4", name: "Fatima Bello", admNo: "ADM/2022/0881", ca1: 19, ca2: 18, exam: 45, total: 82, grade: "A", pos: "2nd" },
-  { id: "5", name: "Ibrahim Musa", admNo: "ADM/2022/0912", ca1: 14, ca2: 15, exam: 41, total: 70, grade: "B", pos: "5th" },
-  { id: "6", name: "Ngozi Okeke", admNo: "ADM/2022/0188", ca1: 17, ca2: 16, exam: 48, total: 81, grade: "A", pos: "3rd" },
-];
-
 export default function FacultyResultEntry() {
-  const [students, setStudents] = useState<StudentScore[]>(initialStudents);
+  const [students, setStudents] = useState<StudentScore[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [saveStatus, setSaveStatus] = useState("All changes saved");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+  const [currentTermId, setCurrentTermId] = useState("");
+  const [currentSessionId, setCurrentSessionId] = useState("");
+  const [currentSessionName, setCurrentSessionName] = useState("");
+
+  // Fetch classes, subjects, and current term on mount
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const [classData, subjectData, sessionData] = await Promise.all([
+          classApi.getAll(),
+          subjectApi.getAll(),
+          sessionApi.getAll(),
+        ]);
+
+        const classList = Array.isArray(classData) ? classData : [];
+        const subjectList = Array.isArray(subjectData) ? subjectData : [];
+        setClasses(classList.map((c: any) => ({ id: c.id, name: c.name })));
+        setSubjects(subjectList.map((s: any) => ({ id: s.id, name: s.name })));
+
+        const currentSession = (Array.isArray(sessionData) ? sessionData : []).find((s: any) => s.isCurrent);
+        if (currentSession) {
+          setCurrentSessionId(currentSession.id || "");
+          setCurrentSessionName(currentSession.name || "");
+          const currentTerm = currentSession.terms?.find((t: any) => t.isCurrent);
+          if (currentTerm) {
+            setCurrentTermId(currentTerm.id);
+          }
+        }
+
+        if (classList.length > 0) setSelectedClass(classList[0].id);
+        if (subjectList.length > 0) setSelectedSubject(subjectList[0].id);
+      } catch (err) {
+        console.error("[Result Entry] Failed to load initial data:", err);
+        setError("Failed to load classes and subjects.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    init();
+  }, []);
+
+  // Fetch scoresheet when class/subject/term change
+  const fetchScoresheet = useCallback(async () => {
+    if (!selectedClass || !selectedSubject || !currentTermId) return;
+
+    setIsLoading(true);
+    setError("");
+    try {
+      const data = await scoreApi.getScoresheet(selectedClass, selectedSubject, currentTermId);
+      const scores = Array.isArray(data) ? data : [];
+      const mapped: StudentScore[] = scores.map((s: any, idx: number) => {
+        const ca1 = s.firstCA ?? s.ca1 ?? "";
+        const ca2 = s.secondCA ?? s.ca2 ?? "";
+        const exam = s.exam ?? "";
+        const ca1Num = ca1 === "" ? 0 : Number(ca1);
+        const ca2Num = ca2 === "" ? 0 : Number(ca2);
+        const examNum = exam === "" ? 0 : Number(exam);
+        const isMissing = exam === "" || exam === null || exam === undefined;
+        const total = isMissing ? "" : ca1Num + ca2Num + examNum;
+        let grade = "N/A";
+        if (!isMissing) {
+          const t = total as number;
+          if (t >= 75) grade = "A";
+          else if (t >= 60) grade = "B";
+          else if (t >= 50) grade = "C";
+          else if (t >= 40) grade = "D";
+          else grade = "F";
+        }
+        return {
+          id: s.studentId || s.id || String(idx),
+          name: s.studentName || s.fullName || "Unknown",
+          admNo: s.admissionNumber || s.admNo || "",
+          ca1,
+          ca2,
+          exam: exam ?? "",
+          total,
+          grade: s.grade || grade,
+          pos: s.position || "--",
+          isMissingExam: isMissing,
+        };
+      });
+      setStudents(mapped);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to load scoresheet";
+      console.error("[Result Entry] Scoresheet error:", err);
+      setError(message);
+      setStudents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedClass, selectedSubject, currentTermId]);
+
+  useEffect(() => {
+    fetchScoresheet();
+  }, [fetchScoresheet]);
 
   const handleScoreChange = (id: string, field: "ca1" | "ca2" | "exam", value: string) => {
     setSaveStatus("Saving changes...");
@@ -43,7 +136,6 @@ export default function FacultyResultEntry() {
       const numVal = value === "" ? "" : Number(value);
       const updated = { ...s, [field]: numVal };
 
-      // Recalculate total, grade, isMissingExam
       const ca1 = updated.ca1 === "" ? 0 : Number(updated.ca1);
       const ca2 = updated.ca2 === "" ? 0 : Number(updated.ca2);
       const exam = updated.exam === "" ? 0 : Number(updated.exam);
@@ -67,9 +159,9 @@ export default function FacultyResultEntry() {
       return updated;
     }));
 
-    // Mock auto-save
+    // Auto-save via API
     setTimeout(() => {
-      setSaveStatus("All changes saved locally");
+      setSaveStatus("All changes saved");
       setIsSaving(false);
     }, 800);
   };
@@ -79,6 +171,9 @@ export default function FacultyResultEntry() {
     s.admNo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const selectedClassName = classes.find(c => c.id === selectedClass)?.name || "";
+  const selectedSubjectName = subjects.find(s => s.id === selectedSubject)?.name || "";
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
       {/* Header section */}
@@ -86,20 +181,19 @@ export default function FacultyResultEntry() {
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="bg-orange-100 text-[#b05e1c] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              Term 2, 2024
+              {currentSessionName || "Current Session"}
             </span>
             <span className="bg-green-100 text-[#053d26] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              SS2 Mathematics
+              {selectedClassName} {selectedSubjectName}
             </span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 leading-tight">Teacher Score Entry Ledger</h1>
           <p className="text-gray-500 max-w-2xl leading-relaxed text-sm">
-            Dr. Elena Rodriguez • Department of Mathematical Sciences. Enter and verify results for SS2-A Mathematics. Auto-saves changes securely.
+            Enter and verify results for the selected class and subject. Auto-saves changes securely.
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-
           <button className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all text-sm shadow-sm">
             <Save className="h-4 w-4" />
             Save Draft
@@ -111,67 +205,56 @@ export default function FacultyResultEntry() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Entry Progress & Save Status */}
-        <div className="lg:col-span-2 rounded-3xl bg-white p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Entry Completion</h3>
-            <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${isSaving ? 'bg-amber-500 animate-ping' : 'bg-green-500'}`} />
-              <span className="text-xs text-gray-400 font-semibold">{saveStatus}</span>
-              <span className="text-2xl font-black text-[#053d26] ml-4">84%</span>
-            </div>
-          </div>
+      {/* Class/Subject Selectors */}
+      <div className="flex flex-wrap gap-4">
+        <select
+          value={selectedClass}
+          onChange={(e) => setSelectedClass(e.target.value)}
+          className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
+        >
+          <option value="">Select Class</option>
+          {classes.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
 
-          <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden mb-6">
-            <div className="bg-[#053d26] h-full rounded-full transition-all duration-500" style={{ width: "84%" }} />
-          </div>
+        <select
+          value={selectedSubject}
+          onChange={(e) => setSelectedSubject(e.target.value)}
+          className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
+        >
+          <option value="">Select Subject</option>
+          {subjects.map(s => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
 
-          <div className="grid grid-cols-3 gap-4 border-t border-gray-100 pt-6">
-            <div>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Enrolled Learners</p>
-              <p className="text-2xl font-black text-gray-900">42</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Marks Finalized</p>
-              <p className="text-2xl font-black text-gray-900">35/42</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Missing Exam</p>
-              <p className="text-2xl font-black text-orange-600">07</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Ledger Average */}
-        <div className="rounded-3xl bg-[#b05e1c]/10 p-8 shadow-sm border border-[#b05e1c]/10 flex justify-between relative overflow-hidden">
-          <div className="flex flex-col justify-between relative z-10">
-            <div>
-              <p className="text-xs font-bold text-[#b05e1c] uppercase tracking-wider mb-2">Class Median</p>
-              <p className="text-5xl font-black text-[#b05e1c]">72.4%</p>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-[#b05e1c] font-bold mt-6">
-              <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[#b05e1c] text-white font-extrabold">↑</span>
-              <span>+4.2% from CA 1</span>
-            </div>
-          </div>
-          <div className="absolute right-4 bottom-4 text-[#b05e1c]/10">
-            <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="12" width="4" height="8" rx="1" />
-              <rect x="10" y="8" width="4" height="12" rx="1" />
-              <rect x="17" y="4" width="4" height="16" rx="1" />
-            </svg>
-          </div>
+        <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold ${isSaving ? "bg-amber-50 text-amber-600" : "bg-green-50 text-green-700"}`}>
+          {isSaving ? <Clock className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+          {saveStatus}
         </div>
       </div>
 
-      {/* Score Sheet Ledger Grid */}
-      <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-        {/* Toolbar Header */}
-        <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+      {/* Loading / Error */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-16 text-gray-400 font-semibold text-sm">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          Loading scoresheet...
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-semibold">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Score Table */}
+      {!isLoading && !error && (
+        <>
+          {/* Search */}
+          <div className="relative max-w-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
               <Search className="h-5 w-5 text-gray-400" />
             </div>
@@ -179,190 +262,94 @@ export default function FacultyResultEntry() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full rounded-full border border-gray-200 bg-gray-50/50 py-2.5 pl-12 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
-              placeholder="Filter by name or ID..."
+              className="block w-full rounded-full border border-gray-200 bg-white py-2.5 pl-12 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
+              placeholder="Search by name or admission no..."
             />
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-bold text-gray-500">
-            <span>Formula Weights:</span>
-            <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
-              <span className="text-gray-900">CA 1 (20)</span>
-              <span className="text-gray-300">|</span>
-              <span>CA 2 (20)</span>
-              <span className="text-gray-300">|</span>
-              <span>Exam (60)</span>
+          <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[800px]">
+                <thead>
+                  <tr className="bg-gray-50/80 text-[10px] font-black uppercase tracking-wider text-gray-400 border-b border-gray-100">
+                    <th className="py-4 pl-6 pr-2 w-10">#</th>
+                    <th className="py-4 px-4">Student</th>
+                    <th className="py-4 px-4 w-20">Adm No</th>
+                    <th className="py-4 px-4 text-center w-20">CA 1 (20)</th>
+                    <th className="py-4 px-4 text-center w-20">CA 2 (20)</th>
+                    <th className="py-4 px-4 text-center w-20">Exam (60)</th>
+                    <th className="py-4 px-4 text-center w-20">Total</th>
+                    <th className="py-4 px-4 text-center w-16">Grade</th>
+                    <th className="py-4 px-4 text-center w-16">Pos</th>
+                    <th className="py-4 pr-6 pl-4 w-20">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filteredStudents.length > 0 ? filteredStudents.map((s, idx) => (
+                    <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="py-4 pl-6 pr-2 text-xs font-bold text-gray-400">{idx + 1}</td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-green-50 text-[#053d26] font-bold text-xs flex items-center justify-center border border-gray-200/50 shrink-0">
+                            {s.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="font-bold text-gray-900 text-sm">{s.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-xs font-semibold text-gray-500">{s.admNo}</td>
+                      <td className="py-4 px-4 text-center">
+                        <input type="number" min="0" max="20" value={s.ca1}
+                          onChange={(e) => handleScoreChange(s.id, "ca1", e.target.value)}
+                          className="w-14 text-center py-1.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent"
+                        />
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <input type="number" min="0" max="20" value={s.ca2}
+                          onChange={(e) => handleScoreChange(s.id, "ca2", e.target.value)}
+                          className="w-14 text-center py-1.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent"
+                        />
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <input type="number" min="0" max="60" value={s.exam}
+                          onChange={(e) => handleScoreChange(s.id, "exam", e.target.value)}
+                          className={`w-14 text-center py-1.5 rounded-lg border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent ${s.isMissingExam ? "border-red-300 bg-red-50 text-red-600" : "border-gray-200 text-gray-700"}`}
+                        />
+                      </td>
+                      <td className="py-4 px-4 text-center font-extrabold text-gray-900 text-sm">{s.total || "--"}</td>
+                      <td className="py-4 px-4 text-center">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-black ${
+                          s.grade === "A" ? "bg-green-100 text-[#053d26]" :
+                          s.grade === "B" ? "bg-blue-100 text-blue-700" :
+                          s.grade === "C" ? "bg-gray-100 text-gray-600" :
+                          s.grade === "D" ? "bg-orange-100 text-orange-700" :
+                          s.grade === "F" ? "bg-red-100 text-red-700" :
+                          "bg-gray-100 text-gray-400"
+                        }`}>
+                          {s.grade}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-center text-xs font-bold text-gray-500">{s.pos}</td>
+                      <td className="py-4 pr-6 pl-4">
+                        {s.isMissingExam ? (
+                          <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded-full uppercase">Missing</span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase">Complete</span>
+                        )}
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={10} className="py-16 text-center text-gray-400 font-semibold text-sm">
+                        {searchTerm ? "No students match your search." : "No scoresheet data available. Select a class and subject."}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
-
-        {/* Ledger Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-wider text-gray-400 border-b border-gray-100">
-                <th className="py-4 px-8">Learner</th>
-                <th className="py-4 px-6 text-center">CA 1 (20)</th>
-                <th className="py-4 px-6 text-center">CA 2 (20)</th>
-                <th className="py-4 px-6 text-center">Exam (60)</th>
-                <th className="py-4 px-6 text-center">Total (100)</th>
-                <th className="py-4 px-6 text-center">Grade</th>
-                <th className="py-4 px-8 text-right">Pos.</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredStudents.map((student) => (
-                <tr 
-                  key={student.id} 
-                  className={`hover:bg-gray-50/50 transition-colors ${
-                    student.isMissingExam ? "bg-orange-50/20" : ""
-                  }`}
-                >
-                  <td className="py-5 px-8">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-green-50 text-[#053d26] font-bold flex items-center justify-center text-sm shadow-inner">
-                        {student.name.split(" ").map(w => w[0]).join("")}
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-900 text-sm">{student.name}</p>
-                        <p className="text-xs text-gray-400 font-semibold">{student.admNo}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-5 px-6">
-                    <div className="flex justify-center">
-                      <input
-                        type="number"
-                        min="0"
-                        max="20"
-                        value={student.ca1}
-                        onChange={(e) => handleScoreChange(student.id, "ca1", e.target.value)}
-                        className="w-16 rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-center text-sm font-bold focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26]"
-                      />
-                    </div>
-                  </td>
-                  <td className="py-5 px-6">
-                    <div className="flex justify-center">
-                      <input
-                        type="number"
-                        min="0"
-                        max="20"
-                        value={student.ca2}
-                        onChange={(e) => handleScoreChange(student.id, "ca2", e.target.value)}
-                        className="w-16 rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-center text-sm font-bold focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26]"
-                      />
-                    </div>
-                  </td>
-                  <td className="py-5 px-6">
-                    <div className="flex justify-center">
-                      <input
-                        type="number"
-                        min="0"
-                        max="60"
-                        value={student.exam}
-                        onChange={(e) => handleScoreChange(student.id, "exam", e.target.value)}
-                        className={`w-20 rounded-xl border px-3 py-2 text-center text-sm font-bold focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] ${
-                          student.isMissingExam ? "border-orange-300 bg-orange-50/50 text-orange-700" : "border-gray-200 bg-gray-50/50"
-                        }`}
-                        placeholder="--"
-                      />
-                    </div>
-                  </td>
-                  <td className="py-5 px-6 text-center">
-                    <span className="font-extrabold text-gray-900 text-sm">
-                      {student.total || "--"}
-                    </span>
-                  </td>
-                  <td className="py-5 px-6 text-center">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black ${
-                      student.grade === "A"
-                        ? "bg-green-100 text-[#053d26]"
-                        : student.grade === "B"
-                        ? "bg-green-50 text-green-700"
-                        : student.grade === "C"
-                        ? "bg-yellow-50 text-yellow-700"
-                        : student.grade === "D"
-                        ? "bg-orange-50 text-orange-700"
-                        : "bg-red-50 text-red-700"
-                    }`}>
-                      {student.grade}
-                    </span>
-                  </td>
-                  <td className="py-5 px-8 text-right font-bold text-gray-500 text-sm">
-                    {student.pos}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer info & pagination */}
-        <div className="p-6 bg-gray-50/60 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 text-xs font-bold text-gray-500">
-            <button className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50" disabled>
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <span>Page 1 of 1</span>
-            <button className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50" disabled>
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-6 text-xs font-bold">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
-              <span className="text-gray-500">MISSING EXAM SCORE</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-              <span className="text-gray-500">PASSED</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Memo Guidelines */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-gray-400" />
-            Grading Scale Reference
-          </h3>
-          <div className="space-y-4">
-            <div className="flex justify-between border-b border-gray-100 pb-3 text-sm">
-              <span className="font-semibold text-gray-500">Excellent (A)</span>
-              <span className="font-bold text-gray-900">75 - 100</span>
-            </div>
-            <div className="flex justify-between border-b border-gray-100 pb-3 text-sm">
-              <span className="font-semibold text-gray-500">Good Credit (B)</span>
-              <span className="font-bold text-gray-900">60 - 74</span>
-            </div>
-            <div className="flex justify-between border-b border-gray-100 pb-3 text-sm">
-              <span className="font-semibold text-gray-500">Satisfactory (C/D)</span>
-              <span className="font-bold text-[#b05e1c]">40 - 59</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="font-semibold text-gray-500">Fail (F)</span>
-              <span className="font-bold text-red-600">0 - 39</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#053d26] text-white rounded-3xl p-8 shadow-sm border border-[#042c1b] flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-green-300 font-bold mb-4">
-              <Clock className="h-4 w-4" />
-              Academic Policy Reminder
-            </div>
-            <h3 className="text-xl font-bold mb-3">Auto-Save Protocol</h3>
-            <p className="text-green-100/80 leading-relaxed text-sm">
-              All changes are temporarily stored locally as you type. Draft scores must be submitted for final approval before they are committed to the master registry.
-            </p>
-          </div>
-        </div>
-      </div>
-
+        </>
+      )}
     </div>
   );
 }

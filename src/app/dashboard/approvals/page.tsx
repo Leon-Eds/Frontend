@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, AlertCircle, RefreshCw, Eye, Calendar, Sparkles, TrendingUp, ArrowRight, Clock, FileText } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { CheckCircle2, AlertCircle, RefreshCw, Eye, Calendar, Sparkles, TrendingUp, ArrowRight, Clock, FileText, Loader2 } from "lucide-react";
+import { resultApi, classApi, sessionApi } from "@/lib/api";
 
 interface PendingSubmission {
   id: string;
@@ -12,15 +13,104 @@ interface PendingSubmission {
   status: "Pending" | "Revision Requested";
 }
 
-const initialSubmissions: PendingSubmission[] = [
-  { id: "1", subject: "Advanced Mathematics II", date: "12 Oct", teacher: "Dr. Elena Rodriguez", className: "Senior Year B", status: "Pending" },
-  { id: "2", subject: "Modern World History", date: "10 Oct", teacher: "Prof. Samuel Okonjo", className: "Junior High 3A", status: "Revision Requested" },
-  { id: "3", subject: "Introduction to Economics", date: "09 Oct", teacher: "Ms. Sarah Jenkins", className: "Grade 11 Alpha", status: "Pending" }
-];
-
 export default function ResultsApproval() {
-  const [submissions, setSubmissions] = useState<PendingSubmission[]>(initialSubmissions);
+  const [submissions, setSubmissions] = useState<PendingSubmission[]>([]);
   const [activeFilter, setActiveFilter] = useState("All");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSubmissions = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // 1. Get all sessions and find the current one + current term
+      const sessions = await sessionApi.getAll();
+      const currentSession = sessions.find((s) => s.isCurrent);
+      if (!currentSession) {
+        setSubmissions([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const currentTerm = currentSession.terms?.find((t) => t.isCurrent);
+      if (!currentTerm) {
+        setSubmissions([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Get all classes
+      const classes = await classApi.getAll();
+      if (!classes.length) {
+        setSubmissions([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // 3. For each class, fetch results for the current term
+      const allSubmissions: PendingSubmission[] = [];
+
+      const resultPromises = classes.map(async (cls) => {
+        try {
+          const results = await resultApi.getClassResults(cls.id, currentTerm.id);
+          // results may be an array or an object with nested data
+          const resultList = Array.isArray(results) ? results : (results as Record<string, unknown>)?.results || (results as Record<string, unknown>)?.data || [];
+          const items = Array.isArray(resultList) ? resultList : [];
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          items.forEach((item: any) => {
+            // Map API fields to PendingSubmission shape
+            const rawStatus = (item.status || item.approvalStatus || "Pending") as string;
+            const status: PendingSubmission["status"] =
+              rawStatus === "Revision Requested" || rawStatus === "RevisionRequested" || rawStatus === "revision_requested"
+                ? "Revision Requested"
+                : "Pending";
+
+            // Only include items that are pending or need revision (not already approved/published)
+            if (rawStatus === "Approved" || rawStatus === "approved" || rawStatus === "Published" || rawStatus === "published") {
+              return;
+            }
+
+            const dateRaw = item.submittedAt || item.createdAt || item.date || "";
+            let formattedDate = "";
+            if (dateRaw) {
+              try {
+                const d = new Date(dateRaw);
+                formattedDate = `${d.getDate()} ${d.toLocaleString("en-US", { month: "short" })}`;
+              } catch {
+                formattedDate = dateRaw;
+              }
+            }
+
+            allSubmissions.push({
+              id: item.id || item._id || `${cls.id}-${item.subjectId || Math.random()}`,
+              subject: item.subjectName || item.subject || "Unknown Subject",
+              date: formattedDate,
+              teacher: item.teacherName || item.teacher || "Unknown Teacher",
+              className: cls.name || item.className || "Unknown Class",
+              status,
+            });
+          });
+        } catch (err) {
+          // If a single class fails (e.g. no results yet), just skip it
+          console.warn(`[Approvals] Could not fetch results for class ${cls.name}:`, err);
+        }
+      });
+
+      await Promise.all(resultPromises);
+      setSubmissions(allSubmissions);
+    } catch (err) {
+      console.error("[Approvals] Failed to fetch submissions:", err);
+      setError(err instanceof Error ? err.message : "Failed to load pending submissions.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, [fetchSubmissions]);
 
   const handleApprove = (id: string) => {
     setSubmissions(prev => prev.filter(item => item.id !== id));
@@ -34,6 +124,34 @@ export default function ResultsApproval() {
       return item;
     }));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 text-[#053d26] animate-spin" />
+          <p className="text-sm font-semibold text-gray-500">Loading pending submissions…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4 text-center max-w-md">
+          <AlertCircle className="h-10 w-10 text-red-500" />
+          <p className="text-sm font-semibold text-gray-700">{error}</p>
+          <button
+            onClick={fetchSubmissions}
+            className="px-5 py-2.5 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">

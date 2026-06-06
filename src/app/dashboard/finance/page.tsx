@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Lock, FileText, UploadCloud, Plus, Eye, Printer, Mail, Check, RotateCw, MoreVertical, Search, Bell, HelpCircle } from "lucide-react";
+import { studentApi } from "@/lib/api";
 
 interface StudentRegistry {
   id: string;
@@ -12,16 +13,35 @@ interface StudentRegistry {
   status: "Cleared" | "Unpaid" | "Pending Verification";
 }
 
-const initialRegistry: StudentRegistry[] = [
-  { id: "1", name: "Amara Nwosu", program: "BSc. Computer Science", refId: "#LA-2024-0982", status: "Cleared" },
-  { id: "2", name: "David Mensah", program: "BA. International Relations", refId: "#LA-2024-1102", status: "Unpaid" },
-  { id: "3", name: "Elena Rodriguez", program: "MSc. Public Health", refId: "#LA-2024-4421", status: "Pending Verification" },
-  { id: "4", name: "Kofi Asante", program: "Engineering Physics", refId: "#LA-2024-0012", status: "Cleared" }
-];
-
 export default function FeeClearance() {
-  const [registry, setRegistry] = useState<StudentRegistry[]>(initialRegistry);
+  const [registry, setRegistry] = useState<StudentRegistry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const fetchStudents = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const students = await studentApi.getAll();
+      const mapped: StudentRegistry[] = students.map((student) => ({
+        id: student.id,
+        name: student.fullName,
+        program: student.className || "Unassigned",
+        refId: student.admissionNumber || student.id,
+        status: "Pending Verification" as const,
+      }));
+      setRegistry(mapped);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch students");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
 
   const handleAction = (id: string, newStatus: "Cleared" | "Unpaid" | "Pending Verification") => {
     setRegistry(prev => prev.map(student => {
@@ -36,6 +56,36 @@ export default function FeeClearance() {
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     s.refId.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-[#053d26] border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-semibold text-gray-500">Loading student registry…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4 text-center max-w-md">
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+            <span className="text-xl font-bold">!</span>
+          </div>
+          <p className="text-sm font-semibold text-red-700">{error}</p>
+          <button
+            onClick={fetchStudents}
+            className="px-5 py-2.5 rounded-full bg-[#053d26] hover:bg-[#042c1b] text-white font-bold text-xs transition-colors shadow-md"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12 relative">

@@ -52,23 +52,8 @@ export default function DashboardOverview() {
           
           setStats(data);
         } catch (err: unknown) {
-          console.warn("[API fallback] Could not fetch real dashboard data. Using mock stats.", err);
-          
-          // Provide premium offline fallback stats so the page never blocks on Render cold starts
-          const mockDashboardStats = {
-            totalStudents: 1240,
-            totalTeachers: 48,
-            pendingResults: 12,
-            currentTerm: "Term 2",
-            currentSession: "2024/2025",
-            termProgress: 75,
-            recentActivities: [
-              { id: "act-1", date: new Date().toISOString(), userName: "Dr. Elena Rodriguez", description: "Submitted SS2 Math Continuous Assessment 2 grades", category: "Grading", status: "PENDING" },
-              { id: "act-2", date: new Date(Date.now() - 86400000).toISOString(), userName: "Tunde Oke", description: "Verified Term 2 tuition fee clearance", category: "Finance", status: "VERIFIED" },
-              { id: "act-3", date: new Date(Date.now() - 172800000).toISOString(), userName: "VP Academic", description: "Approved JSS3 Basic Tech score ledger", category: "Academic Approvals", status: "VERIFIED" }
-            ]
-          };
-          setStats(mockDashboardStats);
+          console.error("[Dashboard] Failed to fetch dashboard data.", err);
+          setStats({});
         } finally {
           setIsLoading(false);
         }
