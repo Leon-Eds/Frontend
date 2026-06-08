@@ -42,6 +42,13 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
   const headerTabs = role === "SuperAdmin" ? superAdminTabs : schoolTabs;
 
+  const isMainTab = headerTabs.some((tab) => {
+    if (tab.href === "/dashboard" || tab.href === "/super-admin") {
+      return pathname === tab.href;
+    }
+    return pathname.startsWith(tab.href);
+  });
+
   const initials = userName
     .split(" ")
     .map((w: string) => w[0])
@@ -68,25 +75,27 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#053d26]">Architect</span>
         </div>
 
-        {/* Nav tabs — scroll horizontally on medium, hide on very small */}
-        <nav className="hidden sm:flex items-center gap-1 h-full overflow-x-auto no-scrollbar">
-          {headerTabs.map((tab) => {
-            const isActive = pathname === tab.href || (tab.href !== "/dashboard" && tab.href !== "/super-admin" && pathname.startsWith(tab.href));
-            return (
-              <Link
-                key={tab.name}
-                href={tab.href}
-                className={`relative flex items-center h-full px-3 lg:px-4 text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap ${
-                  isActive
-                    ? "text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#053d26]"
-                    : "text-gray-500 hover:text-gray-900"
-                }`}
-              >
-                {tab.name}
-              </Link>
-            );
-          })}
-        </nav>
+        {/* Nav tabs — scroll horizontally on medium, hide on very small, hide on desktop since sidebar is visible */}
+        {isMainTab && (
+          <nav className="hidden sm:flex lg:hidden items-center gap-1 h-full overflow-x-auto no-scrollbar">
+            {headerTabs.map((tab) => {
+              const isActive = pathname === tab.href || (tab.href !== "/dashboard" && tab.href !== "/super-admin" && pathname.startsWith(tab.href));
+              return (
+                <Link
+                  key={tab.name}
+                  href={tab.href}
+                  className={`relative flex items-center h-full px-3 lg:px-4 text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap ${
+                    isActive
+                      ? "text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#053d26]"
+                      : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  {tab.name}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
       </div>
 
       {/* Right: Search, Language Switcher, Icons, Profile */}

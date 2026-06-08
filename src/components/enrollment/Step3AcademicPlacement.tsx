@@ -15,9 +15,30 @@ interface Step3Props {
   isSubmitting: boolean;
 }
 
+const getSchoolAbbreviation = (schoolName: string): string => {
+  if (!schoolName) return "SCH";
+  const cleanName = schoolName.replace(/[^\w\s-]/g, '').trim();
+  const words = cleanName.split(/[\s-]+/).filter(Boolean);
+  
+  if (words.length === 1) {
+    const word = words[0];
+    return word.slice(0, Math.min(3, word.length)).toUpperCase();
+  }
+  
+  const filteredWords = words.filter(w => !['of', 'and', 'the', 'for', 'in', 'ltd', 'limited', 'school', 'academy', 'college'].includes(w.toLowerCase()));
+  const abbreviation = (filteredWords.length > 0 ? filteredWords : words).map(w => w[0]).join('').toUpperCase();
+  
+  if (abbreviation.length >= 2) {
+    return abbreviation;
+  }
+  
+  return cleanName.slice(0, 3).toUpperCase();
+};
+
 export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData, onNext, onBack, isSubmitting }) => {
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
+  const [schoolPrefix, setSchoolPrefix] = useState("SCH");
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -34,11 +55,28 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
     fetchClasses();
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedUser = localStorage.getItem("leoned_user");
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          if (user.schoolName) {
+            setSchoolPrefix(getSchoolAbbreviation(user.schoolName));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse schoolName", e);
+      }
+    }
+  }, []);
+
   const classOptions = classes.map((c) => ({ label: c.name + (c.arm ? ` – ${c.arm}` : ''), value: c.id }));
 
   const generateAdmissionNumber = () => {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
-    updateData({ admissionNumber: `LEA-2024-${randomNum}` });
+    const currentYear = new Date().getFullYear();
+    updateData({ admissionNumber: `${schoolPrefix}-${currentYear}-${randomNum}` });
   };
 
   const selectedClass = classes.find((c) => c.id === data.classId);
@@ -102,7 +140,7 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
             <div>
               <Input
                 label="Admission Number"
-                placeholder="LEA-2024-XXXX"
+                placeholder={`${schoolPrefix}-${new Date().getFullYear()}-XXXX`}
                 value={data.admissionNumber || ''}
                 readOnly
                 icon={

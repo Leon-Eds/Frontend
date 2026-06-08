@@ -36,7 +36,6 @@ const schoolNavigation = [
   { name: "Financials", href: "/dashboard/finance", icon: Banknote },
   { name: "Staff Directory", href: "/dashboard/faculty", icon: Users },
   { name: "Session Rollover", href: "/dashboard/rollover", icon: CalendarClock },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 const adminNavigation = [
@@ -54,7 +53,6 @@ const facultyNavigation = [
   { name: "Result Entry", href: "/dashboard/faculty/result-entry", icon: CheckSquare },
   { name: "Schedule", href: "/dashboard/faculty", icon: Calendar },
   { name: "My Profile", href: "/dashboard/faculty", icon: Users },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 const studentNavigation = [
@@ -64,7 +62,6 @@ const studentNavigation = [
   { name: "Classes", href: "/dashboard", icon: BookOpen },
   { name: "Finance", href: "/dashboard", icon: Banknote },
   { name: "Reports", href: "/dashboard/student-portal", icon: FileText },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 const superAdminNavigation = [
@@ -72,7 +69,6 @@ const superAdminNavigation = [
   { name: "Manage Schools", href: "/super-admin/schools", icon: School },
   { name: "Global Users", href: "/super-admin/users", icon: Users },
   { name: "Billing & Plans", href: "/super-admin/plans", icon: CreditCard },
-  { name: "System Settings", href: "/super-admin/settings", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -84,6 +80,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
   const [demoRole, setDemoRole] = useState<string>("Admin");
+  const [schoolName, setSchoolName] = useState<string>("LeonEd Africa");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -92,12 +89,32 @@ export default function Sidebar({ onClose }: SidebarProps) {
         try {
           const user = JSON.parse(userStr);
           setRole(user.role);
+          if (user.role !== "SuperAdmin" && user.schoolName) {
+            setSchoolName(user.schoolName);
+          } else if (user.role === "SuperAdmin") {
+            setSchoolName("Platform Admin");
+          }
         } catch (e) {
           console.error("Failed to parse user from localStorage", e);
         }
       }
-      const activeDemo = localStorage.getItem("leoned_demo_role") || "Admin";
-      setDemoRole(activeDemo);
+      
+      // Auto resolve demo role from actual role to avoid demo artifacts
+      const storedUser = localStorage.getItem("leoned_user");
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          if (user.role === "Teacher" || user.role === "Faculty") {
+            setDemoRole("Faculty");
+          } else if (user.role === "Student") {
+            setDemoRole("Student");
+          } else {
+            setDemoRole(localStorage.getItem("leoned_demo_role") || "Admin");
+          }
+        } catch {}
+      } else {
+        setDemoRole(localStorage.getItem("leoned_demo_role") || "Admin");
+      }
     }
   }, []);
 
@@ -118,7 +135,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
   };
 
   const handleNavClick = () => {
-    // Close sidebar on mobile after navigating
     onClose?.();
   };
 
@@ -135,8 +151,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
             className="object-contain rounded-lg"
           />
           <div>
-            <h1 className="text-lg font-bold leading-none tracking-tight">LeonEd Africa</h1>
-            <p className="text-[10px] uppercase tracking-wider text-green-200 mt-1">
+            <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>{schoolName}</h1>
+            <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">
               {role === "SuperAdmin" ? "Super Admin" : "Academic Architect"}
             </p>
           </div>
@@ -174,7 +190,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* Enroll CTA - Only for Schools */}
-      {role !== "SuperAdmin" && (
+      {role !== "SuperAdmin" && role !== "Teacher" && role !== "Faculty" && role !== "Student" && demoRole === "Admin" && (
         <div className="px-4 pb-4">
           <Link
             href="/dashboard/students/new"
@@ -205,6 +221,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
       <div className="border-t border-white/10 p-4 space-y-1">
         <Link
           href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"}
+          onClick={handleNavClick}
+          className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
+        >
+          <Settings className="h-5 w-5 text-green-300" />
+          Settings
+        </Link>
+        <Link
+          href="/support"
           onClick={handleNavClick}
           className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
         >

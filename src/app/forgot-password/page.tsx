@@ -5,6 +5,7 @@ import { Mail, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
+import { authApi } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
   const { t } = useLanguage();
@@ -30,8 +31,7 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
     try {
-      // Simulate API call for password reset link dispatch
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await authApi.forgotPassword({ email: email.trim() });
       setIsSubmitted(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send reset link. Please try again.");

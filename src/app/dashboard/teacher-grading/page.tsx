@@ -29,7 +29,9 @@ export default function ScoreEntryLedger() {
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
   const [currentTermId, setCurrentTermId] = useState("");
+  const [currentSessionId, setCurrentSessionId] = useState("");
   const [currentSessionName, setCurrentSessionName] = useState("");
+  const [isSubmittingScores, setIsSubmittingScores] = useState(false);
 
   // Fetch classes, subjects, and current term on mount
   useEffect(() => {
@@ -49,6 +51,7 @@ export default function ScoreEntryLedger() {
         // Find current session and term
         const currentSession = (Array.isArray(sessionData) ? sessionData : []).find((s: any) => s.isCurrent);
         if (currentSession) {
+          setCurrentSessionId(currentSession.id || "");
           setCurrentSessionName(currentSession.name || "");
           const currentTerm = currentSession.terms?.find((t: any) => t.isCurrent);
           if (currentTerm) {
@@ -164,6 +167,42 @@ export default function ScoreEntryLedger() {
   const selectedClassName = classes.find(c => c.id === selectedClass)?.name || "";
   const selectedSubjectName = subjects.find(s => s.id === selectedSubject)?.name || "";
 
+  const handleSubmitScores = async () => {
+    if (!selectedClass || !selectedSubject || !currentTermId || !currentSessionId) {
+      setError("Please select a class and subject, and ensure the current session is active.");
+      return;
+    }
+
+    setIsSubmittingScores(true);
+    setError("");
+    try {
+      const payload = {
+        subjectId: selectedSubject,
+        classId: selectedClass,
+        termId: currentTermId,
+        academicSessionId: currentSessionId,
+        scores: students.map(s => ({
+          studentId: s.id,
+          firstCA: s.ca1 === "" ? 0 : Number(s.ca1),
+          secondCA: s.ca2 === "" ? 0 : Number(s.ca2),
+          exam: s.exam === "" ? 0 : Number(s.exam),
+          remark: s.grade
+        }))
+      };
+
+      await scoreApi.bulkEnter(payload);
+      alert("Scores submitted successfully!");
+      // Optionally refresh scoresheet
+      fetchScoresheet();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to submit scores";
+      console.error("[Teacher Grading] Score submission error:", err);
+      setError(message);
+    } finally {
+      setIsSubmittingScores(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -188,9 +227,13 @@ export default function ScoreEntryLedger() {
             <Save className="h-4 w-4" />
             Save Draft
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-sm shadow-md">
-            <Send className="h-4 w-4" />
-            Submit Ledger
+          <button 
+            onClick={handleSubmitScores}
+            disabled={isSubmittingScores || isLoading || students.length === 0}
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmittingScores ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isSubmittingScores ? "Submitting..." : "Submit Ledger"}
           </button>
         </div>
       </div>

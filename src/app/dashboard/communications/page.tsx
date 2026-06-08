@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { 
   Megaphone, 
   Mail, 
@@ -20,6 +21,7 @@ import {
   AlertCircle,
   Loader2
 } from "lucide-react";
+import { announcementApi } from "@/lib/api";
 
 interface Announcement {
   id: string;
@@ -43,9 +45,27 @@ interface DispatchLog {
 }
 
 export default function BroadcastHub() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"terminal" | "bulletin" | "logs">("terminal");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [dispatchLogs, setDispatchLogs] = useState<DispatchLog[]>([]);
+
+  // Role guard redirect
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leoned_user");
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user.role === "Teacher" || user.role === "Faculty") {
+          router.push("/dashboard/faculty");
+        } else if (user.role === "Student") {
+          router.push("/dashboard/student-portal");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [router]);
   
   // Form State
   const [title, setTitle] = useState("");
@@ -60,12 +80,31 @@ export default function BroadcastHub() {
   const [receiptDetails, setReceiptDetails] = useState<any>(null);
   const [formError, setFormError] = useState("");
 
+  // Fetch announcements from backend
+  const fetchAnnouncements = async () => {
+    try {
+      const data = await announcementApi.getAll();
+      const mapped = data.map((ann: any) => ({
+        id: ann.id,
+        title: ann.title,
+        content: ann.content,
+        category: ann.audience === "All" ? "General" : ann.audience === "Teachers" ? "Academic" : "General",
+        date: ann.createdAt || new Date().toISOString(),
+        author: "School Administration",
+        channels: ["megaphone"],
+        views: 0
+      }));
+      setAnnouncements(mapped);
+    } catch (err) {
+      console.error("Failed to load announcements", err);
+    }
+  };
+
   // Load existing data from localStorage (no mock seeding)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const storedAnnouncements = localStorage.getItem("leoned_announcements");
-    setAnnouncements(storedAnnouncements ? JSON.parse(storedAnnouncements) : []);
+    fetchAnnouncements();
 
     const storedLogs = localStorage.getItem("leoned_dispatch_logs");
     setDispatchLogs(storedLogs ? JSON.parse(storedLogs) : []);
@@ -81,7 +120,7 @@ export default function BroadcastHub() {
     }
   };
 
-  const handleBroadcast = (e: React.FormEvent) => {
+  const handleBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
 
@@ -91,31 +130,21 @@ export default function BroadcastHub() {
     }
 
     setIsSending(true);
-
-    // Simulate carrier connection and broadcasting
-    setTimeout(() => {
-      const newId = `broadcast-${Date.now()}`;
-      const newDate = new Date().toISOString();
-      const targetCount = targetGroup === "All" ? 48 : targetGroup === "Math" ? 5 : 12;
-
-      // 1. Save announcement (Megaphone channel)
+    try {
+      const audience = targetGroup === "All" ? "All" : "Teachers";
+      
+      // 1. Save announcement to backend API
       if (selectedChannels.includes("megaphone")) {
-        const newAnnouncement: Announcement = {
-          id: `ann-${Date.now()}`,
+        await announcementApi.create({
           title,
           content,
-          category,
-          date: newDate,
-          author: "School Administration",
-          channels: selectedChannels,
-          views: 0
-        };
-        const updatedAnnouncements = [newAnnouncement, ...announcements];
-        localStorage.setItem("leoned_announcements", JSON.stringify(updatedAnnouncements));
-        setAnnouncements(updatedAnnouncements);
+          audience,
+        });
       }
 
-      // 2. Save log
+      // 2. Save log local UI telemetry
+      const newDate = new Date().toISOString();
+      const targetCount = targetGroup === "All" ? 48 : targetGroup === "Math" ? 5 : 12;
       const newLog: DispatchLog = {
         id: `log-${Date.now()}`,
         subject: title,
@@ -123,7 +152,7 @@ export default function BroadcastHub() {
         recipientsCount: targetCount,
         channels: selectedChannels,
         deliveryRate: "100%",
-        cost: "$0.00" // Zero fee!
+        cost: "$0.00"
       };
       const updatedLogs = [newLog, ...dispatchLogs];
       localStorage.setItem("leoned_dispatch_logs", JSON.stringify(updatedLogs));
@@ -131,7 +160,7 @@ export default function BroadcastHub() {
 
       // Create Receipt
       setReceiptDetails({
-        id: newId,
+        id: `broadcast-${Date.now()}`,
         title,
         date: newDate,
         targetGroup,
@@ -146,20 +175,28 @@ export default function BroadcastHub() {
         }))
       });
 
-      setIsSending(false);
       setShowReceipt(true);
 
-      // Reset Form
+      // Reset Form & reload announcements
       setTitle("");
       setContent("");
       setCategory("General");
-    }, 2000);
+      fetchAnnouncements();
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Failed to execute broadcast");
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const handleDeleteAnnouncement = (id: string) => {
-    const updated = announcements.filter(a => a.id !== id);
-    localStorage.setItem("leoned_announcements", JSON.stringify(updated));
-    setAnnouncements(updated);
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this announcement?")) return;
+    try {
+      await announcementApi.delete(id);
+      setAnnouncements(prev => prev.filter(a => a.id !== id));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to delete announcement");
+    }
   };
 
   return (

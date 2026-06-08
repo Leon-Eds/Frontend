@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { schoolApi, dashboardApi } from "@/lib/api";
+import { schoolApi, dashboardApi, formatDate } from "@/lib/api";
 import { 
   Search, 
   Filter, 
@@ -129,7 +129,7 @@ export default function SchoolsManagement() {
                           <div className="font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{school.name}</div>
                           <div className="text-xs font-medium text-gray-400 flex items-center gap-1 mt-1">
                             <Calendar className="h-3 w-3" />
-                            Joined {new Date(school.createdAt || Date.now()).toLocaleDateString()}
+                            Joined {formatDate(school.createdAt)}
                           </div>
                         </div>
                       </div>

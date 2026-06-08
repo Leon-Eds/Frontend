@@ -28,6 +28,25 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const dark = localStorage.getItem('leoned_dark_mode') === 'true';
+                if (dark) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+                const theme = localStorage.getItem('leoned_theme') || 'forest';
+                document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal');
+                document.documentElement.classList.add('theme-' + theme);
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <LanguageProvider>{children}</LanguageProvider>
       </body>

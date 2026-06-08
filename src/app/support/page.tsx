@@ -1,15 +1,40 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { HelpCircle, Mail, MessageSquare, Phone, ArrowLeft, ExternalLink, Activity } from "lucide-react";
 import Link from "next/link";
 
 export default function SystemSupport() {
+  const [backUrl, setBackUrl] = useState("/");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedUser = localStorage.getItem("leoned_user");
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          if (user.role === "SuperAdmin") {
+            setBackUrl("/super-admin");
+          } else if (user.role === "Teacher" || user.role === "Faculty") {
+            setBackUrl("/dashboard/faculty");
+          } else if (user.role === "Student") {
+            setBackUrl("/dashboard/student-portal");
+          } else {
+            setBackUrl("/dashboard");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 p-8 md:p-20">
       <div className="max-w-3xl mx-auto space-y-12">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-[#053d26] transition-colors">
+        <Link href={backUrl} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-[#053d26] transition-colors">
           <ArrowLeft className="h-4 w-4" />
-          Back to Terminal
+          Back to Portal
         </Link>
 
         <div className="space-y-4">

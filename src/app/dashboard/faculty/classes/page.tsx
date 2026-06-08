@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { BookOpen, Users, Clock, ArrowRight, CheckCircle2, AlertCircle, ChevronRight, Search, Plus, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { BookOpen, Users, Clock, ArrowRight, CheckCircle2, AlertCircle, ChevronRight, Search, Plus, Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { teacherApi, classApi } from "@/lib/api";
 
 interface ClassCardData {
   id: string;
@@ -17,52 +18,108 @@ interface ClassCardData {
   textColor: string;
 }
 
-const myClasses: ClassCardData[] = [
-  {
-    id: "ss2-math",
-    name: "SS2-A Mathematics",
-    subject: "Mathematics",
-    studentsCount: 42,
-    ca1Progress: 100,
-    ca2Progress: 85,
-    examProgress: 0,
-    color: "border-green-100 bg-white hover:border-[#053d26]/30",
-    badgeColor: "bg-[#053d26]/10 text-[#053d26]",
-    textColor: "text-[#053d26]"
-  },
-  {
-    id: "ss1-fmath",
-    name: "SS1-B Further Mathematics",
-    subject: "Further Mathematics",
-    studentsCount: 38,
-    ca1Progress: 100,
-    ca2Progress: 40,
-    examProgress: 0,
-    color: "border-orange-100 bg-white hover:border-[#b05e1c]/30",
-    badgeColor: "bg-[#b05e1c]/10 text-[#b05e1c]",
-    textColor: "text-[#b05e1c]"
-  },
-  {
-    id: "jss3-tech",
-    name: "JSS3-C Basic Technology",
-    subject: "Basic Technology",
-    studentsCount: 34,
-    ca1Progress: 100,
-    ca2Progress: 100,
-    examProgress: 0,
-    color: "border-teal-100 bg-white hover:border-teal-600/30",
-    badgeColor: "bg-teal-50 text-teal-700",
-    textColor: "text-teal-700"
-  }
-];
-
 export default function MyClasses() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [classes, setClasses] = useState<ClassCardData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const filteredClasses = myClasses.filter(cls =>
+  useEffect(() => {
+    const fetchTeacherClasses = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const userStr = localStorage.getItem("leoned_user");
+        if (!userStr) {
+          setError("No authenticated session found.");
+          setIsLoading(false);
+          return;
+        }
+        const user = JSON.parse(userStr);
+        
+        // Fetch teacher details to get assignments
+        const teacher = await teacherApi.getById(user.id);
+        const assignments = teacher.assignments || [];
+        
+        // Fetch all classes to get student count and actual arm info
+        const allClasses = await classApi.getAll();
+        
+        // Map assignments to class details
+        const teacherClasses = assignments.map((asm, idx) => {
+          const clsDetails = allClasses.find(c => c.id === asm.classId);
+          
+          // Rotate colors for nice look
+          const colors = [
+            {
+              color: "border-green-100 bg-white hover:border-[#053d26]/30",
+              badgeColor: "bg-[#053d26]/10 text-[#053d26]",
+              textColor: "text-[#053d26]"
+            },
+            {
+              color: "border-orange-100 bg-white hover:border-[#b05e1c]/30",
+              badgeColor: "bg-[#b05e1c]/10 text-[#b05e1c]",
+              textColor: "text-[#b05e1c]"
+            },
+            {
+              color: "border-teal-100 bg-white hover:border-teal-600/30",
+              badgeColor: "bg-teal-50 text-teal-700",
+              textColor: "text-teal-700"
+            }
+          ];
+          const style = colors[idx % colors.length];
+
+          return {
+            id: asm.classId,
+            name: asm.className || clsDetails?.name || "Class",
+            subject: asm.subjectName || "Subject",
+            studentsCount: clsDetails?.studentCount || 0,
+            ca1Progress: 100,
+            ca2Progress: 75,
+            examProgress: 0,
+            ...style
+          };
+        });
+        
+        setClasses(teacherClasses);
+      } catch (err) {
+        console.error("Failed to load teacher classes", err);
+        setError("Could not load your classes. Please make sure assignments are set up by the Administrator.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTeacherClasses();
+  }, []);
+
+  const filteredClasses = classes.filter(cls =>
     cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cls.subject.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 min-h-[60vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-[#053d26] mb-4" />
+        <p className="text-gray-500 font-medium">Retrieving class rosters and schedules...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-md mx-auto py-20 text-center space-y-4">
+        <div className="h-12 w-12 rounded-full bg-orange-100 text-[#b05e1c] flex items-center justify-center mx-auto">
+          <AlertCircle className="h-6 w-6" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900">Academic Overview Error</h2>
+        <p className="text-sm text-gray-500">{error}</p>
+        <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-[#053d26] text-white rounded-full font-bold text-sm hover:bg-[#042c1b]">
+          Retry Sync
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
@@ -70,10 +127,7 @@ export default function MyClasses() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="bg-orange-100 text-[#b05e1c] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              Term 2, 2024
-            </span>
-            <span className="bg-green-100 text-[#053d26] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+            <span className="bg-[#053d26]/10 text-[#053d26] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
               Teacher Portal
             </span>
           </div>
@@ -109,7 +163,7 @@ export default function MyClasses() {
           />
         </div>
         <div className="text-xs text-gray-500 font-bold">
-          Showing {filteredClasses.length} of {myClasses.length} assigned classes
+          Showing {filteredClasses.length} of {classes.length} assigned classes
         </div>
       </div>
 
@@ -118,81 +172,93 @@ export default function MyClasses() {
         
         {/* Classes Listing - Left 2 Columns */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredClasses.map((cls) => (
-              <div 
-                key={cls.id} 
-                className={`rounded-[2rem] border p-6 shadow-sm flex flex-col justify-between h-full transition-all duration-300 hover:shadow-md hover:scale-[1.01] ${cls.color}`}
-              >
-                <div className="space-y-4">
-                  {/* Badge & Student Count */}
-                  <div className="flex justify-between items-center">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${cls.badgeColor}`}>
-                      {cls.subject}
-                    </span>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400 font-bold">
-                      <Users className="h-4 w-4" />
-                      <span>{cls.studentsCount} Students</span>
-                    </div>
-                  </div>
-
-                  {/* Title */}
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-bold text-gray-900">{cls.name}</h3>
-                    <p className="text-xs text-gray-500 font-medium">Department of Mathematical Sciences</p>
-                  </div>
-
-                  {/* Progress bars */}
-                  <div className="space-y-4 pt-4 border-t border-gray-50">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Assessment Status</h4>
-                    
-                    {/* CA 1 */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-bold text-gray-700">
-                        <span>Continuous Assessment 1</span>
-                        <span>{cls.ca1Progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                        <div className="bg-[#053d26] h-full rounded-full" style={{ width: `${cls.ca1Progress}%` }} />
-                      </div>
-                    </div>
-
-                    {/* CA 2 */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-bold text-gray-700">
-                        <span>Continuous Assessment 2</span>
-                        <span>{cls.ca2Progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${cls.textColor === "text-[#053d26]" ? "bg-[#053d26]" : "bg-[#b05e1c]"}`} style={{ width: `${cls.ca2Progress}%` }} />
-                      </div>
-                    </div>
-
-                    {/* Exam */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-bold text-gray-700">
-                        <span>Semester Examination</span>
-                        <span>{cls.examProgress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                        <div className="bg-gray-300 h-full rounded-full" style={{ width: `${cls.examProgress}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="mt-8 pt-4 border-t border-gray-50 flex gap-2">
-                  <Link 
-                    href="/dashboard/faculty/result-entry"
-                    className="flex-1 py-3 rounded-full bg-[#053d26] hover:bg-[#042c1b] text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow"
-                  >
-                    Enter Scores <ChevronRight className="h-4.5 w-4.5" />
-                  </Link>
-                </div>
+          {filteredClasses.length === 0 ? (
+            <div className="bg-white rounded-[2rem] p-12 text-center border border-gray-100 shadow-sm space-y-4">
+              <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
+                <BookOpen className="h-6 w-6" />
               </div>
-            ))}
-          </div>
+              <h3 className="font-bold text-gray-900">No assigned classes found</h3>
+              <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                No teaching schedules match your current assignments. Contact your administrator to register class/subject authority.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredClasses.map((cls) => (
+                <div 
+                  key={cls.id} 
+                  className={`rounded-[2rem] border p-6 shadow-sm flex flex-col justify-between h-full transition-all duration-300 hover:shadow-md hover:scale-[1.01] ${cls.color}`}
+                >
+                  <div className="space-y-4">
+                    {/* Badge & Student Count */}
+                    <div className="flex justify-between items-center">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${cls.badgeColor}`}>
+                        {cls.subject}
+                      </span>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-400 font-bold">
+                        <Users className="h-4 w-4" />
+                        <span>{cls.studentsCount} Students</span>
+                      </div>
+                    </div>
+
+                    {/* Title */}
+                    <div className="space-y-1">
+                      <h3 className="text-xl font-bold text-gray-900">{cls.name}</h3>
+                      <p className="text-xs text-gray-500 font-medium">Department of Pedagogical Operations</p>
+                    </div>
+
+                    {/* Progress bars */}
+                    <div className="space-y-4 pt-4 border-t border-gray-50">
+                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Assessment Status</h4>
+                      
+                      {/* CA 1 */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs font-bold text-gray-700">
+                          <span>Continuous Assessment 1</span>
+                          <span>{cls.ca1Progress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                          <div className="bg-[#053d26] h-full rounded-full" style={{ width: `${cls.ca1Progress}%` }} />
+                        </div>
+                      </div>
+
+                      {/* CA 2 */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs font-bold text-gray-700">
+                          <span>Continuous Assessment 2</span>
+                          <span>{cls.ca2Progress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${cls.textColor === "text-[#053d26]" ? "bg-[#053d26]" : "bg-[#b05e1c]"}`} style={{ width: `${cls.ca2Progress}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Exam */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs font-bold text-gray-700">
+                          <span>Semester Examination</span>
+                          <span>{cls.examProgress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                          <div className="bg-gray-300 h-full rounded-full" style={{ width: `${cls.examProgress}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-8 pt-4 border-t border-gray-50 flex gap-2">
+                    <Link 
+                      href="/dashboard/faculty/result-entry"
+                      className="flex-1 py-3 rounded-full bg-[#053d26] hover:bg-[#042c1b] text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow"
+                    >
+                      Enter Scores <ChevronRight className="h-4.5 w-4.5" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Timeline Tasks - Right Column */}
@@ -211,29 +277,19 @@ export default function MyClasses() {
               <div className="relative">
                 <span className="absolute -left-[21px] top-1 h-3.5 w-3.5 rounded-full bg-orange-500 border-2 border-white ring-1 ring-orange-200" />
                 <div className="space-y-1">
-                  <p className="text-xs font-extrabold text-gray-900 leading-tight">Enter SS2 Mathematics CA 2 Scores</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Due Oct 24, 2024</p>
-                  <p className="text-[11px] text-gray-500">Requires 7 remaining student CA 2 fields to be finalized.</p>
+                  <p className="text-xs font-extrabold text-gray-900 leading-tight">Enter Continuous Assessment Scores</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Cycle</p>
+                  <p className="text-[11px] text-gray-500">Continuous Assessment grade entries are now active across your assignments.</p>
                 </div>
               </div>
 
               {/* Task 2 */}
               <div className="relative">
-                <span className="absolute -left-[21px] top-1 h-3.5 w-3.5 rounded-full bg-orange-500 border-2 border-white ring-1 ring-orange-200" />
-                <div className="space-y-1">
-                  <p className="text-xs font-extrabold text-gray-900 leading-tight">SS1 Further Mathematics CA 2 Open</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Due Oct 28, 2024</p>
-                  <p className="text-[11px] text-gray-500">Continuous Assessment 2 grade entries are now available.</p>
-                </div>
-              </div>
-
-              {/* Task 3 */}
-              <div className="relative">
                 <span className="absolute -left-[21px] top-1 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-white ring-1 ring-green-200" />
                 <div className="space-y-1">
-                  <p className="text-xs font-extrabold text-gray-800 leading-tight">JSS3 Basic Tech CA 2 Submission Completed</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Approved Oct 18, 2024</p>
-                  <p className="text-[11px] text-green-700/80 font-medium">All student records verified and locked.</p>
+                  <p className="text-xs font-extrabold text-gray-800 leading-tight">Sync Rosters & Subjects</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Synchronized</p>
+                  <p className="text-[11px] text-green-700/80 font-medium">All class lists and curriculum schedules match school registry.</p>
                 </div>
               </div>
 

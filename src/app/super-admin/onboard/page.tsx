@@ -108,7 +108,7 @@ export default function SuperAdminOnboarding() {
                     type="text"
                     required
                     placeholder="John Doe"
-                    className="w-full bg-gray-50 border-gray-100 rounded-2xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all"
+                    className="w-full bg-gray-50 border-gray-100 rounded-2xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all text-gray-900"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                   />
@@ -123,7 +123,7 @@ export default function SuperAdminOnboarding() {
                     type="email"
                     required
                     placeholder="admin@leoned.africa"
-                    className="w-full bg-gray-50 border-gray-100 rounded-2xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all"
+                    className="w-full bg-gray-50 border-gray-100 rounded-2xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all text-gray-900"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                   />
@@ -139,7 +139,7 @@ export default function SuperAdminOnboarding() {
                   type="password"
                   required
                   placeholder="••••••••••••"
-                  className="w-full bg-gray-50 border-gray-100 rounded-2xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all"
+                  className="w-full bg-gray-50 border-gray-100 rounded-2xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all text-gray-900"
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                 />
@@ -154,7 +154,7 @@ export default function SuperAdminOnboarding() {
                   type="password"
                   required
                   placeholder="Input the super secret key..."
-                  className="w-full bg-orange-50/50 border-orange-100 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-orange-500 transition-all font-mono"
+                  className="w-full bg-orange-50/50 border-orange-100 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-orange-500 transition-all font-mono text-gray-900"
                   value={formData.secretKey}
                   onChange={(e) => setFormData({...formData, secretKey: e.target.value})}
                 />

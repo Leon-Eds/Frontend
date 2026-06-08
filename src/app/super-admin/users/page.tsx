@@ -14,7 +14,7 @@ import {
   ChevronRight,
   UserPlus
 } from "lucide-react";
-import { schoolApi } from "@/lib/api";
+import { schoolApi, formatDate } from "@/lib/api";
 
 export default function GlobalUsersManagement() {
   const [isLoading, setIsLoading] = useState(true);
@@ -114,7 +114,7 @@ export default function GlobalUsersManagement() {
                         SchoolAdmin
                       </span>
                     </td>
-                    <td className="py-6 px-4 text-sm text-gray-500 font-medium">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</td>
+                    <td className="py-6 px-4 text-sm text-gray-500 font-medium">{formatDate(user.createdAt)}</td>
                     <td className="py-6 px-4 text-right">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                         user.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'

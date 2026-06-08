@@ -25,8 +25,101 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
+export function formatDate(dateString?: string): string {
+  if (!dateString) return '—';
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return '—';
+  }
+}
+
+export function recordActivity(description: string, category: string, status: string = 'VERIFIED') {
+  if (typeof window === 'undefined') return;
+  try {
+    const userStr = localStorage.getItem('leoned_user');
+    const user = userStr ? JSON.parse(userStr) : {};
+    const newActivity = {
+      id: Date.now() + Math.random(),
+      date: new Date().toISOString(),
+      description,
+      category,
+      status,
+      userName: user.name || 'Admin',
+    };
+    const localActivities = JSON.parse(localStorage.getItem('leoned_local_activities') || '[]');
+    localActivities.unshift(newActivity);
+    localStorage.setItem('leoned_local_activities', JSON.stringify(localActivities.slice(0, 20)));
+  } catch (e) {
+    console.error("Failed to record activity", e);
+  }
+}
+
+
+let isRefreshing = false;
+let refreshPromise: Promise<void> | null = null;
+
+async function checkAndRefreshAuthToken() {
+  if (typeof window === 'undefined') return;
+  const expiry = localStorage.getItem('leoned_token_expiry');
+  const refreshToken = localStorage.getItem('leoned_refresh_token');
+  if (!expiry || !refreshToken) return;
+  
+  const expiryTime = new Date(expiry).getTime();
+  const now = Date.now();
+  
+  // If expiring in less than 5 minutes
+  if (expiryTime - now < 5 * 60 * 1000) {
+    if (isRefreshing && refreshPromise) {
+      await refreshPromise;
+      return;
+    }
+    
+    isRefreshing = true;
+    refreshPromise = (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const r = data.data || data;
+          if (r.token) localStorage.setItem('leoned_token', r.token);
+          if (r.refreshToken) localStorage.setItem('leoned_refresh_token', r.refreshToken);
+          if (r.tokenExpiry) localStorage.setItem('leoned_token_expiry', r.tokenExpiry);
+        }
+      } catch (err) {
+        console.error("[API] Auto-refresh failed", err);
+      } finally {
+        isRefreshing = false;
+        refreshPromise = null;
+      }
+    })();
+    await refreshPromise;
+  }
+}
+
 /** Fetch with timeout + automatic retry for cold-starting backends */
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 60000): Promise<Response> {
+  if (!url.includes('/auth/login') && !url.includes('/auth/refresh-token')) {
+    await checkAndRefreshAuthToken();
+    
+    // Update the Authorization header if the token was refreshed
+    if (options.headers && (options.headers as Record<string, string>)['Authorization']) {
+      const newToken = localStorage.getItem('leoned_token');
+      if (newToken) {
+        (options.headers as Record<string, string>)['Authorization'] = `Bearer ${newToken}`;
+      }
+    }
+  }
+
   const maxRetries = 1;
   let lastError: unknown;
 
@@ -195,7 +288,8 @@ export interface Student {
   parentPhone?: string;
   parentEmail?: string;
   status: StudentStatus;
-  createdAt?: string;
+  enrolledAt?: string;
+  systemEmail?: string;
 }
 
 // Teacher
@@ -306,7 +400,8 @@ export interface Term {
 export interface DashboardStats {
   totalStudents?: number;
   totalTeachers?: number;
-  totalFaculty?: number;
+  maxStudents?: number;
+  maxTeachers?: number;
   totalClasses?: number;
   totalSubjects?: number;
   activeStudents?: number;
@@ -466,6 +561,24 @@ export const authApi = {
     });
     return handleResponse(res);
   },
+
+  forgotPassword: async (data: { email: string }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  resetPassword: async (data: { token: string; newPassword: string }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
 };
 
 // Dashboard
@@ -502,7 +615,7 @@ export const dashboardApi = {
 // Students
 export const studentApi = {
   getAll: async (): Promise<Student[]> => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/student`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student?pageSize=1000`, {
       headers: getAuthHeaders(),
     });
     const data = await handleResponse<Student[] | PaginatedResponse<Student>>(res);
@@ -523,7 +636,9 @@ export const studentApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Enrolled student: ${data.fullName}`, 'Student Registry', 'VERIFIED');
+    return result;
   },
 
   update: async (id: string, data: UpdateStudentRequest) => {
@@ -554,7 +669,7 @@ export const studentApi = {
 // Teachers
 export const teacherApi = {
   getAll: async (): Promise<Teacher[]> => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher?pageSize=1000`, {
       headers: getAuthHeaders(),
     });
     const data = await handleResponse<Teacher[] | PaginatedResponse<Teacher>>(res);
@@ -575,7 +690,9 @@ export const teacherApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Registered teacher: ${data.fullName}`, 'Staff Directory', 'VERIFIED');
+    return result;
   },
 
   update: async (id: string, data: UpdateTeacherRequest) => {
@@ -637,7 +754,9 @@ export const classApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Created class: ${data.name} ${data.arm ? '(' + data.arm + ')' : ''}`, 'Academic Flow', 'VERIFIED');
+    return result;
   },
 
   update: async (id: string, data: UpdateClassRequest) => {
@@ -684,7 +803,9 @@ export const subjectApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Created curriculum subject: ${data.name}`, 'Academic Flow', 'VERIFIED');
+    return result;
   },
 
   update: async (id: string, data: UpdateSubjectRequest) => {
@@ -820,7 +941,9 @@ export const scoreApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Recorded academic scores for class`, 'Grading', 'VERIFIED');
+    return result;
   },
 
   getScoresheet: async (classId: string, subjectId: string, termId: string) => {
@@ -863,7 +986,9 @@ export const resultApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Approved term results for class`, 'Approvals', 'VERIFIED');
+    return result;
   },
 
   publish: async (classId: string, termId: string) => {
@@ -871,7 +996,9 @@ export const resultApi = {
       method: 'POST',
       headers: getAuthHeaders(),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Published term results for class`, 'Approvals', 'VERIFIED');
+    return result;
   },
 
   getClassResults: async (classId: string, termId: string) => {
@@ -949,7 +1076,9 @@ export const feeApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Recorded student fee payment of ₦${data.amountPaid.toLocaleString()}`, 'Financials', 'VERIFIED');
+    return result;
   },
 
   clearFees: async (studentId: string, termId: string) => {
@@ -957,7 +1086,9 @@ export const feeApi = {
       method: 'POST',
       headers: getAuthHeaders(),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Cleared student term fees`, 'Financials', 'VERIFIED');
+    return result;
   },
 
   getStudentFees: async (studentId: string, termId: string) => {
@@ -983,5 +1114,64 @@ export const userApi = {
     // We use the schools list as a proxy — each school has admin info attached.
     const schools = await schoolApi.getAll();
     return schools;
+  },
+};
+
+// Announcement Types
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  audience?: 'All' | 'Students' | 'Teachers' | 'Class';
+  targetClassId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  schoolId?: string;
+}
+
+export interface CreateAnnouncementRequest {
+  title: string;
+  content: string;
+  audience?: 'All' | 'Students' | 'Teachers' | 'Class';
+  targetClassId?: string;
+}
+
+// Announcements API
+export const announcementApi = {
+  getAll: async (params?: { audience?: string; all?: boolean; pageNumber?: number; pageSize?: number }): Promise<Announcement[]> => {
+    let url = `${API_BASE_URL}/announcement`;
+    if (params) {
+      const q = new URLSearchParams();
+      if (params.audience) q.append('audience', params.audience);
+      if (params.all !== undefined) q.append('all', String(params.all));
+      if (params.pageNumber !== undefined) q.append('pageNumber', String(params.pageNumber));
+      if (params.pageSize !== undefined) q.append('pageSize', String(params.pageSize));
+      url += `?${q.toString()}`;
+    }
+    const res = await fetchWithTimeout(url, {
+      headers: getAuthHeaders(),
+    });
+    const data = await handleResponse<Announcement[] | PaginatedResponse<Announcement>>(res);
+    if (Array.isArray(data)) return data;
+    return data.items || data.data || [];
+  },
+
+  create: async (data: CreateAnnouncementRequest): Promise<Announcement> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/announcement`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await handleResponse<Announcement>(res);
+    recordActivity(`Dispatched bulletin: ${data.title}`, 'Communications', 'VERIFIED');
+    return result;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/announcement/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
   },
 };

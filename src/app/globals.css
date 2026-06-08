@@ -18,11 +18,6 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Force light mode - the design screens are all light-themed */
-html {
-  color-scheme: light;
-}
-
 /* Hide scrollbar for horizontal scroll elements */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
@@ -70,3 +65,106 @@ html {
   -webkit-backdrop-filter: blur(16px);
 }
 
+/* Dynamic Themes overriding Tailwind arbitary colors at runtime */
+
+/* 1. Ocean Blue Theme */
+html.theme-ocean .text-\[\#053d26\] { color: #0f4c81 !important; }
+html.theme-ocean .bg-\[\#053d26\] { background-color: #0f4c81 !important; }
+html.theme-ocean .hover\:bg-\[\#042c1b\]:hover { background-color: #0b355c !important; }
+html.theme-ocean .border-\[\#053d26\] { border-color: #0f4c81 !important; }
+html.theme-ocean .focus\:border-\[\#053d26\]:focus { border-color: #0f4c81 !important; }
+html.theme-ocean .focus\:ring-\[\#053d26\]:focus { --tw-ring-color: #0f4c81 !important; }
+html.theme-ocean .ring-\[\#053d26\] { --tw-ring-color: #0f4c81 !important; }
+html.theme-ocean .bg-green-50 { background-color: #f0f7ff !important; }
+html.theme-ocean .text-green-700 { color: #1d4ed8 !important; }
+html.theme-ocean .border-green-100 { border-color: #dbeafe !important; }
+html.theme-ocean .bg-\[\#b2f2bb\] { background-color: #bfdbfe !important; }
+html.theme-ocean .text-\[\#053d26\] { color: #1e3a8a !important; }
+
+/* 2. Sunset Orange Theme */
+html.theme-sunset .text-\[\#053d26\] { color: #d97706 !important; }
+html.theme-sunset .bg-\[\#053d26\] { background-color: #d97706 !important; }
+html.theme-sunset .hover\:bg-\[\#042c1b\]:hover { background-color: #b45309 !important; }
+html.theme-sunset .border-\[\#053d26\] { border-color: #d97706 !important; }
+html.theme-sunset .focus\:border-\[\#053d26\]:focus { border-color: #d97706 !important; }
+html.theme-sunset .focus\:ring-\[\#053d26\]:focus { --tw-ring-color: #d97706 !important; }
+html.theme-sunset .ring-\[\#053d26\] { --tw-ring-color: #d97706 !important; }
+html.theme-sunset .bg-green-50 { background-color: #fffbeb !important; }
+html.theme-sunset .text-green-700 { color: #b45309 !important; }
+html.theme-sunset .border-green-100 { border-color: #fef3c7 !important; }
+html.theme-sunset .bg-\[\#b2f2bb\] { background-color: #fde68a !important; }
+html.theme-sunset .text-\[\#053d26\] { color: #78350f !important; }
+
+/* 3. Royal Purple Theme */
+html.theme-royal .text-\[\#053d26\] { color: #6d28d9 !important; }
+html.theme-royal .bg-\[\#053d26\] { background-color: #6d28d9 !important; }
+html.theme-royal .hover\:bg-\[\#042c1b\]:hover { background-color: #5b21b6 !important; }
+html.theme-royal .border-\[\#053d26\] { border-color: #6d28d9 !important; }
+html.theme-royal .focus\:border-\[\#053d26\]:focus { border-color: #6d28d9 !important; }
+html.theme-royal .focus\:ring-\[\#053d26\]:focus { --tw-ring-color: #6d28d9 !important; }
+html.theme-royal .ring-\[\#053d26\] { --tw-ring-color: #6d28d9 !important; }
+html.theme-royal .bg-green-50 { background-color: #faf5ff !important; }
+html.theme-royal .text-green-700 { color: #6d28d9 !important; }
+html.theme-royal .border-green-100 { border-color: #f3e8ff !important; }
+html.theme-royal .bg-\[\#b2f2bb\] { background-color: #e9d5ff !important; }
+html.theme-royal .text-\[\#053d26\] { color: #4c1d95 !important; }
+
+/* Dark Mode CSS Variables and Overrides */
+html.dark {
+  color-scheme: dark;
+}
+html.dark body {
+  background-color: #121212 !important;
+  color: #f3f4f6 !important;
+}
+html.dark .bg-white {
+  background-color: #1e1e1e !important;
+}
+html.dark .bg-gray-50,
+html.dark .bg-gray-50\/30,
+html.dark .bg-gray-50\/50 {
+  background-color: #181818 !important;
+}
+html.dark .bg-gray-100 {
+  background-color: #242424 !important;
+}
+html.dark .bg-\[\#f8f9fa\],
+html.dark .bg-\[\#f4f7f6\] {
+  background-color: #121212 !important;
+}
+html.dark .text-gray-900,
+html.dark .text-black,
+html.dark .text-gray-950 {
+  color: #f3f4f6 !important;
+}
+html.dark .text-gray-800 {
+  color: #e5e7eb !important;
+}
+html.dark .text-gray-700 {
+  color: #d1d5db !important;
+}
+html.dark .text-gray-600 {
+  color: #9ca3af !important;
+}
+html.dark .text-gray-500 {
+  color: #9ca3af !important;
+}
+html.dark .text-gray-400 {
+  color: #6b7280 !important;
+}
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-gray-200\/60,
+html.dark .border-gray-150 {
+  border-color: #2d2d2d !important;
+}
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #262626 !important;
+  color: #ffffff !important;
+  border-color: #383838 !important;
+}
+html.dark .glass-panel {
+  background: rgba(30, 30, 30, 0.7) !important;
+}

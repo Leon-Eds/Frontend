@@ -3,14 +3,33 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Eye, Edit2, Download, TrendingUp, AlertCircle, CheckCircle2, Loader2, UserPlus, X, Trash2, Save, GraduationCap } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { studentApi, Student, UpdateStudentRequest } from '@/lib/api';
+import { studentApi, Student, UpdateStudentRequest, formatDate } from '@/lib/api';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function StudentsPage() {
+  const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Role guard redirect
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leoned_user");
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user.role === "Teacher" || user.role === "Faculty") {
+          router.push("/dashboard/faculty");
+        } else if (user.role === "Student") {
+          router.push("/dashboard/student-portal");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [router]);
 
   // View modal
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
@@ -120,7 +139,7 @@ export default function StudentsPage() {
             </div>
             <div>
               <div className="font-bold text-gray-900 text-sm leading-tight">{student.fullName}</div>
-              <div className="text-xs text-gray-500 mt-1">{student.admissionNumber || 'No ID'}</div>
+              <div className="text-xs text-gray-500 mt-1">{student.systemEmail || student.admissionNumber || 'No ID'}</div>
             </div>
           </div>
         );
@@ -141,6 +160,15 @@ export default function StudentsPage() {
       accessor: (student) => (
         <div className="text-sm text-gray-600">
           {student.gender}
+        </div>
+      ),
+      className: 'w-1/6'
+    },
+    {
+      header: 'Enrolled',
+      accessor: (student) => (
+        <div className="text-sm text-gray-600">
+          {formatDate(student.enrolledAt)}
         </div>
       ),
       className: 'w-1/6'
@@ -338,13 +366,13 @@ export default function StudentsPage() {
             <div className="space-y-4">
               {[
                 ['Gender', viewStudent.gender],
-                ['Date of Birth', viewStudent.dateOfBirth ? new Date(viewStudent.dateOfBirth).toLocaleDateString() : '—'],
+                ['Date of Birth', formatDate(viewStudent.dateOfBirth)],
                 ['Class', viewStudent.className || 'Unassigned'],
                 ['Status', viewStudent.status],
                 ['Guardian', viewStudent.parentName || '—'],
                 ['Guardian Phone', viewStudent.parentPhone || '—'],
                 ['Guardian Email', viewStudent.parentEmail || '—'],
-                ['Enrolled', viewStudent.createdAt ? new Date(viewStudent.createdAt).toLocaleDateString() : '—'],
+                ['Enrolled', formatDate(viewStudent.enrolledAt)],
               ].map(([label, val]) => (
                 <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50">
                   <span className="text-sm text-gray-500">{label}</span>

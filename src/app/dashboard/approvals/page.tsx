@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle2, AlertCircle, RefreshCw, Eye, Calendar, Sparkles, TrendingUp, ArrowRight, Clock, FileText, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { resultApi, classApi, sessionApi } from "@/lib/api";
 
 interface PendingSubmission {
@@ -11,13 +12,33 @@ interface PendingSubmission {
   teacher: string;
   className: string;
   status: "Pending" | "Revision Requested";
+  classId: string;
+  termId: string;
 }
 
 export default function ResultsApproval() {
+  const router = useRouter();
   const [submissions, setSubmissions] = useState<PendingSubmission[]>([]);
   const [activeFilter, setActiveFilter] = useState("All");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Role guard redirect
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leoned_user");
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user.role === "Teacher" || user.role === "Faculty") {
+          router.push("/dashboard/faculty");
+        } else if (user.role === "Student") {
+          router.push("/dashboard/student-portal");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [router]);
 
   const fetchSubmissions = useCallback(async () => {
     setIsLoading(true);
@@ -90,6 +111,8 @@ export default function ResultsApproval() {
               teacher: item.teacherName || item.teacher || "Unknown Teacher",
               className: cls.name || item.className || "Unknown Class",
               status,
+              classId: cls.id,
+              termId: currentTerm.id,
             });
           });
         } catch (err) {
@@ -112,17 +135,38 @@ export default function ResultsApproval() {
     fetchSubmissions();
   }, [fetchSubmissions]);
 
-  const handleApprove = (id: string) => {
-    setSubmissions(prev => prev.filter(item => item.id !== id));
+  const handleApprove = async (id: string) => {
+    const sub = submissions.find(s => s.id === id);
+    if (!sub) return;
+
+    try {
+      await resultApi.approve(sub.classId, sub.termId, { approve: true });
+      // Try to publish immediately as well
+      await resultApi.publish(sub.classId, sub.termId).catch(() => {});
+      
+      setSubmissions(prev => prev.filter(item => item.id !== id));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to approve results";
+      alert(message);
+    }
   };
 
-  const handleRequestRevision = (id: string) => {
-    setSubmissions(prev => prev.map(item => {
-      if (item.id === id) {
-        return { ...item, status: "Revision Requested" };
-      }
-      return item;
-    }));
+  const handleRequestRevision = async (id: string) => {
+    const sub = submissions.find(s => s.id === id);
+    if (!sub) return;
+
+    try {
+      await resultApi.approve(sub.classId, sub.termId, { approve: false, adminComment: "Revision requested" });
+      setSubmissions(prev => prev.map(item => {
+        if (item.id === id) {
+          return { ...item, status: "Revision Requested" };
+        }
+        return item;
+      }));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to request revision";
+      alert(message);
+    }
   };
 
   if (isLoading) {
@@ -304,7 +348,16 @@ export default function ResultsApproval() {
             <p className="text-green-100/80 leading-relaxed text-xs">
               You can mass-approve submissions that match institutional grade distribution curves (Bell Curve) to speed up grade publishing.
             </p>
-            <button className="w-full py-3.5 rounded-xl bg-green-300 hover:bg-green-400 text-[#053d26] font-bold text-xs transition-colors">
+            <button 
+              onClick={async () => {
+                for (const sub of submissions) {
+                  if (sub.status === "Pending") {
+                    await handleApprove(sub.id);
+                  }
+                }
+              }}
+              className="w-full py-3.5 rounded-xl bg-green-300 hover:bg-green-400 text-[#053d26] font-bold text-xs transition-colors"
+            >
               Approve Validated Batch
             </button>
           </div>

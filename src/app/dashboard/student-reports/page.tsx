@@ -21,6 +21,7 @@ export default function StudentDetailedReport() {
   const [error, setError] = useState("");
   const [studentName, setStudentName] = useState("");
   const [studentId, setStudentId] = useState("");
+  const [realStudentId, setRealStudentId] = useState("");
   const [studentClass, setStudentClass] = useState("");
   const [termAverage, setTermAverage] = useState(0);
   const [classPosition, setClassPosition] = useState("");
@@ -28,6 +29,8 @@ export default function StudentDetailedReport() {
   const [principalName, setPrincipalName] = useState("");
   const [principalComment, setPrincipalComment] = useState("");
   const [sessionName, setSessionName] = useState("");
+  const [currentTermId, setCurrentTermId] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const loadReport = async () => {
@@ -62,6 +65,7 @@ export default function StudentDetailedReport() {
           setIsLoading(false);
           return;
         }
+        setCurrentTermId(currentTerm.id);
 
         // Select student - either the logged-in student or the first student for admin preview
         let targetStudent: any = null;
@@ -78,6 +82,7 @@ export default function StudentDetailedReport() {
         }
 
         setStudentName(targetStudent.fullName || "Student");
+        setRealStudentId(targetStudent.id);
         setStudentId(targetStudent.admissionNumber || targetStudent.id);
         setStudentClass(targetStudent.className || "Unassigned");
         setTotalStudents(allStudents.length);
@@ -129,6 +134,32 @@ export default function StudentDetailedReport() {
     loadReport();
   }, []);
 
+  const handleDownloadPdf = async () => {
+    if (!realStudentId || !currentTermId) {
+      alert("Missing information to download report.");
+      return;
+    }
+    
+    setIsDownloading(true);
+    try {
+      const blob = await reportCardApi.downloadPdf(realStudentId, currentTermId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Report_Card_${studentName.replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to download PDF";
+      console.error("[Student Reports] PDF Download Error:", err);
+      alert(message);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const initials = studentName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
   if (isLoading) {
@@ -168,9 +199,13 @@ export default function StudentDetailedReport() {
             <Share2 className="h-4 w-4" />
             Share Report
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all text-sm shadow-md">
-            <Download className="h-4 w-4" />
-            Download PDF Report
+          <button 
+            onClick={handleDownloadPdf}
+            disabled={isDownloading}
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {isDownloading ? "Downloading..." : "Download PDF Report"}
           </button>
         </div>
       </div>

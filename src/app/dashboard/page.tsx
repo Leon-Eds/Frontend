@@ -60,10 +60,18 @@ export default function DashboardOverview() {
             ? await dashboardApi.getSuperAdminDashboard()
             : await dashboardApi.getSchoolDashboard();
           
-          setStats(data);
+          const localActivities = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('leoned_local_activities') || '[]') : [];
+          const apiActivities = data?.recentActivities || [];
+          const combined = [...localActivities, ...apiActivities].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          
+          setStats({
+            ...data,
+            recentActivities: combined
+          });
         } catch (err: unknown) {
           console.error("[Dashboard] Failed to fetch dashboard data.", err);
-          setStats({});
+          const localActivities = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('leoned_local_activities') || '[]') : [];
+          setStats({ recentActivities: localActivities });
         } finally {
           setIsLoading(false);
         }
@@ -111,7 +119,12 @@ export default function DashboardOverview() {
   // Support nested data property and fallback field names
   const s = (stats as any)?.data || stats;
   const totalStudents = s?.totalStudents ?? s?.totalCount ?? 0;
-  const totalTeachers = s?.totalTeachers ?? s?.totalFaculty ?? s?.facultyCount ?? 0;
+  const maxStudents = s?.maxStudents;
+  const totalTeachers = s?.totalTeachers ?? s?.facultyCount ?? 0;
+  const maxTeachers = s?.maxTeachers;
+  
+  const studentsDisplay = maxStudents ? `${totalStudents.toLocaleString()} / ${maxStudents.toLocaleString()}` : totalStudents.toLocaleString();
+  const teachersDisplay = maxTeachers ? `${totalTeachers.toLocaleString()} / ${maxTeachers.toLocaleString()}` : totalTeachers.toLocaleString();
   const pendingResults = s?.pendingResults ?? 0;
   const currentTerm = s?.currentTerm ?? "N/A";
   const currentSession = s?.currentSession ?? "";
@@ -135,15 +148,13 @@ export default function DashboardOverview() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Students"
-          value={totalStudents.toLocaleString()}
+          value={studentsDisplay}
           icon={<GraduationCap className="h-6 w-6" />}
         />
         <StatCard
-          title="Total Teachers"
-          value={totalTeachers.toLocaleString()}
+          title="Faculty Members"
+          value={teachersDisplay}
           icon={<Users className="h-6 w-6" />}
-          iconBgColor="bg-gray-100"
-          iconTextColor="text-gray-600"
         />
         <StatCard
           title="Results Pending"

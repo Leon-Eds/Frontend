@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Lock, FileText, UploadCloud, Plus, Eye, Printer, Mail, Check, RotateCw, MoreVertical, Search, Bell, HelpCircle } from "lucide-react";
-import { studentApi } from "@/lib/api";
+import { Lock, UploadCloud, Plus, Eye, Printer, Mail, Check, RotateCw, MoreVertical, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { studentApi, feeApi, sessionApi, classApi } from "@/lib/api";
 
 interface StudentRegistry {
   id: string;
@@ -14,23 +15,85 @@ interface StudentRegistry {
 }
 
 export default function FeeClearance() {
+  const router = useRouter();
   const [registry, setRegistry] = useState<StudentRegistry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Role guard redirect
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leoned_user");
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user.role === "Teacher" || user.role === "Faculty") {
+          router.push("/dashboard/faculty");
+        } else if (user.role === "Student") {
+          router.push("/dashboard/student-portal");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [router]);
+
+  const [currentTermId, setCurrentTermId] = useState("");
+  const [currentSessionId, setCurrentSessionId] = useState("");
+
   const fetchStudents = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const students = await studentApi.getAll();
-      const mapped: StudentRegistry[] = students.map((student) => ({
-        id: student.id,
-        name: student.fullName,
-        program: student.className || "Unassigned",
-        refId: student.admissionNumber || student.id,
-        status: "Pending Verification" as const,
-      }));
+      
+      const [students, classes, sessionData] = await Promise.all([
+        studentApi.getAll(),
+        classApi.getAll(),
+        sessionApi.getAll()
+      ]);
+
+      const currentSession = (Array.isArray(sessionData) ? sessionData : []).find((s: any) => s.isCurrent);
+      const currentTerm = currentSession?.terms?.find((t: any) => t.isCurrent);
+      
+      if (currentSession) setCurrentSessionId(currentSession.id);
+      if (currentTerm) setCurrentTermId(currentTerm.id);
+
+      let feeRecords: any[] = [];
+      if (currentTerm) {
+         const classList = Array.isArray(classes) ? classes : [];
+         const feePromises = classList.map((c: any) => feeApi.getClassFees(c.id, currentTerm.id).catch(() => []));
+         const classFees = await Promise.all(feePromises);
+         
+         feeRecords = classFees.map(f => {
+           if (Array.isArray(f)) return f;
+           if (f && typeof f === 'object' && 'data' in f) return (f as any).data;
+           if (f && typeof f === 'object' && 'items' in f) return (f as any).items;
+           return [];
+         }).flat();
+      }
+
+      const feeMap = new Map();
+      feeRecords.forEach(f => {
+         if (f && f.studentId) {
+            feeMap.set(f.studentId, f);
+         }
+      });
+
+      const mapped: StudentRegistry[] = students.map((student) => {
+        const fee = feeMap.get(student.id);
+        let status: "Cleared" | "Unpaid" | "Pending Verification" = "Pending Verification";
+        if (fee) {
+           status = (fee.amountDue > 0 && fee.amountPaid >= fee.amountDue) || fee.isCleared ? "Cleared" : "Unpaid";
+        }
+
+        return {
+          id: student.id,
+          name: student.fullName,
+          program: student.className || "Unassigned",
+          refId: student.admissionNumber || student.id,
+          status,
+        };
+      });
       setRegistry(mapped);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch students");
@@ -43,13 +106,32 @@ export default function FeeClearance() {
     fetchStudents();
   }, [fetchStudents]);
 
-  const handleAction = (id: string, newStatus: "Cleared" | "Unpaid" | "Pending Verification") => {
+  const handleAction = async (id: string, newStatus: "Cleared" | "Unpaid" | "Pending Verification") => {
     setRegistry(prev => prev.map(student => {
       if (student.id === id) {
         return { ...student, status: newStatus };
       }
       return student;
     }));
+
+    if (!currentTermId || !currentSessionId) return;
+
+    try {
+      if (newStatus === "Cleared") {
+        await feeApi.clearFees(id, currentTermId);
+      } else if (newStatus === "Unpaid") {
+        await feeApi.record({
+          studentId: id,
+          termId: currentTermId,
+          academicSessionId: currentSessionId,
+          amountDue: 1000, // default placeholder
+          amountPaid: 0
+        });
+      }
+    } catch (err) {
+      console.error("Failed to update fee status:", err);
+      // Fallback/revert could be implemented here
+    }
   };
 
   const filteredStudents = registry.filter(s => 
@@ -130,7 +212,7 @@ export default function FeeClearance() {
           <div className="flex items-center justify-between border-t border-red-200/50 pt-6 mt-8">
             <div>
               <p className="text-[10px] text-red-600 font-bold uppercase tracking-wider">Currently Locked</p>
-              <p className="text-3xl font-black text-red-950">142 Students</p>
+              <p className="text-3xl font-black text-red-950">{registry.filter(s => s.status === 'Unpaid').length} Students</p>
             </div>
             <button className="px-5 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors shadow">
               Review List
@@ -174,7 +256,7 @@ export default function FeeClearance() {
         <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Active Students Registry</h2>
-            <p className="text-xs text-gray-400 font-semibold mt-0.5">Showing 2,400 students across all departments</p>
+            <p className="text-xs text-gray-400 font-semibold mt-0.5">Showing {filteredStudents.length} of {registry.length} students</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -281,18 +363,8 @@ export default function FeeClearance() {
           </table>
         </div>
 
-        {/* Footer pagination */}
-        <div className="p-6 bg-gray-50/60 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-bold text-gray-500">
-          <span>Showing 1 - {filteredStudents.length} of 2,400 results</span>
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50" disabled>
-              Previous
-            </button>
-            <span className="px-3 py-1.5 bg-[#053d26] text-white rounded-lg">1</span>
-            <button className="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg">2</button>
-            <button className="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg">3</button>
-            <button className="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg">Next</button>
-          </div>
+        <div className="p-6 bg-gray-50/60 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-gray-500">
+          <span>Showing {filteredStudents.length} of {registry.length} students</span>
         </div>
       </div>
 

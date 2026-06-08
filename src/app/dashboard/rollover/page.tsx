@@ -2,9 +2,28 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, ChevronRight, AlertTriangle, CheckCircle2, Loader2, Archive, Rocket, X, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { sessionApi, AcademicSession, CreateSessionRequest, CreateTermRequest } from '@/lib/api';
 
 export default function SessionRollover() {
+  const router = useRouter();
+
+  // Role guard redirect
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leoned_user");
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user.role === "Teacher" || user.role === "Faculty") {
+          router.push("/dashboard/faculty");
+        } else if (user.role === "Student") {
+          router.push("/dashboard/student-portal");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [router]);
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");

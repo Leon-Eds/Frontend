@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
@@ -11,6 +12,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isOverview = pathname === "/dashboard" || pathname === "/super-admin";
 
   return (
     <div className="flex flex-col h-screen w-full bg-[#f8f9fa] overflow-hidden">
@@ -33,7 +37,9 @@ export default function DashboardLayout({
         </div>
 
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-          <Header onMenuToggle={() => setSidebarOpen(true)} />
+          <div className={isOverview ? "" : "lg:hidden"}>
+            <Header onMenuToggle={() => setSidebarOpen(true)} />
+          </div>
           <main className="flex-1 overflow-y-auto bg-[#f8f9fa]">
             <div className="p-4 sm:p-6 lg:p-8">
               {children}

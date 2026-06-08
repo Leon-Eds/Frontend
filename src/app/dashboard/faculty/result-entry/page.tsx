@@ -174,6 +174,45 @@ export default function FacultyResultEntry() {
   const selectedClassName = classes.find(c => c.id === selectedClass)?.name || "";
   const selectedSubjectName = subjects.find(s => s.id === selectedSubject)?.name || "";
 
+  const handleSubmitScores = async () => {
+    if (!selectedClass || !selectedSubject || !currentTermId || !currentSessionId) {
+      setError("Please select a class and subject, and ensure the current session is active.");
+      return;
+    }
+
+    setSaveStatus("Submitting ledger...");
+    setIsSaving(true);
+    setError("");
+    try {
+      const payload = {
+        subjectId: selectedSubject,
+        classId: selectedClass,
+        termId: currentTermId,
+        academicSessionId: currentSessionId,
+        scores: students.map(s => ({
+          studentId: s.id,
+          firstCA: s.ca1 === "" ? 0 : Number(s.ca1),
+          secondCA: s.ca2 === "" ? 0 : Number(s.ca2),
+          exam: s.exam === "" ? 0 : Number(s.exam),
+          remark: s.grade
+        }))
+      };
+
+      await scoreApi.bulkEnter(payload);
+      setSaveStatus("Ledger submitted successfully");
+      setTimeout(() => setSaveStatus("All changes saved"), 3000);
+      // Optionally refresh scoresheet
+      fetchScoresheet();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to submit scores";
+      console.error("[Result Entry] Score submission error:", err);
+      setError(message);
+      setSaveStatus("Submission failed");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
       {/* Header section */}
@@ -198,9 +237,13 @@ export default function FacultyResultEntry() {
             <Save className="h-4 w-4" />
             Save Draft
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-sm shadow-md">
-            <Send className="h-4 w-4" />
-            Submit Ledger
+          <button 
+            onClick={handleSubmitScores}
+            disabled={isSaving || isLoading || students.length === 0}
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving && saveStatus === "Submitting ledger..." ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isSaving && saveStatus === "Submitting ledger..." ? "Submitting..." : "Submit Ledger"}
           </button>
         </div>
       </div>
