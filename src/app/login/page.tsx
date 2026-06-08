@@ -170,7 +170,7 @@ export default function LoginPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>{t("register.registering")}</span>
+                    <span>{t("login.signing_in")}</span>
                   </>
                 ) : (
                   <span>{t("login.signin")}</span>

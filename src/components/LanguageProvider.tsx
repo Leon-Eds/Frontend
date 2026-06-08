@@ -98,6 +98,7 @@ const translations: Record<Language, Record<string, string>> = {
     "forgot.success_desc": "We have sent password reset instructions to your email.",
     "login.remember": "Remember me",
     "login.signin": "Sign In",
+    "login.signing_in": "Signing In...",
     "login.no_account": "Don't have an account?",
     "login.register_here": "Register here",
     // Register
@@ -223,6 +224,7 @@ const translations: Record<Language, Record<string, string>> = {
     "forgot.success_desc": "Anyị ezigarala ntuziaka weghachi paswọdụ na email gị.",
     "login.remember": "Cheta m",
     "login.signin": "Banye",
+    "login.signing_in": "Na-banye...",
     "login.no_account": "Ị nweghị akaụntụ?",
     "login.register_here": "Debanye aha ebe a",
     // Register
@@ -348,6 +350,7 @@ const translations: Record<Language, Record<string, string>> = {
     "forgot.success_desc": "A ti fi ilana fun atunto ọrọigbaniwọle ranṣẹ si email rẹ.",
     "login.remember": "Ranti mi",
     "login.signin": "Wọle",
+    "login.signing_in": "N wọle...",
     "login.no_account": "Ko ni akọọlẹ kan?",
     "login.register_here": "Forukọsilẹ nibi",
     // Register
@@ -473,6 +476,7 @@ const translations: Record<Language, Record<string, string>> = {
     "forgot.success_desc": "Mun aika da umarnin sake saita kalmar sirri zuwa imel ɗin ku.",
     "login.remember": "Tuna da ni",
     "login.signin": "Shiga ciki",
+    "login.signing_in": "Ana shiga...",
     "login.no_account": "Ba ku da asusu?",
     "login.register_here": "Yi rajista a nan",
     // Register
