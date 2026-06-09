@@ -158,7 +158,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     // Automatically handle auth errors (unauthorized or session expired)
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       if (typeof window !== 'undefined') {
         console.warn(`[API] Auth error ${res.status} on ${res.url}. Redirecting to login...`);
         localStorage.removeItem('leoned_token');

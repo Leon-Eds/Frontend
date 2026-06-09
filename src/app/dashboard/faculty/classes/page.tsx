@@ -37,12 +37,20 @@ export default function MyClasses() {
         }
         const user = JSON.parse(userStr);
         
-        // Fetch teacher details to get assignments
-        const teacher = await teacherApi.getById(user.id);
-        const assignments = teacher.assignments || [];
+        let assignments: any[] = [];
+        try {
+          const teacher = await teacherApi.getById(user.id);
+          assignments = teacher.assignments || [];
+        } catch (e) {
+          console.error("Failed to load teacher details", e);
+        }
         
-        // Fetch all classes to get student count and actual arm info
-        const allClasses = await classApi.getAll();
+        let allClasses: any[] = [];
+        try {
+          allClasses = await classApi.getAll();
+        } catch (e) {
+          console.error("Failed to load classes", e);
+        }
         
         // Map assignments to class details
         const teacherClasses = assignments.map((asm, idx) => {

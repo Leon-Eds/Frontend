@@ -393,12 +393,20 @@ export function FacultyHomepage() {
           .toUpperCase();
         setTeacherInitials(initials);
 
-        // Fetch real teacher details to get assignments
-        const teacher = await teacherApi.getById(user.id);
-        const assignments = teacher.assignments || [];
+        let assignments: any[] = [];
+        try {
+          const teacher = await teacherApi.getById(user.id);
+          assignments = teacher.assignments || [];
+        } catch (e) {
+          console.error("Failed to fetch teacher details/assignments", e);
+        }
 
-        // Fetch all classes to get student count
-        const allClasses = await classApi.getAll();
+        let allClasses: any[] = [];
+        try {
+          allClasses = await classApi.getAll();
+        } catch (e) {
+          console.error("Failed to fetch all classes", e);
+        }
 
         // Fetch dashboard statistics
         let dashboardStats: any = {};
