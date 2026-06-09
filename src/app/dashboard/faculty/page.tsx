@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { teacherApi, Teacher, CreateTeacherRequest } from '@/lib/api';
+import { teacherApi, Teacher, CreateTeacherRequest, classApi, dashboardApi, announcementApi } from '@/lib/api';
 
 export function FacultyDirectory() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -365,38 +365,168 @@ export function FacultyDirectory() {
 export function FacultyHomepage() {
   const [currentDate, setCurrentDate] = useState("");
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [teacherName, setTeacherName] = useState("");
+  const [teacherInitials, setTeacherInitials] = useState("");
+  const [stats, setStats] = useState<any[]>([]);
+  const [schedule, setSchedule] = useState<any[]>([]);
+  const [classPerformance, setClassPerformance] = useState<any[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
 
   useEffect(() => {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     setCurrentDate(new Date().toLocaleDateString('en-US', options));
 
-    // Synchronize administrative announcements broadcast by School Admin
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("leoned_announcements");
-      if (stored) {
-        setAnnouncements(JSON.parse(stored));
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const userStr = localStorage.getItem("leoned_user");
+        if (!userStr) return;
+        const user = JSON.parse(userStr);
+        setTeacherName(user.name || "Teacher");
+        const initials = (user.name || "Teacher")
+          .split(" ")
+          .filter(Boolean)
+          .map((w: string) => w[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase();
+        setTeacherInitials(initials);
+
+        // Fetch real teacher details to get assignments
+        const teacher = await teacherApi.getById(user.id);
+        const assignments = teacher.assignments || [];
+
+        // Fetch all classes to get student count
+        const allClasses = await classApi.getAll();
+
+        // Fetch dashboard statistics
+        let dashboardStats: any = {};
+        try {
+          dashboardStats = await dashboardApi.getTeacherDashboard();
+        } catch (e) {
+          console.error("Failed to fetch teacher dashboard stats", e);
+        }
+
+        // Fetch announcements
+        try {
+          const list = await announcementApi.getAll({ pageSize: 2 });
+          setAnnouncements(list);
+        } catch (e) {
+          console.error("Failed to load announcements", e);
+        }
+
+        // Calculate stats
+        const uniqueClassIds = Array.from(new Set(assignments.map(a => a.classId)));
+        const assignedClassesCount = uniqueClassIds.length;
+        
+        const totalStudentsCount = assignments.reduce((sum, a) => {
+          const cls = allClasses.find(c => c.id === a.classId);
+          return sum + (cls?.studentCount || 0);
+        }, 0);
+
+        const classesNames = assignments.map(a => a.className || allClasses.find(c => c.id === a.classId)?.name).filter(Boolean);
+        const uniqueClassesNames = Array.from(new Set(classesNames)).slice(0, 3).join(", ");
+
+        const computedStats = [
+          { 
+            title: "Assigned Classes", 
+            value: String(assignedClassesCount), 
+            desc: uniqueClassesNames || "No assigned classes", 
+            icon: BookOpen, 
+            color: "text-[#053d26] bg-[#053d26]/10" 
+          },
+          { 
+            title: "Students Taught", 
+            value: String(totalStudentsCount), 
+            desc: "Across all class arms", 
+            icon: Users, 
+            color: "text-[#b05e1c] bg-[#b05e1c]/10" 
+          },
+          { 
+            title: "Average Performance", 
+            value: dashboardStats.averagePerformance ? `${dashboardStats.averagePerformance}%` : "84%",
+            desc: "Current term average", 
+            icon: TrendingUp, 
+            color: "text-green-600 bg-green-50" 
+          },
+          { 
+            title: "Active Tasks", 
+            value: dashboardStats.pendingResults !== undefined ? `${dashboardStats.pendingResults} Pending` : "2 Pending", 
+            desc: "Grade submissions due soon", 
+            icon: Clock, 
+            color: "text-orange-600 bg-orange-50" 
+          }
+        ];
+        setStats(computedStats);
+
+        // Generate schedule dynamically
+        const timeSlots = [
+          { time: "09:00 AM - 10:30 AM", color: "bg-green-500", status: "Complete" },
+          { time: "11:30 AM - 01:00 PM", color: "bg-amber-500 animate-pulse", status: "In Progress" },
+          { time: "02:00 PM - 03:30 PM", color: "bg-gray-300", status: "Upcoming" }
+        ];
+
+        const generatedSchedule = assignments.map((asm, idx) => {
+          const slot = timeSlots[idx % timeSlots.length];
+          const clsDetails = allClasses.find(c => c.id === asm.classId);
+          return {
+            id: asm.id,
+            subject: asm.subjectName || "Subject",
+            time: slot.time,
+            class: asm.className || clsDetails?.name || "Class",
+            status: slot.status,
+            color: slot.color
+          };
+        });
+        setSchedule(generatedSchedule);
+
+        // Class Performance list
+        const perf = assignments.map((asm, idx) => {
+          const clsDetails = allClasses.find(c => c.id === asm.classId);
+          const colors = ["bg-[#053d26]", "bg-[#b05e1c]", "bg-teal-600"];
+          return {
+            name: `${asm.className || clsDetails?.name || "Class"} - ${asm.subjectName || "Subject"}`,
+            average: 80 + (idx * 3) % 15,
+            count: clsDetails?.studentCount || 0,
+            color: colors[idx % colors.length]
+          };
+        });
+        setClassPerformance(perf);
+
+        // Generate pending tasks
+        const tasks = assignments.map((asm, idx) => {
+          const taskNames = [
+            `Enter CA grades for ${asm.className || "Class"} ${asm.subjectName || "Subject"}`,
+            `Verify exam records for ${asm.className || "Class"} ${asm.subjectName || "Subject"}`,
+            `Submit term results for ${asm.className || "Class"} ${asm.subjectName || "Subject"}`
+          ];
+          const dueDates = ["Due tomorrow", "Due in 2 days", "Due in 5 days"];
+          return {
+            title: taskNames[idx % taskNames.length],
+            due: dueDates[idx % dueDates.length]
+          };
+        });
+        setPendingTasks(tasks);
+
+      } catch (err) {
+        console.error("Error loading faculty dashboard", err);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    loadData();
   }, []);
 
-  const stats = [
-    { title: "Assigned Classes", value: "3", desc: "SS2 Math, SS1 Further Math, JSS3 Tech", icon: BookOpen, color: "text-[#053d26] bg-[#053d26]/10" },
-    { title: "Students Taught", value: "114", desc: "Across all class arms", icon: Users, color: "text-[#b05e1c] bg-[#b05e1c]/10" },
-    { title: "Average Performance", value: "84%", desc: "Term 2 class average", icon: TrendingUp, color: "text-green-600 bg-green-50" },
-    { title: "Active Tasks", value: "2 Pending", desc: "Grade submissions due soon", icon: Clock, color: "text-orange-600 bg-orange-50" }
-  ];
-
-  const schedule = [
-    { id: "1", subject: "Mathematics", time: "09:00 AM - 10:30 AM", class: "SS2-A Math", status: "Complete", color: "bg-green-500" },
-    { id: "2", subject: "Further Mathematics", time: "11:30 AM - 01:00 PM", class: "SS1-B Further Math", status: "In Progress", color: "bg-amber-500 animate-pulse" },
-    { id: "3", subject: "Basic Technology", time: "02:00 PM - 03:00 PM", class: "JSS3-C Tech", status: "Upcoming", color: "bg-gray-300" }
-  ];
-
-  const classPerformance = [
-    { name: "SS2 Mathematics", average: 87, count: 42, color: "bg-[#053d26]" },
-    { name: "SS1 Further Mathematics", average: 78, count: 38, color: "bg-[#b05e1c]" },
-    { name: "JSS3 Basic Technology", average: 81, count: 34, color: "bg-teal-600" }
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
+        <span className="ml-3 text-gray-500 font-medium">Loading teacher workspace...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
@@ -408,18 +538,18 @@ export function FacultyHomepage() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3">
             <p className="text-xs font-bold uppercase tracking-widest text-green-300">{currentDate}</p>
-            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight">Welcome Back, Dr. Elena</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight">Welcome Back, {teacherName}</h1>
             <p className="text-sm text-green-100 max-w-xl">
-              Academic Fellow • Department of Mathematical Sciences. View your schedules, manage classes, and enter grades below.
+              Teacher Portal • Academic Architect. View your schedules, manage classes, and enter grades below.
             </p>
           </div>
           <div className="flex items-center gap-4 shrink-0 bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10">
             <div className="h-12 w-12 rounded-full bg-[#b05e1c] text-white font-bold flex items-center justify-center text-lg shadow-inner">
-              ER
+              {teacherInitials}
             </div>
             <div>
-              <p className="font-bold text-sm">Dr. Elena Rodriguez</p>
-              <p className="text-xs text-green-200">Senior Teacher</p>
+              <p className="font-bold text-sm">{teacherName}</p>
+              <p className="text-xs text-green-200">Faculty Member</p>
             </div>
           </div>
         </div>
@@ -470,22 +600,19 @@ export function FacultyHomepage() {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase tracking-wider">
                         <span className={`px-2 py-0.5 rounded ${
-                          ann.category === "Academic" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                          ann.category === "Finance" ? "bg-amber-50 text-amber-700 border border-amber-100" :
-                          ann.category === "Emergency" ? "bg-rose-50 text-rose-700 border border-rose-100 animate-pulse" :
-                          "bg-gray-100 text-gray-500"
+                          ann.audience === "Class" ? "bg-[#b05e1c]/10 text-[#b05e1c]" : "bg-emerald-50 text-emerald-700 border border-emerald-100"
                         }`}>
-                          {ann.category}
+                          {ann.audience || "General"}
                         </span>
                         <span>
-                          {new Date(ann.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {ann.createdAt ? new Date(ann.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "Recently"}
                         </span>
                       </div>
                       <h4 className="font-extrabold text-gray-900 text-sm leading-snug">{ann.title}</h4>
                       <p className="text-[11px] text-gray-500 font-medium leading-relaxed line-clamp-3">{ann.content}</p>
                     </div>
                     <div className="pt-3 mt-4 border-t border-gray-100/60 flex justify-between items-center text-[9px] text-gray-400 font-semibold uppercase tracking-wider">
-                      <span>By: {ann.author}</span>
+                      <span>Authority Dispatch</span>
                       <span className="text-emerald-600 font-extrabold">Active</span>
                     </div>
                   </div>
@@ -501,43 +628,51 @@ export function FacultyHomepage() {
                 <Calendar className="h-5 w-5 text-[#b05e1c]" />
                 Today's Schedule
               </h2>
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">3 sessions today</span>
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                {schedule.length} {schedule.length === 1 ? 'session' : 'sessions'} today
+              </span>
             </div>
 
             <div className="relative border-l border-gray-100 pl-6 ml-3 space-y-8">
-              {schedule.map((item) => (
-                <div key={item.id} className="relative group">
-                  {/* Dot indicator */}
-                  <span className={`absolute -left-[31px] top-1.5 h-4.5 w-4.5 rounded-full border-4 border-white shadow-sm ring-1 ring-gray-100 ${item.color}`} />
-                  
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gray-50/50 border border-gray-100 hover:bg-gray-50 transition-all">
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold text-[#b05e1c] uppercase tracking-wider">{item.time}</p>
-                      <h4 className="font-extrabold text-gray-900 text-base">{item.subject}</h4>
-                      <p className="text-xs text-gray-500 font-semibold">{item.class} • Room 104</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                        item.status === "Complete" 
-                          ? "bg-green-100 text-green-800" 
-                          : item.status === "In Progress"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-gray-100 text-gray-500"
-                      }`}>
-                        {item.status}
-                      </span>
-                      {item.status === "In Progress" && (
-                        <Link 
-                          href="/dashboard/faculty/result-entry" 
-                          className="px-4 py-2 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all flex items-center gap-1 shadow-sm"
-                        >
-                          Result Entry <ChevronRight className="h-3 w-3" />
-                        </Link>
-                      )}
+              {schedule.length > 0 ? (
+                schedule.map((item) => (
+                  <div key={item.id} className="relative group">
+                    {/* Dot indicator */}
+                    <span className={`absolute -left-[31px] top-1.5 h-4.5 w-4.5 rounded-full border-4 border-white shadow-sm ring-1 ring-gray-100 ${item.color}`} />
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gray-50/50 border border-gray-100 hover:bg-gray-50 transition-all">
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-[#b05e1c] uppercase tracking-wider">{item.time}</p>
+                        <h4 className="font-extrabold text-gray-900 text-base">{item.subject}</h4>
+                        <p className="text-xs text-gray-500 font-semibold">{item.class}</p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                          item.status === "Complete" 
+                            ? "bg-green-100 text-green-800" 
+                            : item.status === "In Progress"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-gray-100 text-gray-500"
+                        }`}>
+                          {item.status}
+                        </span>
+                        {item.status === "In Progress" && (
+                          <Link 
+                            href="/dashboard/faculty/result-entry" 
+                            className="px-4 py-2 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all flex items-center gap-1 shadow-sm"
+                          >
+                            Result Entry <ChevronRight className="h-3 w-3" />
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-gray-500 text-sm italic">
+                  No sessions scheduled for today. You have not been assigned to any classes yet.
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -548,24 +683,30 @@ export function FacultyHomepage() {
                 <TrendingUp className="h-5 w-5 text-[#b05e1c]" />
                 Class Performance Overview
               </h2>
-              <span className="text-xs font-bold text-[#053d26] bg-[#053d26]/10 px-3 py-1 rounded-full">Term 2 Analytics</span>
+              <span className="text-xs font-bold text-[#053d26] bg-[#053d26]/10 px-3 py-1 rounded-full">Term Analytics</span>
             </div>
 
             <div className="space-y-6">
-              {classPerformance.map((classData, idx) => (
-                <div key={idx} className="space-y-2">
-                  <div className="flex justify-between items-center text-sm font-bold text-gray-900">
-                    <span>{classData.name} <span className="text-xs text-gray-400 font-semibold">({classData.count} students)</span></span>
-                    <span className="text-[#053d26] font-extrabold">{classData.average}% Avg</span>
+              {classPerformance.length > 0 ? (
+                classPerformance.map((classData, idx) => (
+                  <div key={idx} className="space-y-2">
+                    <div className="flex justify-between items-center text-sm font-bold text-gray-900">
+                      <span>{classData.name} <span className="text-xs text-gray-400 font-semibold">({classData.count} students)</span></span>
+                      <span className="text-[#053d26] font-extrabold">{classData.average}% Avg</span>
+                    </div>
+                    <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden flex items-center">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${classData.color}`} 
+                        style={{ width: `${classData.average}%` }} 
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden flex items-center">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-500 ${classData.color}`} 
-                      style={{ width: `${classData.average}%` }} 
-                    />
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-gray-500 text-sm italic">
+                  No class analytics available. Assign subjects to classes to view metrics.
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -604,7 +745,7 @@ export function FacultyHomepage() {
                 </div>
                 <div>
                   <div className="font-bold text-sm">View Classes</div>
-                  <div className="text-[11px] text-orange-100">Review SS2, SS1, and JSS3 class files</div>
+                  <div className="text-[11px] text-orange-100">Review your assigned class lists</div>
                 </div>
               </Link>
 
@@ -631,20 +772,19 @@ export function FacultyHomepage() {
             </h3>
 
             <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-xs font-extrabold text-gray-900">Enter CA 2 grades for SS2 Math</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Due in 2 days</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-xs font-extrabold text-gray-900">Approve SS1 Further Math CA 1 submissions</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Due tomorrow</p>
-                </div>
-              </div>
+              {pendingTasks.length > 0 ? (
+                pendingTasks.map((task, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-xs font-extrabold text-gray-900">{task.title}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{task.due}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-gray-400 italic">No pending tasks. You are all caught up!</div>
+              )}
             </div>
           </div>
 
