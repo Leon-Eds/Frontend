@@ -96,7 +96,7 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Input
                 label="Phone Number"
                 placeholder="+254 --- --- ---"
@@ -109,6 +109,13 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
                 type="email"
                 value={data.parentEmail || ''}
                 onChange={(e) => updateData({ parentEmail: e.target.value })}
+              />
+              <Input
+                label="Portal Password"
+                placeholder="Password for portal"
+                type="password"
+                value={data.parentPassword || ''}
+                onChange={(e) => updateData({ parentPassword: e.target.value })}
               />
             </div>
 

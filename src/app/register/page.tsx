@@ -31,12 +31,14 @@ export default function RegisterSchoolPage() {
     adminRole: "",
     password: "",
     confirmPassword: "",
+    subscriptionPlan: "Free",
   });
 
   const steps = [
     { id: 1, label: t("register.school_name") },
-    { id: 2, label: t("register.admin_name") },
-    { id: 3, label: t("register.review") },
+    { id: 2, label: "Select Plan" },
+    { id: 3, label: t("register.admin_name") },
+    { id: 4, label: t("register.review") },
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -78,7 +80,7 @@ export default function RegisterSchoolPage() {
   const nextStep = () => {
     let stepErrors: Record<string, string> = {};
     if (currentStep === 1) stepErrors = validateStep1();
-    if (currentStep === 2) stepErrors = validateStep2();
+    if (currentStep === 3) stepErrors = validateStep2();
 
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
@@ -86,13 +88,14 @@ export default function RegisterSchoolPage() {
     }
     setErrors({});
     setApiError("");
-    setCurrentStep((prev) => Math.min(prev + 1, 3));
+    setCurrentStep((prev) => Math.min(prev + 1, 4));
   };
 
   const handleRegister = async () => {
     setIsSubmitting(true);
     setApiError("");
     try {
+      // Register the school
       await authApi.register({
         schoolName: formData.schoolName,
         adminName: formData.adminName,
@@ -100,8 +103,32 @@ export default function RegisterSchoolPage() {
         password: formData.password,
         phone: formData.adminPhone || undefined,
         address: formData.address || undefined,
+        subscriptionPlan: formData.subscriptionPlan as any,
       });
-      router.push("/login");
+
+      // Automatically log the user in
+      const response = await authApi.login({
+        email: formData.adminEmail,
+        password: formData.password,
+      });
+
+      const token = response.token;
+      const refreshToken = response.refreshToken;
+      const user = response.user;
+      const tokenExpiry = (response as any).tokenExpiry;
+
+      if (!token) {
+        throw new Error("Registration succeeded but auto-login failed. Please sign in manually.");
+      }
+
+      // Store auth data
+      localStorage.setItem("leoned_token", token);
+      if (refreshToken) localStorage.setItem("leoned_refresh_token", refreshToken);
+      if (tokenExpiry) localStorage.setItem("leoned_token_expiry", tokenExpiry);
+      if (user) localStorage.setItem("leoned_user", JSON.stringify(user));
+
+      // Redirect straight to dashboard
+      router.push("/dashboard");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Registration failed. Please try again.";
       setApiError(message);
@@ -322,8 +349,48 @@ export default function RegisterSchoolPage() {
               </div>
             )}
 
-            {/* Step 2 — Admin Details */}
+            {/* Step 2 — Select Plan */}
             {currentStep === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-[#b05e1c]" />
+                    Select subscription plan
+                  </h2>
+                  <p className="text-sm text-gray-500">Choose the perfect tier for your institution.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    { id: "Free", name: "Free Tier", price: "₦0", students: "Up to 100 students", teachers: "Up to 10 teachers", desc: "For small schools starting their digital journey" },
+                    { id: "Plus", name: "Plus Plan", price: "₦15,000", students: "Up to 500 students", teachers: "Up to 30 teachers", desc: "For mid-sized growing educational centers" },
+                    { id: "Premium", name: "Premium", price: "₦30,000", students: "Unlimited students", teachers: "Unlimited teachers", desc: "Enterprise infrastructure and full support" }
+                  ].map((plan) => {
+                    const isSelected = formData.subscriptionPlan === plan.id;
+                    return (
+                      <button
+                        key={plan.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, subscriptionPlan: plan.id })}
+                        className={`flex flex-col text-left p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                          isSelected
+                            ? "border-[#053d26] bg-[#e8f5e9]/20 shadow-md"
+                            : "border-gray-100 hover:border-gray-200"
+                        }`}
+                      >
+                        <span className="font-bold text-gray-900 text-base mb-1">{plan.name}</span>
+                        <span className="text-[#b05e1c] text-xl font-black mb-3">{plan.price}<span className="text-[10px] font-bold text-gray-500">/mo</span></span>
+                        <span className="text-xs text-gray-600 font-semibold mb-1 flex items-center gap-1">• {plan.students}</span>
+                        <span className="text-xs text-gray-600 font-semibold mb-3 flex items-center gap-1">• {plan.teachers}</span>
+                        <span className="text-[10px] text-gray-400 leading-snug mt-auto">{plan.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3 — Admin Details */}
+            {currentStep === 3 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
@@ -462,8 +529,8 @@ export default function RegisterSchoolPage() {
               </div>
             )}
 
-            {/* Step 3 — Confirmation */}
-            {currentStep === 3 && (
+            {/* Step 4 — Confirmation */}
+            {currentStep === 4 && (
               <div className="space-y-6">
                 <div className="text-center">
                   <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
@@ -501,6 +568,10 @@ export default function RegisterSchoolPage() {
                         <span className="text-sm text-gray-500">{t("register.est_students")}</span>
                         <span className="text-sm font-semibold text-gray-900">{formData.studentCount || "—"}</span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Subscription Plan</span>
+                        <span className="text-sm font-semibold text-[#053d26]">{formData.subscriptionPlan}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -535,7 +606,7 @@ export default function RegisterSchoolPage() {
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="flex items-center gap-2 px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-2 px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   {t("register.back")}
@@ -543,18 +614,18 @@ export default function RegisterSchoolPage() {
               ) : (
                 <Link
                   href="/"
-                  className="flex items-center gap-2 px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-2 px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Home
                 </Link>
               )}
 
-              {currentStep < 3 ? (
+              {currentStep < 4 ? (
                 <button
                   type="button"
                   onClick={nextStep}
-                  className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-lg shadow-green-900/20"
+                  className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-lg shadow-green-900/20 cursor-pointer"
                 >
                   {t("register.continue")}
                   <ChevronRight className="h-4 w-4" />
@@ -564,7 +635,7 @@ export default function RegisterSchoolPage() {
                   type="button"
                   onClick={handleRegister}
                   disabled={isSubmitting}
-                  className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>

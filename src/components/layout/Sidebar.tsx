@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { schoolApi } from "@/lib/api";
 import { 
   LayoutDashboard, 
   GraduationCap, 
@@ -39,13 +40,13 @@ const schoolNavigation = [
 ];
 
 const adminNavigation = [
-  { name: "Academic Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Teacher Grading", href: "/dashboard/teacher-grading", icon: ClipboardList },
-  { name: "Admin Approvals", href: "/dashboard/approvals", icon: FileCheck },
-  { name: "Student Reports", href: "/dashboard/student-reports", icon: FileText },
-  { name: "Fee Clearance", href: "/dashboard/finance", icon: DollarSign },
-  { name: "Directory", href: "/dashboard/students", icon: Users },
-  { name: "Broadcast Hub", href: "/dashboard/communications", icon: Megaphone },
+  { name: "Academic overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Students", href: "/dashboard/students", icon: GraduationCap },
+  { name: "Teachers' overview", href: "/dashboard/faculty", icon: Users },
+  { name: "Students' report", href: "/dashboard/student-reports", icon: FileText },
+  { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
+  { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
+  { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
 ];
 
 const facultyNavigation = [
@@ -81,6 +82,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [role, setRole] = useState<string | null>(null);
   const [demoRole, setDemoRole] = useState<string>("Admin");
   const [schoolName, setSchoolName] = useState<string>("LeonEd Africa");
+  const [plan, setPlan] = useState<string>("Free");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -93,6 +95,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
             setSchoolName(user.schoolName);
           } else if (user.role === "SuperAdmin") {
             setSchoolName("Platform Admin");
+          }
+          if (user.schoolId && user.role !== "SuperAdmin") {
+            schoolApi.getById(user.schoolId).then((school: any) => {
+              if (school && school.subscriptionPlan) {
+                setPlan(school.subscriptionPlan);
+              }
+            }).catch(e => console.warn("Failed to fetch school plan:", e));
           }
         } catch (e) {
           console.error("Failed to parse user from localStorage", e);
@@ -213,6 +222,20 @@ export default function Sidebar({ onClose }: SidebarProps) {
           >
             <School className="h-5 w-5" />
             Register New School
+          </Link>
+        </div>
+      )}
+
+      {/* Upgrade CTA card for Free tier schools */}
+      {role !== "SuperAdmin" && role !== "Teacher" && role !== "Faculty" && role !== "Student" && plan === "Free" && (
+        <div className="mx-4 mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-center">
+          <p className="text-xs text-amber-200 font-bold mb-2">You are on the Free Plan</p>
+          <Link
+            href="/dashboard/settings"
+            onClick={handleNavClick}
+            className="block w-full py-2 bg-[#b05e1c] hover:bg-[#965017] text-white font-bold text-xs rounded-xl transition-colors shadow-sm"
+          >
+            Upgrade Plan
           </Link>
         </div>
       )}

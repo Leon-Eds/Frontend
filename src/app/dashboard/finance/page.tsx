@@ -40,6 +40,19 @@ export default function FeeClearance() {
 
   const [currentTermId, setCurrentTermId] = useState("");
   const [currentSessionId, setCurrentSessionId] = useState("");
+  const [currentSessionName, setCurrentSessionName] = useState("");
+  const [currentTermName, setCurrentTermName] = useState("");
+
+  const [studentsList, setStudentsList] = useState<any[]>([]);
+  const [termsList, setTermsList] = useState<any[]>([]);
+
+  // Record Payment Modal states
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [selectedTermId, setSelectedTermId] = useState("");
+  const [amountDue, setAmountDue] = useState("50000");
+  const [amountPaid, setAmountPaid] = useState("50000");
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -52,11 +65,22 @@ export default function FeeClearance() {
         sessionApi.getAll()
       ]);
 
+      setStudentsList(students);
+
       const currentSession = (Array.isArray(sessionData) ? sessionData : []).find((s: any) => s.isCurrent);
       const currentTerm = currentSession?.terms?.find((t: any) => t.isCurrent);
       
-      if (currentSession) setCurrentSessionId(currentSession.id);
-      if (currentTerm) setCurrentTermId(currentTerm.id);
+      if (currentSession) {
+        setCurrentSessionId(currentSession.id);
+        setCurrentSessionName(currentSession.name);
+        if (currentSession.terms) {
+          setTermsList(currentSession.terms);
+        }
+      }
+      if (currentTerm) {
+        setCurrentTermId(currentTerm.id);
+        setCurrentTermName(currentTerm.termNumber);
+      }
 
       let feeRecords: any[] = [];
       if (currentTerm) {
@@ -106,6 +130,41 @@ export default function FeeClearance() {
     fetchStudents();
   }, [fetchStudents]);
 
+  const handleOpenPaymentModal = () => {
+    setSelectedStudentId("");
+    setSelectedTermId(currentTermId);
+    setAmountDue("50000");
+    setAmountPaid("50000");
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleSubmitPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudentId || !selectedTermId || !currentSessionId) {
+      alert("Please select a student and term.");
+      return;
+    }
+
+    setIsSubmittingPayment(true);
+    try {
+      await feeApi.record({
+        studentId: selectedStudentId,
+        termId: selectedTermId,
+        academicSessionId: currentSessionId,
+        amountDue: parseFloat(amountDue),
+        amountPaid: parseFloat(amountPaid)
+      });
+      alert("Payment recorded successfully!");
+      setIsPaymentModalOpen(false);
+      fetchStudents();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to record payment";
+      alert(msg);
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  };
+
   const handleAction = async (id: string, newStatus: "Cleared" | "Unpaid" | "Pending Verification") => {
     setRegistry(prev => prev.map(student => {
       if (student.id === id) {
@@ -130,7 +189,6 @@ export default function FeeClearance() {
       }
     } catch (err) {
       console.error("Failed to update fee status:", err);
-      // Fallback/revert could be implemented here
     }
   };
 
@@ -269,7 +327,7 @@ export default function FeeClearance() {
               Filter by Program
             </button>
             <button className="px-3.5 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-600 transition-colors">
-              Semester 2024/A
+              {currentSessionName || "No Active Session"}{currentTermName ? ` — ${currentTermName} Term` : ""}
             </button>
           </div>
         </div>
@@ -369,9 +427,114 @@ export default function FeeClearance() {
       </div>
 
       {/* Floating circular "+" action button on the bottom right */}
-      <button className="fixed bottom-8 right-8 w-14 h-14 bg-[#b05e1c] hover:bg-[#965017] text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 z-40">
+      <button 
+        onClick={handleOpenPaymentModal}
+        className="fixed bottom-8 right-8 w-14 h-14 bg-[#b05e1c] hover:bg-[#965017] text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 z-40"
+      >
         <Plus className="w-7 h-7" />
       </button>
+
+      {/* Record Payment Modal */}
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <form 
+            onSubmit={handleSubmitPayment}
+            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100 space-y-6 animate-in fade-in zoom-in duration-200"
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <h3 className="text-xl font-bold text-gray-900">Record Fee Payment</h3>
+              <button 
+                type="button"
+                onClick={() => setIsPaymentModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Student Select */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Student</label>
+                <select
+                  required
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
+                >
+                  <option value="">-- Choose a Student --</option>
+                  {studentsList.map((std) => (
+                    <option key={std.id} value={std.id}>
+                      {std.fullName} ({std.className || "Unassigned"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Term Select */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Term</label>
+                <select
+                  required
+                  value={selectedTermId}
+                  onChange={(e) => setSelectedTermId(e.target.value)}
+                  className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
+                >
+                  <option value="">-- Choose a Term --</option>
+                  {termsList.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.termNumber} Term
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Amount Due */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Amount Due (₦)</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={amountDue}
+                  onChange={(e) => setAmountDue(e.target.value)}
+                  className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
+                />
+              </div>
+
+              {/* Amount Paid */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Amount Paid (₦)</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={amountPaid}
+                  onChange={(e) => setAmountPaid(e.target.value)}
+                  className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setIsPaymentModalOpen(false)}
+                className="px-5 py-2.5 rounded-full bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmittingPayment}
+                className="px-6 py-2.5 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSubmittingPayment ? "Recording..." : "Record Payment"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

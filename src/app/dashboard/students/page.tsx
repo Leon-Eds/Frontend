@@ -73,6 +73,7 @@ export default function StudentsPage() {
       parentName: student.parentName,
       parentPhone: student.parentPhone,
       parentEmail: student.parentEmail,
+      parentPassword: student.parentPassword,
       status: student.status,
     });
     setSaveError("");
@@ -372,6 +373,7 @@ export default function StudentsPage() {
                 ['Guardian', viewStudent.parentName || '—'],
                 ['Guardian Phone', viewStudent.parentPhone || '—'],
                 ['Guardian Email', viewStudent.parentEmail || '—'],
+                ['Guardian Password', viewStudent.parentPassword || '—'],
                 ['Enrolled', formatDate(viewStudent.enrolledAt)],
               ].map(([label, val]) => (
                 <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50">
@@ -453,7 +455,7 @@ export default function StudentsPage() {
                   className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Guardian Phone</label>
                   <input
@@ -467,6 +469,15 @@ export default function StudentsPage() {
                   <input
                     value={editForm.parentEmail || ''}
                     onChange={e => setEditForm(f => ({ ...f, parentEmail: e.target.value }))}
+                    className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Guardian Password</label>
+                  <input
+                    type="password"
+                    value={editForm.parentPassword || ''}
+                    onChange={e => setEditForm(f => ({ ...f, parentPassword: e.target.value }))}
                     className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
                   />
                 </div>

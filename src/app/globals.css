@@ -168,3 +168,15 @@ html.dark textarea {
 html.dark .glass-panel {
   background: rgba(30, 30, 30, 0.7) !important;
 }
+
+/* Technical dot-grid blueprint layout background */
+.blueprint-bg {
+  background-color: #f8f9fa;
+  background-image: radial-gradient(rgba(5, 61, 38, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+html.dark .blueprint-bg {
+  background-color: #121212 !important;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px) !important;
+  background-size: 24px 24px;
+}

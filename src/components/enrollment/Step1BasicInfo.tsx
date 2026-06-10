@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Input } from '../ui/form/Input';
 import { DatePicker } from '../ui/form/DatePicker';
 import { Select } from '../ui/form/Select';
 import { Camera, X } from 'lucide-react';
-import { CreateStudentRequest } from '@/lib/api';
+import { CreateStudentRequest, sessionApi } from '@/lib/api';
 
 interface Step1Props {
   data: Partial<CreateStudentRequest>;
@@ -18,6 +18,24 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFileName, setPhotoFileName] = useState<string>("");
+  const [sessionName, setSessionName] = useState("Loading...");
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const sessions = await sessionApi.getAll();
+        const current = sessions.find((s: any) => s.isCurrent);
+        if (current) {
+          setSessionName(current.name);
+        } else {
+          setSessionName("No Active Session");
+        }
+      } catch {
+        setSessionName("2024/2025");
+      }
+    };
+    fetchSession();
+  }, []);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,7 +78,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
           </p>
         </div>
         <div className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-[#053d26]">
-          ACADEMIC YEAR 2024/25
+          ACADEMIC YEAR {sessionName}
         </div>
       </div>
 

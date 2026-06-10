@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, ChevronRight, AlertTriangle, CheckCircle2, Loader2, Archive, Rocket, X, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { sessionApi, AcademicSession, CreateSessionRequest, CreateTermRequest } from '@/lib/api';
+import { DatePicker } from '@/components/ui/form/DatePicker';
 
 export default function SessionRollover() {
   const router = useRouter();
@@ -367,24 +368,16 @@ export default function SessionRollover() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Start Date</label>
-                  <input
-                    type="date"
-                    value={newSession.startDate}
-                    onChange={e => setNewSession(s => ({ ...s, startDate: e.target.value }))}
-                    className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">End Date</label>
-                  <input
-                    type="date"
-                    value={newSession.endDate}
-                    onChange={e => setNewSession(s => ({ ...s, endDate: e.target.value }))}
-                    className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
-                  />
-                </div>
+                <DatePicker
+                  label="Start Date"
+                  value={newSession.startDate}
+                  onChange={e => setNewSession(s => ({ ...s, startDate: e.target.value }))}
+                />
+                <DatePicker
+                  label="End Date"
+                  value={newSession.endDate}
+                  onChange={e => setNewSession(s => ({ ...s, endDate: e.target.value }))}
+                />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
@@ -424,24 +417,16 @@ export default function SessionRollover() {
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Start Date</label>
-                  <input
-                    type="date"
-                    value={newTerm.startDate}
-                    onChange={e => setNewTerm(t => ({ ...t, startDate: e.target.value }))}
-                    className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">End Date</label>
-                  <input
-                    type="date"
-                    value={newTerm.endDate}
-                    onChange={e => setNewTerm(t => ({ ...t, endDate: e.target.value }))}
-                    className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
-                  />
-                </div>
+                <DatePicker
+                  label="Start Date"
+                  value={newTerm.startDate}
+                  onChange={e => setNewTerm(t => ({ ...t, startDate: e.target.value }))}
+                />
+                <DatePicker
+                  label="End Date"
+                  value={newTerm.endDate}
+                  onChange={e => setNewTerm(t => ({ ...t, endDate: e.target.value }))}
+                />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">

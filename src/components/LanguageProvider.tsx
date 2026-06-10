@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-export type Language = "en" | "ig" | "yo" | "ha";
+export type Language = "en" | "ig" | "yo" | "ha" | "fr" | "es" | "de" | "pt" | "zh";
 
 export interface LanguageInfo {
   code: Language;
@@ -16,6 +16,11 @@ export const languages: LanguageInfo[] = [
   { code: "ig", name: "Igbo", nativeName: "Asụsụ Igbo", flag: "🇳🇬" },
   { code: "yo", name: "Yoruba", nativeName: "Èdè Yorùbá", flag: "🇳🇬" },
   { code: "ha", name: "Hausa", nativeName: "Harshen Hausa", flag: "🇳🇬" },
+  { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },
+  { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
+  { code: "de", name: "German", nativeName: "Deutsch", flag: "🇩🇪" },
+  { code: "pt", name: "Portuguese", nativeName: "Português", flag: "🇵🇹" },
+  { code: "zh", name: "Chinese", nativeName: "中文", flag: "🇨🇳" },
 ];
 
 const translations: Record<Language, Record<string, string>> = {
@@ -522,7 +527,12 @@ const translations: Record<Language, Record<string, string>> = {
     "guide.step3.desc": "Ƙara ɗalibai ɗaya bayan ɗaya ko shigo da su ta fayil ɗin Excel.",
     "guide.step4": "Saka Malamai",
     "guide.step4.desc": "Gayyaci malamai kuma sanya su zuwa azuzuwa."
-  }
+  },
+  fr: {},
+  es: {},
+  de: {},
+  pt: {},
+  zh: {}
 };
 
 interface LanguageContextProps {
@@ -540,7 +550,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Load from localStorage if present
     const saved = localStorage.getItem("leoned_lang") as Language;
-    if (saved && ["en", "ig", "yo", "ha"].includes(saved)) {
+    if (saved && ["en", "ig", "yo", "ha", "fr", "es", "de", "pt", "zh"].includes(saved)) {
       setLanguageState(saved);
     }
     setMounted(true);
@@ -604,6 +614,49 @@ export function LanguageSelector() {
           <path d="M0,0 L60,30 M60,0 L0,30" stroke="#c8102e" strokeWidth="4"/>
           <path d="M30,0 L30,30 M0,15 L60,15" stroke="#fff" strokeWidth="10"/>
           <path d="M30,0 L30,30 M0,15 L60,15" stroke="#c8102e" strokeWidth="6"/>
+        </svg>
+      );
+    }
+    if (code === "fr") {
+      return (
+        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+          <rect width="3" height="6" fill="#00209F"/>
+          <rect x="3" width="3" height="6" fill="#fff"/>
+          <rect x="6" width="3" height="6" fill="#F31830"/>
+        </svg>
+      );
+    }
+    if (code === "es") {
+      return (
+        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+          <rect width="9" height="1.5" fill="#C60B1E"/>
+          <rect y="1.5" width="9" height="3" fill="#F1BF00"/>
+          <rect y="4.5" width="9" height="1.5" fill="#C60B1E"/>
+        </svg>
+      );
+    }
+    if (code === "de") {
+      return (
+        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+          <rect width="9" height="2" fill="#000"/>
+          <rect y="2" width="9" height="2" fill="#D00"/>
+          <rect y="4" width="9" height="2" fill="#FFCE00"/>
+        </svg>
+      );
+    }
+    if (code === "pt") {
+      return (
+        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+          <rect width="3.6" height="6" fill="#060"/>
+          <rect x="3.6" width="5.4" height="6" fill="#f00"/>
+        </svg>
+      );
+    }
+    if (code === "zh") {
+      return (
+        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+          <rect width="9" height="6" fill="#DE2910"/>
+          <polygon points="1.5,1.2 1.9,2.4 0.9,1.7 2.1,1.7 1.1,2.4" fill="#ffde00"/>
         </svg>
       );
     }

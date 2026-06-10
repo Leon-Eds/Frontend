@@ -63,13 +63,26 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-gradient-to-br from-[#f0fdf4] via-white to-[#fef3c7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Decorative background meshes */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-green-200/30 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-amber-200/30 blur-[120px] pointer-events-none" />
+
+      {/* Floating Home Button */}
+      <Link
+        href="/"
+        className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-gray-200/60 shadow-sm text-sm font-semibold text-gray-600 hover:text-[#053d26] hover:bg-white transition-all backdrop-blur-sm"
+      >
+        <span className="text-lg leading-none">&larr;</span>
+        <span>Home</span>
+      </Link>
+
       {/* Top Right Floating Language Switcher */}
       <div className="absolute top-4 right-4 z-50">
         <LanguageSelector />
       </div>
 
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-10 border border-gray-100">
+      <div className="max-w-md w-full bg-white/95 rounded-3xl shadow-xl p-10 border border-gray-100/80 backdrop-blur-md relative z-10">
         
         {/* Logo Section */}
         <div className="flex flex-col items-center justify-center mb-8">

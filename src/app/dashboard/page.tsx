@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { dashboardApi, DashboardStats } from "@/lib/api";
+import { dashboardApi, DashboardStats, sessionApi } from "@/lib/api";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/dashboard/DataTable";
 import SetupGuide from "@/components/dashboard/SetupGuide";
-import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus, Loader2 } from "lucide-react";
+import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus, Loader2, BookOpen, Calendar } from "lucide-react";
 
 export default function DashboardOverview() {
   const router = useRouter();
@@ -16,6 +16,8 @@ export default function DashboardOverview() {
   const [error, setError] = useState("");
 
   const [user, setUser] = useState<any>(null);
+  const [hasSessions, setHasSessions] = useState<boolean>(true);
+  const [hasTerms, setHasTerms] = useState<boolean>(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -60,7 +62,22 @@ export default function DashboardOverview() {
             ? await dashboardApi.getSuperAdminDashboard()
             : await dashboardApi.getSchoolDashboard();
           
-          const localActivities = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('leoned_local_activities') || '[]') : [];
+          const schoolId = parsedUser.schoolId || 'default';
+
+          // Check if academic session and term are set
+          if (parsedUser.role !== "SuperAdmin") {
+            try {
+              const sessions = await sessionApi.getAll().catch(() => []);
+              const currentSession = sessions.find((s: any) => s.isCurrent);
+              setHasSessions(sessions.length > 0 && !!currentSession);
+              const currentTerm = currentSession?.terms?.find((t: any) => t.isCurrent);
+              setHasTerms(!!currentTerm);
+            } catch (sessionErr) {
+              console.warn("Failed to fetch sessions/terms:", sessionErr);
+            }
+          }
+          
+          const localActivities = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`leoned_local_activities_${schoolId}`) || '[]') : [];
           const apiActivities = data?.recentActivities || [];
           const combined = [...localActivities, ...apiActivities].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
           
@@ -70,7 +87,8 @@ export default function DashboardOverview() {
           });
         } catch (err: unknown) {
           console.error("[Dashboard] Failed to fetch dashboard data.", err);
-          const localActivities = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('leoned_local_activities') || '[]') : [];
+          const schoolId = parsedUser.schoolId || 'default';
+          const localActivities = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`leoned_local_activities_${schoolId}`) || '[]') : [];
           setStats({ recentActivities: localActivities });
         } finally {
           setIsLoading(false);
@@ -119,13 +137,11 @@ export default function DashboardOverview() {
   // Support nested data property and fallback field names
   const s = (stats as any)?.data || stats;
   const totalStudents = s?.totalStudents ?? s?.totalCount ?? 0;
-  const maxStudents = s?.maxStudents;
   const totalTeachers = s?.totalTeachers ?? s?.facultyCount ?? 0;
-  const maxTeachers = s?.maxTeachers;
+  const totalClasses = s?.totalClasses ?? 0;
   
-  const studentsDisplay = maxStudents ? `${totalStudents.toLocaleString()} / ${maxStudents.toLocaleString()}` : totalStudents.toLocaleString();
-  const teachersDisplay = maxTeachers ? `${totalTeachers.toLocaleString()} / ${maxTeachers.toLocaleString()}` : totalTeachers.toLocaleString();
-  const pendingResults = s?.pendingResults ?? 0;
+  const studentsDisplay = totalStudents.toLocaleString();
+  const teachersDisplay = totalTeachers.toLocaleString();
   const currentTerm = s?.currentTerm ?? "N/A";
   const currentSession = s?.currentSession ?? "";
   const termProgress = s?.termProgress ?? 0;
@@ -140,6 +156,19 @@ export default function DashboardOverview() {
           Welcome back, {userName}. Here is your campus overview for the <span className="text-[#b05e1c] font-semibold">{termLabel}</span>.
         </p>
       </div>
+
+      {/* Warning if no teachers created */}
+      {user?.role !== "SuperAdmin" && totalTeachers === 0 && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-pulse">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">No teachers registered yet</h3>
+            <p className="text-sm text-gray-600">Register your faculty members to assign them to classes and enable academic flow.</p>
+          </div>
+          <Link href="/dashboard/faculty" className="px-6 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] text-sm shrink-0 shadow-sm text-center">
+            Register a Teacher
+          </Link>
+        </div>
+      )}
 
       {/* Admin Setup Guide */}
       <SetupGuide />
@@ -157,14 +186,14 @@ export default function DashboardOverview() {
           icon={<Users className="h-6 w-6" />}
         />
         <StatCard
-          title="Results Pending"
-          value={String(pendingResults)}
-          icon={<FileText className="h-6 w-6" />}
-          iconBgColor="bg-orange-100"
-          iconTextColor="text-orange-600"
+          title="Total Classes"
+          value={String(totalClasses)}
+          icon={<BookOpen className="h-6 w-6" />}
+          iconBgColor="bg-blue-100"
+          iconTextColor="text-blue-600"
         />
         {/* Active Term Card */}
-        <div className="rounded-3xl bg-[#053d26] p-6 shadow-sm flex flex-col justify-between text-white relative overflow-hidden">
+        <Link href="/dashboard/rollover" className="block rounded-3xl bg-[#053d26] p-6 shadow-sm flex flex-col justify-between text-white relative overflow-hidden transition-transform hover:scale-[1.02] cursor-pointer">
           {/* subtle decorative circles */}
           <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/5" />
           <div className="absolute right-8 -bottom-8 h-32 w-32 rounded-full bg-white/5" />
@@ -191,7 +220,7 @@ export default function DashboardOverview() {
               </p>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Main Content Area: Table and Quick Actions side-by-side */}
@@ -226,7 +255,10 @@ export default function DashboardOverview() {
                 </div>
               </Link>
 
-              <button className="w-full rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/50 p-4 text-center transition-colors hover:border-gray-400 hover:bg-gray-100 flex flex-col items-center justify-center h-28 gap-2">
+              <button 
+                onClick={() => alert("Customizing dashboard shortcuts is currently in development!")}
+                className="w-full rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/50 p-4 text-center transition-colors hover:border-gray-400 hover:bg-gray-100 flex flex-col items-center justify-center h-28 gap-2 cursor-pointer"
+              >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-600">
                   <Plus className="h-5 w-5" />
                 </div>
@@ -236,6 +268,27 @@ export default function DashboardOverview() {
           </div>
         </div>
       </div>
+
+      {/* Warning Overlay Modal if no session/term */}
+      {user?.role !== "SuperAdmin" && (!hasSessions || !hasTerms) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2.5rem] max-w-md w-full p-8 shadow-2xl border border-orange-100 flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mb-6 text-orange-600 animate-bounce">
+              <Calendar className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Academic Session Required</h3>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              You need an active academic session and term to use LeonEd Africa. Most features (including grade entries, fee tracking, and reports) rely on this timeline.
+            </p>
+            <Link 
+              href="/dashboard/rollover" 
+              className="w-full py-4 rounded-2xl bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all shadow-md text-center cursor-pointer"
+            >
+              Set Up Session &amp; Term Now
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

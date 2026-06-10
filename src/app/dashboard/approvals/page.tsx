@@ -14,6 +14,28 @@ interface PendingSubmission {
   status: "Pending" | "Revision Requested";
   classId: string;
   termId: string;
+  adminComment?: string;
+  teacherComment?: string;
+}
+
+function formatActivityTime(dateStr: string) {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    if (diffMs < 0) return "Just now";
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  } catch {
+    return dateStr;
+  }
 }
 
 export default function ResultsApproval() {
@@ -22,6 +44,23 @@ export default function ResultsApproval() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Real stats states
+  const [totalClassesCount, setTotalClassesCount] = useState(0);
+  const [totalResultsCount, setTotalResultsCount] = useState(0);
+  const [approvedResultsCount, setApprovedResultsCount] = useState(0);
+  const [activities, setActivities] = useState<any[]>([]);
+
+  // Revision details modal state
+  const [selectedSubmission, setSelectedSubmission] = useState<PendingSubmission | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  // Derived stats
+  const urgentCount = submissions.filter(s => s.status === "Pending").length;
+  const revisionCount = submissions.filter(s => s.status === "Revision Requested").length;
+  const completionPercentage = totalResultsCount > 0 
+    ? Math.round((approvedResultsCount / totalResultsCount) * 100) 
+    : 100;
 
   // Role guard redirect
   useEffect(() => {
@@ -63,6 +102,7 @@ export default function ResultsApproval() {
 
       // 2. Get all classes
       const classes = await classApi.getAll();
+      setTotalClassesCount(classes.length);
       if (!classes.length) {
         setSubmissions([]);
         setIsLoading(false);
@@ -71,6 +111,8 @@ export default function ResultsApproval() {
 
       // 3. For each class, fetch results for the current term
       const allSubmissions: PendingSubmission[] = [];
+      let totalResults = 0;
+      let approvedResults = 0;
 
       const resultPromises = classes.map(async (cls) => {
         try {
@@ -88,8 +130,11 @@ export default function ResultsApproval() {
                 ? "Revision Requested"
                 : "Pending";
 
+            totalResults++;
+
             // Only include items that are pending or need revision (not already approved/published)
             if (rawStatus === "Approved" || rawStatus === "approved" || rawStatus === "Published" || rawStatus === "published") {
+              approvedResults++;
               return;
             }
 
@@ -113,6 +158,8 @@ export default function ResultsApproval() {
               status,
               classId: cls.id,
               termId: currentTerm.id,
+              adminComment: item.adminComment || item.comment || "Revision requested by administrator.",
+              teacherComment: item.teacherComment || item.remark || "",
             });
           });
         } catch (err) {
@@ -123,6 +170,8 @@ export default function ResultsApproval() {
 
       await Promise.all(resultPromises);
       setSubmissions(allSubmissions);
+      setTotalResultsCount(totalResults);
+      setApprovedResultsCount(approvedResults);
     } catch (err) {
       console.error("[Approvals] Failed to fetch submissions:", err);
       setError(err instanceof Error ? err.message : "Failed to load pending submissions.");
@@ -135,6 +184,23 @@ export default function ResultsApproval() {
     fetchSubmissions();
   }, [fetchSubmissions]);
 
+  // Load local activities specific to school and category
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("leoned_user");
+      if (stored) {
+        const user = JSON.parse(stored);
+        const schoolId = user.schoolId || "default";
+        const key = `leoned_local_activities_${schoolId}`;
+        const local = JSON.parse(localStorage.getItem(key) || "[]");
+        const filtered = local.filter((act: any) => act.category === "Approvals" || act.category === "Grading");
+        setActivities(filtered);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [submissions]);
+
   const handleApprove = async (id: string) => {
     const sub = submissions.find(s => s.id === id);
     if (!sub) return;
@@ -145,6 +211,7 @@ export default function ResultsApproval() {
       await resultApi.publish(sub.classId, sub.termId).catch(() => {});
       
       setSubmissions(prev => prev.filter(item => item.id !== id));
+      setApprovedResultsCount(prev => prev + 1);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to approve results";
       alert(message);
@@ -168,6 +235,11 @@ export default function ResultsApproval() {
       alert(message);
     }
   };
+
+  const filteredSubmissions = submissions.filter(sub => {
+    if (activeFilter === "Pending") return sub.status === "Pending";
+    return true;
+  });
 
   if (isLoading) {
     return (
@@ -216,7 +288,7 @@ export default function ResultsApproval() {
           </div>
           <div className="space-y-2 relative z-10">
             <p className="text-xs font-bold uppercase tracking-wider text-green-200">Urgent Attention</p>
-            <p className="text-5xl font-black">24</p>
+            <p className="text-5xl font-black">{urgentCount}</p>
             <p className="text-xs text-green-100/70 font-semibold pt-2">Pending results require your review today.</p>
           </div>
         </div>
@@ -225,10 +297,10 @@ export default function ResultsApproval() {
         <div className="rounded-3xl bg-white p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Completion</span>
-            <span className="text-2xl font-black text-gray-900">88%</span>
+            <span className="text-2xl font-black text-gray-900">{completionPercentage}%</span>
           </div>
           <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden mb-4">
-            <div className="bg-[#053d26] h-full rounded-full" style={{ width: "88%" }} />
+            <div className="bg-[#053d26] h-full rounded-full transition-all duration-300" style={{ width: `${completionPercentage}%` }} />
           </div>
           <p className="text-xs text-gray-400 font-semibold">Of all class records finalized</p>
         </div>
@@ -240,7 +312,7 @@ export default function ResultsApproval() {
           </div>
           <div className="space-y-2 relative z-10">
             <p className="text-xs font-bold uppercase tracking-wider text-orange-200">Revisions</p>
-            <p className="text-5xl font-black">04</p>
+            <p className="text-5xl font-black">{revisionCount}</p>
             <p className="text-xs text-orange-100/70 font-semibold pt-2">Submissions awaiting teacher updates.</p>
           </div>
         </div>
@@ -267,13 +339,13 @@ export default function ResultsApproval() {
                   activeFilter === "Pending" ? "bg-gray-900 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                Newest First
+                Urgent First
               </button>
             </div>
           </div>
 
           <div className="space-y-4">
-            {submissions.map((sub) => (
+            {filteredSubmissions.map((sub) => (
               <div 
                 key={sub.id} 
                 className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-all hover:shadow-md"
@@ -304,7 +376,13 @@ export default function ResultsApproval() {
 
                 <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                   {sub.status === "Revision Requested" ? (
-                    <button className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all">
+                    <button 
+                      onClick={() => {
+                        setSelectedSubmission(sub);
+                        setIsDetailsOpen(true);
+                      }}
+                      className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all"
+                    >
                       View Details
                     </button>
                   ) : (
@@ -327,7 +405,7 @@ export default function ResultsApproval() {
               </div>
             ))}
 
-            {submissions.length === 0 && (
+            {filteredSubmissions.length === 0 && (
               <div className="bg-white rounded-3xl p-12 text-center border border-gray-100">
                 <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
                 <h3 className="font-bold text-gray-900 text-lg mb-1">All Caught Up!</h3>
@@ -350,10 +428,20 @@ export default function ResultsApproval() {
             </p>
             <button 
               onClick={async () => {
+                let approvedCount = 0;
                 for (const sub of submissions) {
                   if (sub.status === "Pending") {
-                    await handleApprove(sub.id);
+                    try {
+                      await resultApi.approve(sub.classId, sub.termId, { approve: true });
+                      await resultApi.publish(sub.classId, sub.termId).catch(() => {});
+                      approvedCount++;
+                    } catch (err) {
+                      console.error("Batch approve failed for sub", sub.id, err);
+                    }
                   }
+                }
+                if (approvedCount > 0) {
+                  fetchSubmissions();
                 }
               }}
               className="w-full py-3.5 rounded-xl bg-green-300 hover:bg-green-400 text-[#053d26] font-bold text-xs transition-colors"
@@ -370,27 +458,29 @@ export default function ResultsApproval() {
             </h3>
 
             <div className="space-y-4">
-              <div className="flex gap-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-black text-[#b05e1c] uppercase tracking-wider">2 hours ago</p>
-                  <p className="text-xs text-gray-600 font-bold mt-0.5 leading-snug">Approved Physics Lab Results (Year B)</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-2 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-black text-[#b05e1c] uppercase tracking-wider">Yesterday</p>
-                  <p className="text-xs text-gray-600 font-bold mt-0.5 leading-snug">Requested revision for Art History Quiz</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-black text-[#b05e1c] uppercase tracking-wider">Oct 11</p>
-                  <p className="text-xs text-gray-600 font-bold mt-0.5 leading-snug">Batch publish: 15 Student Reports</p>
-                </div>
-              </div>
+              {activities.length > 0 ? (
+                activities.map((act) => (
+                  <div key={act.id} className="flex gap-3">
+                    <span className={`w-1.5 h-1.5 rounded-full mt-2 shrink-0 ${
+                      act.description.toLowerCase().includes("approve") || act.description.toLowerCase().includes("publish")
+                        ? "bg-green-500"
+                        : "bg-orange-500"
+                    }`} />
+                    <div>
+                      <p className="text-[10px] font-black text-[#b05e1c] uppercase tracking-wider">
+                        {formatActivityTime(act.date)}
+                      </p>
+                      <p className="text-xs text-gray-600 font-bold mt-0.5 leading-snug">
+                        {act.description}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-gray-400 font-semibold py-2">
+                  No recent approval or grading activities.
+                </p>
+              )}
             </div>
           </div>
 
@@ -413,6 +503,66 @@ export default function ResultsApproval() {
           </div>
         </div>
       </div>
+
+      {/* Revision Details Modal */}
+      {isDetailsOpen && selectedSubmission && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-gray-100 space-y-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <h3 className="text-xl font-bold text-gray-900">Revision Details</h3>
+              <button 
+                onClick={() => {
+                  setIsDetailsOpen(false);
+                  setSelectedSubmission(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Class & Subject</p>
+                <p className="text-sm font-bold text-gray-900">{selectedSubmission.className} — {selectedSubmission.subject}</p>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Submitted By</p>
+                <p className="text-sm font-semibold text-gray-700">{selectedSubmission.teacher} on {selectedSubmission.date}</p>
+              </div>
+
+              <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100/50 space-y-1">
+                <p className="text-[10px] font-bold text-orange-800 uppercase tracking-wider">Administrator Feedback</p>
+                <p className="text-xs text-orange-900 font-medium leading-relaxed">
+                  {selectedSubmission.adminComment || "Please review the entered scores and resubmit for approval."}
+                </p>
+              </div>
+
+              {selectedSubmission.teacherComment && (
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-1">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Teacher's Remark</p>
+                  <p className="text-xs text-gray-700 font-medium leading-relaxed">
+                    {selectedSubmission.teacherComment}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  setIsDetailsOpen(false);
+                  setSelectedSubmission(null);
+                }}
+                className="px-6 py-2.5 rounded-full bg-gray-950 text-white text-xs font-bold hover:bg-gray-800 transition-all shadow"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -40,7 +40,7 @@ export default function DashboardLayout({
           <div className={isOverview ? "" : "lg:hidden"}>
             <Header onMenuToggle={() => setSidebarOpen(true)} />
           </div>
-          <main className="flex-1 overflow-y-auto bg-[#f8f9fa]">
+          <main className="flex-1 overflow-y-auto blueprint-bg">
             <div className="p-4 sm:p-6 lg:p-8">
               {children}
             </div>

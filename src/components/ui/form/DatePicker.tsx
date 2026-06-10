@@ -20,6 +20,14 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
             className={`w-full rounded-2xl border-0 bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors cursor-pointer ${
               error ? 'ring-2 ring-red-500' : ''
             } ${className} [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+            onClick={(e) => {
+              try {
+                (e.target as any).showPicker();
+              } catch (err) {
+                console.warn("showPicker not supported", err);
+              }
+              if (props.onClick) props.onClick(e);
+            }}
             {...props}
           />
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500">

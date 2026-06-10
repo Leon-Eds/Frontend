@@ -44,6 +44,7 @@ export function recordActivity(description: string, category: string, status: st
   try {
     const userStr = localStorage.getItem('leoned_user');
     const user = userStr ? JSON.parse(userStr) : {};
+    const schoolId = user.schoolId || 'default';
     const newActivity = {
       id: Date.now() + Math.random(),
       date: new Date().toISOString(),
@@ -52,9 +53,10 @@ export function recordActivity(description: string, category: string, status: st
       status,
       userName: user.name || 'Admin',
     };
-    const localActivities = JSON.parse(localStorage.getItem('leoned_local_activities') || '[]');
+    const key = `leoned_local_activities_${schoolId}`;
+    const localActivities = JSON.parse(localStorage.getItem(key) || '[]');
     localActivities.unshift(newActivity);
-    localStorage.setItem('leoned_local_activities', JSON.stringify(localActivities.slice(0, 20)));
+    localStorage.setItem(key, JSON.stringify(localActivities.slice(0, 20)));
   } catch (e) {
     console.error("Failed to record activity", e);
   }
@@ -261,6 +263,7 @@ export interface CreateStudentRequest {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
+  parentPassword?: string;
   bloodGroup?: string;
   arm?: string;
 }
@@ -273,6 +276,7 @@ export interface UpdateStudentRequest {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
+  parentPassword?: string;
   status?: StudentStatus;
 }
 
@@ -287,6 +291,7 @@ export interface Student {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
+  parentPassword?: string;
   status: StudentStatus;
   enrolledAt?: string;
   systemEmail?: string;
