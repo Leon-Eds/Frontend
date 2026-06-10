@@ -69,7 +69,7 @@ export default function StudentDetailedReport() {
 
         // Select student - either the logged-in student or the first student for admin preview
         let targetStudent: any = null;
-        if (user.role === "Student") {
+        if (user.role === "Student" || user.role === "Parent" || user.role === "Guardian") {
           targetStudent = allStudents.find((s: any) => s.id === user.id) || allStudents[0];
         } else {
           targetStudent = allStudents[0]; // Admin preview mode

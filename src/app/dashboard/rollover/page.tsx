@@ -17,7 +17,7 @@ export default function SessionRollover() {
         const user = JSON.parse(stored);
         if (user.role === "Teacher" || user.role === "Faculty") {
           router.push("/dashboard/faculty");
-        } else if (user.role === "Student") {
+        } else if (user.role === "Student" || user.role === "Parent" || user.role === "Guardian") {
           router.push("/dashboard/student-portal");
         }
       }

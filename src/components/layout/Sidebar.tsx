@@ -117,7 +117,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           const user = JSON.parse(storedUser);
           if (user.role === "Teacher" || user.role === "Faculty") {
             setDemoRole("Faculty");
-          } else if (user.role === "Student") {
+          } else if (user.role === "Student" || user.role === "Parent" || user.role === "Guardian") {
             setDemoRole("Student");
           } else {
             setDemoRole(localStorage.getItem("leoned_demo_role") || "Admin");
@@ -229,7 +229,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       )}
 
       {/* Upgrade CTA card for Free tier schools */}
-      {role !== "SuperAdmin" && role !== "Teacher" && role !== "Faculty" && role !== "Student" && plan === "Free" && (
+      {role !== "SuperAdmin" && role !== "Teacher" && role !== "Faculty" && role !== "Student" && role !== "Parent" && role !== "Guardian" && plan === "Free" && (
         <div className="mx-4 mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-center">
           <p className="text-xs text-amber-200 font-bold mb-2">{t("sidebar.free_plan_msg")}</p>
           <Link

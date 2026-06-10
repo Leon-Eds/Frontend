@@ -34,12 +34,11 @@ export default function DashboardOverview() {
       const parsedUser = JSON.parse(storedUser || "{}");
       setUser(parsedUser);
 
-      // Redirect if user has Faculty/Teacher or Student role
       if (parsedUser.role === "Teacher" || parsedUser.role === "Faculty") {
         router.push("/dashboard/faculty");
         return;
       }
-      if (parsedUser.role === "Student") {
+      if (parsedUser.role === "Student" || parsedUser.role === "Parent" || parsedUser.role === "Guardian") {
         router.push("/dashboard/student-portal");
         return;
       }
