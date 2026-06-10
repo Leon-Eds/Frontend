@@ -17,6 +17,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const { clientX, clientY } = e;
+    const x = (clientX / window.innerWidth) - 0.5;
+    const y = (clientY / window.innerHeight) - 0.5;
+    setMousePos({ x, y });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,12 +71,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f0fdf4] via-white to-[#fef3c7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative background meshes with drifting animations */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-green-200/30 blur-[130px] pointer-events-none animate-drift-one" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-amber-200/35 blur-[130px] pointer-events-none animate-drift-two" />
-      {/* Subtle blueprint dot grid on top of the mesh */}
-      <div className="absolute inset-0 bg-transparent blueprint-bg opacity-45 pointer-events-none mix-blend-multiply dark:mix-blend-screen" />
+    <div 
+      onMouseMove={handleMouseMove}
+      className="min-h-screen bg-gradient-to-br from-[#f0fdf4] via-white to-[#fef3c7] flex flex-col items-center justify-center p-4 relative overflow-hidden"
+    >
+      {/* Decorative background meshes with drifting animations and interactive mouse parallax */}
+      <div 
+        className="absolute inset-0 pointer-events-none transition-transform duration-700 ease-out"
+        style={{
+          transform: `translate(${mousePos.x * 40}px, ${mousePos.y * 40}px)`
+        }}
+      >
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-green-200/30 blur-[130px] animate-drift-one" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-amber-200/35 blur-[130px] animate-drift-two" />
+      </div>
+      {/* Subtle transparent dot grid on top of the mesh */}
+      <div className="absolute inset-0 bg-transparent dot-grid-overlay opacity-60 pointer-events-none mix-blend-multiply dark:mix-blend-screen" />
 
       {/* Floating Home Button */}
       <Link

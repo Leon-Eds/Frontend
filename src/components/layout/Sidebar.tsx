@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { schoolApi } from "@/lib/api";
+import { useLanguage } from "@/components/LanguageProvider";
 import { 
   LayoutDashboard, 
   GraduationCap, 
@@ -79,6 +80,7 @@ interface SidebarProps {
 export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useLanguage();
   const [role, setRole] = useState<string | null>(null);
   const [demoRole, setDemoRole] = useState<string>("Admin");
   const [schoolName, setSchoolName] = useState<string>("LeonEd Africa");
@@ -162,7 +164,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <div>
             <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>{schoolName}</h1>
             <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">
-              {role === "SuperAdmin" ? "Super Admin" : "Academic Architect"}
+              {role === "SuperAdmin" ? t("sidebar.super_admin") : t("sidebar.academic_architect")}
             </p>
           </div>
         </Link>
@@ -192,7 +194,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               }`}
             >
               <item.icon className={`h-5 w-5 ${isActive ? "text-white" : "text-green-300"}`} />
-              {item.name}
+              {t("sidebar." + item.name.toLowerCase().replace(/['\s&]+/g, "_"))}
             </Link>
           );
         })}
@@ -207,7 +209,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[#b05e1c] text-white font-bold text-sm hover:bg-[#965017] transition-colors shadow-sm"
           >
             <UserPlus className="h-5 w-5" />
-            Enroll New Student
+            {t("sidebar.enroll_new_student")}
           </Link>
         </div>
       )}
@@ -221,7 +223,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[#b05e1c] text-white font-bold text-sm hover:bg-[#965017] transition-colors shadow-sm"
           >
             <School className="h-5 w-5" />
-            Register New School
+            {t("sidebar.register_new_school")}
           </Link>
         </div>
       )}
@@ -229,13 +231,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Upgrade CTA card for Free tier schools */}
       {role !== "SuperAdmin" && role !== "Teacher" && role !== "Faculty" && role !== "Student" && plan === "Free" && (
         <div className="mx-4 mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-center">
-          <p className="text-xs text-amber-200 font-bold mb-2">You are on the Free Plan</p>
+          <p className="text-xs text-amber-200 font-bold mb-2">{t("sidebar.free_plan_msg")}</p>
           <Link
             href="/dashboard/settings"
             onClick={handleNavClick}
             className="block w-full py-2 bg-[#b05e1c] hover:bg-[#965017] text-white font-bold text-xs rounded-xl transition-colors shadow-sm"
           >
-            Upgrade Plan
+            {t("sidebar.upgrade_plan")}
           </Link>
         </div>
       )}
@@ -248,7 +250,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
         >
           <Settings className="h-5 w-5 text-green-300" />
-          Settings
+          {t("nav.settings")}
         </Link>
         <Link
           href="/support"
@@ -256,14 +258,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
           className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
         >
           <HelpCircle className="h-5 w-5 text-green-300" />
-          Help Center
+          {t("footer.support.item1")}
         </Link>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors w-full text-left"
         >
           <LogOut className="h-5 w-5 text-green-300" />
-          Logout
+          {t("nav.logout")}
         </button>
       </div>
     </div>
