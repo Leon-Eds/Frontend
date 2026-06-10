@@ -180,3 +180,33 @@ html.dark .blueprint-bg {
   background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px) !important;
   background-size: 24px 24px;
 }
+
+/* Animated floating mesh blobs for backgrounds */
+@keyframes drift-blob-one {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(40px, -60px) scale(1.15);
+  }
+  66% {
+    transform: translate(-30px, 30px) scale(0.9);
+  }
+}
+
+@keyframes drift-blob-two {
+  0%, 100% {
+    transform: translate(0, 0) scale(1.1);
+  }
+  50% {
+    transform: translate(-40px, 50px) scale(0.85);
+  }
+}
+
+.animate-drift-one {
+  animation: drift-blob-one 20s infinite ease-in-out;
+}
+
+.animate-drift-two {
+  animation: drift-blob-two 25s infinite ease-in-out;
+}

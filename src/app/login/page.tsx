@@ -64,9 +64,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0fdf4] via-white to-[#fef3c7] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative background meshes */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-green-200/30 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-amber-200/30 blur-[120px] pointer-events-none" />
+      {/* Decorative background meshes with drifting animations */}
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-green-200/30 blur-[130px] pointer-events-none animate-drift-one" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-amber-200/35 blur-[130px] pointer-events-none animate-drift-two" />
+      {/* Subtle blueprint dot grid on top of the mesh */}
+      <div className="absolute inset-0 bg-transparent blueprint-bg opacity-45 pointer-events-none mix-blend-multiply dark:mix-blend-screen" />
 
       {/* Floating Home Button */}
       <Link
