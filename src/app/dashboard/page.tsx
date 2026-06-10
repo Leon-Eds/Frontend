@@ -34,11 +34,12 @@ export default function DashboardOverview() {
       const parsedUser = JSON.parse(storedUser || "{}");
       setUser(parsedUser);
 
-      if (parsedUser.role === "Teacher" || parsedUser.role === "Faculty") {
+      const userRole = parsedUser.role?.toLowerCase();
+      if (userRole === "teacher" || userRole === "faculty") {
         router.push("/dashboard/faculty");
         return;
       }
-      if (parsedUser.role === "Student" || parsedUser.role === "Parent" || parsedUser.role === "Guardian") {
+      if (userRole === "student" || userRole === "parent" || userRole === "guardian") {
         router.push("/dashboard/student-portal");
         return;
       }
@@ -57,14 +58,14 @@ export default function DashboardOverview() {
       const fetchDashboard = async () => {
         try {
           // Choose appropriate endpoint based on role
-          const data = parsedUser.role === "SuperAdmin" 
+          const data = userRole === "superadmin" 
             ? await dashboardApi.getSuperAdminDashboard()
             : await dashboardApi.getSchoolDashboard();
           
           const schoolId = parsedUser.schoolId || 'default';
 
           // Check if academic session and term are set
-          if (parsedUser.role !== "SuperAdmin") {
+          if (userRole !== "superadmin") {
             try {
               const sessions = await sessionApi.getAll().catch(() => []);
               const currentSession = sessions.find((s: any) => s.isCurrent);

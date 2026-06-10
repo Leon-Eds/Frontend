@@ -12,9 +12,10 @@ export default function NewStudentPage() {
       const stored = localStorage.getItem("leoned_user");
       if (stored) {
         const user = JSON.parse(stored);
-        if (user.role === "Teacher" || user.role === "Faculty") {
+        const userRole = user.role?.toLowerCase();
+        if (userRole === "teacher" || userRole === "faculty") {
           router.push("/dashboard/faculty");
-        } else if (user.role === "Student" || user.role === "Parent" || user.role === "Guardian") {
+        } else if (userRole === "student" || userRole === "parent" || userRole === "guardian") {
           router.push("/dashboard/student-portal");
         }
       }

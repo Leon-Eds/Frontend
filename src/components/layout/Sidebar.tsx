@@ -92,13 +92,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
-          setRole(user.role);
-          if (user.role !== "SuperAdmin" && user.schoolName) {
+          const normalizedRole = user.role?.toLowerCase() || "";
+          setRole(normalizedRole);
+          if (normalizedRole !== "superadmin" && user.schoolName) {
             setSchoolName(user.schoolName);
-          } else if (user.role === "SuperAdmin") {
+          } else if (normalizedRole === "superadmin") {
             setSchoolName("Platform Admin");
           }
-          if (user.schoolId && user.role !== "SuperAdmin") {
+          if (user.schoolId && normalizedRole !== "superadmin") {
             schoolApi.getById(user.schoolId).then((school: any) => {
               if (school && school.subscriptionPlan) {
                 setPlan(school.subscriptionPlan);
@@ -115,9 +116,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
       if (storedUser) {
         try {
           const user = JSON.parse(storedUser);
-          if (user.role === "Teacher" || user.role === "Faculty") {
+          const normalizedRole = user.role?.toLowerCase();
+          if (normalizedRole === "teacher" || normalizedRole === "faculty") {
             setDemoRole("Faculty");
-          } else if (user.role === "Student" || user.role === "Parent" || user.role === "Guardian") {
+          } else if (normalizedRole === "student" || normalizedRole === "parent" || normalizedRole === "guardian") {
             setDemoRole("Student");
           } else {
             setDemoRole(localStorage.getItem("leoned_demo_role") || "Admin");
@@ -130,7 +132,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   }, []);
 
   let navigation = schoolNavigation;
-  if (role === "SuperAdmin") {
+  if (role === "superadmin") {
     navigation = superAdminNavigation;
   } else {
     if (demoRole === "Admin") navigation = adminNavigation;
@@ -153,7 +155,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     <div className="flex h-screen w-64 flex-col bg-[#053d26] text-white shrink-0">
       {/* Logo Area */}
       <div className="flex h-20 items-center justify-between px-6 border-b border-white/10">
-        <Link href={role === "SuperAdmin" ? "/super-admin" : "/dashboard"} className="flex items-center gap-3" onClick={handleNavClick}>
+        <Link href={role === "superadmin" ? "/super-admin" : "/dashboard"} className="flex items-center gap-3" onClick={handleNavClick}>
           <Image
             src="/logo.png"
             alt="LeonEd Africa"
@@ -164,7 +166,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <div>
             <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>{schoolName}</h1>
             <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">
-              {role === "SuperAdmin" ? t("sidebar.super_admin") : t("sidebar.academic_architect")}
+              {role === "superadmin" ? t("sidebar.super_admin") : t("sidebar.academic_architect")}
             </p>
           </div>
         </Link>
@@ -201,7 +203,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* Enroll CTA - Only for Schools */}
-      {role !== "SuperAdmin" && role !== "Teacher" && role !== "Faculty" && role !== "Student" && demoRole === "Admin" && (
+      {role !== "superadmin" && role !== "teacher" && role !== "faculty" && role !== "student" && role !== "parent" && role !== "guardian" && demoRole === "Admin" && (
         <div className="px-4 pb-4">
           <Link
             href="/dashboard/students/new"
@@ -215,7 +217,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       )}
 
       {/* Super Admin CTA - Quick Invite */}
-      {role === "SuperAdmin" && (
+      {role === "superadmin" && (
         <div className="px-4 pb-4">
           <Link
             href="/super-admin/schools"
@@ -229,7 +231,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       )}
 
       {/* Upgrade CTA card for Free tier schools */}
-      {role !== "SuperAdmin" && role !== "Teacher" && role !== "Faculty" && role !== "Student" && role !== "Parent" && role !== "Guardian" && plan === "Free" && (
+      {role !== "superadmin" && role !== "teacher" && role !== "faculty" && role !== "student" && role !== "parent" && role !== "guardian" && plan === "Free" && (
         <div className="mx-4 mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-center">
           <p className="text-xs text-amber-200 font-bold mb-2">{t("sidebar.free_plan_msg")}</p>
           <Link
@@ -245,7 +247,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Bottom Navigation */}
       <div className="border-t border-white/10 p-4 space-y-1">
         <Link
-          href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"}
+          href={role === "superadmin" ? "/super-admin/settings" : "/dashboard/settings"}
           onClick={handleNavClick}
           className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
         >

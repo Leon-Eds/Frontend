@@ -13,11 +13,12 @@ export default function SystemSupport() {
       if (storedUser) {
         try {
           const user = JSON.parse(storedUser);
-          if (user.role === "SuperAdmin") {
+          const userRole = user.role?.toLowerCase();
+          if (userRole === "superadmin") {
             setBackUrl("/super-admin");
-          } else if (user.role === "Teacher" || user.role === "Faculty") {
+          } else if (userRole === "teacher" || userRole === "faculty") {
             setBackUrl("/dashboard/faculty");
-          } else if (user.role === "Student") {
+          } else if (userRole === "student" || userRole === "parent" || userRole === "guardian") {
             setBackUrl("/dashboard/student-portal");
           } else {
             setBackUrl("/dashboard");
