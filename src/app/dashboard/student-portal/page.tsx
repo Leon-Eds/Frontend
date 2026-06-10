@@ -38,28 +38,29 @@ export default function StudentPerformanceRecord() {
         if (!userStr) throw new Error("Not logged in");
         const user = JSON.parse(userStr);
         
-        const sessions = await sessionApi.getAll();
+        const sessions = await sessionApi.getAll().catch(() => []);
         const currentSession = (Array.isArray(sessions) ? sessions : []).find((s: any) => s.isCurrent);
         const currentTerm = currentSession?.terms?.find((t: any) => t.isCurrent);
         
-        if (!currentTerm) throw new Error("No active term found");
+        // We do not throw here, just gracefully fallback if no active term
+        const termId = currentTerm?.id || 'default';
 
         const [dash, resultsData] = await Promise.all([
           dashboardApi.getStudentDashboard().catch(() => null),
-          resultApi.getMyResults(currentTerm.id).catch(() => [])
+          resultApi.getMyResults(termId).catch(() => [])
         ]);
 
-        const sDash = (dash as any)?.data || dash;
+        const sDash = (dash as any)?.data || dash || {};
         
         setStudentInfo({
           name: user.fullName || user.name || "Student",
           initials: (user.fullName || user.name || "S").split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
-          className: user.className || "Unassigned",
-          gpa: sDash?.termAverage || 0,
-          rank: sDash?.classPosition || "--",
+          className: user.className || sDash?.className || "Unassigned",
+          gpa: sDash?.termAverage || sDash?.gpa || 0,
+          rank: sDash?.classPosition || sDash?.rank || "--",
           attendance: sDash?.attendance || "96%",
-          status: sDash?.feeStatus || "Cleared",
-          termLabel: `Term ${(currentTerm as any).termNumber || (currentTerm as any).name || ''} ${currentSession?.name || ''}`
+          status: sDash?.feeStatus || sDash?.status || "Cleared",
+          termLabel: currentTerm ? `Term ${(currentTerm as any).termNumber || (currentTerm as any).name || ''} ${currentSession?.name || ''}` : "Current Term"
         });
 
         const rData = (resultsData as any)?.data || resultsData;

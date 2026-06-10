@@ -42,7 +42,7 @@ export default function LoginPage() {
       const r = response as Record<string, any>;
       const token = r.token;
       const refreshToken = r.refreshToken;
-      const user = r.user;
+      const user = r.user || r.student || r.parent || r.guardian;
       const tokenExpiry = r.tokenExpiry;
       
       if (!token) {
@@ -54,12 +54,25 @@ export default function LoginPage() {
       localStorage.setItem("leoned_token", token);
       if (refreshToken) localStorage.setItem("leoned_refresh_token", refreshToken);
       if (tokenExpiry) localStorage.setItem("leoned_token_expiry", tokenExpiry);
-      if (user) localStorage.setItem("leoned_user", JSON.stringify(user));
+      
+      if (user) {
+        localStorage.setItem("leoned_user", JSON.stringify(user));
+      } else {
+        localStorage.setItem("leoned_user", JSON.stringify({ role: "student", name: "User" }));
+      }
       
       // Redirect based on role
-      if (user?.role?.toLowerCase() === "superadmin") {
+      const normalizedRole = user?.role?.toLowerCase()?.trim() || "";
+      if (normalizedRole === "superadmin") {
         router.push("/super-admin");
+      } else if (normalizedRole === "student" || normalizedRole === "parent" || normalizedRole === "guardian") {
+        router.push("/dashboard/student-portal");
+      } else if (normalizedRole === "teacher" || normalizedRole === "faculty") {
+        router.push("/dashboard/faculty");
+      } else if (!normalizedRole && (user?.parentEmail || user?.admissionNumber)) {
+        router.push("/dashboard/student-portal");
       } else {
+        // Fallback, and if it's actually a student but missing explicit info, the dashboard page will catch demoRole
         router.push("/dashboard");
       }
     } catch (err: unknown) {
