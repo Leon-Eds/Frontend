@@ -79,14 +79,27 @@ export default function LoginPage() {
       <div 
         className="absolute inset-0 pointer-events-none transition-transform duration-700 ease-out"
         style={{
-          transform: `translate(${mousePos.x * 40}px, ${mousePos.y * 40}px)`
+          transform: `translate(${mousePos.x * 50}px, ${mousePos.y * 50}px)`
         }}
       >
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-green-200/30 blur-[130px] animate-drift-one" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-amber-200/35 blur-[130px] animate-drift-two" />
+        {/* Primary forest green glow */}
+        <div 
+          className="absolute top-[-20%] left-[-15%] w-[65%] h-[65%] rounded-full blur-[130px] animate-drift-one"
+          style={{ backgroundColor: '#053d26', opacity: 0.16 }}
+        />
+        {/* Accent warm amber glow */}
+        <div 
+          className="absolute bottom-[-25%] right-[-15%] w-[65%] h-[65%] rounded-full blur-[130px] animate-drift-two"
+          style={{ backgroundColor: '#b05e1c', opacity: 0.18 }}
+        />
+        {/* Secondary soft sky/teal glow */}
+        <div 
+          className="absolute top-[25%] left-[20%] w-[45%] h-[45%] rounded-full blur-[140px] animate-drift-one"
+          style={{ backgroundColor: '#0ea5e9', opacity: 0.08 }}
+        />
       </div>
       {/* Subtle transparent dot grid on top of the mesh */}
-      <div className="absolute inset-0 bg-transparent dot-grid-overlay opacity-60 pointer-events-none mix-blend-multiply dark:mix-blend-screen" />
+      <div className="absolute inset-0 dot-grid-overlay pointer-events-none" />
 
       {/* Floating Home Button */}
       <Link

@@ -183,11 +183,11 @@ html.dark .blueprint-bg {
 
 /* Transparent premium dot-grid overlay */
 .dot-grid-overlay {
-  background-image: radial-gradient(rgba(5, 61, 38, 0.12) 1.5px, transparent 1.5px);
-  background-size: 24px 24px;
+  background-image: radial-gradient(rgba(5, 61, 38, 0.22) 1.5px, transparent 2px);
+  background-size: 32px 32px;
 }
 html.dark .dot-grid-overlay {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px) !important;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.5px, transparent 2px) !important;
 }
 
 /* Animated floating mesh blobs for backgrounds */
