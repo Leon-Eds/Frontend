@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import toast from 'react-hot-toast';
 import { useRouter } from "next/navigation";
 import { 
   Megaphone, 
@@ -196,7 +197,7 @@ export default function BroadcastHub() {
       await announcementApi.delete(id);
       setAnnouncements(prev => prev.filter(a => a.id !== id));
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to delete announcement");
+      toast.error(err instanceof Error ? err.message : "Failed to delete announcement");
     }
   };
 

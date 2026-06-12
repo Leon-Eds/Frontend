@@ -55,11 +55,9 @@ export default function StudentPerformanceRecord() {
         setStudentInfo({
           name: user.fullName || user.name || "Student",
           initials: (user.fullName || user.name || "S").split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
-          className: user.className || sDash?.className || "Unassigned",
-          gpa: sDash?.termAverage || sDash?.gpa || 0,
-          rank: sDash?.classPosition || sDash?.rank || "--",
-          attendance: sDash?.attendance || "96%",
-          status: sDash?.feeStatus || sDash?.status || "Cleared",
+          className: user.className || sDash?.className || "",
+          attendance: sDash?.attendance || "N/A",
+          status: sDash?.feeStatus || sDash?.status || "Pending",
           termLabel: currentTerm ? `Term ${(currentTerm as any).termNumber || (currentTerm as any).name || ''} ${currentSession?.name || ''}` : "Current Term"
         });
 
@@ -140,32 +138,8 @@ export default function StudentPerformanceRecord() {
       </div>
 
       {/* Performance Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         
-        {/* GPA */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-start gap-4">
-          <div className="p-3 rounded-2xl shrink-0 text-[#053d26] bg-[#053d26]/10">
-            <Award className="h-6 w-6" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Cumulative Average</p>
-            <p className="text-2xl font-black text-gray-900 leading-none">{studentInfo.gpa.toFixed(2)}%</p>
-            <p className="text-[11px] text-green-600 font-semibold pt-1">Term Average</p>
-          </div>
-        </div>
-
-        {/* Class Rank */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-start gap-4">
-          <div className="p-3 rounded-2xl shrink-0 text-[#b05e1c] bg-[#b05e1c]/10">
-            <TrendingUp className="h-6 w-6" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Class Position</p>
-            <p className="text-2xl font-black text-gray-900 leading-none">{studentInfo.rank}</p>
-            <p className="text-[11px] text-gray-500 font-medium pt-1">Current Standing</p>
-          </div>
-        </div>
-
         {/* Attendance */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-start gap-4">
           <div className="p-3 rounded-2xl shrink-0 text-teal-700 bg-teal-50">
@@ -195,8 +169,8 @@ export default function StudentPerformanceRecord() {
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Subject Grades Table - Left 2 Columns */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Subject Grades Table - Full Width */}
+        <div className="lg:col-span-3 space-y-6">
           <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-50 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -250,49 +224,6 @@ export default function StudentPerformanceRecord() {
               </table>
             </div>
           </div>
-        </div>
-
-        {/* Remarks and General Memos - Right Column */}
-        <div className="space-y-6">
-          
-          {/* Teacher feedback feed */}
-          <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm space-y-6">
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-50 pb-4">
-              <Star className="h-5 w-5 text-gray-400" />
-              Academic Remarks
-            </h3>
-
-            <div className="space-y-4">
-              {grades.length > 0 ? grades.filter(g => g.remark && g.remark !== 'N/A').slice(0, 3).map((g, i) => (
-                <div key={i} className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-2">
-                  <div className="flex justify-between items-center text-xs font-bold text-[#b05e1c]">
-                    <span>{g.name}</span>
-                  </div>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    &quot;{g.remark}&quot;
-                  </p>
-                </div>
-              )) : (
-                <p className="text-xs text-gray-400 font-semibold">No academic remarks available for this term.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Admin Announcement memo */}
-          <div className="bg-[#053d26] text-white rounded-[2rem] p-8 shadow-sm relative overflow-hidden">
-            <div className="absolute right-0 bottom-0 opacity-10 translate-x-4 translate-y-4">
-              <Award className="w-32 h-32" />
-            </div>
-
-            <div className="relative z-10 space-y-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-green-300">Office of the Principal</span>
-              <h3 className="text-lg font-bold leading-snug">Graduation Clearance</h3>
-              <p className="text-xs text-green-100/80 leading-relaxed">
-                Clearance audits are underway for SS 2 student transcripts. Please confirm your demographic data, fee balances, and continuous assessment listings before the end of the term.
-              </p>
-            </div>
-          </div>
-
         </div>
 
       </div>

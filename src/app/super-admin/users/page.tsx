@@ -14,7 +14,7 @@ import {
   ChevronRight,
   UserPlus
 } from "lucide-react";
-import { schoolApi, formatDate } from "@/lib/api";
+import { schoolApi, studentApi, teacherApi, formatDate } from "@/lib/api";
 
 export default function GlobalUsersManagement() {
   const [isLoading, setIsLoading] = useState(true);
@@ -25,9 +25,56 @@ export default function GlobalUsersManagement() {
     const fetchUsers = async () => {
       setIsLoading(true);
       try {
-        const data = await schoolApi.getAll();
-        const extractedUsers = Array.isArray(data) ? data : [];
-        setUsers(extractedUsers);
+        const [schoolsRes, teachersRes, studentsRes] = await Promise.allSettled([
+          schoolApi.getAll().catch(() => []),
+          teacherApi.getAll().catch(() => []),
+          studentApi.getAll().catch(() => [])
+        ]);
+
+        const allUsers: any[] = [];
+
+        if (schoolsRes.status === 'fulfilled' && Array.isArray(schoolsRes.value)) {
+          schoolsRes.value.forEach((s: any) => {
+            if (s.adminName || s.email) {
+              allUsers.push({
+                id: s.id + '_admin',
+                name: s.adminName || 'Admin',
+                email: s.email || 'No email',
+                role: 'SchoolAdmin',
+                createdAt: s.createdAt,
+                isActive: s.isActive
+              });
+            }
+          });
+        }
+
+        if (teachersRes.status === 'fulfilled' && Array.isArray(teachersRes.value)) {
+          teachersRes.value.forEach((t: any) => {
+            allUsers.push({
+              id: t.id,
+              name: t.fullName || t.name || 'Unknown',
+              email: t.email || 'No email',
+              role: 'Teacher',
+              createdAt: t.createdAt,
+              isActive: t.isActive
+            });
+          });
+        }
+
+        if (studentsRes.status === 'fulfilled' && Array.isArray(studentsRes.value)) {
+          studentsRes.value.forEach((st: any) => {
+            allUsers.push({
+              id: st.id,
+              name: st.fullName || st.name || 'Unknown',
+              email: st.email || st.parentEmail || 'No email',
+              role: 'Student',
+              createdAt: st.createdAt,
+              isActive: st.isActive
+            });
+          });
+        }
+
+        setUsers(allUsers);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load users");
       } finally {
@@ -97,10 +144,10 @@ export default function GlobalUsersManagement() {
                     <td className="py-6 px-8">
                       <div className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold border border-gray-200 uppercase">
-                          {(user.adminName || user.name || "A")[0]}
+                          {(user.name || "U")[0]}
                         </div>
                         <div>
-                          <div className="font-bold text-gray-900">{user.adminName || user.name || 'Unknown User'}</div>
+                          <div className="font-bold text-gray-900">{user.name}</div>
                           <div className="text-xs text-gray-500 flex items-center gap-1">
                             <Mail className="h-3 w-3" />
                             {user.email}
@@ -109,9 +156,15 @@ export default function GlobalUsersManagement() {
                       </div>
                     </td>
                     <td className="py-6 px-4">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-700">
-                        <ShieldAlert className="h-3.5 w-3.5" />
-                        SchoolAdmin
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
+                        user.role === 'SchoolAdmin' ? 'bg-blue-100 text-blue-700' :
+                        user.role === 'Teacher' ? 'bg-emerald-100 text-emerald-700' :
+                        'bg-orange-100 text-orange-700'
+                      }`}>
+                        {user.role === 'SchoolAdmin' ? <ShieldAlert className="h-3.5 w-3.5" /> : 
+                         user.role === 'Teacher' ? <Users className="h-3.5 w-3.5" /> : 
+                         <ShieldCheck className="h-3.5 w-3.5" />}
+                        {user.role}
                       </span>
                     </td>
                     <td className="py-6 px-4 text-sm text-gray-500 font-medium">{formatDate(user.createdAt)}</td>
@@ -144,7 +197,7 @@ export default function GlobalUsersManagement() {
         )}
 
         <div className="px-8 py-6 bg-gray-50/30 border-t border-gray-100 flex items-center justify-between">
-          <p className="text-sm text-gray-500 font-medium">Showing {users.length} Registered Schools</p>
+          <p className="text-sm text-gray-500 font-medium">Showing {users.length} Users</p>
           <div className="flex items-center gap-2">
             <button disabled className="p-2 rounded-xl border border-gray-200 bg-white opacity-50"><ChevronLeft className="h-5 w-5 text-gray-400" /></button>
             <button disabled className="p-2 rounded-xl border border-gray-200 bg-white opacity-50"><ChevronRight className="h-5 w-5 text-gray-400" /></button>

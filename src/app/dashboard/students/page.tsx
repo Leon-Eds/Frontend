@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { Eye, Edit2, Download, TrendingUp, AlertCircle, CheckCircle2, Loader2, UserPlus, X, Trash2, Save, GraduationCap } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { studentApi, Student, UpdateStudentRequest, formatDate } from '@/lib/api';
@@ -74,7 +75,7 @@ export default function StudentsPage() {
       parentName: student.parentName,
       parentPhone: student.parentPhone,
       parentEmail: student.parentEmail,
-      parentPassword: student.parentPassword,
+      password: student.password,
       status: student.status,
     });
     setSaveError("");
@@ -103,7 +104,7 @@ export default function StudentsPage() {
       setDeleteId(null);
       fetchStudents();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete student");
+      toast.error(err instanceof Error ? err.message : "Failed to delete student");
     } finally {
       setIsDeleting(false);
     }
@@ -374,7 +375,7 @@ export default function StudentsPage() {
                 ['Guardian', viewStudent.parentName || '—'],
                 ['Guardian Phone', viewStudent.parentPhone || '—'],
                 ['Guardian Email', viewStudent.parentEmail || '—'],
-                ['Guardian Password', viewStudent.parentPassword || '—'],
+                ['Guardian Password', viewStudent.password || '—'],
                 ['Enrolled', formatDate(viewStudent.enrolledAt)],
               ].map(([label, val]) => (
                 <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50">
@@ -477,8 +478,8 @@ export default function StudentsPage() {
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Guardian Password</label>
                   <input
                     type="password"
-                    value={editForm.parentPassword || ''}
-                    onChange={e => setEditForm(f => ({ ...f, parentPassword: e.target.value }))}
+                    value={editForm.password || ''}
+                    onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
                     className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
                   />
                 </div>

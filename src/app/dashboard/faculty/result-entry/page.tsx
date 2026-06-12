@@ -88,16 +88,14 @@ export default function FacultyResultEntry() {
         const ca2Num = ca2 === "" ? 0 : Number(ca2);
         const examNum = exam === "" ? 0 : Number(exam);
         const isMissing = exam === "" || exam === null || exam === undefined;
-        const total = isMissing ? "" : ca1Num + ca2Num + examNum;
+        const total = ca1Num + ca2Num + examNum;
         let grade = "N/A";
-        if (!isMissing) {
-          const t = total as number;
-          if (t >= 75) grade = "A";
-          else if (t >= 60) grade = "B";
-          else if (t >= 50) grade = "C";
-          else if (t >= 40) grade = "D";
-          else grade = "F";
-        }
+        const t = total as number;
+        if (t >= 75) grade = "A";
+        else if (t >= 60) grade = "B";
+        else if (t >= 50) grade = "C";
+        else if (t >= 40) grade = "D";
+        else grade = "F";
         return {
           id: s.studentId || s.id || String(idx),
           name: s.studentName || s.fullName || "Unknown",
@@ -141,20 +139,15 @@ export default function FacultyResultEntry() {
       const exam = updated.exam === "" ? 0 : Number(updated.exam);
 
       updated.isMissingExam = updated.exam === "";
-
-      if (updated.exam === "") {
-        updated.total = "";
-        updated.grade = "N/A";
-      } else {
-        const total = ca1 + ca2 + exam;
-        updated.total = total;
-        
-        if (total >= 75) updated.grade = "A";
-        else if (total >= 60) updated.grade = "B";
-        else if (total >= 50) updated.grade = "C";
-        else if (total >= 40) updated.grade = "D";
-        else updated.grade = "F";
-      }
+      
+      const total = ca1 + ca2 + exam;
+      updated.total = total;
+      
+      if (total >= 75) updated.grade = "A";
+      else if (total >= 60) updated.grade = "B";
+      else if (total >= 50) updated.grade = "C";
+      else if (total >= 40) updated.grade = "D";
+      else updated.grade = "F";
 
       return updated;
     }));

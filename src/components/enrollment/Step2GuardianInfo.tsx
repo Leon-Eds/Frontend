@@ -114,8 +114,8 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
                 label="Portal Password"
                 placeholder="Password for portal"
                 type="password"
-                value={data.parentPassword || ''}
-                onChange={(e) => updateData({ parentPassword: e.target.value })}
+                value={data.password || ''}
+                onChange={(e) => updateData({ password: e.target.value })}
               />
             </div>
 

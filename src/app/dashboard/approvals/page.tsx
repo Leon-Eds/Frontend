@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import toast from 'react-hot-toast';
 import { CheckCircle2, AlertCircle, RefreshCw, Eye, Calendar, Sparkles, TrendingUp, ArrowRight, Clock, FileText, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { resultApi, classApi, sessionApi } from "@/lib/api";
@@ -215,7 +216,7 @@ export default function ResultsApproval() {
       setApprovedResultsCount(prev => prev + 1);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to approve results";
-      alert(message);
+      toast.error(message);
     }
   };
 
@@ -233,7 +234,7 @@ export default function ResultsApproval() {
       }));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to request revision";
-      alert(message);
+      toast.error(message);
     }
   };
 

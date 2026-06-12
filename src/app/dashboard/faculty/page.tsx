@@ -4,8 +4,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { teacherApi, Teacher, CreateTeacherRequest, classApi, dashboardApi, announcementApi } from '@/lib/api';
-
+import { teacherApi, Teacher, CreateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 export function FacultyDirectory() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -14,12 +14,36 @@ export function FacultyDirectory() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
-  const [formData, setFormData] = useState<CreateTeacherRequest>({
+  const [formData, setFormData] = useState<CreateTeacherRequest & { isFormTeacher?: boolean, isClassTeacher?: boolean }>({
     fullName: '',
     email: '',
     phone: '',
     password: '',
+    isFormTeacher: false,
+    isClassTeacher: false,
   });
+
+  const [assignModal, setAssignModal] = useState<{isOpen: boolean, teacherId: string, teacherName: string}>({isOpen: false, teacherId: '', teacherName: ''});
+  const [assignData, setAssignData] = useState({ classId: '', subjectId: '' });
+  const [classesList, setClassesList] = useState<any[]>([]);
+  const [subjectsList, setSubjectsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Fetch classes and subjects for assignment
+    const loadAssignData = async () => {
+      try {
+        const [cls, subs] = await Promise.all([
+          classApi.getAll(),
+          subjectApi.getAll()
+        ]);
+        setClassesList(Array.isArray(cls) ? cls : []);
+        setSubjectsList(Array.isArray(subs) ? subs : []);
+      } catch (e) {
+        console.error("Failed to load assignment data", e);
+      }
+    };
+    loadAssignData();
+  }, []);
 
   const fetchTeachers = useCallback(async () => {
     setIsLoading(true);
@@ -219,23 +243,32 @@ export function FacultyDirectory() {
               columns={columns} 
               data={teachers} 
               actions={(teacher) => (
-                <button
-                  onClick={async () => {
-                    try {
-                      await teacherApi.updateStatus(teacher.id);
-                      fetchTeachers();
-                    } catch (err) {
-                      alert(err instanceof Error ? err.message : "Failed to update status");
-                    }
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-colors ${
-                    teacher.isActive
-                      ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                      : 'bg-green-100 text-[#053d26] hover:bg-green-200'
-                  }`}
-                >
-                  {teacher.isActive ? 'Deactivate' : 'Activate'}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAssignModal({ isOpen: true, teacherId: teacher.id, teacherName: teacher.fullName || 'Teacher' })}
+                    className="px-3 py-1.5 rounded-full text-[10px] font-bold transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  >
+                    Assign
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await teacherApi.updateStatus(teacher.id);
+                        await fetchTeachers();
+                        toast.success(`Status updated for ${teacher.fullName || 'teacher'}`);
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to update status");
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-colors ${
+                      teacher.isActive
+                        ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                        : 'bg-green-100 text-[#053d26] hover:bg-green-200'
+                    }`}
+                  >
+                    {teacher.isActive ? 'Deactivate' : 'Activate'}
+                  </button>
+                </div>
               )}
             />
           </div>
@@ -323,6 +356,29 @@ export function FacultyDirectory() {
                 />
               </div>
 
+              <div className="flex items-center gap-4 py-2">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.isFormTeacher}
+                    onChange={(e) => setFormData({ ...formData, isFormTeacher: e.target.checked })}
+                    className="rounded text-[#053d26] focus:ring-[#053d26]"
+                    disabled={isSubmitting}
+                  />
+                  Assign as Form Teacher
+                </label>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.isClassTeacher}
+                    onChange={(e) => setFormData({ ...formData, isClassTeacher: e.target.checked })}
+                    className="rounded text-[#053d26] focus:ring-[#053d26]"
+                    disabled={isSubmitting}
+                  />
+                  Assign as Class Teacher
+                </label>
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -348,6 +404,73 @@ export function FacultyDirectory() {
                       Create Teacher
                     </>
                   )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Teacher Modal */}
+      {assignModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setAssignModal({isOpen: false, teacherId: '', teacherName: ''})}
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Assign Teacher</h2>
+            <p className="text-sm text-gray-500 mb-8">Assign {assignModal.teacherName} to a class and subject.</p>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                await teacherApi.assign(assignModal.teacherId, assignData);
+                setAssignModal({isOpen: false, teacherId: '', teacherName: ''});
+                toast.success("Teacher assigned successfully!");
+              } catch (err) {
+                toast.error("Failed to assign teacher. Make sure endpoints are ready.");
+              }
+            }} className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Class</label>
+                <select
+                  value={assignData.classId}
+                  onChange={(e) => setAssignData({ ...assignData, classId: e.target.value })}
+                  className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                  required
+                >
+                  <option value="">Select a Class</option>
+                  {classesList.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subject</label>
+                <select
+                  value={assignData.subjectId}
+                  onChange={(e) => setAssignData({ ...assignData, subjectId: e.target.value })}
+                  className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                  required
+                >
+                  <option value="">Select a Subject</option>
+                  {subjectsList.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors flex items-center justify-center gap-2"
+                >
+                  Assign Subject & Class
                 </button>
               </div>
             </form>
@@ -629,61 +752,6 @@ export function FacultyHomepage() {
             </div>
           )}
           
-          {/* Today's Schedule */}
-          <div className="bg-white rounded-[2rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
-            <div className="flex justify-between items-center border-b border-gray-50 pb-4">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-[#b05e1c]" />
-                Today's Schedule
-              </h2>
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                {schedule.length} {schedule.length === 1 ? 'session' : 'sessions'} today
-              </span>
-            </div>
-
-            <div className="relative border-l border-gray-100 pl-6 ml-3 space-y-8">
-              {schedule.length > 0 ? (
-                schedule.map((item) => (
-                  <div key={item.id} className="relative group">
-                    {/* Dot indicator */}
-                    <span className={`absolute -left-[31px] top-1.5 h-4.5 w-4.5 rounded-full border-4 border-white shadow-sm ring-1 ring-gray-100 ${item.color}`} />
-                    
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gray-50/50 border border-gray-100 hover:bg-gray-50 transition-all">
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold text-[#b05e1c] uppercase tracking-wider">{item.time}</p>
-                        <h4 className="font-extrabold text-gray-900 text-base">{item.subject}</h4>
-                        <p className="text-xs text-gray-500 font-semibold">{item.class}</p>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          item.status === "Complete" 
-                            ? "bg-green-100 text-green-800" 
-                            : item.status === "In Progress"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-gray-100 text-gray-500"
-                        }`}>
-                          {item.status}
-                        </span>
-                        {item.status === "In Progress" && (
-                          <Link 
-                            href="/dashboard/faculty/result-entry" 
-                            className="px-4 py-2 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all flex items-center gap-1 shadow-sm"
-                          >
-                            Result Entry <ChevronRight className="h-3 w-3" />
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-6 text-gray-500 text-sm italic">
-                  No sessions scheduled for today. You have not been assigned to any classes yet.
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Class Performance Overview */}
           <div className="bg-white rounded-[2rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
             <div className="flex justify-between items-center border-b border-gray-50 pb-4">
@@ -757,19 +825,27 @@ export function FacultyHomepage() {
                 </div>
               </Link>
 
-              <Link 
-                href="/dashboard/students" 
-                className="w-full rounded-2xl border border-gray-200 p-4 text-left flex items-center gap-3 transition-transform hover:scale-[1.02] bg-gray-50/50 hover:bg-gray-100 text-gray-800"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-gray-600 shrink-0">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="font-bold text-sm text-gray-900">Student Directory</div>
-                  <div className="text-[11px] text-gray-500">Access student profiles and contacts</div>
-                </div>
-              </Link>
             </div>
+          </div>
+
+          {/* Form Teacher Attendance Quick Link */}
+          <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm space-y-6">
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-50 pb-4">
+              <ClipboardList className="h-4.5 w-4.5 text-[#053d26]" />
+              Form Teacher
+            </h3>
+            <Link 
+              href="/dashboard/faculty/attendance" 
+              className="w-full rounded-2xl bg-teal-50 border border-teal-100 p-4 text-left flex items-center gap-3 transition-transform hover:scale-[1.02] text-teal-800 shadow-sm"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700 shrink-0">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="font-bold text-sm">Daily Attendance</div>
+                <div className="text-[11px] text-teal-600">Mark students present/absent</div>
+              </div>
+            </Link>
           </div>
 
           {/* Pending Tasks & Memos */}

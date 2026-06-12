@@ -203,7 +203,7 @@ export default function SetupGuide() {
               <span className="text-xs font-bold uppercase tracking-widest text-green-200/80">Setup Guide</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-1">
-              {allDone ? '🎉 Your school is fully set up!' : 'Get your school up and running'}
+              {allDone ? 'System configuration complete' : 'Get your school up and running'}
             </h2>
             <p className="text-sm text-green-100">
               {allDone

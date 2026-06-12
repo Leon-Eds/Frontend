@@ -51,10 +51,9 @@ const adminNavigation = [
 ];
 
 const facultyNavigation = [
+  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Classes", href: "/dashboard/faculty/classes", icon: FolderKanban },
   { name: "Result Entry", href: "/dashboard/faculty/result-entry", icon: CheckSquare },
-  { name: "Schedule", href: "/dashboard/faculty", icon: Calendar },
-  { name: "My Profile", href: "/dashboard/faculty", icon: Users },
 ];
 
 const studentNavigation = [
@@ -165,9 +164,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
           />
           <div>
             <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>{schoolName}</h1>
-            <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">
-              {role === "superadmin" ? t("sidebar.super_admin") : t("sidebar.academic_architect")}
-            </p>
+            {role === "superadmin" && (
+              <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">
+                {t("sidebar.super_admin")}
+              </p>
+            )}
           </div>
         </Link>
         {/* Close button visible only on mobile */}
@@ -189,10 +190,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
               key={item.name}
               href={item.href}
               onClick={handleNavClick}
-              className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-colors ${
                 isActive 
-                  ? "bg-[#095838] text-white" 
-                  : "text-green-100 hover:bg-white/5 hover:text-white"
+                  ? "bg-[#095838] text-white font-bold" 
+                  : "text-green-100 font-medium hover:bg-white/5 hover:text-white"
               }`}
             >
               <item.icon className={`h-5 w-5 ${isActive ? "text-white" : "text-green-300"}`} />

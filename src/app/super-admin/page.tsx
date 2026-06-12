@@ -146,9 +146,37 @@ export default function SuperAdminDashboard() {
   }
 
   const s = (stats as any)?.data || stats;
-  const reportedTotalSchools = s?.totalSchools || 0;
-  const totalStudents = s?.totalStudents || 0;
-  const totalTeachers = s?.totalTeachers || s?.totalStaff || s?.totalFaculty || 0;
+  const reportedTotalSchools = s?.totalSchools || schools.length || 0;
+  
+  const extractCount = (obj: any, keywords: string[]): number => {
+    if (!obj || typeof obj !== 'object') return 0;
+    if (obj._count) {
+      for (const key of Object.keys(obj._count)) {
+        if (keywords.some(kw => key.toLowerCase().includes(kw))) return obj._count[key];
+      }
+    }
+    for (const key of Object.keys(obj)) {
+      const lowerKey = key.toLowerCase();
+      if (lowerKey.includes('max') || lowerKey.includes('limit')) continue;
+      if (keywords.some(kw => lowerKey.includes(kw))) {
+        if (typeof obj[key] === 'number') return obj[key];
+        if (Array.isArray(obj[key])) return obj[key].length;
+      }
+    }
+    if (obj.stats) return extractCount(obj.stats, keywords);
+    return 0;
+  };
+
+  let totalStudents = s?.totalStudents || 0;
+  let totalTeachers = s?.totalTeachers || s?.totalStaff || s?.totalFaculty || 0;
+
+  if (totalStudents === 0 && schools.length > 0) {
+    totalStudents = schools.reduce((acc, school) => acc + extractCount(school, ['student', 'pupil', 'learner']), 0);
+  }
+  if (totalTeachers === 0 && schools.length > 0) {
+    totalTeachers = schools.reduce((acc, school) => acc + extractCount(school, ['teacher', 'staff', 'faculty']), 0);
+  }
+
   const activeSubscriptions = s?.activeSubscriptions || 0;
   const platformGrowth = s?.platformGrowth || "Live";
 
@@ -335,49 +363,8 @@ export default function SuperAdminDashboard() {
                 </thead>
                 <tbody>
                   {schools.length > 0 ? schools.map((school) => {
-                    const studentCount = (() => {
-                      const findCount = (obj: any, keywords: string[]): number => {
-                        if (!obj || typeof obj !== 'object') return 0;
-                        if (obj._count) {
-                          for (const key of Object.keys(obj._count)) {
-                            if (keywords.some(kw => key.toLowerCase().includes(kw))) return obj._count[key];
-                          }
-                        }
-                        for (const key of Object.keys(obj)) {
-                          const lowerKey = key.toLowerCase();
-                          if (lowerKey.includes('max') || lowerKey.includes('limit')) continue;
-                          if (keywords.some(kw => lowerKey.includes(kw))) {
-                            if (typeof obj[key] === 'number') return obj[key];
-                            if (Array.isArray(obj[key])) return obj[key].length;
-                          }
-                        }
-                        if (obj.stats) return findCount(obj.stats, keywords);
-                        return 0;
-                      };
-                      return findCount(school, ['student', 'pupil', 'learner']);
-                    })();
-
-                    const staffCount = (() => {
-                      const findCount = (obj: any, keywords: string[]): number => {
-                        if (!obj || typeof obj !== 'object') return 0;
-                        if (obj._count) {
-                          for (const key of Object.keys(obj._count)) {
-                            if (keywords.some(kw => key.toLowerCase().includes(kw))) return obj._count[key];
-                          }
-                        }
-                        for (const key of Object.keys(obj)) {
-                          const lowerKey = key.toLowerCase();
-                          if (lowerKey.includes('max') || lowerKey.includes('limit')) continue;
-                          if (keywords.some(kw => lowerKey.includes(kw))) {
-                            if (typeof obj[key] === 'number') return obj[key];
-                            if (Array.isArray(obj[key])) return obj[key].length;
-                          }
-                        }
-                        if (obj.stats) return findCount(obj.stats, keywords);
-                        return 0;
-                      };
-                      return findCount(school, ['teacher', 'staff', 'faculty']);
-                    })();
+                    const studentCount = extractCount(school, ['student', 'pupil', 'learner']);
+                    const staffCount = extractCount(school, ['teacher', 'staff', 'faculty']);
 
                     return (
                       <tr key={school.id} className="group bg-gray-50/20 hover:bg-gray-50/65 border border-gray-100/50 rounded-2xl transition-all duration-300 shadow-[0_2px_8px_rgba(0,0,0,0.005)]">
@@ -490,119 +477,7 @@ export default function SuperAdminDashboard() {
         
         {/* Right Sidebar Area */}
         <div className="space-y-8">
-          {/* System Integrity Widget */}
-          <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-gray-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-[#053d26]/5 to-transparent rounded-full -mr-16 -mt-16" />
-            
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-xl bg-[#053d26]/5 flex items-center justify-center text-[#053d26]">
-                    <Activity className="h-4.5 w-4.5" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">System Integrity</h2>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Infrastructure status</p>
-                  </div>
-                </div>
-                <div className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  Normal
-                </div>
-              </div>
-
-              {/* Uptime SVG Telemetry Line */}
-              <div className="mb-8 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-                <div className="flex items-center justify-between text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-2">
-                  <span>Ping history</span>
-                  <span className="text-emerald-600 font-extrabold">Avg 12ms</span>
-                </div>
-                <div className="h-8 w-full flex items-end gap-1">
-                  <svg className="w-full h-full overflow-visible" viewBox="0 0 100 20" preserveAspectRatio="none">
-                    <path
-                      d="M0,15 Q5,8 10,12 T20,10 T30,14 T40,6 T50,8 T60,5 T70,12 T80,4 T90,7 T100,6"
-                      fill="none"
-                      stroke="#053d26"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M0,15 Q5,8 10,12 T20,10 T30,14 T40,6 T50,8 T60,5 T70,12 T80,4 T90,7 T100,6 L100,20 L0,20 Z"
-                      fill="url(#gradient-uptime)"
-                      opacity="0.1"
-                    />
-                    <defs>
-                      <linearGradient id="gradient-uptime" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#053d26" />
-                        <stop offset="100%" stopColor="#053d26" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
-              </div>
-              
-              <div className="space-y-5">
-                {/* API Gateway */}
-                <div className="flex items-center justify-between group p-3 bg-gray-50/30 hover:bg-gray-50/80 border border-transparent hover:border-gray-100 rounded-2xl transition-all duration-300">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 bg-[#053d26]/5 rounded-xl flex items-center justify-center text-gray-500 group-hover:bg-[#053d26]/10 transition-colors">
-                      <Server className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">API Gateway</div>
-                      <div className="text-xs font-bold text-gray-900 mt-0.5 flex items-center gap-1.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-green"></span>
-                        Operational
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">99.9%</div>
-                    <div className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mt-1">lat: 14ms</div>
-                  </div>
-                </div>
-
-                {/* Database Cluster */}
-                <div className="flex items-center justify-between group p-3 bg-gray-50/30 hover:bg-gray-50/80 border border-transparent hover:border-gray-100 rounded-2xl transition-all duration-300">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 bg-[#053d26]/5 rounded-xl flex items-center justify-center text-gray-500 group-hover:bg-[#053d26]/10 transition-colors">
-                      <Database className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Database Cluster</div>
-                      <div className="text-xs font-bold text-gray-900 mt-0.5 flex items-center gap-1.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-green"></span>
-                        Synchronized
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">Healthy</div>
-                    <div className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mt-1">lag: 0.0s</div>
-                  </div>
-                </div>
-
-                {/* Backup Nodes */}
-                <div className="flex items-center justify-between group p-3 bg-gray-50/30 hover:bg-gray-50/80 border border-transparent hover:border-gray-100 rounded-2xl transition-all duration-300">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 bg-[#053d26]/5 rounded-xl flex items-center justify-center text-gray-500 group-hover:bg-[#053d26]/10 transition-colors">
-                      <Server className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Backup Nodes</div>
-                      <div className="text-xs font-bold text-gray-900 mt-0.5 flex items-center gap-1.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse-blue"></span>
-                        Active
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">Ready</div>
-                    <div className="text-[8px] text-gray-400 font-bold uppercase tracking-wider mt-1">daily sync</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Removed Mock System Integrity Widget */}
 
           {/* Platform Announcements / Authority Hub */}
           <div className="rounded-[2.5rem] bg-gradient-to-br from-[#053d26] via-[#084d30] to-[#021f13] p-8 text-white relative overflow-hidden shadow-[0_20px_40px_rgba(5,61,38,0.15)] group">

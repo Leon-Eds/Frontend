@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import toast from 'react-hot-toast';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { dashboardApi, DashboardStats, sessionApi } from "@/lib/api";
@@ -256,7 +257,7 @@ export default function DashboardOverview() {
               </Link>
 
               <button 
-                onClick={() => alert("Customizing dashboard shortcuts is currently in development!")}
+                onClick={() => toast.error("Customizing dashboard shortcuts is currently in development!")}
                 className="w-full rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/50 p-4 text-center transition-colors hover:border-gray-400 hover:bg-gray-100 flex flex-col items-center justify-center h-28 gap-2 cursor-pointer"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-600">

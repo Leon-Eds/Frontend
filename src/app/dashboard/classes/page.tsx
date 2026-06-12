@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote, X, Loader2, AlertCircle, Trash2, CheckCircle2, ArrowLeft, Users, UserPlus, UserMinus, ArrowLeftRight, Check, BookOpenCheck } from 'lucide-react';
 import { classApi, subjectApi, sessionApi, studentApi, SchoolClass, Subject, AcademicSession, CreateClassRequest, CreateSubjectRequest, Student } from '@/lib/api';
 import Link from 'next/link';
@@ -140,7 +141,7 @@ export default function AcademicFlow() {
       await subjectApi.delete(id);
       setSubjects(prev => prev.filter(s => s.id !== id));
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to delete subject");
+      toast.error(err instanceof Error ? err.message : "Failed to delete subject");
     }
   };
 
@@ -154,7 +155,7 @@ export default function AcademicFlow() {
         setSelectedClassId(null);
       }
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to delete class");
+      toast.error(err instanceof Error ? err.message : "Failed to delete class");
     }
   };
 
@@ -166,7 +167,7 @@ export default function AcademicFlow() {
       setSuccessMsg(`${studentName} removed from class.`);
       await fetchData();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to remove student");
+      toast.error(err instanceof Error ? err.message : "Failed to remove student");
     } finally {
       setIsSubmitting(false);
     }
@@ -185,7 +186,7 @@ export default function AcademicFlow() {
       setTargetClassId('');
       await fetchData();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to move student");
+      toast.error(err instanceof Error ? err.message : "Failed to move student");
     } finally {
       setIsSubmitting(false);
     }
@@ -199,7 +200,7 @@ export default function AcademicFlow() {
       setSuccessMsg(`${studentName} added to class.`);
       await fetchData();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to add student");
+      toast.error(err instanceof Error ? err.message : "Failed to add student");
     } finally {
       setIsSubmitting(false);
     }
@@ -215,7 +216,7 @@ export default function AcademicFlow() {
       setShowAssignSubjectsModal(false);
       await fetchData();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to assign subjects");
+      toast.error(err instanceof Error ? err.message : "Failed to assign subjects");
     } finally {
       setIsSubmitting(false);
     }
@@ -431,7 +432,7 @@ export default function AcademicFlow() {
                                     setSuccessMsg("Subject unassigned.");
                                     fetchData();
                                   })
-                                  .catch(err => alert(err.message));
+                                  .catch(err => toast.error(err.message));
                               }}
                               className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
                             >

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import toast from 'react-hot-toast';
 import { Search, Save, Send, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Clock, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { scoreApi, classApi, subjectApi, sessionApi } from "@/lib/api";
@@ -191,7 +192,7 @@ export default function ScoreEntryLedger() {
       };
 
       await scoreApi.bulkEnter(payload);
-      alert("Scores submitted successfully!");
+      toast.success("Scores submitted successfully!");
       // Optionally refresh scoresheet
       fetchScoresheet();
     } catch (err: unknown) {

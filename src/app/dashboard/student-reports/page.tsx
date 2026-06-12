@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import toast from 'react-hot-toast';
 import { Share2, Download, Award, Calendar, CheckCircle2, TrendingUp, BarChart2, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import { reportCardApi, sessionApi, studentApi } from "@/lib/api";
@@ -137,7 +138,7 @@ export default function StudentDetailedReport() {
 
   const handleDownloadPdf = async () => {
     if (!realStudentId || !currentTermId) {
-      alert("Missing information to download report.");
+      toast.error("Missing information to download report.");
       return;
     }
     
@@ -155,7 +156,7 @@ export default function StudentDetailedReport() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to download PDF";
       console.error("[Student Reports] PDF Download Error:", err);
-      alert(message);
+      toast.error(message);
     } finally {
       setIsDownloading(false);
     }

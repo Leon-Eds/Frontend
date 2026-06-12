@@ -30,21 +30,36 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!email.trim() || !password.trim()) {
+    if (!email.trim() || !password) {
       setError("Please enter both email and password.");
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await authApi.login({ email, password });
+      const response = await authApi.login({ 
+        email: email.trim(), 
+        password: password.trim() 
+      });
       
       const r = response as Record<string, any>;
       const token = r.token;
       const refreshToken = r.refreshToken;
-      const user = r.user || r.student || r.parent || r.guardian;
       const tokenExpiry = r.tokenExpiry;
+      let userObj = { ...(r.user || r.student || r.parent || r.guardian || r) };
       
+      // Explicitly set role if backend wraps it in specific keys but omits the role string
+      if (r.student && !userObj.role) userObj.role = 'student';
+      if (r.teacher && !userObj.role) userObj.role = 'teacher';
+      if (r.faculty && !userObj.role) userObj.role = 'faculty';
+      if (r.parent && !userObj.role) userObj.role = 'parent';
+      
+      // Additional fallback heuristics
+      if (!userObj.role) {
+        if (userObj.admissionNumber || userObj.parentEmail) userObj.role = 'student';
+        else if (userObj.subscriptionPlan || userObj.adminName) userObj.role = 'schooladmin';
+      }
+
       if (!token) {
         console.error("[Login] No token found in response:", r);
         throw new Error("Login succeeded but no security token was returned. Please contact support.");
@@ -54,15 +69,15 @@ export default function LoginPage() {
       localStorage.setItem("leoned_token", token);
       if (refreshToken) localStorage.setItem("leoned_refresh_token", refreshToken);
       if (tokenExpiry) localStorage.setItem("leoned_token_expiry", tokenExpiry);
-      
-      if (user) {
-        localStorage.setItem("leoned_user", JSON.stringify(user));
+
+      if (Object.keys(userObj).length > 0) {
+        localStorage.setItem("leoned_user", JSON.stringify(userObj));
       } else {
         localStorage.setItem("leoned_user", JSON.stringify({ role: "student", name: "User" }));
       }
       
       // Redirect based on role
-      const normalizedRole = user?.role?.toLowerCase()?.trim() || "";
+      const normalizedRole = userObj.role?.toLowerCase()?.trim() || "";
       if (normalizedRole === "superadmin") {
         router.push("/super-admin");
       } else if (normalizedRole === "student" || normalizedRole === "parent" || normalizedRole === "guardian") {
@@ -153,14 +168,17 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={handleSubmit} autoComplete="new-password">
             <div>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                   <User className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  type="text"
+                  type="email"
+                  name="email"
+                  id="email"
+                  autoComplete="off"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
@@ -177,6 +195,9 @@ export default function LoginPage() {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password"
+                  id="password"
+                  autoComplete="off"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-12 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"

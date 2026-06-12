@@ -21,7 +21,7 @@ export const StudentEnrollmentWizard = () => {
     parentName: '',
     parentPhone: '',
     parentEmail: '',
-    parentPassword: '',
+    password: '',
   });
 
   const updateData = (updates: Partial<CreateStudentRequest>) => {
@@ -65,7 +65,7 @@ export const StudentEnrollmentWizard = () => {
       parentName: '',
       parentPhone: '',
       parentEmail: '',
-      parentPassword: '',
+      password: '',
     });
     setCurrentStep(1);
   };

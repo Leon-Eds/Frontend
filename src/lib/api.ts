@@ -160,7 +160,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     // Automatically handle auth errors (unauthorized or session expired)
-    if (res.status === 401) {
+    if (res.status === 401 && !res.url.includes('/auth/login')) {
       if (typeof window !== 'undefined') {
         console.warn(`[API] Auth error ${res.status} on ${res.url}. Redirecting to login...`);
         localStorage.removeItem('leoned_token');
@@ -263,7 +263,7 @@ export interface CreateStudentRequest {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
-  parentPassword?: string;
+  password?: string;
   bloodGroup?: string;
   arm?: string;
 }
@@ -276,7 +276,7 @@ export interface UpdateStudentRequest {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
-  parentPassword?: string;
+  password?: string;
   status?: StudentStatus;
 }
 
@@ -291,7 +291,7 @@ export interface Student {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
-  parentPassword?: string;
+  password?: string;
   status: StudentStatus;
   enrolledAt?: string;
   systemEmail?: string;

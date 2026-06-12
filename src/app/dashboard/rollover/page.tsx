@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { Calendar, ChevronRight, AlertTriangle, CheckCircle2, Loader2, Archive, Rocket, X, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { sessionApi, AcademicSession, CreateSessionRequest, CreateTermRequest } from '@/lib/api';
@@ -95,7 +96,7 @@ export default function SessionRollover() {
       setNewTerm({ termNumber: 'First', startDate: '', endDate: '' });
       fetchSessions();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add term");
+      toast.error(err instanceof Error ? err.message : "Failed to add term");
     } finally {
       setIsAddingTerm(false);
     }
@@ -106,7 +107,7 @@ export default function SessionRollover() {
       await sessionApi.setCurrent(id);
       fetchSessions();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to set current session");
+      toast.error(err instanceof Error ? err.message : "Failed to set current session");
     }
   };
 
@@ -115,7 +116,7 @@ export default function SessionRollover() {
       await sessionApi.setCurrentTerm(termId);
       fetchSessions();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to set current term");
+      toast.error(err instanceof Error ? err.message : "Failed to set current term");
     }
   };
 

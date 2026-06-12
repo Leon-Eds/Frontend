@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import toast from 'react-hot-toast';
 import { Lock, UploadCloud, Plus, Eye, Printer, Mail, Check, RotateCw, MoreVertical, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { studentApi, feeApi, sessionApi, classApi } from "@/lib/api";
@@ -142,7 +143,7 @@ export default function FeeClearance() {
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudentId || !selectedTermId || !currentSessionId) {
-      alert("Please select a student and term.");
+      toast.error("Please select a student and term.");
       return;
     }
 
@@ -155,12 +156,12 @@ export default function FeeClearance() {
         amountDue: parseFloat(amountDue),
         amountPaid: parseFloat(amountPaid)
       });
-      alert("Payment recorded successfully!");
+      toast.success("Payment recorded successfully!");
       setIsPaymentModalOpen(false);
       fetchStudents();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to record payment";
-      alert(msg);
+      toast.error(msg);
     } finally {
       setIsSubmittingPayment(false);
     }
