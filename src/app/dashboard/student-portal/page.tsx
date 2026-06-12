@@ -56,6 +56,8 @@ export default function StudentPerformanceRecord() {
           name: user.fullName || user.name || "Student",
           initials: (user.fullName || user.name || "S").split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
           className: user.className || sDash?.className || "",
+          gpa: sDash?.gpa || 0,
+          rank: sDash?.rank || "--",
           attendance: sDash?.attendance || "N/A",
           status: sDash?.feeStatus || sDash?.status || "Pending",
           termLabel: currentTerm ? `Term ${(currentTerm as any).termNumber || (currentTerm as any).name || ''} ${currentSession?.name || ''}` : "Current Term"

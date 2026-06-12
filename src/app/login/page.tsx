@@ -84,7 +84,7 @@ export default function LoginPage() {
         router.push("/dashboard/student-portal");
       } else if (normalizedRole === "teacher" || normalizedRole === "faculty") {
         router.push("/dashboard/faculty");
-      } else if (!normalizedRole && (user?.parentEmail || user?.admissionNumber)) {
+      } else if (!normalizedRole && (userObj?.parentEmail || userObj?.admissionNumber)) {
         router.push("/dashboard/student-portal");
       } else {
         // Fallback, and if it's actually a student but missing explicit info, the dashboard page will catch demoRole
