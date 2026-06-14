@@ -12,9 +12,10 @@ import {
   Save,
   Loader2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  BookOpen
 } from "lucide-react";
-import { authApi } from "@/lib/api";
+import { authApi, gradingApi } from "@/lib/api";
 
 export default function SuperAdminSettings() {
   const [activeTab, setActiveTab] = useState("Security");
@@ -44,7 +45,47 @@ export default function SuperAdminSettings() {
     { id: "Localization", name: "Platform Localization", icon: Globe },
     { id: "Notifications", name: "Global Notifications", icon: Bell },
     { id: "Database", name: "Database & Backups", icon: Database },
+    { id: "Grading", name: "Academic Grading", icon: BookOpen },
   ];
+
+  const [gradingRules, setGradingRules] = useState<any[]>([]);
+
+  useEffect(() => {
+    gradingApi.getRules().then(rules => {
+      if (rules && rules.length > 0) {
+        setGradingRules(rules);
+      } else {
+        setGradingRules([
+          { grade: "A", minScore: 75, maxScore: 100, remark: "Excellent" },
+          { grade: "B", minScore: 60, maxScore: 74, remark: "Good" },
+          { grade: "C", minScore: 50, maxScore: 59, remark: "Credit" },
+          { grade: "D", minScore: 40, maxScore: 49, remark: "Pass" },
+          { grade: "F", minScore: 0, maxScore: 39, remark: "Fail" },
+        ]);
+      }
+    }).catch(() => {
+      setGradingRules([
+        { grade: "A", minScore: 75, maxScore: 100, remark: "Excellent" },
+        { grade: "B", minScore: 60, maxScore: 74, remark: "Good" },
+        { grade: "C", minScore: 50, maxScore: 59, remark: "Credit" },
+        { grade: "D", minScore: 40, maxScore: 49, remark: "Pass" },
+        { grade: "F", minScore: 0, maxScore: 39, remark: "Fail" },
+      ]);
+    });
+  }, []);
+
+  const handleSaveGrading = async () => {
+    setIsLoading(true);
+    try {
+      await gradingApi.setRules({ rules: gradingRules });
+      setMessage({ type: "success", text: "Grading rules updated successfully." });
+    } catch (e) {
+      setMessage({ type: "error", text: "Failed to update grading rules." });
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -146,6 +187,71 @@ export default function SuperAdminSettings() {
                 </div>
               </div>
             </>
+          ) : activeTab === "Grading" ? (
+            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 space-y-6">
+              <div className="flex items-center gap-3 pb-4 border-b border-gray-50">
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                  <BookOpen className="h-5 w-5" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Academic Grading Rules</h2>
+              </div>
+              <div className="space-y-4">
+                {gradingRules.map((rule, idx) => (
+                  <div key={idx} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div className="w-16">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase">Grade</label>
+                      <input 
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-900"
+                        value={rule.grade}
+                        onChange={(e) => {
+                          const newRules = [...gradingRules];
+                          newRules[idx].grade = e.target.value;
+                          setGradingRules(newRules);
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase">Min Score</label>
+                      <input 
+                        type="number"
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-900"
+                        value={rule.minScore}
+                        onChange={(e) => {
+                          const newRules = [...gradingRules];
+                          newRules[idx].minScore = Number(e.target.value);
+                          setGradingRules(newRules);
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase">Max Score</label>
+                      <input 
+                        type="number"
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-900"
+                        value={rule.maxScore}
+                        onChange={(e) => {
+                          const newRules = [...gradingRules];
+                          newRules[idx].maxScore = Number(e.target.value);
+                          setGradingRules(newRules);
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase">Remark</label>
+                      <input 
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-900"
+                        value={rule.remark}
+                        onChange={(e) => {
+                          const newRules = [...gradingRules];
+                          newRules[idx].remark = e.target.value;
+                          setGradingRules(newRules);
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="bg-white rounded-[2.5rem] p-12 shadow-sm border border-gray-100 text-center space-y-4">
               <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
@@ -162,7 +268,7 @@ export default function SuperAdminSettings() {
               Cancel
             </button>
             <button 
-              onClick={handleSave}
+              onClick={activeTab === "Grading" ? handleSaveGrading : handleSave}
               disabled={isLoading}
               className="px-8 py-3 rounded-2xl bg-[#053d26] text-white font-bold text-sm shadow-lg hover:bg-[#042c1b] transition-all flex items-center gap-2 disabled:opacity-70"
             >

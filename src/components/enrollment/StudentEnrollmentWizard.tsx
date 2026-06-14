@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreateStudentRequest, studentApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { Step1BasicInfo } from './Step1BasicInfo';
 import { Step2GuardianInfo } from './Step2GuardianInfo';
 import { Step3AcademicPlacement } from './Step3AcademicPlacement';
@@ -22,6 +23,7 @@ export const StudentEnrollmentWizard = () => {
     parentPhone: '',
     parentEmail: '',
     password: '',
+    enrollmentDate: new Date().toISOString().split('T')[0],
   });
 
   const updateData = (updates: Partial<CreateStudentRequest>) => {
@@ -32,7 +34,15 @@ export const StudentEnrollmentWizard = () => {
     if (currentStep === 3) {
       setIsSubmitting(true);
       try {
-        await studentApi.create(formData as CreateStudentRequest);
+        const student = await studentApi.create(formData as CreateStudentRequest);
+        if (formData.imageFile && student && student.id) {
+          try {
+            await studentApi.uploadImage(student.id, formData.imageFile);
+          } catch (imgErr) {
+            console.error("Failed to upload image", imgErr);
+            toast.error("Student created, but image upload failed.");
+          }
+        }
         setCurrentStep(4);
       } catch (error) {
         console.error("Failed to submit student", error);

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { CheckCircle2, XCircle, AlertCircle, Save, Loader2 } from 'lucide-react';
-import { studentApi } from '@/lib/api';
+import { studentApi, classApi, attendanceApi } from '@/lib/api';
 
 export default function FacultyAttendance() {
   const [students, setStudents] = useState<any[]>([]);
@@ -12,26 +12,54 @@ export default function FacultyAttendance() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [attendance, setAttendance] = useState<Record<string, 'Present' | 'Absent' | 'Late'>>({});
 
+  const [formClass, setFormClass] = useState<any>(null);
+
   useEffect(() => {
     const fetchClassStudents = async () => {
       setLoading(true);
       try {
-        // Fetch students for the class this form teacher is assigned to
-        // For now, we fetch all students and simulate
-        const allStudents = await studentApi.getAll();
-        setStudents(allStudents.slice(0, 15)); // Mocking a specific class size
-        
-        // Load existing attendance if saved locally for today
-        const saved = localStorage.getItem(`attendance_${date}`);
-        if (saved) {
-          setAttendance(JSON.parse(saved));
+        const userStr = localStorage.getItem("leoned_user");
+        if (!userStr) return;
+        const user = JSON.parse(userStr);
+
+        // Find the class where this user is the form teacher
+        const classes = await classApi.getAll().catch(() => []);
+        const myFormClass = Array.isArray(classes) ? classes.find(c => c.formTeacherId === user.id) : null;
+        setFormClass(myFormClass);
+
+        let classStudents: any[] = [];
+        if (myFormClass) {
+          const allStudents = await studentApi.getAll().catch(() => []);
+          classStudents = (Array.isArray(allStudents) ? allStudents : []).filter((s: any) => s.classId === myFormClass.id);
         } else {
-          const defaultAtt: Record<string, 'Present' | 'Absent' | 'Late'> = {};
-          allStudents.slice(0, 15).forEach((s: any) => {
-            defaultAtt[s.id] = 'Present';
-          });
-          setAttendance(defaultAtt);
+          // If not assigned, maybe fallback to all students or show none
+          classStudents = [];
         }
+        setStudents(classStudents);
+        
+        // Load existing attendance
+        let savedAttendance: Record<string, string> = {};
+        if (myFormClass) {
+          try {
+             const existingData = await attendanceApi.getClassAttendance(myFormClass.id, date).catch(() => null);
+             const existingRecords = (existingData as any)?.records || existingData || [];
+             if (Array.isArray(existingRecords)) {
+                existingRecords.forEach(r => {
+                  if (r.studentId && r.status) {
+                    savedAttendance[r.studentId] = r.status;
+                  }
+                });
+             }
+          } catch (e) {
+             console.error("No existing attendance found", e);
+          }
+        }
+
+        const defaultAtt: Record<string, 'Present' | 'Absent' | 'Late'> = {};
+        classStudents.forEach((s: any) => {
+          defaultAtt[s.id] = (savedAttendance[s.id] as any) || 'Present';
+        });
+        setAttendance(defaultAtt);
       } catch (err) {
         console.error(err);
       } finally {
@@ -46,11 +74,17 @@ export default function FacultyAttendance() {
   };
 
   const handleSave = async () => {
+    if (!formClass) {
+      toast.error("You are not assigned as a form teacher for any class.");
+      return;
+    }
     setIsSaving(true);
     try {
-      // Simulate API call to save attendance
-      await new Promise(resolve => setTimeout(resolve, 800));
-      localStorage.setItem(`attendance_${date}`, JSON.stringify(attendance));
+      const records = Object.entries(attendance).map(([studentId, status]) => ({
+        studentId,
+        status
+      }));
+      await attendanceApi.recordDailyAttendance(formClass.id, date, records);
       toast.success("Attendance saved successfully!");
     } catch (err) {
       toast.error("Failed to save attendance.");

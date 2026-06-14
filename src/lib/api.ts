@@ -25,6 +25,20 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
+function getAuthHeadersMultipart(): HeadersInit {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('leoned_token');
+  const headers: Record<string, string> = {};
+  if (token && token !== 'undefined' && token !== 'null') {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  try {
+    const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
+    if (user.schoolId) headers['School-Id'] = user.schoolId;
+  } catch {}
+  return headers;
+}
+
 export function formatDate(dateString?: string): string {
   if (!dateString) return '—';
   try {
@@ -259,6 +273,7 @@ export interface CreateStudentRequest {
   admissionNumber?: string;
   gender: Gender | '';
   dateOfBirth?: string;
+  enrollmentDate?: string;
   classId?: string;
   parentName?: string;
   parentPhone?: string;
@@ -266,6 +281,7 @@ export interface CreateStudentRequest {
   password?: string;
   bloodGroup?: string;
   arm?: string;
+  imageFile?: File;
 }
 
 export interface UpdateStudentRequest {
@@ -302,7 +318,8 @@ export interface CreateTeacherRequest {
   fullName: string;
   email: string;
   phone?: string;
-  password: string;
+  password?: string;
+  imageFile?: File;
 }
 
 export interface UpdateTeacherRequest {
@@ -343,6 +360,7 @@ export interface CreateClassRequest {
 export interface UpdateClassRequest {
   name?: string;
   arm?: string;
+  formTeacherId?: string;
 }
 
 export interface SchoolClass {
@@ -351,6 +369,8 @@ export interface SchoolClass {
   arm?: string;
   studentCount?: number;
   subjects?: { id: string; name: string }[];
+  formTeacherId?: string;
+  formTeacherName?: string;
 }
 
 export interface AssignSubjectsToClassRequest {
@@ -635,13 +655,13 @@ export const studentApi = {
     return handleResponse<Student>(res);
   },
 
-  create: async (data: CreateStudentRequest) => {
+  create: async (data: CreateStudentRequest): Promise<Student> => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/student`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    const result = await handleResponse(res);
+    const result = await handleResponse<Student>(res);
     recordActivity(`Enrolled student: ${data.fullName}`, 'Student Registry', 'VERIFIED');
     return result;
   },
@@ -651,6 +671,17 @@ export const studentApi = {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  uploadImage: async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}/image`, {
+      method: 'POST',
+      headers: getAuthHeadersMultipart(),
+      body: formData,
     });
     return handleResponse(res);
   },
@@ -668,6 +699,42 @@ export const studentApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<Student[]>(res);
+  },
+};
+
+// Attendance
+export const attendanceApi = {
+  recordDailyAttendance: async (classId: string, date: string, records: { studentId: string; status: 'Present' | 'Absent' | 'Late' }[]) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/daily`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ classId, date, records }),
+    });
+    return handleResponse(res);
+  },
+  getClassAttendance: async (classId: string, date: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/class/${classId}?date=${date}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  getStudentAttendance: async (studentId: string, termId?: string) => {
+    const url = termId 
+      ? `${API_BASE_URL}/attendance/student/${studentId}?termId=${termId}`
+      : `${API_BASE_URL}/attendance/student/${studentId}`;
+    const res = await fetchWithTimeout(url, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  getMyAttendance: async (termId?: string) => {
+    const url = termId 
+      ? `${API_BASE_URL}/attendance/my?termId=${termId}`
+      : `${API_BASE_URL}/attendance/my`;
+    const res = await fetchWithTimeout(url, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
   },
 };
 
@@ -689,13 +756,13 @@ export const teacherApi = {
     return handleResponse<Teacher>(res);
   },
 
-  create: async (data: CreateTeacherRequest) => {
+  create: async (data: CreateTeacherRequest): Promise<Teacher> => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/teacher`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    const result = await handleResponse(res);
+    const result = await handleResponse<Teacher>(res);
     recordActivity(`Registered teacher: ${data.fullName}`, 'Staff Directory', 'VERIFIED');
     return result;
   },
@@ -711,8 +778,19 @@ export const teacherApi = {
 
   updateStatus: async (id: string) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/${id}/status`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  uploadImage: async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/${id}/image`, {
+      method: 'POST',
+      headers: getAuthHeadersMultipart(),
+      body: formData,
     });
     return handleResponse(res);
   },

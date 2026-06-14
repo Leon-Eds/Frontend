@@ -157,6 +157,8 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
             <DatePicker
               label="Enrollment Date"
               defaultValue={new Date().toISOString().split('T')[0]}
+              value={data.enrollmentDate || ''}
+              onChange={(e) => updateData({ enrollmentDate: e.target.value })}
             />
           </div>
 

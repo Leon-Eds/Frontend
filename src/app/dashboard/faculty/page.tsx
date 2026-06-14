@@ -14,13 +14,11 @@ export function FacultyDirectory() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
-  const [formData, setFormData] = useState<CreateTeacherRequest & { isFormTeacher?: boolean, isClassTeacher?: boolean }>({
+  const [formData, setFormData] = useState<CreateTeacherRequest>({
     fullName: '',
     email: '',
     phone: '',
     password: '',
-    isFormTeacher: false,
-    isClassTeacher: false,
   });
 
   const [assignModal, setAssignModal] = useState<{isOpen: boolean, teacherId: string, teacherName: string}>({isOpen: false, teacherId: '', teacherName: ''});
@@ -69,19 +67,27 @@ export function FacultyDirectory() {
     e.preventDefault();
     setFormError("");
 
-    if (!formData.fullName.trim() || !formData.email.trim() || !formData.password.trim()) {
+    if (!formData.fullName.trim() || !formData.email.trim() || !formData.password?.trim()) {
       setFormError("Full name, email, and password are required.");
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (formData.password && formData.password.length < 6) {
       setFormError("Password must be at least 6 characters.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await teacherApi.create(formData);
+      const teacher = await teacherApi.create(formData);
+      if (formData.imageFile && teacher && teacher.id) {
+        try {
+          await teacherApi.uploadImage(teacher.id, formData.imageFile);
+        } catch (imgErr) {
+          console.error("Failed to upload teacher image", imgErr);
+          toast.error("Teacher created, but image upload failed.");
+        }
+      }
       setShowModal(false);
       setFormData({ fullName: '', email: '', phone: '', password: '' });
       // Refresh the list
@@ -302,6 +308,24 @@ export function FacultyDirectory() {
             <form onSubmit={handleCreateTeacher} className="space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Profile Photo (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setFormData({ ...formData, imageFile: file });
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#053d26] file:text-white hover:file:bg-[#042c1b] transition-colors"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -356,28 +380,7 @@ export function FacultyDirectory() {
                 />
               </div>
 
-              <div className="flex items-center gap-4 py-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isFormTeacher}
-                    onChange={(e) => setFormData({ ...formData, isFormTeacher: e.target.checked })}
-                    className="rounded text-[#053d26] focus:ring-[#053d26]"
-                    disabled={isSubmitting}
-                  />
-                  Assign as Form Teacher
-                </label>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isClassTeacher}
-                    onChange={(e) => setFormData({ ...formData, isClassTeacher: e.target.checked })}
-                    className="rounded text-[#053d26] focus:ring-[#053d26]"
-                    disabled={isSubmitting}
-                  />
-                  Assign as Class Teacher
-                </label>
-              </div>
+
 
               <div className="flex gap-3 pt-4">
                 <button

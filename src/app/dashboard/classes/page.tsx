@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote, X, Loader2, AlertCircle, Trash2, CheckCircle2, ArrowLeft, Users, UserPlus, UserMinus, ArrowLeftRight, Check, BookOpenCheck } from 'lucide-react';
-import { classApi, subjectApi, sessionApi, studentApi, SchoolClass, Subject, AcademicSession, CreateClassRequest, CreateSubjectRequest, Student } from '@/lib/api';
+import { classApi, subjectApi, sessionApi, studentApi, teacherApi, SchoolClass, Subject, AcademicSession, CreateClassRequest, CreateSubjectRequest, Student, Teacher } from '@/lib/api';
 import Link from 'next/link';
 
 type ModalType = 'createClass' | 'subjectLibrary' | null;
@@ -13,6 +13,7 @@ export default function AcademicFlow() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [currentSession, setCurrentSession] = useState<AcademicSession | null>(null);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
@@ -31,6 +32,10 @@ export default function AcademicFlow() {
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
   const [studentSearchText, setStudentSearchText] = useState('');
 
+  // Form Teacher Assignment Modal
+  const [showAssignFormTeacherModal, setShowAssignFormTeacherModal] = useState<SchoolClass | null>(null);
+  const [formTeacherId, setFormTeacherId] = useState('');
+
   // Create Class form
   const [className, setClassName] = useState('');
   const [classArm, setClassArm] = useState('');
@@ -42,18 +47,21 @@ export default function AcademicFlow() {
     setIsLoading(true);
     setError("");
     try {
-      const [classData, subjectData, sessionData, studentData] = await Promise.all([
+      const [classData, subjectData, sessionData, studentData, teacherData] = await Promise.all([
         classApi.getAll(),
         subjectApi.getAll(),
         sessionApi.getAll().catch(() => []),
         studentApi.getAll().catch(() => []),
+        teacherApi.getAll().catch(() => []),
       ]);
       const classItems = Array.isArray(classData) ? classData : [];
       const subjectItems = Array.isArray(subjectData) ? subjectData : [];
       const studentItems = Array.isArray(studentData) ? studentData : [];
+      const teacherItems = Array.isArray(teacherData) ? teacherData : [];
       setClasses(classItems);
       setSubjects(subjectItems);
       setAllStudents(studentItems);
+      setAllTeachers(teacherItems);
 
       // Find current session
       const sessions = Array.isArray(sessionData) ? sessionData : [];
@@ -222,6 +230,23 @@ export default function AcademicFlow() {
     }
   };
 
+  const handleAssignFormTeacher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showAssignFormTeacherModal) return;
+    try {
+      setIsSubmitting(true);
+      await classApi.update(showAssignFormTeacherModal.id, { formTeacherId });
+      setSuccessMsg(`Form teacher assigned to ${showAssignFormTeacherModal.name} successfully.`);
+      setShowAssignFormTeacherModal(null);
+      setFormTeacherId('');
+      await fetchData();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to assign form teacher");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const totalStudents = classes.reduce((acc, c) => acc + (c.studentCount || 0), 0);
   const currentClass = classes.find(c => c.id === selectedClassId);
   const classStudents = allStudents.filter(s => s.classId === selectedClassId);
@@ -287,6 +312,15 @@ export default function AcademicFlow() {
                   <BookOpenCheck className="h-4 w-4" /> Assign Subjects
                 </button>
               )}
+              <button
+                onClick={() => {
+                  setFormTeacherId(currentClass.formTeacherId || '');
+                  setShowAssignFormTeacherModal(currentClass);
+                }}
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-orange-100 text-[#b05e1c] font-bold hover:bg-orange-200 transition-colors shadow-sm text-sm"
+              >
+                <UserPlus className="h-4 w-4" /> Form Teacher
+              </button>
             </div>
           </div>
 
@@ -947,6 +981,65 @@ export default function AcademicFlow() {
                 </button>
                 <button type="submit" className="flex-1 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors">
                   Save Assignments
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Assign Form Teacher Modal */}
+      {showAssignFormTeacherModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setShowAssignFormTeacherModal(null)}
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Assign Form Teacher</h2>
+            <p className="text-sm text-gray-500 mb-8">Assign a form teacher to {showAssignFormTeacherModal.name}</p>
+
+            <form onSubmit={handleAssignFormTeacher} className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Teacher</label>
+                <select
+                  value={formTeacherId}
+                  onChange={(e) => setFormTeacherId(e.target.value)}
+                  className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                  required
+                >
+                  <option value="">Select a Teacher</option>
+                  {allTeachers.map(t => (
+                    <option key={t.id} value={t.id}>{t.fullName}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAssignFormTeacherModal(null)}
+                  className="flex-1 py-3 rounded-full border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4" />
+                      Assign
+                    </>
+                  )}
                 </button>
               </div>
             </form>

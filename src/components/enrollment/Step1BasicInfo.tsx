@@ -54,6 +54,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
     }
 
     setPhotoFileName(file.name);
+    updateData({ imageFile: file });
 
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -65,6 +66,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
   const removePhoto = () => {
     setPhotoPreview(null);
     setPhotoFileName("");
+    updateData({ imageFile: undefined });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 

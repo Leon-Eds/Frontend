@@ -19,6 +19,10 @@ export default function StudentPerformanceRecord() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  const [allTerms, setAllTerms] = useState<any[]>([]);
+  const [selectedTermId, setSelectedTermId] = useState<string>('');
+  const [selectedPaymentTermId, setSelectedPaymentTermId] = useState<string>('');
+  
   const [studentInfo, setStudentInfo] = useState({
     name: "",
     initials: "",
@@ -39,11 +43,25 @@ export default function StudentPerformanceRecord() {
         const user = JSON.parse(userStr);
         
         const sessions = await sessionApi.getAll().catch(() => []);
-        const currentSession = (Array.isArray(sessions) ? sessions : []).find((s: any) => s.isCurrent);
+        const sList = Array.isArray(sessions) ? sessions : [];
+        const currentSession = sList.find((s: any) => s.isCurrent);
         const currentTerm = currentSession?.terms?.find((t: any) => t.isCurrent);
+        
+        // Extract all terms for dropdowns
+        const terms: any[] = [];
+        sList.forEach((s: any) => {
+          if (s.terms) {
+            s.terms.forEach((t: any) => {
+              terms.push({ ...t, sessionName: s.name });
+            });
+          }
+        });
+        setAllTerms(terms);
         
         // We do not throw here, just gracefully fallback if no active term
         const termId = currentTerm?.id || 'default';
+        setSelectedTermId(termId);
+        setSelectedPaymentTermId(termId);
 
         const [dash, resultsData] = await Promise.all([
           dashboardApi.getStudentDashboard().catch(() => null),
@@ -58,7 +76,7 @@ export default function StudentPerformanceRecord() {
           className: user.className || sDash?.className || "",
           gpa: sDash?.gpa || 0,
           rank: sDash?.rank || "--",
-          attendance: sDash?.attendance || "N/A",
+          attendance: sDash?.attendance || "0%",
           status: sDash?.feeStatus || sDash?.status || "Pending",
           termLabel: currentTerm ? `Term ${(currentTerm as any).termNumber || (currentTerm as any).name || ''} ${currentSession?.name || ''}` : "Current Term"
         });
@@ -90,6 +108,44 @@ export default function StudentPerformanceRecord() {
     
     fetchData();
   }, []);
+
+  const handleTermChange = async (newTermId: string) => {
+    setSelectedTermId(newTermId);
+    try {
+      setIsLoading(true);
+      const resultsData = await resultApi.getMyResults(newTermId).catch(() => []);
+      const rData = (resultsData as any)?.data || resultsData;
+      const resultsArray = Array.isArray(rData) ? rData : [];
+      
+      const mappedGrades = resultsArray.map((r: any) => {
+        const total = Number(r.totalScore || 0);
+        return {
+          name: r.subjectName || "Unknown",
+          ca1: r.firstCA || 0,
+          ca2: r.secondCA || 0,
+          exam: r.examScore || 0,
+          total: total,
+          grade: r.grade || (total >= 75 ? "A+" : total >= 70 ? "A" : total >= 60 ? "B+" : total >= 50 ? "B" : total >= 40 ? "C" : "F"),
+          remark: r.remark || "N/A"
+        };
+      });
+      setGrades(mappedGrades);
+      
+      // Update term label
+      const selectedTerm = allTerms.find(t => t.id === newTermId);
+      if (selectedTerm) {
+        setStudentInfo(prev => ({
+          ...prev,
+          termLabel: `Term ${selectedTerm.termNumber || selectedTerm.name || ''} ${selectedTerm.sessionName || ''}`
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load results for selected term.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -155,14 +211,28 @@ export default function StudentPerformanceRecord() {
         </div>
 
         {/* Clearance Status */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-start gap-4">
-          <div className={`p-3 rounded-2xl shrink-0 ${studentInfo.status === 'Cleared' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
-            <Star className="h-6 w-6" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Clearance Status</p>
-            <p className={`text-2xl font-black leading-none ${studentInfo.status === 'Cleared' ? 'text-green-700' : 'text-red-700'}`}>{studentInfo.status.toUpperCase()}</p>
-            <p className="text-[11px] text-gray-500 font-medium pt-1">Finance & Registry verified</p>
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className={`p-3 rounded-2xl shrink-0 ${studentInfo.status === 'Cleared' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+              <Star className="h-6 w-6" />
+            </div>
+            <div className="space-y-1 w-full">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Clearance & Payments</p>
+                <select 
+                  value={selectedPaymentTermId}
+                  onChange={(e) => setSelectedPaymentTermId(e.target.value)}
+                  className="text-xs border-0 bg-gray-50 rounded-lg px-2 py-1 font-semibold text-gray-700 outline-none cursor-pointer focus:ring-1 focus:ring-gray-200"
+                >
+                  <option value="">Select Term</option>
+                  {allTerms.map(t => (
+                    <option key={t.id} value={t.id}>Term {t.termNumber || t.name} {t.sessionName}</option>
+                  ))}
+                </select>
+              </div>
+              <p className={`text-2xl font-black leading-none pt-1 ${studentInfo.status === 'Cleared' ? 'text-green-700' : 'text-red-700'}`}>{studentInfo.status.toUpperCase()}</p>
+              <p className="text-[11px] text-gray-500 font-medium pt-1">Finance & Registry verified</p>
+            </div>
           </div>
         </div>
 
@@ -174,12 +244,23 @@ export default function StudentPerformanceRecord() {
         {/* Subject Grades Table - Full Width */}
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+            <div className="p-6 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-[#b05e1c]" />
                 Subject Performance Ledger
               </h2>
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{studentInfo.termLabel} Verified</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Term:</span>
+                <select
+                  value={selectedTermId}
+                  onChange={(e) => handleTermChange(e.target.value)}
+                  className="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-[#b05e1c] focus:border-[#b05e1c] block p-2.5 font-semibold transition-colors"
+                >
+                  {allTerms.map(t => (
+                    <option key={t.id} value={t.id}>Term {t.termNumber || t.name} {t.sessionName}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
