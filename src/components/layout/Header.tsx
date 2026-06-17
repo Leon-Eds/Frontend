@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search as SearchIcon, Bell as BellIcon, HelpCircle as HelpIcon, Menu as MenuIcon, LogOut } from "lucide-react";
+import { Search as SearchIcon, Bell as BellIcon, HelpCircle as HelpIcon, Menu as MenuIcon, LogOut, Home } from "lucide-react";
 import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
 
 interface HeaderProps {
@@ -15,41 +15,22 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
   const { t } = useLanguage();
   const [userName, setUserName] = useState("Admin");
   const [role, setRole] = useState<string | null>(null);
-
-  const schoolTabs = [
-    { name: t("nav.dashboard"), href: "/dashboard" },
-    { name: t("nav.students"), href: "/dashboard/students" },
-    { name: t("nav.faculty"), href: "/dashboard/faculty" },
-    { name: t("nav.classes"), href: "/dashboard/classes" },
-  ];
-
-  const superAdminTabs = [
-    { name: t("nav.overview"), href: "/super-admin" },
-    { name: t("nav.schools"), href: "/super-admin/schools" },
-    { name: t("nav.users"), href: "/super-admin/users" },
-    { name: t("nav.billing"), href: "/super-admin/plans" },
-  ];
+  const [userImage, setUserImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
         const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
-        setUserName(user.name || "Admin");
+        setUserName(user.fullName || user.name || "Admin");
         setRole(user.role);
+        if (user.imageUrl || user.image) {
+          setUserImage(user.imageUrl || user.image);
+        }
       } catch {
         setUserName("Admin");
       }
     }
   }, []);
-
-  const headerTabs = role === "SuperAdmin" ? superAdminTabs : schoolTabs;
-
-  const isMainTab = headerTabs.some((tab) => {
-    if (tab.href === "/dashboard" || tab.href === "/super-admin") {
-      return pathname === tab.href;
-    }
-    return pathname.startsWith(tab.href);
-  });
 
   const initials = userName
     .split(" ")
@@ -70,7 +51,7 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
       {/* Left: Hamburger (mobile) + Brand + Nav */}
       <div className="flex items-center gap-2 sm:gap-8 h-full min-w-0">
         {/* Hamburger for mobile */}
-        {!isStudent && (
+        {!isStudent ? (
           <button
             onClick={onMenuToggle}
             className="lg:hidden text-gray-600 hover:text-gray-900 transition-colors p-1.5 -ml-1"
@@ -78,35 +59,21 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
           >
             <MenuIcon className="h-6 w-6" />
           </button>
+        ) : (
+          <Link
+            href="/dashboard/student-portal"
+            className="text-gray-600 hover:text-[#053d26] transition-colors p-1.5 -ml-1 flex items-center gap-2 font-bold text-sm"
+          >
+            <Home className="h-5 w-5" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </Link>
         )}
 
         <div className="hidden xl:block shrink-0">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#053d26]">Academic</span>
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#053d26]">Welcome,</span>
           <br />
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#053d26]">Architect</span>
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#053d26] truncate max-w-[150px] inline-block align-bottom">{userName}</span>
         </div>
-
-        {/* Nav tabs — scroll horizontally on medium, hide on very small, hide on desktop since sidebar is visible */}
-        {isMainTab && !isStudent && (
-          <nav className="hidden sm:flex lg:hidden items-center gap-1 h-full overflow-x-auto no-scrollbar">
-            {headerTabs.map((tab) => {
-              const isActive = pathname === tab.href || (tab.href !== "/dashboard" && tab.href !== "/super-admin" && pathname.startsWith(tab.href));
-              return (
-                <Link
-                  key={tab.name}
-                  href={tab.href}
-                  className={`relative flex items-center h-full px-3 lg:px-4 text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap ${
-                    isActive
-                      ? "text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#053d26]"
-                      : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  {tab.name}
-                </Link>
-              );
-            })}
-          </nav>
-        )}
       </div>
 
       {/* Right: Search, Language Switcher, Icons, Profile */}
@@ -157,9 +124,17 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
 
         <Link
           href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"}
-          className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden border-2 border-gray-200 shadow-sm hover:border-[#053d26] transition-colors bg-[#053d26] flex items-center justify-center shrink-0"
+          className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden border-2 border-gray-200 shadow-sm hover:border-[#053d26] transition-colors bg-[#053d26] flex items-center justify-center shrink-0 font-bold"
         >
-          <span className="text-white text-xs font-bold">{initials}</span>
+          {userImage ? (
+            <img 
+              src={userImage} 
+              alt={userName} 
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="text-white text-xs font-bold">{initials}</span>
+          )}
         </Link>
       </div>
     </header>

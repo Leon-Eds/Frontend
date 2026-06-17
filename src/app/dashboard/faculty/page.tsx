@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone } from 'lucide-react';
+import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, ArrowLeft, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { teacherApi, Teacher, CreateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -82,9 +82,18 @@ export function FacultyDirectory() {
       const teacher = await teacherApi.create(formData);
       if (formData.imageFile && teacher && teacher.id) {
         try {
-          await teacherApi.uploadImage(teacher.id, formData.imageFile);
+          const base64String = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              if (reader.result) resolve(reader.result as string);
+              else reject(new Error("Failed to read file"));
+            };
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsDataURL(formData.imageFile as File);
+          });
+          await teacherApi.update(teacher.id, { profilePictureUrl: base64String });
         } catch (imgErr) {
-          console.error("Failed to upload teacher image", imgErr);
+          console.error("Failed to upload teacher image:", imgErr);
           toast.error("Teacher created, but image upload failed.");
         }
       }
@@ -105,16 +114,27 @@ export function FacultyDirectory() {
       header: 'Teacher',
       accessor: (teacher) => (
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-sm">
-            {teacher.fullName ? teacher.fullName.split(' ').filter(Boolean).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() : 'T'}
-          </div>
+          {teacher.imageUrl || teacher.image ? (
+            <img 
+              src={teacher.imageUrl || teacher.image} 
+              alt={teacher.fullName} 
+              className="h-12 w-12 rounded-full object-cover border border-gray-100 shadow-sm"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="h-12 w-12 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-sm shadow-inner">
+              {teacher.fullName ? teacher.fullName.split(' ').filter(Boolean).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() : 'T'}
+            </div>
+          )}
           <div>
             <div className="font-bold text-gray-900 text-sm leading-tight">{teacher.fullName || 'Unnamed Teacher'}</div>
             <div className="text-xs text-gray-500 mt-1">{teacher.email || 'No email'}</div>
           </div>
         </div>
       ),
-      className: 'w-1/3'
+      className: 'w-1/4'
     },
     {
       header: 'Contact Info',
@@ -124,7 +144,43 @@ export function FacultyDirectory() {
           <div className="text-xs text-gray-500 mt-0.5">{teacher.phone || 'No phone'}</div>
         </div>
       ),
-      className: 'w-1/4'
+      className: 'w-1/5'
+    },
+    {
+      header: 'Assignments',
+      accessor: (teacher) => {
+        const assigns = teacher.assignments || [];
+        if (assigns.length === 0) return <span className="text-gray-400 text-xs italic font-medium">Unassigned</span>;
+        return (
+          <div className="flex flex-wrap gap-1 max-w-[250px]">
+            {assigns.map((a, idx) => (
+              <span key={a.id || idx} className="inline-flex items-center gap-1 rounded bg-[#053d26]/10 px-2 py-0.5 text-[10px] font-bold text-[#053d26]">
+                {a.className || 'Class'}: {a.subjectName || 'Subject'}
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Remove assignment: ${a.className || 'Class'} - ${a.subjectName || 'Subject'}?`)) {
+                      try {
+                        await teacherApi.removeAssignment(a.id);
+                        toast.success("Assignment removed successfully");
+                        fetchTeachers();
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to remove assignment");
+                      }
+                    }
+                  }}
+                  className="text-red-500 hover:text-red-700 ml-1 font-bold text-[11px] leading-none"
+                  title="Remove Assignment"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        );
+      },
+      className: 'w-1/3'
     },
     {
       header: 'Status',
@@ -138,7 +194,7 @@ export function FacultyDirectory() {
           {teacher.isActive ? 'ACTIVE' : 'INACTIVE'}
         </span>
       ),
-      className: 'w-1/5'
+      className: 'w-1/6'
     },
   ];
 
@@ -285,6 +341,16 @@ export function FacultyDirectory() {
         </div>
       )}
 
+      {/* Setup Navigation Pointers (Eye-level) */}
+      <div className="mt-6 flex justify-between items-center bg-white rounded-3xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+        <Link href="/dashboard/classes" className="flex items-center gap-2 text-gray-500 hover:text-[#053d26] font-semibold text-sm transition-colors px-4 py-2 rounded-xl hover:bg-gray-50">
+          <ArrowLeft className="w-4 h-4" /> Previous Step: Classes
+        </Link>
+        <Link href="/dashboard/students" className="flex items-center gap-2 px-6 py-3 bg-[#053d26] text-white rounded-2xl font-bold text-sm hover:bg-[#042f1d] transition-colors shadow-sm">
+          Next Step: Students <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+
       {/* Create Teacher Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -330,6 +396,7 @@ export function FacultyDirectory() {
                 </label>
                 <input
                   type="text"
+                  autoComplete="off"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
@@ -344,6 +411,7 @@ export function FacultyDirectory() {
                 </label>
                 <input
                   type="email"
+                  autoComplete="off"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
@@ -358,6 +426,7 @@ export function FacultyDirectory() {
                 </label>
                 <input
                   type="tel"
+                  autoComplete="off"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
@@ -372,6 +441,7 @@ export function FacultyDirectory() {
                 </label>
                 <input
                   type="password"
+                  autoComplete="new-password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
@@ -434,8 +504,9 @@ export function FacultyDirectory() {
                 await teacherApi.assign(assignModal.teacherId, assignData);
                 setAssignModal({isOpen: false, teacherId: '', teacherName: ''});
                 toast.success("Teacher assigned successfully!");
+                fetchTeachers();
               } catch (err) {
-                toast.error("Failed to assign teacher. Make sure endpoints are ready.");
+                toast.error(err instanceof Error ? err.message : "Failed to assign teacher");
               }
             }} className="space-y-5">
               <div>
@@ -448,7 +519,7 @@ export function FacultyDirectory() {
                 >
                   <option value="">Select a Class</option>
                   {classesList.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>{c.name} {c.arm ? `(${c.arm})` : ''}</option>
                   ))}
                 </select>
               </div>
@@ -495,9 +566,10 @@ export function FacultyHomepage() {
   const [teacherName, setTeacherName] = useState("");
   const [teacherInitials, setTeacherInitials] = useState("");
   const [stats, setStats] = useState<any[]>([]);
-  const [schedule, setSchedule] = useState<any[]>([]);
-  const [classPerformance, setClassPerformance] = useState<any[]>([]);
-  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
+  const [assignedSubjects, setAssignedSubjects] = useState<any[]>([]);
+  const [teacherImage, setTeacherImage] = useState<string | null>(null);
+  const [formClass, setFormClass] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   useEffect(() => {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -520,11 +592,30 @@ export function FacultyHomepage() {
         setTeacherInitials(initials);
 
         let assignments: any[] = [];
+        let formClass: any = null;
         try {
-          const teacher = await teacherApi.getById(user.id);
-          assignments = teacher.assignments || [];
+          const stats = await dashboardApi.getTeacherDashboard();
+          if (stats.assignments) {
+            assignments = (stats.assignments as any[]).map((a: any) => {
+              const classObj = a.class || {};
+              const subjectObj = a.subject || {};
+              return {
+                ...a,
+                id: a.id || a._id,
+                classId: a.classId || classObj.id || classObj._id,
+                className: a.className || classObj.name,
+                subjectId: a.subjectId || subjectObj.id || subjectObj._id,
+                subjectName: a.subjectName || subjectObj.name,
+                studentCount: a.studentCount || classObj.studentCount || 0
+              };
+            });
+          }
+          if (stats.formClass) {
+            formClass = stats.formClass;
+            setFormClass(formClass);
+          }
         } catch (e) {
-          console.error("Failed to fetch teacher details/assignments", e);
+          console.error("Failed to fetch teacher dashboard stats", e);
         }
 
         let allClasses: any[] = [];
@@ -551,15 +642,18 @@ export function FacultyHomepage() {
         }
 
         // Calculate stats
-        const uniqueClassIds = Array.from(new Set(assignments.map(a => a.classId)));
+        const validClassIds = assignments.map(a => a.classId).filter(Boolean);
+        const uniqueClassIds = Array.from(new Set(validClassIds));
         const assignedClassesCount = uniqueClassIds.length;
         
         const totalStudentsCount = assignments.reduce((sum, a) => {
-          const cls = allClasses.find(c => c.id === a.classId);
+          // Use pre-populated studentCount if available, otherwise check allClasses
+          if (a.studentCount) return sum + a.studentCount;
+          const cls = allClasses.find(c => c.id === a.classId || c._id === a.classId);
           return sum + (cls?.studentCount || 0);
         }, 0);
 
-        const classesNames = assignments.map(a => a.className || allClasses.find(c => c.id === a.classId)?.name).filter(Boolean);
+        const classesNames = assignments.map(a => a.className || allClasses.find(c => c.id === a.classId || c._id === a.classId)?.name).filter(Boolean);
         const uniqueClassesNames = Array.from(new Set(classesNames)).slice(0, 3).join(", ");
 
         const computedStats = [
@@ -567,81 +661,29 @@ export function FacultyHomepage() {
             title: "Assigned Classes", 
             value: String(assignedClassesCount), 
             desc: uniqueClassesNames || "No assigned classes", 
-            icon: BookOpen, 
-            color: "text-[#053d26] bg-[#053d26]/10" 
+            icon: BookOpen
           },
           { 
             title: "Students Taught", 
             value: String(totalStudentsCount), 
             desc: "Across all class arms", 
-            icon: Users, 
-            color: "text-[#b05e1c] bg-[#b05e1c]/10" 
-          },
-          { 
-            title: "Average Performance", 
-            value: dashboardStats.averagePerformance ? `${dashboardStats.averagePerformance}%` : "84%",
-            desc: "Current term average", 
-            icon: TrendingUp, 
-            color: "text-green-600 bg-green-50" 
-          },
-          { 
-            title: "Active Tasks", 
-            value: dashboardStats.pendingResults !== undefined ? `${dashboardStats.pendingResults} Pending` : "2 Pending", 
-            desc: "Grade submissions due soon", 
-            icon: Clock, 
-            color: "text-orange-600 bg-orange-50" 
+            icon: Users
           }
         ];
         setStats(computedStats);
 
-        // Generate schedule dynamically
-        const timeSlots = [
-          { time: "09:00 AM - 10:30 AM", color: "bg-green-500", status: "Complete" },
-          { time: "11:30 AM - 01:00 PM", color: "bg-amber-500 animate-pulse", status: "In Progress" },
-          { time: "02:00 PM - 03:30 PM", color: "bg-gray-300", status: "Upcoming" }
-        ];
-
-        const generatedSchedule = assignments.map((asm, idx) => {
-          const slot = timeSlots[idx % timeSlots.length];
-          const clsDetails = allClasses.find(c => c.id === asm.classId);
+        const subjectsWithDetails = assignments.map(asm => {
+          const c = asm.class || allClasses.find(cls => cls.id === asm.classId || cls._id === asm.classId) || {};
+          const s = asm.subject || {};
           return {
-            id: asm.id,
-            subject: asm.subjectName || "Subject",
-            time: slot.time,
-            class: asm.className || clsDetails?.name || "Class",
-            status: slot.status,
-            color: slot.color
+            id: asm.id || asm._id,
+            subject: asm.subjectName || s.name || "Subject",
+            className: asm.className || c.name || "Class",
+            arm: c.arm || "",
+            studentCount: asm.studentCount || c.studentCount || 0
           };
         });
-        setSchedule(generatedSchedule);
-
-        // Class Performance list
-        const perf = assignments.map((asm, idx) => {
-          const clsDetails = allClasses.find(c => c.id === asm.classId);
-          const colors = ["bg-[#053d26]", "bg-[#b05e1c]", "bg-teal-600"];
-          return {
-            name: `${asm.className || clsDetails?.name || "Class"} - ${asm.subjectName || "Subject"}`,
-            average: 80 + (idx * 3) % 15,
-            count: clsDetails?.studentCount || 0,
-            color: colors[idx % colors.length]
-          };
-        });
-        setClassPerformance(perf);
-
-        // Generate pending tasks
-        const tasks = assignments.map((asm, idx) => {
-          const taskNames = [
-            `Enter CA grades for ${asm.className || "Class"} ${asm.subjectName || "Subject"}`,
-            `Verify exam records for ${asm.className || "Class"} ${asm.subjectName || "Subject"}`,
-            `Submit term results for ${asm.className || "Class"} ${asm.subjectName || "Subject"}`
-          ];
-          const dueDates = ["Due tomorrow", "Due in 2 days", "Due in 5 days"];
-          return {
-            title: taskNames[idx % taskNames.length],
-            due: dueDates[idx % dueDates.length]
-          };
-        });
-        setPendingTasks(tasks);
+        setAssignedSubjects(subjectsWithDetails);
 
       } catch (err) {
         console.error("Error loading faculty dashboard", err);
@@ -678,9 +720,17 @@ export function FacultyHomepage() {
             </p>
           </div>
           <div className="flex items-center gap-4 shrink-0 bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10">
-            <div className="h-12 w-12 rounded-full bg-[#b05e1c] text-white font-bold flex items-center justify-center text-lg shadow-inner">
-              {teacherInitials}
-            </div>
+            {teacherImage ? (
+              <img 
+                src={teacherImage} 
+                alt={teacherName} 
+                className="h-12 w-12 rounded-full object-cover border border-white/25 shadow-sm"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-[#b05e1c] text-white font-bold flex items-center justify-center text-lg shadow-inner">
+                {teacherInitials}
+              </div>
+            )}
             <div>
               <p className="font-bold text-sm">{teacherName}</p>
               <p className="text-xs text-green-200">Faculty Member</p>
@@ -690,193 +740,156 @@ export function FacultyHomepage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-start gap-4 transition-all hover:shadow-md hover:scale-[1.01]">
-            <div className={`p-3 rounded-2xl shrink-0 ${stat.color}`}>
-              <stat.icon className="h-6 w-6" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {stats.map((stat, i) => {
+          const bgGradients = [
+            "from-emerald-500/10 to-teal-500/10 border-emerald-500/20",
+            "from-orange-500/10 to-amber-500/10 border-orange-500/20"
+          ];
+          const iconColors = [
+            "bg-emerald-500 text-white shadow-emerald-200",
+            "bg-orange-500 text-white shadow-orange-200"
+          ];
+          const bgGrad = bgGradients[i % bgGradients.length];
+          const iconColor = iconColors[i % iconColors.length];
+          return (
+            <div key={i} className={`relative overflow-hidden bg-gradient-to-br ${bgGrad} rounded-3xl p-6 shadow-sm border transition-all hover:shadow-md hover:scale-[1.02] flex items-start gap-4 group`}>
+              <div className="absolute -right-6 -top-6 opacity-5 group-hover:scale-110 transition-transform duration-500">
+                <stat.icon className="w-32 h-32" />
+              </div>
+              <div className={`p-4 rounded-2xl shrink-0 shadow-lg ${iconColor}`}>
+                <stat.icon className="h-7 w-7" />
+              </div>
+              <div className="space-y-1 relative z-10 pt-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-600">{stat.title}</p>
+                <p className="text-3xl font-black text-gray-900 leading-none tracking-tight">{stat.value}</p>
+                <p className="text-xs text-gray-600 font-medium pt-1">{stat.desc}</p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{stat.title}</p>
-              <p className="text-2xl font-black text-gray-900 leading-none">{stat.value}</p>
-              <p className="text-[11px] text-gray-500 font-medium pt-1">{stat.desc}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Main Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left 2 Columns: Schedule & Class Performance */}
+        {/* Left 2 Columns: Assigned Subjects & Workload */}
         <div className="lg:col-span-2 space-y-8">
-
-          {/* Administrative Broadcasts Megaphone Board */}
-          {announcements.length > 0 && (
-            <div className="bg-white rounded-[2rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
-              <div className="flex justify-between items-center border-b border-gray-50 pb-4">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Megaphone className="h-5 w-5 text-[#b05e1c]" />
-                  Administrative Broadcasts
-                </h2>
-                <span className="text-[9px] font-black text-[#053d26] bg-[#053d26]/5 border border-[#053d26]/10 px-3 py-1 rounded-full uppercase tracking-widest flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#053d26] animate-pulse"></span>
-                  Active Notices
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {announcements.slice(0, 2).map((ann, idx) => (
-                  <div 
-                    key={ann.id || idx} 
-                    className="p-5 rounded-2xl bg-gray-50/20 hover:bg-gray-50/60 border border-gray-100 hover:border-gray-200 transition-all duration-300 flex flex-col justify-between"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase tracking-wider">
-                        <span className={`px-2 py-0.5 rounded ${
-                          ann.audience === "Class" ? "bg-[#b05e1c]/10 text-[#b05e1c]" : "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                        }`}>
-                          {ann.audience || "General"}
-                        </span>
-                        <span>
-                          {ann.createdAt ? new Date(ann.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "Recently"}
-                        </span>
-                      </div>
-                      <h4 className="font-extrabold text-gray-900 text-sm leading-snug">{ann.title}</h4>
-                      <p className="text-[11px] text-gray-500 font-medium leading-relaxed line-clamp-3">{ann.content}</p>
-                    </div>
-                    <div className="pt-3 mt-4 border-t border-gray-100/60 flex justify-between items-center text-[9px] text-gray-400 font-semibold uppercase tracking-wider">
-                      <span>Authority Dispatch</span>
-                      <span className="text-emerald-600 font-extrabold">Active</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           
-          {/* Class Performance Overview */}
           <div className="bg-white rounded-[2rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
             <div className="flex justify-between items-center border-b border-gray-50 pb-4">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-[#b05e1c]" />
-                Class Performance Overview
+                <BookText className="h-5 w-5 text-[#053d26]" />
+                Your Workload
               </h2>
-              <span className="text-xs font-bold text-[#053d26] bg-[#053d26]/10 px-3 py-1 rounded-full">Term Analytics</span>
+              <span className="text-xs font-bold text-[#b05e1c] bg-[#b05e1c]/10 px-3 py-1 rounded-full">Academic Responsibilities</span>
             </div>
-
+            
             <div className="space-y-6">
-              {classPerformance.length > 0 ? (
-                classPerformance.map((classData, idx) => (
-                  <div key={idx} className="space-y-2">
-                    <div className="flex justify-between items-center text-sm font-bold text-gray-900">
-                      <span>{classData.name} <span className="text-xs text-gray-400 font-semibold">({classData.count} students)</span></span>
-                      <span className="text-[#053d26] font-extrabold">{classData.average}% Avg</span>
+              {/* Form Class Indicator */}
+              {formClass && (
+                <div className="group relative overflow-hidden bg-gradient-to-br from-[#053d26] to-[#042c1b] p-6 rounded-3xl flex items-center justify-between transition-all duration-500 hover:shadow-lg hover:shadow-[#053d26]/20">
+                  <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-700">
+                    <Award className="h-24 w-24 text-white" />
+                  </div>
+                  <div className="relative z-10 flex items-center gap-4">
+                    <div className="p-3 bg-white/10 backdrop-blur-sm rounded-2xl text-white shadow-inner">
+                      <Award className="h-6 w-6" />
                     </div>
-                    <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden flex items-center">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-500 ${classData.color}`} 
-                        style={{ width: `${classData.average}%` }} 
-                      />
+                    <div>
+                      <h4 className="font-extrabold text-white text-lg tracking-wide">Form Teacher</h4>
+                      <p className="text-green-100 font-medium text-sm flex items-center gap-2 mt-1">
+                        Class: {formClass.name || "Assigned Class"} {formClass.arm ? `(${formClass.arm})` : ''}
+                      </p>
                     </div>
                   </div>
-                ))
+                  <Link href="/dashboard/faculty/attendance" className="relative z-10 bg-white text-[#053d26] hover:bg-green-50 px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-colors flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Mark Attendance
+                  </Link>
+                </div>
+              )}
+
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-4">Subject Assignments</h3>
+              
+              {assignedSubjects.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {assignedSubjects.map((sub, idx) => (
+                    <div key={idx} className="group p-5 rounded-2xl bg-gray-50/50 hover:bg-white border border-gray-100 hover:border-gray-200 transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between relative overflow-hidden">
+                      <div className="absolute -right-4 -top-4 bg-gray-50 p-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
+                      <div className="space-y-1 relative z-10">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="px-2 py-1 bg-white shadow-sm border border-gray-100 text-xs font-bold text-gray-700 rounded-lg">
+                            {sub.className}
+                          </span>
+                          <span className="text-xs font-bold text-[#b05e1c] bg-[#b05e1c]/10 px-2 py-1 rounded-md">
+                            {sub.studentCount} Students
+                          </span>
+                        </div>
+                        <h4 className="font-extrabold text-gray-900 text-lg">{sub.subject}</h4>
+                      </div>
+                      <div className="mt-6 relative z-10">
+                        <Link 
+                          href={`/dashboard/faculty/result-entry?classId=${sub.id}&subjectId=${sub.id}`}
+                          className="flex items-center justify-between w-full text-sm font-bold text-[#053d26] hover:text-[#0a6c4a] transition-colors group/btn"
+                        >
+                          <span>Manage Grades</span>
+                          <ArrowRight className="h-4 w-4 transform group-hover/btn:translate-x-1 transition-transform" />
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <div className="text-center py-6 text-gray-500 text-sm italic">
-                  No class analytics available. Assign subjects to classes to view metrics.
+                <div className="p-8 text-center bg-gray-50/50 border border-gray-100 rounded-3xl border-dashed">
+                  <BookOpen className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium text-sm">You haven't been assigned to any subjects yet.</p>
                 </div>
               )}
             </div>
           </div>
-
         </div>
 
-        {/* Right 1 Column: Quick Actions & Alerts */}
+        {/* Right 1 Column: Quick Hub */}
         <div className="space-y-6">
-          
-          {/* Quick Actions Panel */}
-          <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm space-y-6">
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-50 pb-4">
-              <Sparkles className="h-4.5 w-4.5 text-[#b05e1c]" />
-              Quick Actions
-            </h3>
+          <div className="bg-gradient-to-br from-[#053d26] to-[#b05e1c] rounded-[2rem] p-1">
+            <div className="bg-white rounded-[1.8rem] p-6 h-full space-y-6">
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-50 pb-4">
+                <Sparkles className="h-4.5 w-4.5 text-[#b05e1c]" />
+                Teacher Hub
+              </h3>
 
-            <div className="grid grid-cols-1 gap-3">
-              <Link 
-                href="/dashboard/faculty/result-entry" 
-                className="w-full rounded-2xl bg-[#053d26] p-4 text-left flex items-center gap-3 transition-transform hover:scale-[1.02] text-white shadow-sm"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white shrink-0">
-                  <CheckSquare className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="font-bold text-sm">Submit Grades</div>
-                  <div className="text-[11px] text-green-200">Enter CA and Exam marks</div>
-                </div>
-              </Link>
-
-              <Link 
-                href="/dashboard/faculty/classes" 
-                className="w-full rounded-2xl bg-[#b05e1c] p-4 text-left flex items-center gap-3 transition-transform hover:scale-[1.02] text-white shadow-sm"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white shrink-0">
-                  <BookOpen className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="font-bold text-sm">View Classes</div>
-                  <div className="text-[11px] text-orange-100">Review your assigned class lists</div>
-                </div>
-              </Link>
-
-            </div>
-          </div>
-
-          {/* Form Teacher Attendance Quick Link */}
-          <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm space-y-6">
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-50 pb-4">
-              <ClipboardList className="h-4.5 w-4.5 text-[#053d26]" />
-              Form Teacher
-            </h3>
-            <Link 
-              href="/dashboard/faculty/attendance" 
-              className="w-full rounded-2xl bg-teal-50 border border-teal-100 p-4 text-left flex items-center gap-3 transition-transform hover:scale-[1.02] text-teal-800 shadow-sm"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700 shrink-0">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="font-bold text-sm">Daily Attendance</div>
-                <div className="text-[11px] text-teal-600">Mark students present/absent</div>
-              </div>
-            </Link>
-          </div>
-
-          {/* Pending Tasks & Memos */}
-          <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm space-y-6">
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-50 pb-4">
-              <ClipboardList className="h-4.5 w-4.5 text-gray-400" />
-              Pending Tasks
-            </h3>
-
-            <div className="space-y-4">
-              {pendingTasks.length > 0 ? (
-                pendingTasks.map((task, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
-                    <div className="space-y-1">
-                      <p className="text-xs font-extrabold text-gray-900">{task.title}</p>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{task.due}</p>
-                    </div>
+              <div className="grid grid-cols-1 gap-4">
+                <Link 
+                  href="/dashboard/faculty/result-entry" 
+                  className="group w-full rounded-2xl bg-gray-50 hover:bg-[#053d26] p-4 text-left flex items-center gap-4 transition-all duration-300 border border-gray-100 hover:border-transparent hover:shadow-lg hover:shadow-[#053d26]/20"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#053d26] shadow-sm group-hover:scale-110 transition-transform">
+                    <CheckSquare className="h-6 w-6" />
                   </div>
-                ))
-              ) : (
-                <div className="text-xs text-gray-400 italic">No pending tasks. You are all caught up!</div>
-              )}
+                  <div>
+                    <div className="font-extrabold text-sm text-gray-900 group-hover:text-white transition-colors">Submit Grades</div>
+                    <div className="text-[11px] text-gray-500 font-medium group-hover:text-green-100/80 transition-colors mt-0.5">Enter CA and Exam marks</div>
+                  </div>
+                </Link>
+
+                <Link 
+                  href="/dashboard/faculty/classes" 
+                  className="group w-full rounded-2xl bg-gray-50 hover:bg-[#b05e1c] p-4 text-left flex items-center gap-4 transition-all duration-300 border border-gray-100 hover:border-transparent hover:shadow-lg hover:shadow-[#b05e1c]/20"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#b05e1c] shadow-sm group-hover:scale-110 transition-transform">
+                    <BookOpen className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm text-gray-900 group-hover:text-white transition-colors">Class Rosters</div>
+                    <div className="text-[11px] text-gray-500 font-medium group-hover:text-orange-100/80 transition-colors mt-0.5">Review assigned student lists</div>
+                  </div>
+                </Link>
+                
+              </div>
             </div>
           </div>
-
         </div>
-
       </div>
     </div>
   );

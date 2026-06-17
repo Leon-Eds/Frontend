@@ -37,7 +37,16 @@ export const StudentEnrollmentWizard = () => {
         const student = await studentApi.create(formData as CreateStudentRequest);
         if (formData.imageFile && student && student.id) {
           try {
-            await studentApi.uploadImage(student.id, formData.imageFile);
+            const base64String = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                if (reader.result) resolve(reader.result as string);
+                else reject(new Error("Failed to read file"));
+              };
+              reader.onerror = () => reject(new Error("Failed to read file"));
+              reader.readAsDataURL(formData.imageFile as File);
+            });
+            await studentApi.update(student.id, { profilePictureUrl: base64String });
           } catch (imgErr) {
             console.error("Failed to upload image", imgErr);
             toast.error("Student created, but image upload failed.");
@@ -46,7 +55,7 @@ export const StudentEnrollmentWizard = () => {
         setCurrentStep(4);
       } catch (error) {
         console.error("Failed to submit student", error);
-        alert(error instanceof Error ? error.message : "Failed to enroll student. Please try again.");
+        toast.error(error instanceof Error ? error.message : "Failed to enroll student. Please try again.");
       } finally {
         setIsSubmitting(false);
       }

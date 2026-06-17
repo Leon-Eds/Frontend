@@ -6,6 +6,7 @@ import { DatePicker } from '../ui/form/DatePicker';
 import { Select } from '../ui/form/Select';
 import { Camera, X } from 'lucide-react';
 import { CreateStudentRequest, sessionApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface Step1Props {
   data: Partial<CreateStudentRequest>;
@@ -43,13 +44,13 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
 
     // Validate type
     if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-      alert('Please upload a JPG or PNG image.');
+      toast.error('Please upload a JPG or PNG image.');
       return;
     }
 
     // Validate size (2MB max)
     if (file.size > 2 * 1024 * 1024) {
-      alert('Image must be smaller than 2MB.');
+      toast.error('Image must be smaller than 2MB.');
       return;
     }
 
@@ -143,6 +144,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
         <div className="lg:col-span-8 space-y-6">
           <Input
             label="Full Name (Legal)"
+            autoComplete="off"
             placeholder="Enter student's full name"
             value={data.fullName || ''}
             onChange={(e) => updateData({ fullName: e.target.value })}

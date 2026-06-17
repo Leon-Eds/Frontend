@@ -8,7 +8,15 @@ import { dashboardApi, DashboardStats, sessionApi } from "@/lib/api";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/dashboard/DataTable";
 import SetupGuide from "@/components/dashboard/SetupGuide";
-import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus, Loader2, BookOpen, Calendar } from "lucide-react";
+import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus, Loader2, BookOpen, Calendar, Settings, CreditCard, X } from "lucide-react";
+
+const AVAILABLE_SHORTCUTS = [
+  { id: 'new-student', title: 'Add New Student', desc: 'Onboard a fresh learner profile', href: '/dashboard/students/new', color: 'bg-[#053d26]', iconBg: 'bg-white/10', iconColor: 'text-white', icon: UserPlus, titleColor: 'text-white', descColor: 'text-green-200' },
+  { id: 'report-cards', title: 'Generate Report Cards', desc: 'Bulk process academic summaries', href: '/dashboard/classes', color: 'bg-[#b05e1c]', iconBg: 'bg-white/20', iconColor: 'text-white', icon: FileOutput, titleColor: 'text-white', descColor: 'text-orange-100' },
+  { id: 'fee-clearance', title: 'Fee Clearance', desc: 'Process tuition and payments', href: '/dashboard/finance', color: 'bg-blue-600', iconBg: 'bg-white/20', iconColor: 'text-white', icon: CreditCard, titleColor: 'text-white', descColor: 'text-blue-100' },
+  { id: 'teachers', title: 'Manage Teachers', desc: 'View and assign faculty', href: '/dashboard/faculty', color: 'bg-purple-600', iconBg: 'bg-white/20', iconColor: 'text-white', icon: Users, titleColor: 'text-white', descColor: 'text-purple-100' },
+  { id: 'settings', title: 'System Settings', desc: 'Configure school preferences', href: '/dashboard/settings', color: 'bg-gray-800', iconBg: 'bg-white/20', iconColor: 'text-white', icon: Settings, titleColor: 'text-white', descColor: 'text-gray-300' }
+];
 
 export default function DashboardOverview() {
   const router = useRouter();
@@ -19,6 +27,36 @@ export default function DashboardOverview() {
   const [user, setUser] = useState<any>(null);
   const [hasSessions, setHasSessions] = useState<boolean>(true);
   const [hasTerms, setHasTerms] = useState<boolean>(true);
+
+  const [shortcutIds, setShortcutIds] = useState<string[]>(['new-student', 'report-cards']);
+  const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
+  const [tempShortcuts, setTempShortcuts] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("leoned_shortcuts");
+      if (saved) setShortcutIds(JSON.parse(saved));
+    } catch (e) {}
+  }, []);
+
+  const handleSaveShortcuts = () => {
+    setShortcutIds(tempShortcuts);
+    localStorage.setItem("leoned_shortcuts", JSON.stringify(tempShortcuts));
+    setIsShortcutModalOpen(false);
+    toast.success("Shortcuts updated successfully!");
+  };
+
+  const toggleShortcut = (id: string) => {
+    if (tempShortcuts.includes(id)) {
+      setTempShortcuts(tempShortcuts.filter(s => s !== id));
+    } else {
+      if (tempShortcuts.length >= 4) {
+        toast.error("You can pin a maximum of 4 shortcuts.");
+        return;
+      }
+      setTempShortcuts([...tempShortcuts, id]);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -236,34 +274,34 @@ export default function DashboardOverview() {
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
             <div className="space-y-4">
-              <Link href="/dashboard/students/new" className="w-full rounded-2xl bg-[#053d26] p-4 text-left flex items-center gap-4 transition-transform hover:scale-[1.02]">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white shrink-0">
-                  <UserPlus className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="font-bold text-white text-lg">Add New Student</div>
-                  <div className="text-sm text-green-200">Onboard a fresh learner profile</div>
-                </div>
-              </Link>
-
-              <Link href="/dashboard/classes" className="w-full rounded-2xl bg-[#b05e1c] p-4 text-left flex items-center gap-4 transition-transform hover:scale-[1.02]">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-white shrink-0">
-                  <FileOutput className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="font-bold text-white text-lg">Generate Report Cards</div>
-                  <div className="text-sm text-orange-100 leading-tight mt-1">Bulk process academic summaries</div>
-                </div>
-              </Link>
+              {shortcutIds.map(id => {
+                const shortcut = AVAILABLE_SHORTCUTS.find(s => s.id === id);
+                if (!shortcut) return null;
+                const Icon = shortcut.icon;
+                return (
+                  <Link key={id} href={shortcut.href} className={`w-full rounded-2xl ${shortcut.color} p-4 text-left flex items-center gap-4 transition-transform hover:scale-[1.02] shadow-sm`}>
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-full ${shortcut.iconBg} ${shortcut.iconColor} shrink-0`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className={`font-bold ${shortcut.titleColor} text-lg`}>{shortcut.title}</div>
+                      <div className={`text-sm ${shortcut.descColor} leading-tight mt-1`}>{shortcut.desc}</div>
+                    </div>
+                  </Link>
+                );
+              })}
 
               <button 
-                onClick={() => toast.error("Customizing dashboard shortcuts is currently in development!")}
-                className="w-full rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/50 p-4 text-center transition-colors hover:border-gray-400 hover:bg-gray-100 flex flex-col items-center justify-center h-28 gap-2 cursor-pointer"
+                onClick={() => {
+                  setTempShortcuts(shortcutIds);
+                  setIsShortcutModalOpen(true);
+                }}
+                className="w-full rounded-2xl border-2 border-dashed border-gray-300 dark:border-white/10 bg-gray-50/50 dark:bg-white/5 p-4 text-center transition-colors hover:border-gray-400 dark:hover:border-white/30 hover:bg-gray-100 dark:hover:bg-white/10 flex flex-col items-center justify-center h-28 gap-2 cursor-pointer"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-300">
                   <Plus className="h-5 w-5" />
                 </div>
-                <div className="font-bold text-gray-700">Customize Shortcuts</div>
+                <div className="font-bold text-gray-700 dark:text-gray-300">Customize Shortcuts</div>
               </button>
             </div>
           </div>
@@ -287,6 +325,60 @@ export default function DashboardOverview() {
             >
               Set Up Session &amp; Term Now
             </Link>
+          </div>
+        </div>
+      )}
+      {/* Shortcut Customization Modal */}
+      {isShortcutModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-[2.5rem] max-w-lg w-full p-8 shadow-2xl border border-gray-100 dark:border-white/10 flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Customize Shortcuts</h3>
+              <button onClick={() => setIsShortcutModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors cursor-pointer rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Select up to 4 quick actions to pin to your dashboard for easy access.
+            </p>
+            <div className="space-y-3 mb-8 max-h-[50vh] overflow-y-auto no-scrollbar pr-2">
+              {AVAILABLE_SHORTCUTS.map(shortcut => {
+                const isSelected = tempShortcuts.includes(shortcut.id);
+                const Icon = shortcut.icon;
+                return (
+                  <div 
+                    key={shortcut.id}
+                    onClick={() => toggleShortcut(shortcut.id)}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all ${isSelected ? 'border-[#053d26] bg-green-50 dark:bg-green-900/20 dark:border-green-500' : 'border-transparent bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10'}`}
+                  >
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${shortcut.color} text-white shrink-0 shadow-sm`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-gray-900 dark:text-white text-sm">{shortcut.title}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{shortcut.desc}</div>
+                    </div>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-[#053d26] bg-[#053d26] dark:border-green-500 dark:bg-green-500' : 'border-gray-300 dark:border-gray-600'}`}>
+                      {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-white/10">
+              <button 
+                onClick={() => setIsShortcutModalOpen(false)}
+                className="px-6 py-3 rounded-full font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveShortcuts}
+                className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-md cursor-pointer"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,6 @@
-const API_BASE_URL = 'https://leoned.vercel.app/api';
+const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  ? '/backend-api'
+  : 'https://leoned.vercel.app/api';
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 
@@ -202,7 +204,20 @@ async function handleResponse<T>(res: Response): Promise<T> {
         message = errorBody;
       }
     } catch {
-      if (errorBody) message = errorBody;
+      if (errorBody) {
+        // Sanitize raw HTML responses from the backend (like Express 404 "Cannot PUT" pages)
+        if (errorBody.trim().startsWith('<!DOCTYPE html>') || errorBody.trim().startsWith('<html')) {
+          // Extract the basic error text if possible, e.g. from <pre>Cannot PUT /...</pre>
+          const preMatch = errorBody.match(/<pre>(.*?)<\/pre>/i);
+          if (preMatch && preMatch[1]) {
+            message = `Server Error: ${preMatch[1]}`;
+          } else {
+            message = "An unexpected server error occurred (Endpoint not found).";
+          }
+        } else {
+          message = errorBody;
+        }
+      }
     }
     
     // Log the error for easier debugging in the console
@@ -294,6 +309,7 @@ export interface UpdateStudentRequest {
   parentEmail?: string;
   password?: string;
   status?: StudentStatus;
+  profilePictureUrl?: string;
 }
 
 export interface Student {
@@ -325,6 +341,7 @@ export interface CreateTeacherRequest {
 export interface UpdateTeacherRequest {
   fullName?: string;
   phone?: string;
+  profilePictureUrl?: string;
 }
 
 export interface Teacher {
@@ -334,6 +351,8 @@ export interface Teacher {
   phone?: string;
   isActive: boolean;
   createdAt?: string;
+  imageUrl?: string;
+  image?: string;
   assignments?: TeacherAssignment[];
 }
 
@@ -639,9 +658,13 @@ export const dashboardApi = {
 
 // Students
 export const studentApi = {
-  getAll: async (): Promise<Student[]> => {
+  getAll: async (schoolId?: string): Promise<Student[]> => {
+    const headers = { ...getAuthHeaders() } as Record<string, string>;
+    if (schoolId) {
+      headers['School-Id'] = schoolId;
+    }
     const res = await fetchWithTimeout(`${API_BASE_URL}/student?pageSize=1000`, {
-      headers: getAuthHeaders(),
+      headers,
     });
     const data = await handleResponse<Student[] | PaginatedResponse<Student>>(res);
     if (Array.isArray(data)) return data;
@@ -740,9 +763,13 @@ export const attendanceApi = {
 
 // Teachers
 export const teacherApi = {
-  getAll: async (): Promise<Teacher[]> => {
+  getAll: async (schoolId?: string): Promise<Teacher[]> => {
+    const headers = { ...getAuthHeaders() } as Record<string, string>;
+    if (schoolId) {
+      headers['School-Id'] = schoolId;
+    }
     const res = await fetchWithTimeout(`${API_BASE_URL}/teacher?pageSize=1000`, {
-      headers: getAuthHeaders(),
+      headers,
     });
     const data = await handleResponse<Teacher[] | PaginatedResponse<Teacher>>(res);
     if (Array.isArray(data)) return data;
@@ -953,6 +980,24 @@ export const sessionApi = {
     });
     return handleResponse(res);
   },
+
+  update: async (id: string, data: Partial<CreateSessionRequest>) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/academicsession/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  updateTerm: async (termId: string, data: Partial<CreateTermRequest>) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/academicsession/terms/${termId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
 };
 
 // Schools (for superadmin)
@@ -961,9 +1006,12 @@ export const schoolApi = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/school`, {
       headers: getAuthHeaders(),
     });
-    const data = await handleResponse<unknown[] | PaginatedResponse<unknown>>(res);
+    const data = await handleResponse<any>(res);
     if (Array.isArray(data)) return data;
-    return (data as PaginatedResponse<unknown>).items || (data as PaginatedResponse<unknown>).data || [];
+    if (data && typeof data === 'object') {
+      return data.items || data.data || data.schools || data.recentSchools || data.latestSchools || [];
+    }
+    return [];
   },
 
   getPlans: async () => {

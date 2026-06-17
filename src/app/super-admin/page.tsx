@@ -16,9 +16,28 @@ import {
   ArrowRight,
   Server,
   Database,
-  ShieldAlert
+  ShieldAlert,
+  GraduationCap,
+  Briefcase
 } from "lucide-react";
 import Link from "next/link";
+
+const getSeededGradient = (name: string) => {
+  const gradients = [
+    { from: 'from-emerald-500', to: 'to-teal-600', text: 'text-emerald-50' },
+    { from: 'from-blue-500', to: 'to-indigo-600', text: 'text-blue-50' },
+    { from: 'from-purple-500', to: 'to-fuchsia-600', text: 'text-purple-50' },
+    { from: 'from-amber-500', to: 'to-orange-600', text: 'text-amber-50' },
+    { from: 'from-rose-500', to: 'to-pink-600', text: 'text-rose-50' },
+    { from: 'from-cyan-500', to: 'to-blue-600', text: 'text-cyan-50' },
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % gradients.length;
+  return gradients[index];
+};
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
@@ -365,76 +384,81 @@ export default function SuperAdminDashboard() {
                   {schools.length > 0 ? schools.map((school) => {
                     const studentCount = extractCount(school, ['student', 'pupil', 'learner']);
                     const staffCount = extractCount(school, ['teacher', 'staff', 'faculty']);
+                    const schoolGrad = getSeededGradient(school.name || 'School');
+                    const adminGrad = getSeededGradient(school.adminName || 'Admin');
 
                     return (
-                      <tr key={school.id} className="group bg-gray-50/20 hover:bg-gray-50/65 border border-gray-100/50 rounded-2xl transition-all duration-300 shadow-[0_2px_8px_rgba(0,0,0,0.005)]">
+                      <tr key={school.id} className="group bg-white hover:bg-gray-50/30 transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.005)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.02)] hover:-translate-y-0.5">
                         {/* School Identity */}
-                        <td className="py-5 pl-4 pr-4 rounded-l-2xl border-y border-l border-gray-100/40 group-hover:border-[#053d26]/10 transition-colors">
+                        <td className="py-5 pl-5 pr-4 rounded-l-[1.5rem] border-y border-l border-gray-100/70 group-hover:border-[#053d26]/10 transition-colors">
                           <div className="flex items-center gap-4">
-                            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-white to-[#053d26]/5 border border-gray-200/80 flex items-center justify-center text-[#053d26] font-extrabold text-sm transition-all duration-300 group-hover:from-[#053d26] group-hover:to-[#095738] group-hover:text-white group-hover:scale-105 group-hover:shadow-[0_4px_12px_rgba(5,61,38,0.15)] uppercase shrink-0">
+                            <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${schoolGrad.from} ${schoolGrad.to} ${schoolGrad.text} flex items-center justify-center font-extrabold text-sm shadow-[0_4px_10px_rgba(0,0,0,0.05)] transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] uppercase shrink-0`}>
                               {school.name?.[0] || 'S'}
                             </div>
                             <div>
-                              <div className="font-extrabold text-gray-900 leading-tight group-hover:text-[#053d26] transition-colors">{school.name}</div>
-                              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">{school.email}</div>
+                              <div className="font-extrabold text-sm text-gray-900 leading-tight group-hover:text-[#053d26] transition-colors">{school.name}</div>
+                              <span className="inline-flex px-2 py-0.5 mt-1.5 rounded-md bg-gray-50 border border-gray-150 text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">{school.email}</span>
                             </div>
                           </div>
                         </td>
 
                         {/* Cluster Owner */}
-                        <td className="py-5 px-4 border-y border-gray-100/40 group-hover:border-[#053d26]/10 transition-colors">
-                          <div className="flex items-center gap-2">
-                            <div className="h-7 w-7 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[10px] text-gray-500 font-extrabold uppercase shrink-0">
-                              {(school.adminName || 'RT')}
+                        <td className="py-5 px-4 border-y border-gray-100/70 group-hover:border-[#053d26]/10 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-8 w-8 rounded-xl bg-gradient-to-br ${adminGrad.from} ${adminGrad.to} ${adminGrad.text} flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm`}>
+                              {(school.adminName || 'RT').split(" ").filter(Boolean).map((w: string) => w[0]).join("").slice(0, 2)}
                             </div>
                             <div>
-                              <div className="text-xs font-bold text-gray-900 leading-tight">{school.adminName || 'ROOT'}</div>
+                              <div className="text-xs font-extrabold text-gray-800 leading-tight">{school.adminName || 'ROOT'}</div>
                               <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Admin Node</div>
                             </div>
                           </div>
                         </td>
 
                         {/* Usage Matrix */}
-                        <td className="py-5 px-4 border-y border-gray-100/40 group-hover:border-[#053d26]/10 transition-colors">
+                        <td className="py-5 px-4 border-y border-gray-100/70 group-hover:border-[#053d26]/10 transition-colors">
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1 bg-blue-50/50 text-blue-700 px-2 py-1 rounded-lg border border-blue-100/50 text-[10px] font-bold">
-                              <span className="h-1 w-1 rounded-full bg-blue-500"></span>
-                              <span className="font-black text-gray-900">{studentCount}</span>
-                              <span className="text-blue-500 font-normal">Students</span>
+                            <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-100 text-[10px] font-bold shadow-[0_2px_4px_rgba(59,130,246,0.02)]">
+                              <GraduationCap className="h-3.5 w-3.5" />
+                              <span className="font-extrabold text-gray-900">{studentCount}</span>
+                              <span className="text-blue-500 font-medium">Students</span>
                             </span>
-                            <span className="inline-flex items-center gap-1 bg-[#053d26]/5 text-[#053d26] px-2 py-1 rounded-lg border border-[#053d26]/10 text-[10px] font-bold">
-                              <span className="h-1 w-1 rounded-full bg-[#053d26]"></span>
-                              <span className="font-black text-gray-900">{staffCount}</span>
-                              <span className="text-[#053d26]/75 font-normal">Staff</span>
+                            <span className="inline-flex items-center gap-1.5 bg-green-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-green-100 text-[10px] font-bold shadow-[0_2px_4px_rgba(16,185,129,0.02)]">
+                              <Briefcase className="h-3.5 w-3.5 text-emerald-600" />
+                              <span className="font-extrabold text-gray-900">{staffCount}</span>
+                              <span className="text-emerald-500 font-medium">Staff</span>
                             </span>
                           </div>
                         </td>
 
                         {/* Service Plan */}
-                        <td className="py-5 px-4 border-y border-gray-100/40 group-hover:border-[#053d26]/10 transition-colors">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] shadow-sm ${
-                            school.subscriptionPlan === 'Premium' ? 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border border-purple-200/50' :
-                            school.subscriptionPlan === 'Plus' ? 'bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 border border-blue-200/50' :
-                            'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-500 border border-gray-200/50'
+                        <td className="py-5 px-4 border-y border-gray-100/70 group-hover:border-[#053d26]/10 transition-colors">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] shadow-sm ${
+                            school.subscriptionPlan === 'Premium' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-0' :
+                            school.subscriptionPlan === 'Plus' ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white border-0' :
+                            'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 border border-gray-250'
                           }`}>
                             {school.subscriptionPlan || 'Free'}
                           </span>
                         </td>
 
                         {/* Node Status */}
-                        <td className="py-5 pl-4 pr-4 rounded-r-2xl border-y border-r border-gray-100/40 group-hover:border-[#053d26]/10 transition-colors text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="py-5 pl-4 pr-5 rounded-r-[1.5rem] border-y border-r border-gray-100/70 group-hover:border-[#053d26]/10 transition-colors text-right">
+                          <div className="flex items-center justify-end gap-4">
                             {school.isActive === false ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100">
                                 <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
                                 Offline
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-green"></span>
                                 Active
                               </span>
                             )}
+                            <div className="h-8 w-8 rounded-xl bg-gray-50 border border-gray-150 flex items-center justify-center text-gray-400 group-hover:text-[#053d26] group-hover:bg-[#053d26]/5 group-hover:border-[#053d26]/10 group-hover:translate-x-0.5 transition-all duration-300 shadow-sm">
+                              <ArrowRight className="h-4 w-4" />
+                            </div>
                           </div>
                         </td>
                       </tr>

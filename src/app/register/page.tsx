@@ -412,6 +412,7 @@ export default function RegisterSchoolPage() {
                         name="adminName"
                         value={formData.adminName}
                         onChange={handleChange}
+                        autoComplete="off"
                         className={`block w-full rounded-xl border ${errors.adminName ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="Dr. Aisha Johnson"
                       />
@@ -448,6 +449,7 @@ export default function RegisterSchoolPage() {
                         name="adminEmail"
                         value={formData.adminEmail}
                         onChange={handleChange}
+                        autoComplete="off"
                         className={`block w-full rounded-xl border ${errors.adminEmail ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="admin@school.edu.ng"
                       />
@@ -466,6 +468,7 @@ export default function RegisterSchoolPage() {
                         name="adminPhone"
                         value={formData.adminPhone}
                         onChange={handleChange}
+                        autoComplete="off"
                         className={`block w-full rounded-xl border ${errors.adminPhone ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                         placeholder="+234 801 234 5678"
                       />
@@ -482,6 +485,7 @@ export default function RegisterSchoolPage() {
                           name="password"
                           value={formData.password}
                           onChange={handleChange}
+                          autoComplete="new-password"
                           className={`block w-full rounded-xl border ${errors.password ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-4 pr-12 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                           placeholder="••••••••"
                         />
@@ -507,6 +511,7 @@ export default function RegisterSchoolPage() {
                           name="confirmPassword"
                           value={formData.confirmPassword}
                           onChange={handleChange}
+                          autoComplete="new-password"
                           className={`block w-full rounded-xl border ${errors.confirmPassword ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 pl-4 pr-12 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors`}
                           placeholder="••••••••"
                         />

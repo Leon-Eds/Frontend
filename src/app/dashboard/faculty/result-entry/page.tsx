@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Save, Send, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Clock, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { scoreApi, classApi, subjectApi, sessionApi } from "@/lib/api";
+import { scoreApi, classApi, subjectApi, sessionApi, dashboardApi } from "@/lib/api";
 
 interface StudentScore {
   id: string;
@@ -34,20 +34,36 @@ export default function FacultyResultEntry() {
   const [currentSessionId, setCurrentSessionId] = useState("");
   const [currentSessionName, setCurrentSessionName] = useState("");
 
-  // Fetch classes, subjects, and current term on mount
+  // Fetch teacher assignments and current term on mount
   useEffect(() => {
     const init = async () => {
       try {
-        const [classData, subjectData, sessionData] = await Promise.all([
-          classApi.getAll(),
-          subjectApi.getAll(),
-          sessionApi.getAll(),
+        const storedUser = localStorage.getItem("leoned_user");
+        if (!storedUser) return;
+        const user = JSON.parse(storedUser);
+
+        // Fetch teacher's assignments via dashboard API to bypass role blocks
+        const [dashboardStats, sessionData] = await Promise.all([
+          dashboardApi.getTeacherDashboard().catch(() => ({ assignments: [] })),
+          sessionApi.getAll().catch(() => [])
         ]);
 
-        const classList = Array.isArray(classData) ? classData : [];
-        const subjectList = Array.isArray(subjectData) ? subjectData : [];
-        setClasses(classList.map((c: any) => ({ id: c.id, name: c.name })));
-        setSubjects(subjectList.map((s: any) => ({ id: s.id, name: s.name })));
+        const assignments = (dashboardStats as any).assignments || [];
+        
+        // Extract unique classes and subjects from assignments
+        const uniqueClasses = new Map();
+        const uniqueSubjects = new Map();
+        
+        assignments.forEach((a: any) => {
+          if (a.classId) uniqueClasses.set(a.classId, { id: a.classId, name: a.className || "Class" });
+          if (a.subjectId) uniqueSubjects.set(a.subjectId, { id: a.subjectId, name: a.subjectName || "Subject" });
+        });
+
+        const classList = Array.from(uniqueClasses.values());
+        const subjectList = Array.from(uniqueSubjects.values());
+        
+        setClasses(classList);
+        setSubjects(subjectList);
 
         const currentSession = (Array.isArray(sessionData) ? sessionData : []).find((s: any) => s.isCurrent);
         if (currentSession) {

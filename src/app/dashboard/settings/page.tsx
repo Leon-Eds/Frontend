@@ -9,6 +9,7 @@ type SettingsSection = 'school' | 'notifications' | 'security' | 'appearance' | 
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>(null);
+  const [userRole, setUserRole] = useState<string>("Admin");
 
   // School profile state
   const [schoolName, setSchoolName] = useState("");
@@ -57,6 +58,17 @@ export default function SettingsPage() {
       if (user) {
         const parsed = JSON.parse(user);
         setSchoolName(parsed.schoolName || "");
+        
+        let activeRole = parsed.role || "Admin";
+        if (activeRole === "Teacher" || activeRole === "Faculty") {
+          setUserRole("Faculty");
+        } else if (activeRole === "Student" || activeRole === "student") {
+          setUserRole("Student");
+        } else {
+          setUserRole(localStorage.getItem('leoned_demo_role') || "Admin");
+        }
+      } else {
+        setUserRole(localStorage.getItem('leoned_demo_role') || "Admin");
       }
 
       // Load appearance settings
@@ -215,56 +227,76 @@ export default function SettingsPage() {
     setDiagnosticStatus('success');
   };
 
-  const sections = [
-    { id: 'school' as const, icon: Building2, title: 'School Profile', description: 'Update school name, address, logo, and contact information.', color: 'bg-green-100 text-[#053d26]' },
-    { id: 'notifications' as const, icon: Bell, title: 'Notifications', description: 'Configure email alerts, SMS reminders, and in-app notifications.', color: 'bg-orange-100 text-[#b05e1c]' },
-    { id: 'security' as const, icon: Lock, title: 'Security', description: 'Manage passwords, two-factor authentication, and access logs.', color: 'bg-green-100 text-[#053d26]' },
-    { id: 'appearance' as const, icon: Palette, title: 'Appearance', description: 'Customize branding colors, report card templates, and themes.', color: 'bg-orange-100 text-[#b05e1c]' },
-    { id: 'localization' as const, icon: Globe, title: 'Localization', description: 'Set timezone, language preferences, and regional formatting.', color: 'bg-green-100 text-[#053d26]' },
-    { id: 'advanced' as const, icon: Settings, title: 'Advanced', description: 'API keys, data export, integrations, and developer options.', color: 'bg-gray-100 text-gray-600' },
+  const allSections = [
+    { id: 'school' as const, icon: Building2, title: 'School Profile', description: 'Update school name, address, logo, and contact information.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
+    { id: 'notifications' as const, icon: Bell, title: 'Notifications', description: 'Configure email alerts, SMS reminders, and in-app notifications.', color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
+    { id: 'security' as const, icon: Lock, title: 'Security', description: 'Manage passwords, two-factor authentication, and access logs.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
+    { id: 'appearance' as const, icon: Palette, title: 'Appearance', description: 'Customize branding colors, report card templates, and themes.', color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
+    { id: 'localization' as const, icon: Globe, title: 'Localization', description: 'Set timezone, language preferences, and regional formatting.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
   ];
 
+  const sections = userRole === "Student"
+    ? allSections.filter(s => ['security', 'appearance', 'localization'].includes(s.id))
+    : userRole === "Faculty" 
+    ? allSections.filter(s => s.id !== 'school')
+    : allSections;
+
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-10">
-      {/* Header */}
-      <div className="max-w-3xl">
-        <h1 className="text-4xl font-bold text-[#053d26] mb-3">Settings</h1>
-        <p className="text-gray-600 text-sm leading-relaxed">
-          Configure your school profile, manage notifications, and customize your LeonEd experience.
-        </p>
-      </div>
-
-      {/* Settings Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sections.map((section) => {
-          const Icon = section.icon;
-          return (
-            <button
-              key={section.id}
-              onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
-              className={`bg-white rounded-[2rem] p-8 shadow-sm border text-left transition-all group ${
-                activeSection === section.id
-                  ? 'border-[#053d26] ring-2 ring-[#053d26]/20'
-                  : 'border-gray-100 hover:border-gray-200'
-              }`}
-            >
-              <div className={`h-12 w-12 rounded-2xl ${section.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                <Icon className="h-6 w-6" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">{section.title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{section.description}</p>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Active Section Panel */}
-      {activeSection === 'school' && (
-        <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">School Profile</h2>
-            <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-5 w-5" /></button>
+    <div className="max-w-7xl mx-auto space-y-8 pb-10">
+      {activeSection === null ? (
+        <>
+          {/* Header */}
+          <div className="max-w-3xl mb-10">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#053d26] to-[#b05e1c] dark:from-green-400 dark:to-orange-400 mb-4 tracking-tight">
+              Settings & Preferences
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 text-base leading-relaxed max-w-2xl">
+              Configure your school profile, manage notifications, and customize your completely premium LeonEd experience down to the finest detail.
+            </p>
           </div>
+
+          {/* Settings Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {sections.map((section) => {
+              const Icon = section.icon;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className="relative isolate overflow-hidden bg-white/80 dark:bg-white/5 backdrop-blur-md rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-white dark:border-white/10 hover:border-[#053d26]/10 dark:hover:border-white/20 text-left transition-all duration-300 ease-out group hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 cursor-pointer flex flex-col h-full"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-50 to-white dark:from-white/10 dark:to-transparent rounded-bl-full pointer-events-none transition-transform duration-500 group-hover:scale-110" />
+                  <div className="relative z-10 flex flex-col h-full pointer-events-none">
+                    <div className={`h-14 w-14 rounded-2xl ${section.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 ease-out`}>
+                      <Icon className="h-7 w-7" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-[#053d26] dark:group-hover:text-green-400 transition-colors">{section.title}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed flex-grow">{section.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <div className="space-y-6">
+          {/* Breadcrumbs / Back button */}
+          <div>
+            <button
+              onClick={() => setActiveSection(null)}
+              className="inline-flex items-center gap-2 text-sm font-bold text-[#053d26] hover:text-[#042c1b] transition-colors cursor-pointer"
+            >
+              &larr; Back to Settings
+            </button>
+          </div>
+
+          {/* Active Section Panel */}
+          {activeSection === 'school' && (
+            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900">School Profile</h2>
+                <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"><X className="h-5 w-5" /></button>
+              </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">School Name</label>
@@ -613,6 +645,8 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
         </div>
       )}
 

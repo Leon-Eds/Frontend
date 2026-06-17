@@ -12,10 +12,21 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@custom-variant dark (&:is(.dark *));
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-jakarta), system-ui, sans-serif;
+}
+
+/* Restore the pointer (hand/palm) cursor for all buttons across the app */
+button, 
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  cursor: pointer !important;
 }
 
 /* Hide scrollbar for horizontal scroll elements */
@@ -168,6 +179,112 @@ html.dark textarea {
 html.dark .glass-panel {
   background: rgba(30, 30, 30, 0.7) !important;
 }
+
+/* Theme Accent Overrides in Dark Mode */
+html.dark .text-\[\#053d26\] {
+  color: #34d399 !important; /* Vibrant light emerald for forest default theme */
+}
+html.dark.theme-ocean .text-\[\#053d26\] {
+  color: #60a5fa !important; /* Vibrant light blue */
+}
+html.dark.theme-sunset .text-\[\#053d26\] {
+  color: #fb923c !important; /* Vibrant light orange */
+}
+html.dark.theme-royal .text-\[\#053d26\] {
+  color: #c084fc !important; /* Vibrant light purple */
+}
+
+html.dark .bg-\[\#053d26\] {
+  background-color: #059669 !important; /* Vibrant emerald for buttons */
+}
+html.dark.theme-ocean .bg-\[\#053d26\] {
+  background-color: #2563eb !important;
+}
+html.dark.theme-sunset .bg-\[\#053d26\] {
+  background-color: #ea580c !important;
+}
+html.dark.theme-royal .bg-\[\#053d26\] {
+  background-color: #7c3aed !important;
+}
+
+html.dark .hover\:bg-\[\#042c1b\]:hover {
+  background-color: #047857 !important;
+}
+html.dark.theme-ocean .hover\:bg-\[\#042c1b\]:hover {
+  background-color: #1d4ed8 !important;
+}
+html.dark.theme-sunset .hover\:bg-\[\#042c1b\]:hover {
+  background-color: #c2410c !important;
+}
+html.dark.theme-royal .hover\:bg-\[\#042c1b\]:hover {
+  background-color: #6d28d9 !important;
+}
+
+/* Badge/Tints Overrides in Dark Mode */
+html.dark .bg-green-50,
+html.dark .bg-emerald-50,
+html.dark .bg-green-100,
+html.dark .bg-emerald-100 {
+  background-color: #064e3b !important;
+  color: #a7f3d0 !important;
+}
+html.dark.theme-ocean .bg-green-50,
+html.dark.theme-ocean .bg-\[\#b2f2bb\],
+html.dark.theme-ocean .border-green-100 {
+  background-color: #1e3a8a !important;
+  color: #bfdbfe !important;
+  border-color: #1e40af !important;
+}
+html.dark.theme-sunset .bg-green-50,
+html.dark.theme-sunset .bg-\[\#b2f2bb\],
+html.dark.theme-sunset .border-green-100 {
+  background-color: #78350f !important;
+  color: #fde68a !important;
+  border-color: #92400e !important;
+}
+html.dark.theme-royal .bg-green-50,
+html.dark.theme-royal .bg-\[\#b2f2bb\],
+html.dark.theme-royal .border-green-100 {
+  background-color: #4c1d95 !important;
+  color: #e9d5ff !important;
+  border-color: #5b21b6 !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-orange-50,
+html.dark .bg-amber-100,
+html.dark .bg-orange-100 {
+  background-color: #78350f !important;
+  color: #fde68a !important;
+}
+html.dark .bg-blue-50,
+html.dark .bg-blue-100 {
+  background-color: #1e3a8a !important;
+  color: #bfdbfe !important;
+}
+html.dark .bg-red-50,
+html.dark .bg-red-100 {
+  background-color: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+
+/* Text Overrides for Badges and highlights */
+html.dark .text-green-700,
+html.dark .text-emerald-700 {
+  color: #34d399 !important;
+}
+html.dark .text-amber-700,
+html.dark .text-\[\#b05e1c\],
+html.dark .text-orange-700 {
+  color: #fbbf24 !important;
+}
+html.dark .text-blue-700 {
+  color: #60a5fa !important;
+}
+html.dark .text-red-700 {
+  color: #f87171 !important;
+}
+
 
 /* Technical dot-grid blueprint layout background */
 .blueprint-bg {

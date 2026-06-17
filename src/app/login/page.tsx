@@ -101,7 +101,7 @@ export default function LoginPage() {
   return (
     <div 
       onMouseMove={handleMouseMove}
-      className="min-h-screen bg-gradient-to-br from-[#f0fdf4] via-white to-[#fef3c7] flex flex-col items-center justify-center p-4 relative overflow-hidden"
+      className="min-h-screen bg-gradient-to-br from-[#f0fdf4] via-white to-[#fef3c7] dark:from-[#051c11] dark:via-[#111111] dark:to-[#2b1605] flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors duration-500"
     >
       {/* Decorative background meshes with drifting animations and interactive mouse parallax */}
       <div 
@@ -132,7 +132,7 @@ export default function LoginPage() {
       {/* Floating Home Button */}
       <Link
         href="/"
-        className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-gray-200/60 shadow-sm text-sm font-semibold text-gray-600 hover:text-[#053d26] hover:bg-white transition-all backdrop-blur-sm"
+        className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-black/60 border border-gray-200/60 dark:border-white/10 shadow-sm text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-[#053d26] dark:hover:text-white hover:bg-white dark:hover:bg-black transition-all backdrop-blur-sm"
       >
         <span className="text-lg leading-none">&larr;</span>
         <span>Home</span>
@@ -143,7 +143,7 @@ export default function LoginPage() {
         <LanguageSelector />
       </div>
 
-      <div className="max-w-md w-full bg-white/95 rounded-3xl shadow-xl p-10 border border-gray-100/80 backdrop-blur-md relative z-10">
+      <div className="max-w-md w-full bg-white/95 dark:bg-[#151515]/95 rounded-3xl shadow-xl dark:shadow-none p-10 border border-gray-100/80 dark:border-white/10 backdrop-blur-md relative z-10 transition-colors duration-300">
         
         {/* Logo Section */}
         <div className="flex flex-col items-center justify-center mb-8">
@@ -159,8 +159,8 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t("login.title")}</h2>
-          <p className="text-sm text-gray-500 mb-6">{t("login.subtitle")}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t("login.title")}</h2>
+          <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mb-6">{t("login.subtitle")}</p>
           
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -175,14 +175,14 @@ export default function LoginPage() {
                   <User className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   name="email"
                   id="email"
-                  autoComplete="off"
+                  autoComplete="new-password"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder={t("login.email")}
+                  placeholder={t("login.email") === "Email Address" ? "Email or Registration Number" : t("login.email")}
                   disabled={isLoading}
                 />
               </div>
@@ -197,7 +197,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   name="password"
                   id="password"
-                  autoComplete="off"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-12 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
@@ -229,13 +229,13 @@ export default function LoginPage() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-[#053d26] focus:ring-[#053d26]"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm font-semibold text-gray-700">
+                <label htmlFor="remember-me" className="ml-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
                   {t("login.remember")}
                 </label>
               </div>
 
               <div className="text-sm">
-                <Link href="/forgot-password" className="font-semibold text-gray-600 hover:text-[#053d26]">
+                <Link href="/forgot-password" className="font-semibold text-gray-600 dark:text-gray-400 hover:text-[#053d26] dark:hover:text-blue-400">
                   {t("login.forgot")}
                 </Link>
               </div>

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Calendar, ChevronRight, AlertTriangle, CheckCircle2, Loader2, Archive, Rocket, X, Plus } from 'lucide-react';
+import { Calendar, ChevronRight, AlertTriangle, CheckCircle2, Loader2, Archive, Rocket, X, Plus, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { sessionApi, AcademicSession, CreateSessionRequest, CreateTermRequest } from '@/lib/api';
 import { DatePicker } from '@/components/ui/form/DatePicker';
 
@@ -45,6 +46,22 @@ export default function SessionRollover() {
   // Rollover confirmation
   const [showRolloverConfirm, setShowRolloverConfirm] = useState(false);
   const [rolloverInput, setRolloverInput] = useState("");
+
+  // Edit session modal
+  const [editSessionId, setEditSessionId] = useState<string | null>(null);
+  const [editSessionName, setEditSessionName] = useState("");
+  const [editSessionStartDate, setEditSessionStartDate] = useState("");
+  const [editSessionEndDate, setEditSessionEndDate] = useState("");
+  const [isUpdatingSession, setIsUpdatingSession] = useState(false);
+  const [editSessionError, setEditSessionError] = useState("");
+
+  // Edit term modal
+  const [editTermId, setEditTermId] = useState<string | null>(null);
+  const [editTermNumber, setEditTermNumber] = useState<'First' | 'Second' | 'Third'>('First');
+  const [editTermStartDate, setEditTermStartDate] = useState("");
+  const [editTermEndDate, setEditTermEndDate] = useState("");
+  const [isUpdatingTerm, setIsUpdatingTerm] = useState(false);
+  const [editTermError, setEditTermError] = useState("");
 
   const fetchSessions = useCallback(async () => {
     setIsLoading(true);
@@ -117,6 +134,52 @@ export default function SessionRollover() {
       fetchSessions();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to set current term");
+    }
+  };
+
+  const handleUpdateSession = async () => {
+    if (!editSessionId || !editSessionName || !editSessionStartDate || !editSessionEndDate) {
+      setEditSessionError("All fields are required");
+      return;
+    }
+    setIsUpdatingSession(true);
+    setEditSessionError("");
+    try {
+      await sessionApi.update(editSessionId, {
+        name: editSessionName,
+        startDate: editSessionStartDate,
+        endDate: editSessionEndDate
+      });
+      setEditSessionId(null);
+      fetchSessions();
+      toast.success("Session updated successfully");
+    } catch (err) {
+      setEditSessionError(err instanceof Error ? err.message : "Failed to update session");
+    } finally {
+      setIsUpdatingSession(false);
+    }
+  };
+
+  const handleUpdateTerm = async () => {
+    if (!editTermId || !editTermStartDate || !editTermEndDate) {
+      setEditTermError("All fields are required");
+      return;
+    }
+    setIsUpdatingTerm(true);
+    setEditTermError("");
+    try {
+      await sessionApi.updateTerm(editTermId, {
+        termNumber: editTermNumber,
+        startDate: editTermStartDate,
+        endDate: editTermEndDate
+      });
+      setEditTermId(null);
+      fetchSessions();
+      toast.success("Term updated successfully");
+    } catch (err) {
+      setEditTermError(err instanceof Error ? err.message : "Failed to update term");
+    } finally {
+      setIsUpdatingTerm(false);
     }
   };
 
@@ -207,16 +270,30 @@ export default function SessionRollover() {
                               {new Date(term.startDate).toLocaleDateString()} — {new Date(term.endDate).toLocaleDateString()}
                             </p>
                           </div>
-                          {term.isCurrent ? (
-                            <span className="px-2.5 py-1 rounded-full bg-green-100 text-[#053d26] text-[10px] font-bold">Current</span>
-                          ) : (
+                          <div className="flex items-center gap-2">
+                            {term.isCurrent ? (
+                              <span className="px-2.5 py-1 rounded-full bg-green-100 text-[#053d26] text-[10px] font-bold">Current</span>
+                            ) : (
+                              <button
+                                onClick={() => handleSetCurrentTerm(term.id)}
+                                className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition-colors"
+                              >
+                                Set Current
+                              </button>
+                            )}
                             <button
-                              onClick={() => handleSetCurrentTerm(term.id)}
-                              className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition-colors"
+                              onClick={() => {
+                                setEditTermId(term.id);
+                                setEditTermNumber(term.termNumber);
+                                setEditTermStartDate(term.startDate.split('T')[0]);
+                                setEditTermEndDate(term.endDate.split('T')[0]);
+                                setEditTermError("");
+                              }}
+                              className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold hover:bg-blue-100 transition-colors"
                             >
-                              Set Current
+                              Edit
                             </button>
-                          )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -253,22 +330,46 @@ export default function SessionRollover() {
                           {session.terms?.length || 0} terms • {session.isCurrent ? 'Active' : 'Inactive'}
                         </p>
                       </div>
-                      {!session.isCurrent && (
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleSetCurrentSession(session.id)}
-                          className="px-3 py-1.5 rounded-full bg-white/20 text-white text-[10px] font-bold hover:bg-white/30 transition-colors shrink-0"
+                          onClick={() => {
+                            setEditSessionId(session.id);
+                            setEditSessionName(session.name);
+                            setEditSessionStartDate(session.startDate ? session.startDate.split('T')[0] : "");
+                            setEditSessionEndDate(session.endDate ? session.endDate.split('T')[0] : "");
+                            setEditSessionError("");
+                          }}
+                          className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold transition-colors shrink-0"
                         >
-                          Activate
+                          Edit
                         </button>
-                      )}
-                      {session.isCurrent && (
-                        <span className="px-3 py-1.5 rounded-full bg-green-400/20 text-green-200 text-[10px] font-bold shrink-0">Active</span>
-                      )}
+                        {!session.isCurrent && (
+                          <button
+                            onClick={() => handleSetCurrentSession(session.id)}
+                            className="px-3 py-1.5 rounded-full bg-white/20 text-white text-[10px] font-bold hover:bg-white/30 transition-colors shrink-0"
+                          >
+                            Activate
+                          </button>
+                        )}
+                        {session.isCurrent && (
+                          <span className="px-3 py-1.5 rounded-full bg-green-400/20 text-green-200 text-[10px] font-bold shrink-0">Active</span>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Setup Navigation Pointers (Eye-level) */}
+          <div className="mt-6 flex justify-between items-center bg-white rounded-3xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+            <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-[#053d26] font-semibold text-sm transition-colors px-4 py-2 rounded-xl hover:bg-gray-50">
+              <ArrowLeft className="w-4 h-4" /> Previous Step: Dashboard
+            </Link>
+            <Link href="/dashboard/classes" className="flex items-center gap-2 px-6 py-3 bg-[#053d26] text-white rounded-2xl font-bold text-sm hover:bg-[#042f1d] transition-colors shadow-sm">
+              Next Step: Classes & Subjects <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
           {/* Rollover Action */}
@@ -440,6 +541,107 @@ export default function SessionRollover() {
               >
                 {isAddingTerm ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 {isAddingTerm ? 'Adding...' : 'Add Term'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Session Modal */}
+      {editSessionId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEditSessionId(null)}>
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-900">Edit Academic Session</h2>
+              <button onClick={() => setEditSessionId(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-6 w-6" /></button>
+            </div>
+            {editSessionError && (
+              <div className="bg-red-50 text-red-700 rounded-2xl p-4 mb-6 text-sm">{editSessionError}</div>
+            )}
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Session Name</label>
+                <input
+                  value={editSessionName}
+                  onChange={e => setEditSessionName(e.target.value)}
+                  placeholder="e.g. 2024/2025"
+                  className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <DatePicker
+                  label="Start Date"
+                  value={editSessionStartDate}
+                  onChange={e => setEditSessionStartDate(e.target.value)}
+                />
+                <DatePicker
+                  label="End Date"
+                  value={editSessionEndDate}
+                  onChange={e => setEditSessionEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-8">
+              <button onClick={() => setEditSessionId(null)} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">Cancel</button>
+              <button
+                onClick={handleUpdateSession}
+                disabled={isUpdatingSession}
+                className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {isUpdatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {isUpdatingSession ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Term Modal */}
+      {editTermId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEditTermId(null)}>
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-900">Edit Term</h2>
+              <button onClick={() => setEditTermId(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-6 w-6" /></button>
+            </div>
+            {editTermError && (
+              <div className="bg-red-50 text-red-700 rounded-2xl p-4 mb-6 text-sm">{editTermError}</div>
+            )}
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Term</label>
+                <select
+                  value={editTermNumber}
+                  onChange={e => setEditTermNumber(e.target.value as 'First' | 'Second' | 'Third')}
+                  className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors appearance-none"
+                >
+                  <option value="First">First Term</option>
+                  <option value="Second">Second Term</option>
+                  <option value="Third">Third Term</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <DatePicker
+                  label="Start Date"
+                  value={editTermStartDate}
+                  onChange={e => setEditTermStartDate(e.target.value)}
+                />
+                <DatePicker
+                  label="End Date"
+                  value={editTermEndDate}
+                  onChange={e => setEditTermEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-8">
+              <button onClick={() => setEditTermId(null)} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">Cancel</button>
+              <button
+                onClick={handleUpdateTerm}
+                disabled={isUpdatingTerm}
+                className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {isUpdatingTerm ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {isUpdatingTerm ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>

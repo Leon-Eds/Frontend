@@ -76,6 +76,7 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
                 label="Primary Guardian Name"
+                autoComplete="off"
                 placeholder="Full Legal Name"
                 value={data.parentName || ''}
                 onChange={(e) => updateData({ parentName: e.target.value })}
@@ -99,12 +100,14 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Input
                 label="Phone Number"
+                autoComplete="off"
                 placeholder="+254 --- --- ---"
                 value={data.parentPhone || ''}
                 onChange={(e) => updateData({ parentPhone: e.target.value })}
               />
               <Input
                 label="Email Address"
+                autoComplete="off"
                 placeholder="guardian@example.com"
                 type="email"
                 value={data.parentEmail || ''}
@@ -112,6 +115,7 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
               />
               <Input
                 label="Portal Password"
+                autoComplete="new-password"
                 placeholder="Password for portal"
                 type="password"
                 value={data.password || ''}

@@ -43,8 +43,8 @@ const schoolNavigation = [
 const adminNavigation = [
   { name: "Academic overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "Students", href: "/dashboard/students", icon: GraduationCap },
+  { name: "Classes", href: "/dashboard/classes", icon: BookOpen },
   { name: "Teachers' overview", href: "/dashboard/faculty", icon: Users },
-  { name: "Students' report", href: "/dashboard/student-reports", icon: FileText },
   { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
   { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
   { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
@@ -182,7 +182,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 space-y-1 px-4 py-6 overflow-y-auto">
+      <nav className="flex-1 space-y-1 pl-4 pr-2 py-6 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
         {navigation.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/dashboard" && item.href !== "/super-admin" && pathname.startsWith(item.href));
           return (
@@ -203,19 +203,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
         })}
       </nav>
 
-      {/* Enroll CTA - Only for Schools */}
-      {role !== "superadmin" && role !== "teacher" && role !== "faculty" && role !== "student" && role !== "parent" && role !== "guardian" && demoRole === "Admin" && (
-        <div className="px-4 pb-4">
-          <Link
-            href="/dashboard/students/new"
-            onClick={handleNavClick}
-            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[#b05e1c] text-white font-bold text-sm hover:bg-[#965017] transition-colors shadow-sm"
-          >
-            <UserPlus className="h-5 w-5" />
-            {t("sidebar.enroll_new_student")}
-          </Link>
-        </div>
-      )}
 
       {/* Super Admin CTA - Quick Invite */}
       {role === "superadmin" && (

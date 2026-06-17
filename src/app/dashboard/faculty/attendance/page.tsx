@@ -23,16 +23,31 @@ export default function FacultyAttendance() {
         const user = JSON.parse(userStr);
 
         // Find the class where this user is the form teacher
-        const classes = await classApi.getAll().catch(() => []);
-        const myFormClass = Array.isArray(classes) ? classes.find(c => c.formTeacherId === user.id) : null;
+        let myFormClass: any = null;
+        try {
+          const stats = await dashboardApi.getTeacherDashboard();
+          myFormClass = (stats as any).formClass || null;
+        } catch (e) {
+          console.error("Failed to fetch teacher dashboard for attendance", e);
+        }
+        
         setFormClass(myFormClass);
 
         let classStudents: any[] = [];
         if (myFormClass) {
-          const allStudents = await studentApi.getAll().catch(() => []);
-          classStudents = (Array.isArray(allStudents) ? allStudents : []).filter((s: any) => s.classId === myFormClass.id);
+          try {
+            const allStudents = await studentApi.getAll();
+            classStudents = (Array.isArray(allStudents) ? allStudents : []).filter((s: any) => s.classId === myFormClass.id || s?.class?._id === myFormClass.id);
+          } catch (e) {
+            console.warn("getAll students failed, trying search fallback...");
+            try {
+              const searchedStudents = await studentApi.search("");
+              classStudents = (Array.isArray(searchedStudents) ? searchedStudents : []).filter((s: any) => s.classId === myFormClass.id || s?.class?._id === myFormClass.id);
+            } catch (err) {
+               console.error("Search fallback also failed", err);
+            }
+          }
         } else {
-          // If not assigned, maybe fallback to all students or show none
           classStudents = [];
         }
         setStudents(classStudents);

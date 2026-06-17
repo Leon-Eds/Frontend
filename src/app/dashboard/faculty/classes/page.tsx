@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { BookOpen, Users, Clock, ArrowRight, CheckCircle2, AlertCircle, ChevronRight, Search, Plus, Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { teacherApi, classApi } from "@/lib/api";
+import { teacherApi, classApi, dashboardApi } from "@/lib/api";
 
 interface ClassCardData {
   id: string;
@@ -35,14 +35,13 @@ export default function MyClasses() {
           setIsLoading(false);
           return;
         }
-        const user = JSON.parse(userStr);
         
         let assignments: any[] = [];
         try {
-          const teacher = await teacherApi.getById(user.id);
-          assignments = teacher.assignments || [];
+          const stats = await dashboardApi.getTeacherDashboard();
+          assignments = (stats as any).assignments || [];
         } catch (e) {
-          console.error("Failed to load teacher details", e);
+          console.error("Failed to load teacher stats", e);
         }
         
         let allClasses: any[] = [];

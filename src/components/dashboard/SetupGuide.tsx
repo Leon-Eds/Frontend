@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   CalendarClock,
@@ -38,6 +38,7 @@ export default function SetupGuide() {
     return false;
   });
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const checkSetup = useCallback(async () => {
     setIsLoading(true);
@@ -174,6 +175,13 @@ export default function SetupGuide() {
   // Find the first incomplete step
   const nextStep = steps.find(s => !s.done);
 
+  const scroll = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const scrollAmount = direction === 'left' ? -340 : 340;
+      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
   // If all done and dismissed, show a small re-open button
   if (dismissed) {
     return (
@@ -200,29 +208,45 @@ export default function SetupGuide() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-5 w-5 text-[#b05e1c]" />
-              <span className="text-xs font-bold uppercase tracking-widest text-green-200/80">Setup Guide</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-green-200/80">Institutional Setup Hub</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-1">
-              {allDone ? 'System configuration complete' : 'Get your school up and running'}
+              {allDone ? 'System configuration complete' : 'Configure your LeonEd school dashboard'}
             </h2>
             <p className="text-sm text-green-100">
               {allDone
-                ? 'All setup steps are complete. You\'re ready to go!'
-                : `Complete these steps to unlock the full power of LeonEd Africa.`}
+                ? 'All setup steps are complete. You\'re ready to manage your school!'
+                : `Progress checklist to initialize your campus profile and class tiers.`}
             </p>
           </div>
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-4 shrink-0 justify-between sm:justify-end">
             <div className="text-right hidden sm:block">
               <div className="text-3xl font-bold">{progress}%</div>
               <div className="text-xs text-green-200 font-medium">{doneCount} of {totalSteps} done</div>
             </div>
-            <button
-              onClick={handleDismiss}
-              className="text-green-200 hover:text-white transition-colors p-1 self-start"
-              title="Dismiss guide"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => scroll('left')} 
+                className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center text-white transition-colors"
+                aria-label="Scroll left"
+              >
+                &larr;
+              </button>
+              <button 
+                onClick={() => scroll('right')} 
+                className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center text-white transition-colors"
+                aria-label="Scroll right"
+              >
+                &rarr;
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="text-green-200 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10 ml-2"
+                title="Dismiss guide"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -237,97 +261,74 @@ export default function SetupGuide() {
         </div>
       </div>
 
-      {/* Steps */}
-      <div className="p-4 sm:p-6">
-        {/* Next step highlight */}
-        {nextStep && !allDone && (
-          <div className="mb-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-[#b05e1c] text-white flex items-center justify-center shrink-0">
-                  {nextStep.icon}
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-0.5">Next Step</p>
-                  <p className="text-sm font-bold text-gray-900">{nextStep.title}</p>
-                </div>
-              </div>
-              <Link
-                href={nextStep.href}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#b05e1c] text-white text-sm font-bold hover:bg-[#965017] transition-colors shadow-sm shrink-0"
-              >
-                {nextStep.ctaLabel}
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* Steps list */}
-        <div className="space-y-1">
+      {/* Carousel Deck */}
+      <div className="p-6">
+        <div 
+          ref={carouselRef}
+          className="flex gap-6 overflow-x-auto snap-x scrollbar-hide pb-4 px-1 scroll-smooth"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
           {steps.map((step, index) => {
-            const isExpanded = expandedStep === step.id;
             return (
-              <div key={step.id}>
-                <button
-                  onClick={() => setExpandedStep(isExpanded ? null : step.id)}
-                  className={`w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl transition-all text-left ${
-                    isExpanded ? 'bg-gray-50' : 'hover:bg-gray-50/50'
-                  }`}
-                >
-                  {/* Step number / check */}
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold transition-colors ${
-                    step.done
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-400'
-                  }`}>
+              <div 
+                key={step.id}
+                className={`w-[290px] sm:w-[325px] shrink-0 snap-start rounded-[2rem] border p-6 flex flex-col justify-between transition-all shadow-sm ${
+                  step.done 
+                    ? 'bg-gradient-to-br from-green-50/40 to-emerald-50/20 border-green-100 hover:shadow-md' 
+                    : 'bg-white border-gray-100 hover:border-[#b05e1c]/30 hover:shadow-md'
+                }`}
+              >
+                <div className="space-y-4">
+                  {/* Card Status Indicator */}
+                  <div className="flex justify-between items-center">
+                    <div className={`p-2.5 rounded-2xl shrink-0 ${step.done ? 'bg-green-100 text-[#053d26]' : 'bg-gray-100 text-gray-500'}`}>
+                      {step.icon}
+                    </div>
                     {step.done ? (
-                      <CheckCircle2 className="h-5 w-5" />
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-[#053d26] text-[10px] font-black uppercase tracking-wider">
+                        <CheckCircle2 className="h-3 w-3" /> Completed
+                      </span>
                     ) : (
-                      <span>{index + 1}</span>
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wider">
+                        <Clock className="h-3 w-3" /> Pending
+                      </span>
                     )}
                   </div>
 
-                  {/* Title + status */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-bold truncate ${step.done ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                        {step.title}
-                      </span>
-                      {step.count !== undefined && step.count > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-[10px] font-bold shrink-0">
-                          {step.count}
-                        </span>
-                      )}
-                    </div>
+                  {/* Title & Description */}
+                  <div className="space-y-2">
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <span className="text-xs text-gray-400 font-extrabold">{index + 1}.</span>
+                      {step.title}
+                    </h3>
+                    <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                      {step.description}
+                    </p>
                   </div>
+                </div>
 
-                  {/* Arrow */}
-                  <ChevronRight className={`h-4 w-4 text-gray-400 shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                </button>
+                {/* Footer Count Badge and CTA */}
+                <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between gap-4">
+                  {step.count !== undefined && step.count > 0 ? (
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-green-100 text-green-800 px-2 py-0.5 rounded-md">
+                      {step.count} Logged
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold text-gray-400">Step {index + 1} of {totalSteps}</span>
+                  )}
 
-                {/* Expanded detail */}
-                {isExpanded && (
-                  <div className="ml-12 sm:ml-16 pb-3 pr-4">
-                    <p className="text-sm text-gray-500 mb-3">{step.description}</p>
-                    <Link
-                      href={step.href}
-                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors ${
-                        step.done
-                          ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          : 'bg-[#053d26] text-white hover:bg-[#042c1b]'
-                      }`}
-                    >
-                      {step.ctaLabel}
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                )}
-
-                {/* Connector line */}
-                {index < steps.length - 1 && !isExpanded && (
-                  <div className="ml-7 h-1 border-l-2 border-dashed border-gray-200" />
-                )}
+                  <Link
+                    href={step.href}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 shrink-0 ${
+                      step.done 
+                        ? 'bg-white border border-gray-250 text-gray-700 hover:bg-gray-50' 
+                        : 'bg-[#053d26] text-white hover:bg-[#042c1b]'
+                    }`}
+                  >
+                    {step.ctaLabel}
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
               </div>
             );
           })}

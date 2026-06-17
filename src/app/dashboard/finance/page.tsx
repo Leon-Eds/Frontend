@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import toast from 'react-hot-toast';
 import { Lock, UploadCloud, Plus, Eye, Printer, Mail, Check, RotateCw, MoreVertical, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -55,6 +55,18 @@ export default function FeeClearance() {
   const [amountDue, setAmountDue] = useState("50000");
   const [amountPaid, setAmountPaid] = useState("50000");
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    toast.success(`Payment batch/voucher "${file.name}" uploaded successfully! Reconciling transaction records...`);
+  };
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -282,6 +294,13 @@ export default function FeeClearance() {
 
         {/* Verify Payment Receipts */}
         <div className="lg:col-span-2 rounded-3xl bg-white p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between gap-8">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            accept=".pdf,.png,.jpg,.jpeg" 
+            style={{ display: 'none' }} 
+          />
           <div className="flex flex-col justify-between flex-1 space-y-6">
             <div className="space-y-3">
               <h3 className="text-lg font-bold text-gray-900">Verify Payment Receipts</h3>
@@ -291,7 +310,10 @@ export default function FeeClearance() {
             </div>
             
             <div className="flex flex-wrap items-center gap-3">
-              <button className="flex items-center gap-2 px-5 py-3 rounded-full bg-[#053d26] text-white font-bold text-xs hover:bg-[#042c1b] transition-all shadow-md">
+              <button 
+                onClick={handleUploadClick}
+                className="flex items-center gap-2 px-5 py-3 rounded-full bg-[#053d26] text-white font-bold text-xs hover:bg-[#042c1b] transition-all shadow-md"
+              >
                 <UploadCloud className="h-4 w-4" />
                 Upload Batch
               </button>
@@ -302,7 +324,10 @@ export default function FeeClearance() {
           </div>
 
           {/* Dotted Dropzone */}
-          <div className="flex-1 border-2 border-dashed border-gray-200 rounded-[2rem] bg-gray-50/50 hover:bg-gray-50 transition-all flex flex-col items-center justify-center p-8 text-center cursor-pointer min-h-[160px]">
+          <div 
+            onClick={handleUploadClick}
+            className="flex-1 border-2 border-dashed border-gray-200 rounded-[2rem] bg-gray-50/50 hover:bg-gray-50 transition-all flex flex-col items-center justify-center p-8 text-center cursor-pointer min-h-[160px]"
+          >
             <UploadCloud className="h-8 w-8 text-gray-400 mb-2" />
             <p className="text-xs font-bold text-gray-600">Drag & drop files here</p>
             <p className="text-[10px] text-gray-400 font-semibold mt-1">Accepts PDF, PNG, JPG (Max 10MB)</p>

@@ -9,9 +9,9 @@ export default function LandingPage() {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-[#fafafa] dark:bg-[#0a0a0a] transition-colors duration-300">
       {/* Navigation */}
-      <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-gray-100">
+      <nav className="fixed w-full bg-white/80 dark:bg-black/80 backdrop-blur-md z-50 border-b border-gray-100 dark:border-white/10 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
@@ -76,9 +76,9 @@ export default function LandingPage() {
           </div>
 
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 to-transparent rounded-[3rem] transform rotate-3" />
-            <div className="relative bg-white rounded-[3rem] p-4 shadow-2xl border border-gray-100">
-              <div className="aspect-[4/3] rounded-[2.5rem] bg-gray-100 overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 dark:from-green-500/10 to-transparent rounded-[3rem] transform rotate-3" />
+            <div className="relative bg-white dark:bg-[#1a1a1a] rounded-[3rem] p-4 shadow-2xl border border-gray-100 dark:border-white/10 transition-colors duration-300">
+              <div className="aspect-[4/3] rounded-[2.5rem] bg-gray-100 dark:bg-[#0a0a0a] overflow-hidden relative">
                 {/* Hero Image */}
                 <Image
                   src="/hero-classroom.png"
@@ -88,7 +88,7 @@ export default function LandingPage() {
                   priority
                 />
                 {/* Floating element */}
-                <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 shadow-lg border border-white/20">
+                <div className="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-black/90 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 shadow-lg border border-white/20 dark:border-white/10 transition-colors duration-300">
                   <div className="h-10 w-10 rounded-xl bg-orange-100 text-[#b05e1c] flex items-center justify-center">
                     <Zap className="h-5 w-5" />
                   </div>
@@ -106,7 +106,7 @@ export default function LandingPage() {
       </section>
 
       {/* Architecture Section */}
-      <section id="architecture" className="py-24 bg-gray-50 px-4 sm:px-6 lg:px-8">
+      <section id="architecture" className="py-24 bg-gray-50 dark:bg-[#111111] px-4 sm:px-6 lg:px-8 transition-colors duration-300">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-2">

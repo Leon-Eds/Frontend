@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote, X, Loader2, AlertCircle, Trash2, CheckCircle2, ArrowLeft, Users, UserPlus, UserMinus, ArrowLeftRight, Check, BookOpenCheck } from 'lucide-react';
+import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote, X, Loader2, AlertCircle, Trash2, CheckCircle2, ArrowLeft, ArrowRight, Users, UserPlus, UserMinus, ArrowLeftRight, Check, BookOpenCheck } from 'lucide-react';
 import { classApi, subjectApi, sessionApi, studentApi, teacherApi, SchoolClass, Subject, AcademicSession, CreateClassRequest, CreateSubjectRequest, Student, Teacher } from '@/lib/api';
 import Link from 'next/link';
 
@@ -285,11 +285,21 @@ export default function AcademicFlow() {
                 <ArrowLeft className="h-5 w-5" />
               </button>
               <div>
-                <h1 className="text-3xl font-extrabold text-[#053d26]">{currentClass.name}</h1>
-                <p className="text-sm text-gray-500 mt-1">
-                  {currentClass.arm ? `Arm/Section: ${currentClass.arm} • ` : ""}
-                  {classStudents.length} Students enrolled
-                </p>
+                <h1 className="text-3xl font-extrabold text-[#053d26]">{currentClass.name} {currentClass.arm ? `(${currentClass.arm})` : ''}</h1>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
+                  <p className="text-sm text-gray-500">
+                    {currentClass.arm ? `Arm/Section: ${currentClass.arm} • ` : ""}
+                    {classStudents.length} Students enrolled
+                  </p>
+                  {(currentClass.formTeacherId || currentClass.formTeacherName) && (
+                    <>
+                      <span className="hidden sm:block text-gray-300">•</span>
+                      <p className="text-sm font-semibold text-[#053d26] bg-green-50 px-2.5 py-0.5 rounded-full inline-flex w-max items-center gap-1.5 border border-green-100">
+                        👨‍🏫 {allTeachers.find(t => t.id === currentClass.formTeacherId)?.fullName || currentClass.formTeacherName || 'Assigned'}
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -304,7 +314,7 @@ export default function AcademicFlow() {
               ) : (
                 <button
                   onClick={() => {
-                    setSelectedSubjectIds(currentClass.subjects?.map(s => s.id) || []);
+                    setSelectedSubjectIds(currentClass.subjects?.map(s => typeof s === 'string' ? s : s?.id).filter(Boolean) as string[] || []);
                     setShowAssignSubjectsModal(true);
                   }}
                   className="flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm text-sm"
@@ -319,7 +329,7 @@ export default function AcademicFlow() {
                 }}
                 className="flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-orange-100 text-[#b05e1c] font-bold hover:bg-orange-200 transition-colors shadow-sm text-sm"
               >
-                <UserPlus className="h-4 w-4" /> Form Teacher
+                <UserPlus className="h-4 w-4" /> {currentClass.formTeacherId || currentClass.formTeacherName ? 'Change Form Teacher' : 'Form Teacher'}
               </button>
             </div>
           </div>
@@ -441,40 +451,65 @@ export default function AcademicFlow() {
                     <thead>
                       <tr className="bg-gray-50/50 border-b border-gray-100">
                         <th className="py-4 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider">Subject Name</th>
+                        <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Teacher</th>
                         <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Type</th>
                         <th className="py-4 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider text-right"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {currentClass.subjects.map(sub => (
-                        <tr key={sub.id} className="hover:bg-gray-50/30 transition-colors">
-                          <td className="py-5 px-8">
-                            <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded-full bg-orange-50 text-[#b05e1c] border border-orange-100 flex items-center justify-center">
-                                <BookText className="h-4 w-4" />
+                      {(currentClass.subjects || []).map(sub => {
+                        const subObj = sub as any;
+                        const subId = typeof sub === 'string' ? sub : (subObj?.id || subObj?._id || subObj?.subjectId);
+                        if (!subId) return null;
+                        const subjectDetail = subjects.find(s => s.id === subId);
+                        const subName = subjectDetail?.name || (typeof sub === 'object' && (subObj?.name || subObj?.subjectName)) || 'Unnamed Subject';
+                        const assignedTeacher = allTeachers.find(t => 
+                          t.assignments?.some(a => a.classId === currentClass.id && a.subjectId === subId)
+                        );
+                        return (
+                          <tr key={subId} className="hover:bg-gray-50/30 transition-colors">
+                            <td className="py-5 px-8">
+                              <div className="flex items-center gap-3">
+                                <div className="h-9 w-9 rounded-full bg-orange-50 text-[#b05e1c] border border-orange-100 flex items-center justify-center">
+                                  <BookText className="h-4 w-4" />
+                                </div>
+                                <span className="font-bold text-gray-900">{subName}</span>
                               </div>
-                              <span className="font-bold text-gray-900">{sub.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-5 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Core Curriculum</td>
-                          <td className="py-5 px-8 text-right">
-                            <button
-                              onClick={() => {
-                                const newSelection = currentClass.subjects?.filter(s => s.id !== sub.id).map(s => s.id) || [];
-                                classApi.assignSubjects(currentClass.id, { subjectIds: newSelection })
-                                  .then(() => {
-                                    setSuccessMsg("Subject unassigned.");
-                                    fetchData();
-                                  })
-                                  .catch(err => toast.error(err.message));
-                              }}
-                              className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
-                            >
-                              Unassign
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="py-5 px-4">
+                              {assignedTeacher ? (
+                                <span className="text-sm font-semibold text-gray-700">{assignedTeacher.fullName}</span>
+                              ) : (
+                                <span className="text-xs text-gray-400 italic font-medium">No teacher assigned</span>
+                              )}
+                            </td>
+                            <td className="py-5 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Core Curriculum</td>
+                            <td className="py-5 px-8 text-right">
+                              <button
+                                onClick={() => {
+                                  const newSelection = currentClass.subjects?.filter(s => {
+                                    const sObj = s as any;
+                                    const sId = typeof s === 'string' ? s : (sObj?.id || sObj?._id || sObj?.subjectId);
+                                    return sId !== subId;
+                                  }).map(s => {
+                                    const sObj = s as any;
+                                    return typeof s === 'string' ? s : (sObj?.id || sObj?._id || sObj?.subjectId);
+                                  }).filter(Boolean) as string[] || [];
+                                  classApi.assignSubjects(currentClass.id, { subjectIds: newSelection })
+                                    .then(() => {
+                                      setSuccessMsg("Subject unassigned.");
+                                      fetchData();
+                                    })
+                                    .catch(err => toast.error(err.message));
+                                }}
+                                className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
+                              >
+                                Unassign
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -609,24 +644,37 @@ export default function AcademicFlow() {
                       </div>
                       
                       <div className="mb-6">
-                        <h3 className="text-lg font-bold text-gray-900">{cls.name}</h3>
-                        <p className="text-xs text-gray-500">
-                          {cls.arm ? `Arm: ${cls.arm} • ` : ''}{cls.studentCount ?? 0} Students
-                        </p>
+                        <h3 className="text-lg font-bold text-gray-900">{cls.name} {cls.arm ? `(${cls.arm})` : ''}</h3>
+                        <div className="flex flex-col items-start gap-1">
+                          <p className="text-xs text-gray-500">
+                            {cls.arm ? `Arm: ${cls.arm} • ` : ''}{cls.studentCount ?? 0} Students
+                          </p>
+                          {(cls.formTeacherId || cls.formTeacherName) && (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-[#053d26] text-[10px] font-bold uppercase tracking-wide border border-green-100">
+                              👨‍🏫 {allTeachers.find(t => t.id === cls.formTeacherId)?.fullName?.split(' ')[0] || cls.formTeacherName?.split(' ')[0] || 'Assigned'}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {cls.subjects && cls.subjects.length > 0 && (
                         <div className="space-y-2 mb-6 flex-1">
-                          {cls.subjects.slice(0, 3).map(subject => (
-                            <div key={subject.id} className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm">
-                                  <BookText className="h-3.5 w-3.5 text-gray-600" />
+                          {cls.subjects.slice(0, 3).map(subject => {
+                            const subObj = subject as any;
+                            const subId = typeof subject === 'string' ? subject : (subObj?.id || subObj?._id || subObj?.subjectId);
+                            const subjectDetail = subjects.find(s => s.id === subId);
+                            const subName = subjectDetail?.name || (typeof subject === 'object' && (subObj?.name || subObj?.subjectName)) || 'Unnamed Subject';
+                            return (
+                              <div key={subId} className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                    <BookText className="h-3.5 w-3.5 text-gray-600" />
+                                  </div>
+                                  <span className="text-sm font-bold text-gray-900">{subName}</span>
                                 </div>
-                                <span className="text-sm font-bold text-gray-900">{subject.name}</span>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                           {cls.subjects.length > 3 && (
                             <p className="text-xs text-gray-400 text-center">+{cls.subjects.length - 3} more subjects</p>
                           )}
@@ -674,8 +722,11 @@ export default function AcademicFlow() {
                             {cls.name.slice(0, 3).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{cls.name}</div>
-                            <div className="text-xs text-gray-500">{cls.arm ? `${cls.arm} • ` : ''}{cls.studentCount ?? 0} students • {cls.subjects?.length ?? 0} subjects</div>
+                            <div className="font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{cls.name} {cls.arm ? `(${cls.arm})` : ''}</div>
+                            <div className="text-xs text-gray-500">
+                              {cls.arm ? `${cls.arm} • ` : ''}{cls.studentCount ?? 0} students • {cls.subjects?.length ?? 0} subjects
+                              {(cls.formTeacherId || cls.formTeacherName) && ` • 👨‍🏫 ${allTeachers.find(t => t.id === cls.formTeacherId)?.fullName || cls.formTeacherName || 'Assigned'}`}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -700,6 +751,16 @@ export default function AcademicFlow() {
               )}
             </div>
           )}
+
+          {/* Setup Navigation Pointers (Eye-level) */}
+          <div className="mt-6 flex justify-between items-center bg-white rounded-3xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+            <Link href="/dashboard/rollover" className="flex items-center gap-2 text-gray-500 hover:text-[#053d26] font-semibold text-sm transition-colors px-4 py-2 rounded-xl hover:bg-gray-50">
+              <ArrowLeft className="w-4 h-4" /> Previous Step: Session
+            </Link>
+            <Link href="/dashboard/faculty" className="flex items-center gap-2 px-6 py-3 bg-[#053d26] text-white rounded-2xl font-bold text-sm hover:bg-[#042f1d] transition-colors shadow-sm">
+              Next Step: Teachers <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </>
       )}
 

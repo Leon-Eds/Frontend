@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Award, CheckCircle2, TrendingUp, AlertCircle, FileText, Star, GraduationCap, Loader2 } from "lucide-react";
-import { dashboardApi, resultApi, sessionApi } from "@/lib/api";
+import { Award, CheckCircle2, TrendingUp, AlertCircle, FileText, Star, GraduationCap, Loader2, Download } from "lucide-react";
+import { dashboardApi, resultApi, sessionApi, feeApi, reportCardApi } from "@/lib/api";
+import toast from 'react-hot-toast';
 
 interface SubjectGrade {
   name: string;
@@ -18,6 +19,7 @@ export default function StudentPerformanceRecord() {
   const [grades, setGrades] = useState<SubjectGrade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   
   const [allTerms, setAllTerms] = useState<any[]>([]);
   const [selectedTermId, setSelectedTermId] = useState<string>('');
@@ -108,6 +110,52 @@ export default function StudentPerformanceRecord() {
     
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!selectedPaymentTermId) return;
+    const fetchTermFees = async () => {
+      try {
+        const userStr = localStorage.getItem("leoned_user");
+        if (!userStr) return;
+        const user = JSON.parse(userStr);
+        const feesData = await feeApi.getStudentFees(user.id, selectedPaymentTermId);
+        const data = (feesData as any)?.data || feesData || {};
+        const feeStatus = data.status || (Number(data.balance || 0) <= 0 ? "Cleared" : "Unpaid");
+        setStudentInfo(prev => ({
+          ...prev,
+          status: feeStatus
+        }));
+      } catch (err) {
+        console.error("Failed to fetch term fee status", err);
+      }
+    };
+    fetchTermFees();
+  }, [selectedPaymentTermId]);
+
+  const handleDownloadResults = async () => {
+    try {
+      const userStr = localStorage.getItem("leoned_user");
+      if (!userStr) return;
+      const user = JSON.parse(userStr);
+      
+      setIsDownloading(true);
+      const blob = await reportCardApi.downloadPdf(user.id, selectedTermId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Report_Card_${studentInfo.name.replace(/\s+/g, "_")}_Term_${selectedTermId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Results downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to download results");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const handleTermChange = async (newTermId: string) => {
     setSelectedTermId(newTermId);
@@ -249,17 +297,33 @@ export default function StudentPerformanceRecord() {
                 <FileText className="h-5 w-5 text-[#b05e1c]" />
                 Subject Performance Ledger
               </h2>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Term:</span>
-                <select
-                  value={selectedTermId}
-                  onChange={(e) => handleTermChange(e.target.value)}
-                  className="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-[#b05e1c] focus:border-[#b05e1c] block p-2.5 font-semibold transition-colors"
-                >
-                  {allTerms.map(t => (
-                    <option key={t.id} value={t.id}>Term {t.termNumber || t.name} {t.sessionName}</option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Term:</span>
+                  <select
+                    value={selectedTermId}
+                    onChange={(e) => handleTermChange(e.target.value)}
+                    className="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-[#b05e1c] focus:border-[#b05e1c] block p-2.5 font-semibold transition-colors"
+                  >
+                    {allTerms.map(t => (
+                      <option key={t.id} value={t.id}>Term {t.termNumber || t.name} {t.sessionName}</option>
+                    ))}
+                  </select>
+                </div>
+                {grades.length > 0 && (
+                  <button
+                    onClick={handleDownloadResults}
+                    disabled={isDownloading}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow-sm disabled:opacity-50 shrink-0"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    {isDownloading ? "Downloading..." : "Download Results"}
+                  </button>
+                )}
               </div>
             </div>
 

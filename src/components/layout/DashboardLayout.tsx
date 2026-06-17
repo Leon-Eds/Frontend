@@ -61,7 +61,7 @@ export default function DashboardLayout({
         )}
 
         <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-          <div className={isOverview || isStudent ? "" : "lg:hidden"}>
+          <div className={isOverview || isStudent ? "" : "md:hidden"}>
             <Header onMenuToggle={() => setSidebarOpen(true)} isStudent={isStudent} />
           </div>
           <main className="flex-1 overflow-y-auto blueprint-bg flex flex-col">
@@ -69,14 +69,14 @@ export default function DashboardLayout({
               {children}
             </div>
             {/* Footer */}
-            <footer className="border-t border-gray-200 bg-white/60 backdrop-blur-sm px-4 sm:px-8 py-6 mt-auto shrink-0">
+            <footer className="border-t border-gray-200 dark:border-white/10 bg-white/60 dark:bg-black/20 backdrop-blur-sm px-4 sm:px-8 py-6 mt-auto shrink-0 transition-colors">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4 max-w-7xl mx-auto">
-                <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
+                <p className="text-xs text-gray-400 dark:text-[#9ca3af] font-medium uppercase tracking-wider">
                   © 2026 LeonEd Africa. Academic Architect System.
                 </p>
-                <div className="flex gap-6 text-xs text-gray-400 font-medium">
-                  <Link href="/privacy" className="hover:text-gray-600 transition-colors uppercase tracking-wider">Privacy Protocol</Link>
-                  <Link href="/support" className="hover:text-gray-600 transition-colors uppercase tracking-wider">System Support</Link>
+                <div className="flex gap-6 text-xs text-gray-400 dark:text-[#9ca3af] font-medium">
+                  <Link href="/privacy" className="hover:text-gray-600 dark:hover:text-white transition-colors uppercase tracking-wider">Privacy Protocol</Link>
+                  <Link href="/support" className="hover:text-gray-600 dark:hover:text-white transition-colors uppercase tracking-wider">System Support</Link>
                 </div>
               </div>
             </footer>

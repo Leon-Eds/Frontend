@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldAlert, Lock, User, Mail, Key, Loader2, CheckCircle2 } from "lucide-react";
+import { ShieldAlert, Lock, User, Mail, Key, Loader2, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,8 @@ export default function SuperAdminOnboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSecretKey, setShowSecretKey] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,10 +33,34 @@ export default function SuperAdminOnboarding() {
     setIsLoading(true);
     try {
       await authApi.createSuperAdmin(formData);
+
+      // Auto-login the newly created super admin
+      try {
+        const loginRes = await authApi.login({
+          email: formData.email,
+          password: formData.password,
+        }) as any;
+        
+        const token = loginRes.token;
+        const refreshToken = loginRes.refreshToken;
+        const tokenExpiry = loginRes.tokenExpiry;
+        const userObj = loginRes.user || {};
+        if (!userObj.role) userObj.role = 'superadmin';
+
+        if (token) {
+          localStorage.setItem("leoned_token", token);
+          if (refreshToken) localStorage.setItem("leoned_refresh_token", refreshToken);
+          if (tokenExpiry) localStorage.setItem("leoned_token_expiry", tokenExpiry);
+          localStorage.setItem("leoned_user", JSON.stringify(userObj));
+        }
+      } catch (loginErr) {
+        console.error("Auto-login failed:", loginErr);
+      }
+
       setIsSuccess(true);
       setTimeout(() => {
-        router.push("/login");
-      }, 3000);
+        router.push("/super-admin");
+      }, 2000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Authorization failed. Check your secret key.");
     } finally {
@@ -51,7 +77,7 @@ export default function SuperAdminOnboarding() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Authority Granted</h2>
           <p className="text-gray-500 mb-8">
-            The Super Admin account has been successfully initialized. You are being redirected to the login terminal.
+            The Super Admin account has been successfully initialized. You are being redirected to the dashboard.
           </p>
           <div className="flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-[#053d26]" />
@@ -81,7 +107,7 @@ export default function SuperAdminOnboarding() {
             </p>
           </div>
 
-          <form className="p-8 space-y-6" onSubmit={handleSubmit}>
+          <form className="p-8 space-y-6" onSubmit={handleSubmit} autoComplete="off">
             {error && (
               <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-sm text-red-600 space-y-3">
                 <div className="flex items-start gap-3">
@@ -108,6 +134,7 @@ export default function SuperAdminOnboarding() {
                     type="text"
                     required
                     placeholder="John Doe"
+                    autoComplete="off"
                     className="w-full bg-gray-50 border-gray-100 rounded-2xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all text-gray-900"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -123,6 +150,7 @@ export default function SuperAdminOnboarding() {
                     type="email"
                     required
                     placeholder="admin@leoned.africa"
+                    autoComplete="off"
                     className="w-full bg-gray-50 border-gray-100 rounded-2xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all text-gray-900"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -136,13 +164,21 @@ export default function SuperAdminOnboarding() {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input 
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   placeholder="••••••••••••"
-                  className="w-full bg-gray-50 border-gray-100 rounded-2xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all text-gray-900"
+                  autoComplete="new-password"
+                  className="w-full bg-gray-50 border-gray-100 rounded-2xl py-3 pl-12 pr-12 focus:ring-2 focus:ring-[#053d26] transition-all text-gray-900"
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 cursor-pointer flex items-center justify-center"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
 
@@ -151,13 +187,21 @@ export default function SuperAdminOnboarding() {
               <div className="relative">
                 <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-400" />
                 <input 
-                  type="password"
+                  type={showSecretKey ? "text" : "password"}
                   required
                   placeholder="Input the super secret key..."
-                  className="w-full bg-orange-50/50 border-orange-100 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-orange-500 transition-all font-mono text-gray-900"
+                  autoComplete="new-password"
+                  className="w-full bg-orange-50/50 border-orange-100 rounded-2xl py-4 pl-12 pr-12 focus:ring-2 focus:ring-orange-500 transition-all font-mono text-gray-900"
                   value={formData.secretKey}
                   onChange={(e) => setFormData({...formData, secretKey: e.target.value})}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowSecretKey(!showSecretKey)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-600 transition-colors p-1 cursor-pointer flex items-center justify-center"
+                >
+                  {showSecretKey ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
               <p className="text-[10px] text-gray-400 italic ml-1">
                 * Authorization will fail if the secret key does not match the system backend.
