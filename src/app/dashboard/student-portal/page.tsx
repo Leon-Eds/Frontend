@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Award, CheckCircle2, TrendingUp, AlertCircle, FileText, Star, GraduationCap, Loader2, Download } from "lucide-react";
-import { dashboardApi, resultApi, sessionApi, feeApi, reportCardApi } from "@/lib/api";
+import { dashboardApi, resultApi, sessionApi, feeApi, reportCardApi, studentApi } from "@/lib/api";
 import toast from 'react-hot-toast';
 
 interface SubjectGrade {
@@ -33,7 +33,8 @@ export default function StudentPerformanceRecord() {
     rank: "--",
     attendance: "96%",
     status: "Cleared",
-    termLabel: "Current Term"
+    termLabel: "Current Term",
+    image: null as string | null
   });
 
   useEffect(() => {
@@ -65,12 +66,32 @@ export default function StudentPerformanceRecord() {
         setSelectedTermId(termId);
         setSelectedPaymentTermId(termId);
 
-        const [dash, resultsData] = await Promise.all([
+        const [dash, resultsData, studentProfile] = await Promise.all([
           dashboardApi.getStudentDashboard().catch(() => null),
-          resultApi.getMyResults(termId).catch(() => [])
+          resultApi.getMyResults(termId).catch(() => []),
+          studentApi.getById(user.id || user._id || user.studentId).catch(() => null)
         ]);
 
         const sDash = (dash as any)?.data || dash || {};
+        const profile = (studentProfile as any)?.data || studentProfile || {};
+        
+        if (typeof window !== 'undefined') {
+          (window as any).debug_sDash = sDash;
+        }
+        
+        // Deep extract profile picture from all possible locations
+        const profilePic = 
+          profile.profilePictureUrl || profile.imageUrl || profile.photo || profile.image || 
+          user.profilePictureUrl || user.imageUrl || user.photo || user.image || 
+          user.student?.profilePictureUrl || user.student?.imageUrl || user.student?.photo || user.student?.image ||
+          user.teacher?.profilePictureUrl || user.teacher?.imageUrl || user.teacher?.photo || user.teacher?.image || null;
+        
+        if (profilePic && (!user.profilePictureUrl && !user.imageUrl && !user.image)) {
+          const updatedUser = { ...user, profilePictureUrl: profilePic };
+          localStorage.setItem("leoned_user", JSON.stringify(updatedUser));
+          // Dispatch a custom event so the Header can pick up the change
+          window.dispatchEvent(new Event("storage"));
+        }
         
         setStudentInfo({
           name: user.fullName || user.name || "Student",
@@ -80,7 +101,8 @@ export default function StudentPerformanceRecord() {
           rank: sDash?.rank || "--",
           attendance: sDash?.attendance || "0%",
           status: sDash?.feeStatus || sDash?.status || "Pending",
-          termLabel: currentTerm ? `Term ${(currentTerm as any).termNumber || (currentTerm as any).name || ''} ${currentSession?.name || ''}` : "Current Term"
+          termLabel: currentTerm ? `Term ${(currentTerm as any).termNumber || (currentTerm as any).name || ''} ${currentSession?.name || ''}` : "Current Term",
+          image: profilePic
         });
 
         const rData = (resultsData as any)?.data || resultsData;
@@ -232,8 +254,12 @@ export default function StudentPerformanceRecord() {
             </p>
           </div>
           <div className="flex items-center gap-4 shrink-0 bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10">
-            <div className="h-12 w-12 rounded-full bg-[#b05e1c] text-white font-bold flex items-center justify-center text-lg shadow-inner">
-              {studentInfo.initials}
+            <div className="h-12 w-12 rounded-full bg-[#b05e1c] text-white font-bold flex items-center justify-center text-lg shadow-inner overflow-hidden border-2 border-white/20">
+              {studentInfo.image ? (
+                <img src={studentInfo.image} alt={studentInfo.name} className="h-full w-full object-cover" />
+              ) : (
+                studentInfo.initials
+              )}
             </div>
             <div>
               <p className="font-bold text-sm">{studentInfo.name}</p>
@@ -374,6 +400,7 @@ export default function StudentPerformanceRecord() {
         </div>
 
       </div>
+
     </div>
   );
 }

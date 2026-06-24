@@ -16,7 +16,7 @@ import {
   UserPlus,
   GraduationCap
 } from "lucide-react";
-import { authApi, formatDate } from "@/lib/api";
+import { authApi, formatDate, schoolApi, teacherApi, studentApi } from "@/lib/api";
 import toast from "react-hot-toast";
 
 export default function GlobalUsersManagement() {
@@ -174,9 +174,9 @@ export default function GlobalUsersManagement() {
     const promise = (async () => {
       if (isSchoolAdmin) {
         const schoolId = user.id.replace('_admin', '');
-        await schoolApi.toggleStatus(schoolId);
+        await schoolApi.toggleStatus(schoolId, user.isActive !== false ? false : true);
       } else if (isTeacher) {
-        await teacherApi.updateStatus(user.id);
+        await teacherApi.updateStatus(user.id, user.isActive !== false ? false : true);
       } else if (isStudent) {
         await studentApi.update(user.id, { 
           status: user.isActive !== false ? 'Suspended' : 'Active' 

@@ -204,180 +204,136 @@ export default function SuperAdminDashboard() {
   const displayTotalSchools = isSyncingSchools ? "0" : String(reportedTotalSchools);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto text-gray-900">
-      {/* Premium Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-gray-100">
-        <div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-widest text-[#053d26] bg-[#053d26]/5 border border-[#053d26]/10 mb-3">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#053d26] animate-pulse-green"></span>
-            System Admin Command Center
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-            Platform Overview
-            <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 uppercase tracking-widest hidden sm:inline-block">v1.2.0-Alpha</span>
-          </h1>
-          <p className="text-sm text-gray-500 font-medium mt-1.5">
-            Welcome back, <span className="font-bold text-gray-700">{user?.name}</span> • Security Level: <span className="font-extrabold text-rose-700 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded text-[9px] uppercase tracking-wider">Root Administrator</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <Link 
-            href="/super-admin/schools/new"
-            className="flex items-center gap-2 bg-gradient-to-r from-[#053d26] to-[#095838] text-white px-6 py-3.5 rounded-full font-bold text-xs uppercase tracking-wider hover:from-[#042c1b] hover:to-[#053d26] transition-all shadow-[0_4px_20px_rgba(5,61,38,0.25)] hover:shadow-[0_8px_30px_rgba(5,61,38,0.35)] transform hover:-translate-y-0.5 active:translate-y-0 duration-300"
-          >
-            <Plus className="h-4.5 w-4.5" />
-            Register School
-          </Link>
-        </div>
-      </div>
+    <div className="relative min-h-[80vh] w-full text-gray-900 pb-12">
+      {/* Ambient Background Glows */}
+      <div className="pointer-events-none absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-[#053d26]/[0.03] rounded-full blur-[120px]" />
+      <div className="pointer-events-none absolute top-[40%] -right-[10%] w-[40%] h-[60%] bg-[#b05e1c]/[0.03] rounded-full blur-[120px]" />
 
-      {/* Premium Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        {/* Total Institutions */}
-        <div className="group relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-white to-[#053d26]/[0.02] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.015)] border border-gray-100 hover:border-[#053d26]/20 transition-all duration-300 hover:shadow-[0_20px_50px_rgba(5,61,38,0.05)] hover:-translate-y-1">
-          <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-[#053d26]/5 to-transparent rounded-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-125" />
-          <div className="relative z-10 flex flex-col h-full justify-between min-h-[140px]">
-            <div className="flex justify-between items-start">
-              <div className="h-12 w-12 rounded-2xl bg-[#053d26]/10 flex items-center justify-center text-[#053d26] group-hover:bg-[#053d26] group-hover:text-white transition-all duration-300 shadow-sm border border-[#053d26]/5">
-                <School className="h-6 w-6" />
-              </div>
-              {isSyncingSchools ? (
-                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[9px] font-extrabold text-amber-700 uppercase tracking-widest border border-amber-100 animate-pulse">
-                  Syncing
-                </span>
-              ) : (
-                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-extrabold text-emerald-700 uppercase tracking-widest border border-emerald-100">
-                  Onboarded
-                </span>
-              )}
-            </div>
-            <div className="mt-8 space-y-1">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gray-400">Total Institutions</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-black text-gray-900 tracking-tight">{displayTotalSchools}</p>
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">schools</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Global Students */}
-        <div className="group relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-white to-blue-500/[0.02] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.015)] border border-gray-100 hover:border-blue-500/20 transition-all duration-300 hover:shadow-[0_20px_50px_rgba(59,130,246,0.05)] hover:-translate-y-1">
-          <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-blue-500/5 to-transparent rounded-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-125" />
-          <div className="relative z-10 flex flex-col h-full justify-between min-h-[140px]">
-            <div className="flex justify-between items-start">
-              <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm border border-blue-500/5">
-                <Users className="h-6 w-6" />
-              </div>
-              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-extrabold text-blue-700 uppercase tracking-widest border border-blue-100">
-                +14.2% MoM
+      <div className="relative z-10 space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        {/* Command Center Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-gray-200/50">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#053d26]/5 border border-[#053d26]/10 mb-4 backdrop-blur-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#053d26] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#053d26]"></span>
               </span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#053d26]">Root Command Center</span>
             </div>
-            <div className="mt-8 space-y-1">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gray-400">Global Students</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-black text-gray-900 tracking-tight">{totalStudents.toLocaleString()}</p>
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">active</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Global Teachers */}
-        <div className="group relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-white to-emerald-500/[0.02] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.015)] border border-gray-100 hover:border-emerald-500/20 transition-all duration-300 hover:shadow-[0_20px_50px_rgba(16,185,129,0.05)] hover:-translate-y-1">
-          <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-emerald-500/5 to-transparent rounded-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-125" />
-          <div className="relative z-10 flex flex-col h-full justify-between min-h-[140px]">
-            <div className="flex justify-between items-start">
-              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 shadow-sm border border-emerald-500/5">
-                <Users className="h-6 w-6" />
-              </div>
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-extrabold text-emerald-700 uppercase tracking-widest border border-emerald-100">
-                Verified
+            <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight flex items-center gap-4">
+              Platform Overview
+              <span className="text-[10px] font-bold text-gray-500 bg-gray-100/80 backdrop-blur-sm px-2.5 py-1 rounded-md border border-gray-200/80 uppercase tracking-widest hidden sm:inline-block shadow-sm">v1.2.0-Alpha</span>
+            </h1>
+            <p className="text-sm text-gray-500 font-medium mt-3 flex items-center gap-2">
+              Welcome back, <span className="font-extrabold text-gray-800">{user?.name}</span> 
+              <span className="text-gray-300">•</span>
+              <span className="inline-flex items-center gap-1.5 font-extrabold text-rose-700 bg-rose-50 border border-rose-100/50 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider shadow-sm">
+                <ShieldAlert className="h-3 w-3" />
+                Root Administrator
               </span>
-            </div>
-            <div className="mt-8 space-y-1">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gray-400">Global Teachers</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-black text-gray-900 tracking-tight">{totalTeachers.toLocaleString()}</p>
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">active</span>
-              </div>
-            </div>
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link 
+              href="/super-admin/schools/new"
+              className="group relative flex items-center gap-2 bg-gradient-to-br from-[#053d26] to-[#042c1b] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.1em] overflow-hidden transition-all duration-300 shadow-[0_8px_30px_rgba(5,61,38,0.25)] hover:shadow-[0_12px_40px_rgba(5,61,38,0.4)] hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+              <Plus className="h-5 w-5 relative z-10" />
+              <span className="relative z-10">Register School</span>
+            </Link>
           </div>
         </div>
 
-        {/* Active Subscriptions */}
-        <div className="group relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-white to-orange-500/[0.02] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.015)] border border-gray-100 hover:border-orange-500/20 transition-all duration-300 hover:shadow-[0_20px_50px_rgba(249,115,22,0.05)] hover:-translate-y-1">
-          <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-orange-500/5 to-transparent rounded-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-125" />
-          <div className="relative z-10 flex flex-col h-full justify-between min-h-[140px]">
-            <div className="flex justify-between items-start">
-              <div className="h-12 w-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all duration-300 shadow-sm border border-orange-500/5">
-                <CreditCard className="h-6 w-6" />
+        {/* Bento Grid Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          {/* Hero Stat: Total Institutions (Spans 2 cols, 2 rows logically if we wanted, but we'll do 2 cols) */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-2 group relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#053d26] to-[#031d12] p-8 shadow-[0_20px_50px_rgba(5,61,38,0.2)] transition-all duration-500 hover:shadow-[0_25px_60px_rgba(5,61,38,0.3)] hover:-translate-y-1">
+            <div className="absolute top-0 right-0 h-64 w-64 bg-white/5 rounded-full -mr-24 -mt-24 transition-transform duration-700 group-hover:scale-150 blur-2xl" />
+            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/20 to-transparent" />
+            <div className="relative z-10 flex flex-col h-full justify-between min-h-[180px]">
+              <div className="flex justify-between items-start">
+                <div className="h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/10 shadow-inner group-hover:bg-white/20 transition-all duration-300">
+                  <School className="h-7 w-7" />
+                </div>
+                {isSyncingSchools ? (
+                  <span className="rounded-full bg-amber-500/20 px-3 py-1.5 text-[10px] font-black text-amber-200 uppercase tracking-widest border border-amber-500/30 animate-pulse backdrop-blur-md">
+                    Syncing
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-emerald-500/20 px-3 py-1.5 text-[10px] font-black text-emerald-200 uppercase tracking-widest border border-emerald-500/30 backdrop-blur-md">
+                    Network Online
+                  </span>
+                )}
               </div>
-              <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[9px] font-extrabold text-orange-700 uppercase tracking-widest border border-orange-100">
-                Billing Live
-              </span>
-            </div>
-            <div className="mt-8 space-y-1">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gray-400">Active Plans</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-black text-gray-900 tracking-tight">{activeSubscriptions}</p>
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">licences</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* System Status */}
-        <div className="group relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-white to-purple-500/[0.02] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.015)] border border-gray-100 hover:border-purple-500/20 transition-all duration-300 hover:shadow-[0_20px_50px_rgba(168,85,247,0.05)] hover:-translate-y-1">
-          <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-purple-500/5 to-transparent rounded-full -mr-16 -mt-16 transition-transform duration-500 group-hover:scale-125" />
-          <div className="relative z-10 flex flex-col h-full justify-between min-h-[140px]">
-            <div className="flex justify-between items-start">
-              <div className="h-12 w-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all duration-300 shadow-sm border border-purple-500/5">
-                <TrendingUp className="h-6 w-6" />
-              </div>
-              <span className="rounded-full bg-purple-50 px-2.5 py-1 text-[9px] font-extrabold text-purple-700 uppercase tracking-widest border border-purple-100">
-                Live Status
-              </span>
-            </div>
-            <div className="mt-8 space-y-1">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gray-400">System Telemetry</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-3xl font-black text-gray-900 tracking-tight">{platformGrowth}</p>
-                <span className="text-[10px] text-emerald-500 font-extrabold flex items-center gap-0.5 uppercase tracking-wider">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block animate-ping"></span> 100%
-                </span>
+              <div className="mt-8">
+                <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[#053d26] mb-2 bg-emerald-400 inline-block px-2 py-0.5 rounded-md">Total Institutions</p>
+                <div className="flex items-baseline gap-3">
+                  <p className="text-6xl font-black text-white tracking-tighter drop-shadow-lg">{displayTotalSchools}</p>
+                  <span className="text-xs text-emerald-200/80 font-bold uppercase tracking-widest">onboarded</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          {/* Recently Registered Schools Card */}
-          <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-gray-100 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#053d26] via-[#b05e1c] to-[#053d26]/10" />
+          {/* Regular Stats */}
+          {[
+            { label: "Global Students", value: totalStudents.toLocaleString(), unit: "active", icon: Users, color: "blue", trend: "+14.2% MoM" },
+            { label: "Global Teachers", value: totalTeachers.toLocaleString(), unit: "verified", icon: Briefcase, color: "emerald", trend: "Live" },
+            { label: "Active Subscriptions", value: activeSubscriptions, unit: "licences", icon: CreditCard, color: "orange", trend: "Billing" },
+            { label: "System Telemetry", value: platformGrowth, unit: "status", icon: Server, color: "purple", trend: "100% Uptime" }
+          ].map((stat, i) => (
+            <div key={i} className={`group relative overflow-hidden rounded-[2rem] bg-white/60 backdrop-blur-xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-white/80 transition-all duration-300 hover:bg-white hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)] hover:-translate-y-1`}>
+              <div className={`absolute -right-10 -top-10 h-32 w-32 bg-${stat.color}-500/5 rounded-full blur-2xl transition-transform duration-500 group-hover:scale-150 group-hover:bg-${stat.color}-500/10`} />
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div className="flex justify-between items-start mb-6">
+                  <div className={`h-12 w-12 rounded-2xl bg-${stat.color}-50 flex items-center justify-center text-${stat.color}-600 border border-${stat.color}-100/50 group-hover:bg-${stat.color}-500 group-hover:text-white transition-colors duration-300 shadow-sm`}>
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <span className={`rounded-full bg-${stat.color}-50 px-2 py-1 text-[9px] font-black text-${stat.color}-700 uppercase tracking-widest border border-${stat.color}-100/50`}>
+                    {stat.trend}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-gray-400 mb-1">{stat.label}</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="text-3xl font-black text-gray-900 tracking-tight">{stat.value}</p>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{stat.unit}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Floating Table Section */}
+        <div className="space-y-6 pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                <Database className="h-6 w-6 text-[#b05e1c]" />
+                Institution Registry
+              </h2>
+              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mt-1">Real-time cluster node monitoring</p>
+            </div>
+            <Link href="/super-admin/schools" className="group text-[11px] font-black uppercase tracking-widest text-[#053d26] flex items-center gap-2 bg-[#053d26]/5 hover:bg-[#053d26]/10 px-5 py-2.5 rounded-full transition-all duration-300 border border-[#053d26]/10">
+              View Entire Registry
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          <div className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-6 sm:p-8 shadow-[0_8px_40px_rgba(0,0,0,0.03)] border border-white/80 overflow-hidden relative">
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#053d26] via-[#b05e1c] to-purple-600" />
             
-            <div className="flex items-center justify-between mb-8 relative z-10">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 tracking-tight">Recently Registered Schools</h2>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">Latest institutions onboarded to the system</p>
-              </div>
-              <Link href="/super-admin/schools" className="text-xs font-bold text-[#053d26] flex items-center gap-1 bg-[#053d26]/5 hover:bg-[#053d26]/10 px-3.5 py-2 rounded-full transition-all duration-300">
-                View All <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-
-            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 relative z-10">
-              <table className="w-full text-left border-separate border-spacing-y-3 min-w-[700px]">
+            <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+              <table className="w-full text-left border-separate border-spacing-y-4 min-w-[800px]">
                 <thead>
                   <tr className="text-gray-400">
-                    <th className="pb-3 pl-4 font-bold text-[9px] uppercase tracking-[0.25em]">School Identity</th>
-                    <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">Cluster Owner</th>
-                    <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">Usage Matrix</th>
-                    <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">Service Plan</th>
-                    <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] pr-4 text-right">Node Status</th>
+                    <th className="pb-2 pl-4 font-black text-[10px] uppercase tracking-[0.25em]">School Identity</th>
+                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] px-4">Cluster Owner</th>
+                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] px-4">Usage Matrix</th>
+                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] px-4">Service Plan</th>
+                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] pr-4 text-right">Node Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -388,75 +344,78 @@ export default function SuperAdminDashboard() {
                     const adminGrad = getSeededGradient(school.adminName || 'Admin');
 
                     return (
-                      <tr key={school.id} className="group bg-white hover:bg-gray-50/30 transition-all duration-300 shadow-[0_4px_12px_rgba(0,0,0,0.005)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.02)] hover:-translate-y-0.5">
+                      <tr key={school.id} className="group relative bg-white hover:bg-gray-50/80 transition-all duration-300 shadow-sm hover:shadow-md rounded-2xl">
                         {/* School Identity */}
-                        <td className="py-5 pl-5 pr-4 rounded-l-[1.5rem] border-y border-l border-gray-100/70 group-hover:border-[#053d26]/10 transition-colors">
+                        <td className="py-4 pl-4 pr-4 rounded-l-2xl border-y border-l border-gray-100/50 group-hover:border-[#053d26]/20 transition-colors bg-clip-padding">
                           <div className="flex items-center gap-4">
-                            <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${schoolGrad.from} ${schoolGrad.to} ${schoolGrad.text} flex items-center justify-center font-extrabold text-sm shadow-[0_4px_10px_rgba(0,0,0,0.05)] transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] uppercase shrink-0`}>
+                            <div className={`h-14 w-14 rounded-[1.25rem] bg-gradient-to-br ${schoolGrad.from} ${schoolGrad.to} flex items-center justify-center font-black text-white text-lg shadow-inner transition-transform duration-500 group-hover:scale-105 uppercase shrink-0`}>
                               {school.name?.[0] || 'S'}
                             </div>
                             <div>
-                              <div className="font-extrabold text-sm text-gray-900 leading-tight group-hover:text-[#053d26] transition-colors">{school.name}</div>
-                              <span className="inline-flex px-2 py-0.5 mt-1.5 rounded-md bg-gray-50 border border-gray-150 text-[9px] font-extrabold text-gray-400 uppercase tracking-widest">{school.email}</span>
+                              <div className="font-black text-[15px] text-gray-900 leading-tight group-hover:text-[#053d26] transition-colors">{school.name}</div>
+                              <span className="inline-flex px-2 py-0.5 mt-1.5 rounded bg-gray-100 text-[10px] font-bold text-gray-500 tracking-widest">{school.email}</span>
                             </div>
                           </div>
                         </td>
 
                         {/* Cluster Owner */}
-                        <td className="py-5 px-4 border-y border-gray-100/70 group-hover:border-[#053d26]/10 transition-colors">
+                        <td className="py-4 px-4 border-y border-gray-100/50 group-hover:border-[#053d26]/20 transition-colors bg-clip-padding">
                           <div className="flex items-center gap-3">
-                            <div className={`h-8 w-8 rounded-xl bg-gradient-to-br ${adminGrad.from} ${adminGrad.to} ${adminGrad.text} flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm`}>
+                            <div className={`h-10 w-10 rounded-full bg-gradient-to-br ${adminGrad.from} ${adminGrad.to} flex items-center justify-center text-white text-[11px] font-black uppercase shrink-0 shadow-inner`}>
                               {(school.adminName || 'RT').split(" ").filter(Boolean).map((w: string) => w[0]).join("").slice(0, 2)}
                             </div>
                             <div>
-                              <div className="text-xs font-extrabold text-gray-800 leading-tight">{school.adminName || 'ROOT'}</div>
-                              <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Admin Node</div>
+                              <div className="text-sm font-black text-gray-800 leading-tight">{school.adminName || 'ROOT'}</div>
+                              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Admin Node</div>
                             </div>
                           </div>
                         </td>
 
                         {/* Usage Matrix */}
-                        <td className="py-5 px-4 border-y border-gray-100/70 group-hover:border-[#053d26]/10 transition-colors">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-100 text-[10px] font-bold shadow-[0_2px_4px_rgba(59,130,246,0.02)]">
-                              <GraduationCap className="h-3.5 w-3.5" />
-                              <span className="font-extrabold text-gray-900">{studentCount}</span>
-                              <span className="text-blue-500 font-medium">Students</span>
+                        <td className="py-4 px-4 border-y border-gray-100/50 group-hover:border-[#053d26]/20 transition-colors bg-clip-padding">
+                          <div className="flex flex-col gap-1.5">
+                            <span className="inline-flex items-center gap-2 text-[11px] font-bold text-gray-700">
+                              <GraduationCap className="h-4 w-4 text-blue-500" />
+                              {studentCount} <span className="text-gray-400 font-medium">Students</span>
                             </span>
-                            <span className="inline-flex items-center gap-1.5 bg-green-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-green-100 text-[10px] font-bold shadow-[0_2px_4px_rgba(16,185,129,0.02)]">
-                              <Briefcase className="h-3.5 w-3.5 text-emerald-600" />
-                              <span className="font-extrabold text-gray-900">{staffCount}</span>
-                              <span className="text-emerald-500 font-medium">Staff</span>
+                            <span className="inline-flex items-center gap-2 text-[11px] font-bold text-gray-700">
+                              <Briefcase className="h-4 w-4 text-emerald-500" />
+                              {staffCount} <span className="text-gray-400 font-medium">Staff</span>
                             </span>
                           </div>
                         </td>
 
                         {/* Service Plan */}
-                        <td className="py-5 px-4 border-y border-gray-100/70 group-hover:border-[#053d26]/10 transition-colors">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] shadow-sm ${
-                            school.subscriptionPlan === 'Premium' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-0' :
-                            school.subscriptionPlan === 'Plus' ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white border-0' :
-                            'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 border border-gray-250'
+                        <td className="py-4 px-4 border-y border-gray-100/50 group-hover:border-[#053d26]/20 transition-colors bg-clip-padding">
+                          <span className={`inline-flex items-center px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
+                            school.subscriptionPlan === 'Premium' ? 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border-purple-200' :
+                            school.subscriptionPlan === 'Plus' ? 'bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 border-blue-200' :
+                            'bg-gray-50 text-gray-600 border-gray-200'
                           }`}>
                             {school.subscriptionPlan || 'Free'}
                           </span>
                         </td>
 
                         {/* Node Status */}
-                        <td className="py-5 pl-4 pr-5 rounded-r-[1.5rem] border-y border-r border-gray-100/70 group-hover:border-[#053d26]/10 transition-colors text-right">
-                          <div className="flex items-center justify-end gap-4">
+                        <td className="py-4 pl-4 pr-6 rounded-r-2xl border-y border-r border-gray-100/50 group-hover:border-[#053d26]/20 transition-colors text-right bg-clip-padding">
+                          <div className="flex items-center justify-end gap-5">
                             {school.isActive === false ? (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100">
-                                <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
-                                Offline
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-rose-600">
+                                <span className="relative flex h-2.5 w-2.5">
+                                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                                </span>
+                                OFFLINE
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-green"></span>
-                                Active
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-emerald-600">
+                                <span className="relative flex h-2.5 w-2.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                                </span>
+                                ACTIVE
                               </span>
                             )}
-                            <div className="h-8 w-8 rounded-xl bg-gray-50 border border-gray-150 flex items-center justify-center text-gray-400 group-hover:text-[#053d26] group-hover:bg-[#053d26]/5 group-hover:border-[#053d26]/10 group-hover:translate-x-0.5 transition-all duration-300 shadow-sm">
+                            <div className="h-9 w-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 group-hover:text-white group-hover:bg-[#053d26] group-hover:border-[#053d26] group-hover:shadow-[0_4px_12px_rgba(5,61,38,0.3)] transition-all duration-300">
                               <ArrowRight className="h-4 w-4" />
                             </div>
                           </div>
@@ -465,27 +424,27 @@ export default function SuperAdminDashboard() {
                     );
                   }) : reportedTotalSchools > 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-20 text-center">
-                        <div className="flex flex-col items-center gap-4">
+                      <td colSpan={5} className="py-24 text-center bg-white/50 rounded-2xl">
+                        <div className="flex flex-col items-center gap-5">
                           <div className="relative">
-                            <div className="h-12 w-12 rounded-full border-2 border-gray-100 border-t-[#053d26] animate-spin"></div>
-                            <Activity className="h-5 w-5 text-[#053d26] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            <div className="h-16 w-16 rounded-full border-4 border-gray-100 border-t-[#053d26] animate-spin"></div>
+                            <Activity className="h-6 w-6 text-[#053d26] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                           </div>
                           <div className="space-y-1">
-                            <p className="text-sm font-bold text-gray-900 uppercase tracking-widest">Synchronizing Registry</p>
-                            <p className="text-xs text-gray-400 font-medium">Fetching latest institution records from LeonEd clusters...</p>
+                            <p className="text-base font-black text-gray-900 tracking-tight">Synchronizing Registry</p>
+                            <p className="text-xs text-gray-500 font-medium">Fetching node statuses from LeonEd clusters...</p>
                           </div>
                         </div>
                       </td>
                     </tr>
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-16 text-center">
+                      <td colSpan={5} className="py-24 text-center bg-white/50 rounded-2xl">
                         <div className="flex flex-col items-center gap-4 opacity-40">
-                          <School className="h-12 w-12 text-gray-300" />
+                          <School className="h-16 w-16 text-gray-400" />
                           <div className="space-y-1">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Zero Records Found</p>
-                            <p className="text-[10px] text-gray-400">No institutions have been onboarded to the system yet.</p>
+                            <p className="text-sm font-black text-gray-500 uppercase tracking-widest">Zero Records Found</p>
+                            <p className="text-xs text-gray-400 font-medium">No institutions have been onboarded to the system yet.</p>
                           </div>
                         </div>
                       </td>
@@ -496,35 +455,8 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
 
-          <DataTable activities={stats?.recentActivities} />
-        </div>
-        
-        {/* Right Sidebar Area */}
-        <div className="space-y-8">
-          {/* Removed Mock System Integrity Widget */}
-
-          {/* Platform Announcements / Authority Hub */}
-          <div className="rounded-[2.5rem] bg-gradient-to-br from-[#053d26] via-[#084d30] to-[#021f13] p-8 text-white relative overflow-hidden shadow-[0_20px_40px_rgba(5,61,38,0.15)] group">
-            {/* Background vector elements */}
-            <div className="absolute -right-6 -top-6 h-36 w-36 rounded-full bg-white/5 border border-white/10 group-hover:scale-110 transition-transform duration-500" />
-            <div className="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-[#b05e1c]/10 blur-xl group-hover:scale-125 transition-transform duration-500" />
-            <div className="absolute right-12 bottom-12 h-20 w-20 rounded-full bg-gradient-to-br from-white/10 to-transparent opacity-20" />
-            
-            <div className="relative z-10">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-widest text-[#b05e1c] bg-[#b05e1c]/10 border border-[#b05e1c]/25 mb-4">
-                👑 Root Access
-              </span>
-              <h2 className="text-xl font-extrabold mb-3 tracking-tight">Authority Hub</h2>
-              <p className="text-xs text-green-100/70 mb-6 leading-relaxed">
-                You are accessing the platform as a Super Admin. Use this dashboard to oversee institution growth, manage licenses, and monitor global system stability.
-              </p>
-              <Link 
-                href="/super-admin/settings" 
-                className="block w-full py-3.5 rounded-xl bg-white/10 text-white text-center font-bold text-xs hover:bg-white/20 transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] border border-white/10 hover:border-white/25 active:scale-[0.98]"
-              >
-                System Settings
-              </Link>
-            </div>
+          <div className="mt-8">
+            <DataTable activities={stats?.recentActivities} />
           </div>
         </div>
       </div>

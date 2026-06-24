@@ -10,11 +10,12 @@ import {
   Settings, 
   Loader2, 
   School as SchoolIcon,
-  MoreVertical,
+  Power,
   Mail,
   Calendar
 } from "lucide-react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 export default function SchoolsManagement() {
   const [schools, setSchools] = useState<any[]>([]);
@@ -25,8 +26,26 @@ export default function SchoolsManagement() {
   const fetchSchools = async () => {
     setIsLoading(true);
     try {
-      const data = await schoolApi.getAll();
-      setSchools(Array.isArray(data) ? data : []);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('leoned_token') : null;
+      const res = await fetch(`/api/global-users?t=${Date.now()}`, {
+        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+        cache: 'no-store'
+      });
+      if (!res.ok) throw new Error("Failed to load global data");
+      
+      const data = await res.json();
+      const { schools = [], teachers = [], students = [] } = data;
+      
+      const schoolsWithCounts = schools.map((s: any) => ({
+        ...s,
+        id: s.id || s._id,
+        computedCounts: {
+          students: students.filter((st: any) => String(st.schoolId) === String(s.id || s._id) || String(st.SchoolId) === String(s.id || s._id)).length,
+          teachers: teachers.filter((t: any) => String(t.schoolId) === String(s.id || s._id) || String(t.SchoolId) === String(s.id || s._id)).length
+        }
+      }));
+      
+      setSchools(schoolsWithCounts);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load schools");
     } finally {
@@ -41,6 +60,32 @@ export default function SchoolsManagement() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     fetchSchools();
+  };
+
+  const handleToggleStatus = async (schoolId: string) => {
+    // Optimistic UI update
+    setSchools(prev => prev.map(s => {
+      if (s.id === schoolId || s._id === schoolId) {
+        const currentlyActive = s.isActive !== false && s.status !== 'Suspended';
+        return {
+          ...s,
+          isActive: !currentlyActive,
+          status: currentlyActive ? 'Suspended' : 'Active'
+        };
+      }
+      return s;
+    }));
+
+    try {
+      const targetSchool = schools.find(s => s.id === schoolId || s._id === schoolId);
+      const currentlyActive = targetSchool ? (targetSchool.isActive !== false && targetSchool.status !== 'Suspended') : true;
+      await schoolApi.toggleStatus(schoolId, !currentlyActive);
+      toast.success("Status updated successfully");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to toggle status");
+      // Revert optimistic update
+      fetchSchools();
+    }
   };
 
   if (error) {
@@ -118,8 +163,10 @@ export default function SchoolsManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {schools.length > 0 ? schools.map((school) => (
-                  <tr key={school.id} className="group hover:bg-gray-50/30 transition-colors">
+                {schools.length > 0 ? schools.map((school) => {
+                  const isSchoolActive = school.isActive !== false && school.status !== 'Suspended';
+                  return (
+                  <tr key={school.id} className={`group hover:bg-gray-50/30 transition-all duration-500 ${isSchoolActive ? 'opacity-100' : 'opacity-40 grayscale bg-gray-50/50'}`}>
                     <td className="py-6 px-8">
                       <div className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-2xl bg-green-50 flex items-center justify-center text-[#053d26] font-bold text-lg border border-green-100">
@@ -162,58 +209,13 @@ export default function SchoolsManagement() {
                       <div className="flex items-center gap-4">
                         <div className="text-xs">
                           <span className="font-bold text-gray-900">
-                            {(() => {
-                              const findCount = (obj: any, keywords: string[]): number => {
-                                if (!obj || typeof obj !== 'object') return 0;
-                                // Prisma style _count
-                                if (obj._count) {
-                                  for (const key of Object.keys(obj._count)) {
-                                    if (keywords.some(kw => key.toLowerCase().includes(kw))) return obj._count[key];
-                                  }
-                                }
-                                // Check direct keys
-                                for (const key of Object.keys(obj)) {
-                                  const lowerKey = key.toLowerCase();
-                                  if (lowerKey.includes('max') || lowerKey.includes('limit')) continue;
-                                  if (keywords.some(kw => lowerKey.includes(kw))) {
-                                    if (typeof obj[key] === 'number') return obj[key];
-                                    if (Array.isArray(obj[key])) return obj[key].length;
-                                  }
-                                }
-                                // Check nested stats objects
-                                if (obj.stats) return findCount(obj.stats, keywords);
-                                if (obj.statistics) return findCount(obj.statistics, keywords);
-                                return 0;
-                              };
-                              return findCount(school, ['student', 'pupil', 'learner']);
-                            })()}
+                            {school.computedCounts?.students || 0}
                           </span>
                           <span className="text-gray-400 ml-1">Students</span>
                         </div>
                         <div className="text-xs">
                           <span className="font-bold text-gray-900">
-                            {(() => {
-                              const findCount = (obj: any, keywords: string[]): number => {
-                                if (!obj || typeof obj !== 'object') return 0;
-                                if (obj._count) {
-                                  for (const key of Object.keys(obj._count)) {
-                                    if (keywords.some(kw => key.toLowerCase().includes(kw))) return obj._count[key];
-                                  }
-                                }
-                                for (const key of Object.keys(obj)) {
-                                  const lowerKey = key.toLowerCase();
-                                  if (lowerKey.includes('max') || lowerKey.includes('limit')) continue;
-                                  if (keywords.some(kw => lowerKey.includes(kw))) {
-                                    if (typeof obj[key] === 'number') return obj[key];
-                                    if (Array.isArray(obj[key])) return obj[key].length;
-                                  }
-                                }
-                                if (obj.stats) return findCount(obj.stats, keywords);
-                                if (obj.statistics) return findCount(obj.statistics, keywords);
-                                return 0;
-                              };
-                              return findCount(school, ['teacher', 'staff', 'faculty']);
-                            })()}
+                            {school.computedCounts?.teachers || 0}
                           </span>
                           <span className="text-gray-400 ml-1">Staff</span>
                         </div>
@@ -224,16 +226,28 @@ export default function SchoolsManagement() {
                         <Link href={`/dashboard`} className="p-2 text-gray-400 hover:text-[#053d26] hover:bg-green-50 rounded-xl transition-all" title="Access School Portal">
                           <ExternalLink className="h-5 w-5" />
                         </Link>
-                        <Link href={`/super-admin/settings`} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all" title="Platform Settings">
+                        <Link href={`/dashboard/settings`} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all" title="Platform Settings">
                           <Settings className="h-5 w-5" />
                         </Link>
-                        <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">
-                          <MoreVertical className="h-5 w-5" />
+                        <button
+                          onClick={() => handleToggleStatus(school.id)}
+                          title={isSchoolActive ? "Suspend School" : "Activate School"}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:ring-offset-2 ${
+                            isSchoolActive ? 'bg-[#053d26]' : 'bg-gray-300'
+                          }`}
+                        >
+                          <span className="sr-only">Toggle school status</span>
+                          <span
+                            aria-hidden="true"
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              isSchoolActive ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
                         </button>
                       </div>
                     </td>
                   </tr>
-                )) : (
+                )}) : (
                   <tr>
                     <td colSpan={5} className="py-20 text-center">
                       <div className="flex flex-col items-center gap-2">

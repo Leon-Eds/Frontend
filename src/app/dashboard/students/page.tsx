@@ -137,9 +137,13 @@ export default function StudentsPage() {
         const initials = student.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         return (
           <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-[#e8f5e9] text-[#053d26] font-bold flex items-center justify-center text-sm">
-              {initials}
-            </div>
+            {student.profilePictureUrl ? (
+              <img src={student.profilePictureUrl} alt={student.fullName} className="h-10 w-10 rounded-full object-cover shadow-sm" />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-[#e8f5e9] text-[#053d26] font-bold flex items-center justify-center text-sm">
+                {initials}
+              </div>
+            )}
             <div>
               <div className="font-bold text-gray-900 text-sm leading-tight">{student.fullName}</div>
               <div className="text-xs text-gray-500 mt-1">{student.systemEmail || student.admissionNumber || 'No ID'}</div>
@@ -357,9 +361,13 @@ export default function StudentsPage() {
             </div>
 
             <div className="flex items-center gap-4 mb-8">
-              <div className="h-16 w-16 rounded-full bg-[#e8f5e9] text-[#053d26] font-bold flex items-center justify-center text-xl">
-                {viewStudent.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-              </div>
+              {viewStudent.profilePictureUrl ? (
+                <img src={viewStudent.profilePictureUrl} alt={viewStudent.fullName} className="h-16 w-16 rounded-full object-cover shadow-sm" />
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-[#e8f5e9] text-[#053d26] font-bold flex items-center justify-center text-xl">
+                  {viewStudent.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                </div>
+              )}
               <div>
                 <h3 className="text-xl font-bold text-gray-900">{viewStudent.fullName}</h3>
                 <p className="text-sm text-gray-500">{viewStudent.admissionNumber || 'No Admission Number'}</p>

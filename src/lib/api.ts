@@ -15,13 +15,27 @@ function getAuthHeaders(): HeadersInit {
   }
 
   // Attach School-Id header from stored user data for school-scoped endpoints
+  let sid: string | undefined;
   try {
     const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
-    if (user.schoolId) {
-      headers['School-Id'] = user.schoolId;
-    }
+    sid = user.schoolId || user.school?.id || user.school?._id;
   } catch {
     // Silently ignore parse errors
+  }
+
+  // Fallback: decode the JWT token to extract schoolId from its payload
+  if (!sid && token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      sid = payload.schoolId || payload.SchoolId || payload.school_id || payload.sid;
+    } catch {
+      // Silently ignore decode errors
+    }
+  }
+
+  if (sid) {
+    headers['School-Id'] = sid;
+    headers['SchoolId'] = sid;
   }
 
   return headers;
@@ -34,10 +48,21 @@ function getAuthHeadersMultipart(): HeadersInit {
   if (token && token !== 'undefined' && token !== 'null') {
     headers['Authorization'] = `Bearer ${token}`;
   }
+  let sid: string | undefined;
   try {
     const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
-    if (user.schoolId) headers['School-Id'] = user.schoolId;
+    sid = user.schoolId || user.school?.id || user.school?._id;
   } catch {}
+  if (!sid && token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      sid = payload.schoolId || payload.SchoolId || payload.school_id || payload.sid;
+    } catch {}
+  }
+  if (sid) {
+    headers['School-Id'] = sid;
+    headers['SchoolId'] = sid;
+  }
   return headers;
 }
 
@@ -174,6 +199,8 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
+  const text = await res.text().catch(() => '');
+
   if (!res.ok) {
     // Automatically handle auth errors (unauthorized or session expired)
     if (res.status === 401 && !res.url.includes('/auth/login')) {
@@ -186,45 +213,40 @@ async function handleResponse<T>(res: Response): Promise<T> {
       }
     }
 
-    const errorBody = await res.text().catch(() => '');
     let message = `API Error ${res.status}`;
+    
+    // Sanitize raw HTML error pages (like a 404 from Vercel/Express)
+    if (text.trim().startsWith('<') || res.status === 404) {
+      throw new Error(`Endpoint unavailable (HTTP ${res.status}).`);
+    }
+
     try {
-      const parsed = JSON.parse(errorBody);
+      const parsed = JSON.parse(text);
       // Extract the most useful error message from the response
-      if (typeof parsed.message === 'string' && parsed.message) {
+      if (parsed.errors && typeof parsed.errors === 'object') {
+        const errMessages = Object.entries(parsed.errors).map(([field, msgs]) => {
+          const msgList = Array.isArray(msgs) ? msgs.join(', ') : String(msgs);
+          return `${field}: ${msgList}`;
+        });
+        message = errMessages.join('. ') || JSON.stringify(parsed.errors);
+      } else if (typeof parsed.message === 'string' && parsed.message) {
         message = parsed.message;
       } else if (typeof parsed.error === 'string' && parsed.error) {
         message = parsed.error;
       } else if (typeof parsed.title === 'string' && parsed.title) {
         message = parsed.title;
-      } else if (parsed.errors) {
-        const errMessages = Object.values(parsed.errors).flat();
-        message = errMessages.join('. ') || JSON.stringify(parsed.errors);
-      } else if (errorBody) {
-        message = errorBody;
+      } else if (text) {
+        message = text;
       }
     } catch {
-      if (errorBody) {
-        // Sanitize raw HTML responses from the backend (like Express 404 "Cannot PUT" pages)
-        if (errorBody.trim().startsWith('<!DOCTYPE html>') || errorBody.trim().startsWith('<html')) {
-          // Extract the basic error text if possible, e.g. from <pre>Cannot PUT /...</pre>
-          const preMatch = errorBody.match(/<pre>(.*?)<\/pre>/i);
-          if (preMatch && preMatch[1]) {
-            message = `Server Error: ${preMatch[1]}`;
-          } else {
-            message = "An unexpected server error occurred (Endpoint not found).";
-          }
-        } else {
-          message = errorBody;
-        }
-      }
+      message = text || message;
     }
     
     // Log the error for easier debugging in the console
-    console.error(`[API Error] ${res.status} ${res.url}:`, message);
+    console.error(`[API Error] ${res.status} ${res.url}:`, message, '| Raw:', text);
     throw new Error(message);
   }
-  const text = await res.text();
+
   if (!text) return {} as T;
   const parsed = JSON.parse(text);
 
@@ -290,6 +312,7 @@ export interface CreateStudentRequest {
   dateOfBirth?: string;
   enrollmentDate?: string;
   classId?: string;
+  nationality?: string;
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
@@ -297,6 +320,7 @@ export interface CreateStudentRequest {
   bloodGroup?: string;
   arm?: string;
   imageFile?: File;
+  guardianIdImage?: File;
 }
 
 export interface UpdateStudentRequest {
@@ -327,6 +351,7 @@ export interface Student {
   status: StudentStatus;
   enrolledAt?: string;
   systemEmail?: string;
+  profilePictureUrl?: string;
 }
 
 // Teacher
@@ -679,12 +704,60 @@ export const studentApi = {
   },
 
   create: async (data: CreateStudentRequest): Promise<Student> => {
+    const cleanData: Record<string, unknown> = {};
+    
+    const uploadToCloudinary = async (file: File): Promise<string> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'leoned_uploads');
+      formData.append('cloud_name', 'dvjy4jjxf');
+
+      const response = await fetch('https://api.cloudinary.com/v1_1/dvjy4jjxf/image/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        console.error('Cloudinary upload failed:', errData);
+        throw new Error('Failed to upload image to Cloudinary');
+      }
+
+      const data = await response.json();
+      // Use f_auto and q_auto to optimize image delivery automatically
+      // Instead of the raw URL, we can construct the optimized URL or just return secure_url
+      // We'll return secure_url directly for simplicity, or we can transform it:
+      // A quick regex to inject f_auto,q_auto into the secure_url
+      const optimizedUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
+      return optimizedUrl;
+    };
+
+    if (data.imageFile) {
+      try { cleanData.profilePictureUrl = await uploadToCloudinary(data.imageFile); } catch (e) { console.error(e); }
+    }
+    if (data.guardianIdImage) {
+      try { cleanData.parentPassportUrl = await uploadToCloudinary(data.guardianIdImage); } catch (e) { console.error(e); }
+    }
+
+    // Strip out empty strings, undefined, and null before sending
+    Object.entries(data).forEach(([key, value]) => {
+      if (key === 'imageFile' || key === 'guardianIdImage') return; // handle files separately
+      if (value !== undefined && value !== null && value !== '') {
+        cleanData[key] = value;
+      }
+    });
+
     const res = await fetchWithTimeout(`${API_BASE_URL}/student`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(cleanData),
     });
+    
     const result = await handleResponse<Student>(res);
+    
+    // NOTE: Image upload is temporarily disabled as we need backend confirmation
+    // on how images should be handled (e.g. separate endpoint vs base64)
+    
     recordActivity(`Enrolled student: ${data.fullName}`, 'Student Registry', 'VERIFIED');
     return result;
   },
@@ -727,11 +800,11 @@ export const studentApi = {
 
 // Attendance
 export const attendanceApi = {
-  recordDailyAttendance: async (classId: string, date: string, records: { studentId: string; status: 'Present' | 'Absent' | 'Late' }[]) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/daily`, {
+  recordDailyAttendance: async (classId: string, date: string, records: { studentId: string; status: 'Present' | 'Absent' | 'Late'; remarks?: string }[]) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/class/${classId}`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ classId, date, records }),
+      body: JSON.stringify({ date, records }),
     });
     return handleResponse(res);
   },
@@ -755,6 +828,12 @@ export const attendanceApi = {
       ? `${API_BASE_URL}/attendance/my?termId=${termId}`
       : `${API_BASE_URL}/attendance/my`;
     const res = await fetchWithTimeout(url, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  getMyFormClasses: async () => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/my-form-classes`, {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);
@@ -784,10 +863,18 @@ export const teacherApi = {
   },
 
   create: async (data: CreateTeacherRequest): Promise<Teacher> => {
+    // Backend only accepts JSON for teacher creation — no image upload endpoint exists yet
+    const payload: Record<string, string> = {
+      fullName: data.fullName,
+      email: data.email,
+    };
+    if (data.phone && data.phone.trim()) payload.phone = data.phone.trim();
+    if (data.password && data.password.trim()) payload.password = data.password.trim();
+
     const res = await fetchWithTimeout(`${API_BASE_URL}/teacher`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     const result = await handleResponse<Teacher>(res);
     recordActivity(`Registered teacher: ${data.fullName}`, 'Staff Directory', 'VERIFIED');
@@ -803,10 +890,11 @@ export const teacherApi = {
     return handleResponse(res);
   },
 
-  updateStatus: async (id: string) => {
+  updateStatus: async (id: string, isActive: boolean) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/${id}/status`, {
-      method: 'PATCH',
+      method: 'PUT',
       headers: getAuthHeaders(),
+      body: JSON.stringify({ isActive }),
     });
     return handleResponse(res);
   },
@@ -1046,10 +1134,14 @@ export const schoolApi = {
     return handleResponse(res);
   },
 
-  toggleStatus: async (id: string) => {
+  toggleStatus: async (id: string, isActive: boolean) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/school/${id}/status`, {
       method: 'PUT',
       headers: getAuthHeaders(),
+      body: JSON.stringify({ 
+        isActive,
+        status: isActive ? 'Active' : 'Suspended'
+      }),
     });
     return handleResponse(res);
   },
@@ -1301,6 +1393,66 @@ export const announcementApi = {
   delete: async (id: string): Promise<void> => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/announcement/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+};
+
+// Payment Plans
+export const paymentPlanApi = {
+  create: async (data: any) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/payment-plans`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  update: async (id: string, data: any) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/payment-plans/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+};
+
+// Payments
+export const paymentApi = {
+  subscribe: async (planId: string, billingCycle: string = 'monthly') => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/payment/subscribe`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ planId, billingCycle }),
+    });
+    return handleResponse(res);
+  },
+};
+
+// Teacher Portal
+export const teacherPortalApi = {
+  getAssignments: async () => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/assignments`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  getClasses: async () => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/classes`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  getSubjects: async () => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/subjects`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  getClassStudents: async (classId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/classes/${classId}/students`, {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);

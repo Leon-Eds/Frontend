@@ -131,7 +131,11 @@ export default function RegisterSchoolPage() {
       router.push("/dashboard");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Registration failed. Please try again.";
-      setApiError(message);
+      if (message.toLowerCase().includes('duplicate') || message.toLowerCase().includes('already exists') || message.toLowerCase().includes('409') || message.toLowerCase().includes('conflict')) {
+        setApiError("Registration failed: A school or user with these details already exists. Please try a different email or school name.");
+      } else {
+        setApiError(message);
+      }
     } finally {
       setIsSubmitting(false);
     }

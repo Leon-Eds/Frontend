@@ -73,11 +73,7 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
 
   const classOptions = classes.map((c) => ({ label: c.name + (c.arm ? ` – ${c.arm}` : ''), value: c.id }));
 
-  const generateAdmissionNumber = () => {
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const currentYear = new Date().getFullYear();
-    updateData({ admissionNumber: `${schoolPrefix}-${currentYear}-${randomNum}` });
-  };
+
 
   const selectedClass = classes.find((c) => c.id === data.classId);
 
@@ -132,7 +128,7 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
                 { label: 'Sapphire (Commerce)', value: 'Sapphire' },
               ]}
               value={data.arm || ''}
-              onChange={(e) => updateData({ ...data, arm: e.target.value })}
+              onChange={(e) => updateData({ arm: e.target.value })}
             />
           </div>
 
@@ -140,17 +136,12 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
             <div>
               <Input
                 label="Admission Number"
-                placeholder={`${schoolPrefix}-${new Date().getFullYear()}-XXXX`}
-                value={data.admissionNumber || ''}
+                placeholder="Auto-generated upon completion"
+                value="Generated automatically by system"
                 readOnly
-                icon={
-                  <button onClick={generateAdmissionNumber} type="button" className="text-[#b05e1c] hover:text-[#965017] transition-colors p-2">
-                    <Wand2 className="h-5 w-5" />
-                  </button>
-                }
               />
               <p className="text-[10px] text-gray-400 mt-2 italic">
-                Auto-generated based on current batch. Click wand to re-roll.
+                System will securely allocate a unique ID upon successful registration.
               </p>
             </div>
             
@@ -172,7 +163,7 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
             </button>
             <button
               onClick={onNext}
-              disabled={!data.classId || !data.admissionNumber || isSubmitting}
+              disabled={!data.classId || isSubmitting}
               className="px-8 py-4 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSubmitting ? (

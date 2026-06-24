@@ -17,9 +17,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "LeonEd Africa | Academic Architect",
   description: "The complete digital academic management platform for African schools. Manage student records, result processing, and secure portal access.",
-  icons: {
-    icon: "/logo.png",
-  }
 };
 
 export default function RootLayout({

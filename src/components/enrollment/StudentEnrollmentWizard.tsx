@@ -26,6 +26,12 @@ export const StudentEnrollmentWizard = () => {
     enrollmentDate: new Date().toISOString().split('T')[0],
   });
 
+  // Keep a ref to the latest formData so handleNext never has stale data
+  const formDataRef = React.useRef(formData);
+  React.useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
   const updateData = (updates: Partial<CreateStudentRequest>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
   };
@@ -34,24 +40,15 @@ export const StudentEnrollmentWizard = () => {
     if (currentStep === 3) {
       setIsSubmitting(true);
       try {
-        const student = await studentApi.create(formData as CreateStudentRequest);
-        if (formData.imageFile && student && student.id) {
-          try {
-            const base64String = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                if (reader.result) resolve(reader.result as string);
-                else reject(new Error("Failed to read file"));
-              };
-              reader.onerror = () => reject(new Error("Failed to read file"));
-              reader.readAsDataURL(formData.imageFile as File);
-            });
-            await studentApi.update(student.id, { profilePictureUrl: base64String });
-          } catch (imgErr) {
-            console.error("Failed to upload image", imgErr);
-            toast.error("Student created, but image upload failed.");
-          }
-        }
+        // Always read from the ref to get the latest state
+        const latestData = formDataRef.current;
+        console.log('[StudentWizard] Submitting:', JSON.stringify(latestData, (k, v) => v instanceof File ? `[File: ${v.name}]` : v, 2));
+        const student = await studentApi.create(latestData as CreateStudentRequest);
+        // Save the generated admission number back to the form data so the success screen can display it
+        setFormData((prev) => ({ 
+          ...prev, 
+          admissionNumber: student.admissionNumber || student.id || prev.admissionNumber 
+        }));
         setCurrentStep(4);
       } catch (error) {
         console.error("Failed to submit student", error);

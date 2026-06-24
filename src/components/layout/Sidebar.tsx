@@ -28,7 +28,8 @@ import {
   FolderKanban,
   CheckSquare,
   Calendar,
-  Megaphone
+  Megaphone,
+  UserCheck
 } from "lucide-react";
 
 const schoolNavigation = [
@@ -54,6 +55,7 @@ const facultyNavigation = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Classes", href: "/dashboard/faculty/classes", icon: FolderKanban },
   { name: "Result Entry", href: "/dashboard/faculty/result-entry", icon: CheckSquare },
+  { name: "Attendance", href: "/dashboard/faculty/attendance", icon: UserCheck },
 ];
 
 const studentNavigation = [

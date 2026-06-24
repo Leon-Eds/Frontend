@@ -170,7 +170,16 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
                 { label: 'O-', value: 'O-' },
               ]}
               value={data.bloodGroup || ''}
-              onChange={(e) => updateData({ ...data, bloodGroup: e.target.value })}
+              onChange={(e) => updateData({ bloodGroup: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <Input
+              label="Nationality"
+              placeholder="e.g. Nigerian"
+              value={data.nationality || ''}
+              onChange={(e) => updateData({ nationality: e.target.value })}
             />
           </div>
 

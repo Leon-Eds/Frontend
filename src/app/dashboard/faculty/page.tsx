@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, ArrowLeft, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone } from 'lucide-react';
+import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, ArrowLeft, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone, MoreVertical } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { teacherApi, Teacher, CreateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi } from '@/lib/api';
+import { teacherApi, Teacher, CreateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi, teacherPortalApi, attendanceApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 export function FacultyDirectory() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -25,6 +25,7 @@ export function FacultyDirectory() {
   const [assignData, setAssignData] = useState({ classId: '', subjectId: '' });
   const [classesList, setClassesList] = useState<any[]>([]);
   const [subjectsList, setSubjectsList] = useState<any[]>([]);
+  const [activeTeacher, setActiveTeacher] = useState<Teacher | null>(null);
 
   useEffect(() => {
     // Fetch classes and subjects for assignment
@@ -80,23 +81,7 @@ export function FacultyDirectory() {
     setIsSubmitting(true);
     try {
       const teacher = await teacherApi.create(formData);
-      if (formData.imageFile && teacher && teacher.id) {
-        try {
-          const base64String = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              if (reader.result) resolve(reader.result as string);
-              else reject(new Error("Failed to read file"));
-            };
-            reader.onerror = () => reject(new Error("Failed to read file"));
-            reader.readAsDataURL(formData.imageFile as File);
-          });
-          await teacherApi.update(teacher.id, { profilePictureUrl: base64String });
-        } catch (imgErr) {
-          console.error("Failed to upload teacher image:", imgErr);
-          toast.error("Teacher created, but image upload failed.");
-        }
-      }
+      toast.success("Teacher created successfully!");
       setShowModal(false);
       setFormData({ fullName: '', email: '', phone: '', password: '' });
       // Refresh the list
@@ -109,94 +94,7 @@ export function FacultyDirectory() {
     }
   };
 
-  const columns: Column<Teacher>[] = [
-    {
-      header: 'Teacher',
-      accessor: (teacher) => (
-        <div className="flex items-center gap-4">
-          {teacher.imageUrl || teacher.image ? (
-            <img 
-              src={teacher.imageUrl || teacher.image} 
-              alt={teacher.fullName} 
-              className="h-12 w-12 rounded-full object-cover border border-gray-100 shadow-sm"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="h-12 w-12 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-sm shadow-inner">
-              {teacher.fullName ? teacher.fullName.split(' ').filter(Boolean).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() : 'T'}
-            </div>
-          )}
-          <div>
-            <div className="font-bold text-gray-900 text-sm leading-tight">{teacher.fullName || 'Unnamed Teacher'}</div>
-            <div className="text-xs text-gray-500 mt-1">{teacher.email || 'No email'}</div>
-          </div>
-        </div>
-      ),
-      className: 'w-1/4'
-    },
-    {
-      header: 'Contact Info',
-      accessor: (teacher) => (
-        <div>
-          <div className="text-sm font-semibold text-gray-700">{teacher.email}</div>
-          <div className="text-xs text-gray-500 mt-0.5">{teacher.phone || 'No phone'}</div>
-        </div>
-      ),
-      className: 'w-1/5'
-    },
-    {
-      header: 'Assignments',
-      accessor: (teacher) => {
-        const assigns = teacher.assignments || [];
-        if (assigns.length === 0) return <span className="text-gray-400 text-xs italic font-medium">Unassigned</span>;
-        return (
-          <div className="flex flex-wrap gap-1 max-w-[250px]">
-            {assigns.map((a, idx) => (
-              <span key={a.id || idx} className="inline-flex items-center gap-1 rounded bg-[#053d26]/10 px-2 py-0.5 text-[10px] font-bold text-[#053d26]">
-                {a.className || 'Class'}: {a.subjectName || 'Subject'}
-                <button
-                  type="button"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (window.confirm(`Remove assignment: ${a.className || 'Class'} - ${a.subjectName || 'Subject'}?`)) {
-                      try {
-                        await teacherApi.removeAssignment(a.id);
-                        toast.success("Assignment removed successfully");
-                        fetchTeachers();
-                      } catch (err) {
-                        toast.error(err instanceof Error ? err.message : "Failed to remove assignment");
-                      }
-                    }
-                  }}
-                  className="text-red-500 hover:text-red-700 ml-1 font-bold text-[11px] leading-none"
-                  title="Remove Assignment"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        );
-      },
-      className: 'w-1/3'
-    },
-    {
-      header: 'Status',
-      accessor: (teacher) => (
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase ${
-          teacher.isActive 
-            ? 'bg-green-100 text-green-800' 
-            : 'bg-orange-100 text-orange-800'
-        }`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${teacher.isActive ? 'bg-green-600' : 'bg-orange-500'}`}></span>
-          {teacher.isActive ? 'ACTIVE' : 'INACTIVE'}
-        </span>
-      ),
-      className: 'w-1/6'
-    },
-  ];
+  // Columns removed in favor of list view
 
   const activeCount = teachers.filter(t => t.isActive).length;
   const inactiveCount = teachers.filter(t => !t.isActive).length;
@@ -299,40 +197,68 @@ export function FacultyDirectory() {
             </div>
           </div>
 
-          {/* Table Wrapper */}
-          <div className="[&>div]:border-none [&>div]:shadow-none [&_table]:w-full">
-            <DataTable 
-              columns={columns} 
-              data={teachers} 
-              actions={(teacher) => (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setAssignModal({ isOpen: true, teacherId: teacher.id, teacherName: teacher.fullName || 'Teacher' })}
-                    className="px-3 py-1.5 rounded-full text-[10px] font-bold transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
-                  >
-                    Assign
-                  </button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await teacherApi.updateStatus(teacher.id);
-                        await fetchTeachers();
-                        toast.success(`Status updated for ${teacher.fullName || 'teacher'}`);
-                      } catch (err) {
-                        toast.error(err instanceof Error ? err.message : "Failed to update status");
-                      }
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-colors ${
-                      teacher.isActive
-                        ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                        : 'bg-green-100 text-[#053d26] hover:bg-green-200'
-                    }`}
-                  >
-                    {teacher.isActive ? 'Deactivate' : 'Activate'}
-                  </button>
+          {/* List Wrapper */}
+          <div className="grid grid-cols-1 gap-2 p-4">
+            {teachers.map((teacher) => {
+              const teacherFormClasses = classesList.filter(c => {
+                const tId = c.formTeacherId || c.formTeacher?.id || c.formTeacher?._id;
+                return tId === teacher.id;
+              });
+              
+              return (
+                <div 
+                  key={teacher.id}
+                  onClick={() => setActiveTeacher(teacher)}
+                  className="group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl border border-gray-100 hover:border-green-200 hover:shadow-md hover:bg-green-50/30 transition-all cursor-pointer bg-white gap-4 md:gap-0"
+                >
+                  <div className="flex items-center gap-4">
+                    {teacher.imageUrl || teacher.image ? (
+                      <img 
+                        src={teacher.imageUrl || teacher.image} 
+                        alt={teacher.fullName} 
+                        className="h-12 w-12 rounded-full object-cover border border-gray-100 shadow-sm"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-sm shadow-inner group-hover:bg-[#042c1b] transition-colors shrink-0">
+                        {teacher.fullName ? teacher.fullName.split(' ').filter(Boolean).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() : 'T'}
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-bold text-gray-900 text-base leading-tight group-hover:text-[#053d26] transition-colors">{teacher.fullName || 'Unnamed Teacher'}</div>
+                      <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-2">
+                        <span>{teacher.email}</span>
+                        {teacherFormClasses.length > 0 && (
+                          <>
+                            <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-gray-300"></span>
+                            <span className="text-[#b05e1c] font-bold">Form Teacher ({teacherFormClasses.map(c => c.name).join(', ')})</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 justify-between md:justify-end">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase ${
+                      teacher.isActive 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-orange-100 text-orange-800'
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${teacher.isActive ? 'bg-green-600' : 'bg-orange-500'}`}></span>
+                      {teacher.isActive ? 'ACTIVE' : 'INACTIVE'}
+                    </span>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTeacher(teacher);
+                      }}
+                      className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <MoreVertical className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
-              )}
-            />
+              );
+            })}
           </div>
 
           <div className="flex justify-between items-center p-6 border-t border-gray-50">
@@ -372,6 +298,7 @@ export function FacultyDirectory() {
             )}
 
             <form onSubmit={handleCreateTeacher} className="space-y-5">
+              {/* Profile photo upload — hidden until backend supports it
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Profile Photo (Optional)
@@ -389,6 +316,7 @@ export function FacultyDirectory() {
                   disabled={isSubmitting}
                 />
               </div>
+              */}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -486,7 +414,7 @@ export function FacultyDirectory() {
 
       {/* Assign Teacher Modal */}
       {assignModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200">
             <button
               onClick={() => setAssignModal({isOpen: false, teacherId: '', teacherName: ''})}
@@ -505,6 +433,10 @@ export function FacultyDirectory() {
                 setAssignModal({isOpen: false, teacherId: '', teacherName: ''});
                 toast.success("Teacher assigned successfully!");
                 fetchTeachers();
+                if (activeTeacher && activeTeacher.id === assignModal.teacherId) {
+                  const updatedTeacher = await teacherApi.getAll().then(res => res.find((t: any) => t.id === activeTeacher.id));
+                  if (updatedTeacher) setActiveTeacher(updatedTeacher as Teacher);
+                }
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to assign teacher");
               }
@@ -551,6 +483,157 @@ export function FacultyDirectory() {
           </div>
         </div>
       )}
+
+      {/* Slide-over Detail Panel */}
+      {activeTeacher && (
+        <div className="fixed inset-0 z-50 overflow-hidden flex">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity" onClick={() => setActiveTeacher(null)}></div>
+          <div className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Teacher Profile</h2>
+              <button onClick={() => setActiveTeacher(null)} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              {/* Profile Header */}
+              <div className="flex items-center gap-4">
+                {activeTeacher.imageUrl || activeTeacher.image ? (
+                  <img src={activeTeacher.imageUrl || activeTeacher.image} className="w-20 h-20 rounded-full object-cover shadow-sm" alt="Teacher" />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-[#053d26] text-white flex items-center justify-center text-2xl font-bold shadow-inner">
+                     {activeTeacher.fullName ? activeTeacher.fullName.split(' ').filter(Boolean).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() : 'T'}
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{activeTeacher.fullName}</h3>
+                  <p className="text-sm text-gray-500 font-medium">Faculty Member</p>
+                  <div className="mt-2">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${
+                      activeTeacher.isActive ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${activeTeacher.isActive ? 'bg-green-600' : 'bg-orange-500'}`}></span>
+                      {activeTeacher.isActive ? 'ACTIVE' : 'INACTIVE'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Email</span>
+                  <span className="text-sm font-semibold text-gray-700">{activeTeacher.email}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Phone</span>
+                  <span className="text-sm font-semibold text-gray-700">{activeTeacher.phone || 'N/A'}</span>
+                </div>
+              </div>
+
+              {/* Form Class Assignments */}
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#b05e1c]" /> Form Class Responsibilities
+                </h4>
+                <div className="space-y-2">
+                  {classesList.filter(c => {
+                    const tId = c.formTeacherId || c.formTeacher?.id || c.formTeacher?._id;
+                    return tId === activeTeacher.id;
+                  }).length > 0 ? (
+                    classesList.filter(c => {
+                      const tId = c.formTeacherId || c.formTeacher?.id || c.formTeacher?._id;
+                      return tId === activeTeacher.id;
+                    }).map(c => (
+                      <div key={c.id || c._id} className="flex items-center justify-between p-3 rounded-xl bg-orange-50/50 border border-orange-100">
+                         <span className="font-bold text-[#b05e1c] text-sm">{c.name}</span>
+                         <span className="text-[10px] font-bold text-orange-600/70 uppercase tracking-wider bg-orange-100 px-2 py-0.5 rounded-md">Form Teacher</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-400 italic bg-gray-50 p-4 rounded-xl text-center border border-dashed border-gray-200">No form class assigned</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Subject Assignments */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-[#053d26]" /> Subject Assignments
+                  </h4>
+                  <button 
+                    onClick={() => { setAssignModal({ isOpen: true, teacherId: activeTeacher.id, teacherName: activeTeacher.fullName || 'Teacher' }); }}
+                    className="text-xs font-bold text-[#053d26] hover:text-[#042c1b] bg-green-50 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> Assign Subject
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {activeTeacher.assignments && activeTeacher.assignments.length > 0 ? (
+                    activeTeacher.assignments.map(a => (
+                      <div key={a.id} className="flex items-center justify-between p-3 rounded-xl bg-green-50/30 border border-green-100 group/assignment transition-colors hover:bg-green-50/60">
+                        <div>
+                          <p className="font-bold text-[#053d26] text-sm">{a.subjectName}</p>
+                          <p className="text-xs text-[#053d26]/70 font-bold tracking-wide uppercase mt-0.5">{a.className}</p>
+                        </div>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Remove assignment: ${a.className} - ${a.subjectName}?`)) {
+                              try {
+                                await teacherApi.removeAssignment(a.id);
+                                toast.success("Assignment removed successfully");
+                                const updatedTeacher = { ...activeTeacher, assignments: activeTeacher.assignments?.filter(asg => asg.id !== a.id) };
+                                setActiveTeacher(updatedTeacher as Teacher);
+                                fetchTeachers();
+                              } catch (err) {
+                                toast.error(err instanceof Error ? err.message : "Failed to remove assignment");
+                              }
+                            }
+                          }}
+                          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover/assignment:opacity-100"
+                          title="Remove Assignment"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-400 italic bg-gray-50 p-4 rounded-xl text-center border border-dashed border-gray-200">No subjects assigned</div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+            
+            {/* Actions Footer */}
+            <div className="p-6 border-t border-gray-100 bg-gray-50 shrink-0">
+               <button
+                  onClick={async () => {
+                    if (window.confirm(`Are you sure you want to ${activeTeacher.isActive ? 'deactivate' : 'activate'} this teacher?`)) {
+                      try {
+                        await teacherApi.updateStatus(activeTeacher.id, !activeTeacher.isActive);
+                        await fetchTeachers();
+                        setActiveTeacher(null);
+                        toast.success(`Status updated for ${activeTeacher.fullName || 'teacher'}`);
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to update status");
+                      }
+                    }
+                  }}
+                  className={`w-full py-3.5 rounded-xl font-bold transition-all ${
+                    activeTeacher.isActive
+                      ? 'bg-white text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 shadow-sm'
+                      : 'bg-[#053d26] text-white hover:bg-[#042c1b] shadow-md'
+                  }`}
+                >
+                  {activeTeacher.isActive ? 'Deactivate Account' : 'Activate Account'}
+                </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -568,8 +651,7 @@ export function FacultyHomepage() {
   const [stats, setStats] = useState<any[]>([]);
   const [assignedSubjects, setAssignedSubjects] = useState<any[]>([]);
   const [teacherImage, setTeacherImage] = useState<string | null>(null);
-  const [formClass, setFormClass] = useState<any>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [formClasses, setFormClasses] = useState<any[]>([]);
 
   useEffect(() => {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -593,10 +675,12 @@ export function FacultyHomepage() {
 
         let assignments: any[] = [];
         let formClass: any = null;
+        let localStats: any = null;
         try {
-          const stats = await dashboardApi.getTeacherDashboard();
-          if (stats.assignments) {
-            assignments = (stats.assignments as any[]).map((a: any) => {
+          localStats = await dashboardApi.getTeacherDashboard();
+          console.log("[FacultyHomepage DEBUG] Teacher stats:", JSON.stringify(localStats, null, 2));
+          if (localStats.assignments) {
+            assignments = (localStats.assignments as any[]).map((a: any) => {
               const classObj = a.class || {};
               const subjectObj = a.subject || {};
               return {
@@ -610,9 +694,8 @@ export function FacultyHomepage() {
               };
             });
           }
-          if (stats.formClass) {
-            formClass = stats.formClass;
-            setFormClass(formClass);
+          if (localStats.formClass) {
+            formClass = localStats.formClass;
           }
         } catch (e) {
           console.error("Failed to fetch teacher dashboard stats", e);
@@ -620,9 +703,62 @@ export function FacultyHomepage() {
 
         let allClasses: any[] = [];
         try {
-          allClasses = await classApi.getAll();
+          // Fetch classes via teacher portal — returns {classId, className, arm, studentCount, subjects}
+          const classesRes = await teacherPortalApi.getClasses();
+          allClasses = Array.isArray(classesRes) ? classesRes : ((classesRes as any)?.data || (classesRes as any)?.items || []);
+          const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
+          
+          let myFormClasses: any[] = [];
+          
+          // Use the dedicated backend endpoint for form classes
+          try {
+            const formClassesRes = await attendanceApi.getMyFormClasses();
+            const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
+            myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
+            
+            // Map the objects correctly if they return classId instead of id
+            myFormClasses = myFormClasses.map(fc => ({
+              ...fc,
+              id: fc.id || fc.classId || fc._id,
+              name: fc.name || fc.className || "Class"
+            }));
+            
+          } catch (e) {
+            console.error("Failed to fetch my form classes from attendance API", e);
+            // Fallback to localStats
+            if (localStats?.formClasses && Array.isArray(localStats.formClasses)) {
+               myFormClasses = localStats.formClasses;
+            } else if (localStats?.formClass && typeof localStats.formClass === 'object' && Object.keys(localStats.formClass).length > 0) {
+               myFormClasses = [localStats.formClass];
+            }
+          }
+          
+          // Absolute fallback if the backend API returns empty due to User/Teacher ID linkage bug
+          if (myFormClasses.length === 0 && userId) {
+            // Fallback: Probe the attendance endpoint. The backend restricts GET /attendance/class/{classId} to the form teacher!
+            if (myFormClasses.length === 0) {
+              const today = new Date().toISOString().split('T')[0];
+              for (const cls of allClasses) {
+                const cId = cls.classId || cls.id || cls._id;
+                if (!cId) continue;
+                try {
+                  await attendanceApi.getClassAttendance(cId, today);
+                  myFormClasses.push({ ...cls, classId: cId, className: cls.className || cls.name });
+                } catch (e: any) {
+                  const errorMsg = e instanceof Error ? e.message : String(e);
+                  // If it's a 404, it just means no attendance record exists for today, BUT we were allowed to check!
+                  // A strict 403 Forbidden means we are NOT the form teacher.
+                  if (!errorMsg.includes('403')) {
+                     myFormClasses.push({ ...cls, classId: cId, className: cls.className || cls.name });
+                  }
+                }
+              }
+            }
+          }
+          
+          setFormClasses(myFormClasses);
         } catch (e) {
-          console.error("Failed to fetch all classes", e);
+          console.error("Failed to fetch teacher classes", e);
         }
 
         // Fetch dashboard statistics
@@ -632,7 +768,6 @@ export function FacultyHomepage() {
         } catch (e) {
           console.error("Failed to fetch teacher dashboard stats", e);
         }
-
         // Fetch announcements
         try {
           const list = await announcementApi.getAll({ pageSize: 2 });
@@ -649,11 +784,11 @@ export function FacultyHomepage() {
         const totalStudentsCount = assignments.reduce((sum, a) => {
           // Use pre-populated studentCount if available, otherwise check allClasses
           if (a.studentCount) return sum + a.studentCount;
-          const cls = allClasses.find(c => c.id === a.classId || c._id === a.classId);
+          const cls = allClasses.find(c => (c.id || c.classId) === a.classId || c._id === a.classId);
           return sum + (cls?.studentCount || 0);
         }, 0);
 
-        const classesNames = assignments.map(a => a.className || allClasses.find(c => c.id === a.classId || c._id === a.classId)?.name).filter(Boolean);
+        const classesNames = assignments.map(a => a.className || allClasses.find(c => (c.id || c.classId) === a.classId || c._id === a.classId)?.name || allClasses.find(c => c.classId === a.classId)?.className).filter(Boolean);
         const uniqueClassesNames = Array.from(new Set(classesNames)).slice(0, 3).join(", ");
 
         const computedStats = [
@@ -673,7 +808,7 @@ export function FacultyHomepage() {
         setStats(computedStats);
 
         const subjectsWithDetails = assignments.map(asm => {
-          const c = asm.class || allClasses.find(cls => cls.id === asm.classId || cls._id === asm.classId) || {};
+          const c = asm.class || allClasses.find(cls => (cls.id || cls.classId) === asm.classId || cls._id === asm.classId) || {};
           const s = asm.subject || {};
           return {
             id: asm.id || asm._id,
@@ -707,34 +842,28 @@ export function FacultyHomepage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
       {/* Welcome Banner */}
-      <div className="relative rounded-[2rem] bg-[#053d26] text-white p-8 sm:p-10 overflow-hidden shadow-lg border border-[#042c1b]">
-        <div className="absolute right-0 top-0 opacity-10 translate-x-12 -translate-y-12">
-          <Award className="w-64 h-64" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-[#053d26] uppercase tracking-wider mb-1">{currentDate}</p>
+          <h1 className="text-3xl font-bold text-gray-900 leading-tight">Welcome, {teacherName}</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage your classes, view schedules, and enter student results.</p>
         </div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3">
-            <p className="text-xs font-bold uppercase tracking-widest text-green-300">{currentDate}</p>
-            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight">Welcome Back, {teacherName}</h1>
-            <p className="text-sm text-green-100 max-w-xl">
-              Teacher Portal • Academic Architect. View your schedules, manage classes, and enter grades below.
-            </p>
-          </div>
-          <div className="flex items-center gap-4 shrink-0 bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10">
-            {teacherImage ? (
-              <img 
-                src={teacherImage} 
-                alt={teacherName} 
-                className="h-12 w-12 rounded-full object-cover border border-white/25 shadow-sm"
-              />
-            ) : (
-              <div className="h-12 w-12 rounded-full bg-[#b05e1c] text-white font-bold flex items-center justify-center text-lg shadow-inner">
-                {teacherInitials}
-              </div>
-            )}
-            <div>
-              <p className="font-bold text-sm">{teacherName}</p>
-              <p className="text-xs text-green-200">Faculty Member</p>
+        
+        <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-full border border-gray-200 shadow-sm shrink-0">
+          {teacherImage ? (
+            <img 
+              src={teacherImage} 
+              alt={teacherName} 
+              className="h-10 w-10 rounded-full object-cover"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-sm shadow-inner">
+              {teacherInitials}
             </div>
+          )}
+          <div className="pr-2">
+            <p className="font-bold text-sm text-gray-900">{teacherName}</p>
+            <p className="text-xs text-gray-500 font-medium">Faculty Member</p>
           </div>
         </div>
       </div>
@@ -786,9 +915,9 @@ export function FacultyHomepage() {
             </div>
             
             <div className="space-y-6">
-              {/* Form Class Indicator */}
-              {formClass && (
-                <div className="group relative overflow-hidden bg-gradient-to-br from-[#053d26] to-[#042c1b] p-6 rounded-3xl flex items-center justify-between transition-all duration-500 hover:shadow-lg hover:shadow-[#053d26]/20">
+              {/* Form Class Indicators */}
+              {formClasses && formClasses.length > 0 && formClasses.map((fc, index) => (
+                <div key={fc.classId || fc.id || fc._id || index} className="group relative overflow-hidden bg-gradient-to-br from-[#053d26] to-[#042c1b] p-6 rounded-3xl flex items-center justify-between transition-all duration-500 hover:shadow-lg hover:shadow-[#053d26]/20 mb-4">
                   <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-700">
                     <Award className="h-24 w-24 text-white" />
                   </div>
@@ -799,7 +928,7 @@ export function FacultyHomepage() {
                     <div>
                       <h4 className="font-extrabold text-white text-lg tracking-wide">Form Teacher</h4>
                       <p className="text-green-100 font-medium text-sm flex items-center gap-2 mt-1">
-                        Class: {formClass.name || "Assigned Class"} {formClass.arm ? `(${formClass.arm})` : ''}
+                        Class: {fc.className || fc.name || "Assigned Class"} {fc.arm ? `(${fc.arm})` : ''}
                       </p>
                     </div>
                   </div>
@@ -808,7 +937,7 @@ export function FacultyHomepage() {
                     Mark Attendance
                   </Link>
                 </div>
-              )}
+              ))}
 
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-4">Subject Assignments</h3>
               
@@ -855,7 +984,6 @@ export function FacultyHomepage() {
           <div className="bg-gradient-to-br from-[#053d26] to-[#b05e1c] rounded-[2rem] p-1">
             <div className="bg-white rounded-[1.8rem] p-6 h-full space-y-6">
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-50 pb-4">
-                <Sparkles className="h-4.5 w-4.5 text-[#b05e1c]" />
                 Teacher Hub
               </h3>
 

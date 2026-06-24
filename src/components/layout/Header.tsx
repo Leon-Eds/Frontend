@@ -18,17 +18,27 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
   const [userImage, setUserImage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    const loadUserData = () => {
       try {
         const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
         setUserName(user.fullName || user.name || "Admin");
         setRole(user.role);
-        if (user.imageUrl || user.image) {
-          setUserImage(user.imageUrl || user.image);
+        const profilePic = user.imageUrl || user.image || user.profilePictureUrl || user.photo || 
+          user.student?.profilePictureUrl || user.student?.imageUrl || user.student?.photo || user.student?.image ||
+          user.teacher?.profilePictureUrl || user.teacher?.imageUrl || user.teacher?.photo || user.teacher?.image;
+          
+        if (profilePic) {
+          setUserImage(profilePic);
         }
       } catch {
         setUserName("Admin");
       }
+    };
+
+    if (typeof window !== "undefined") {
+      loadUserData();
+      window.addEventListener("storage", loadUserData);
+      return () => window.removeEventListener("storage", loadUserData);
     }
   }, []);
 

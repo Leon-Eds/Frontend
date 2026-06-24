@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Input } from '../ui/form/Input';
 import { Select } from '../ui/form/Select';
-import { ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Camera, X } from 'lucide-react';
 import { CreateStudentRequest } from '@/lib/api';
 
 interface Step2Props {
@@ -17,6 +17,41 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
   const [relationship, setRelationship] = useState('');
   const [homeAddress, setHomeAddress] = useState('');
   const [isEmergencyContact, setIsEmergencyContact] = useState(true);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoFileName, setPhotoFileName] = useState<string>("");
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'].includes(file.type)) {
+      alert('Please upload a JPG, PNG, or PDF document.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Document must be smaller than 5MB.');
+      return;
+    }
+
+    setPhotoFileName(file.name);
+    updateData({ guardianIdImage: file });
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setPhotoPreview(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = () => {
+    setPhotoPreview(null);
+    setPhotoFileName("");
+    updateData({ guardianIdImage: undefined });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -133,6 +168,62 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
                 value={homeAddress}
                 onChange={(e) => setHomeAddress(e.target.value)}
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
+                Guardian ID / Passport Upload
+              </label>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/jpg,application/pdf"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
+
+              {photoPreview ? (
+                <div className="relative rounded-[2rem] overflow-hidden h-40 bg-gray-100 group border border-gray-200">
+                  {photoFileName.endsWith('.pdf') ? (
+                    <div className="flex items-center justify-center h-full text-sm font-bold text-gray-600">PDF Document Selected</div>
+                  ) : (
+                    <img
+                      src={photoPreview}
+                      alt="Guardian ID preview"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 rounded-full bg-white text-gray-900 text-xs font-bold hover:bg-gray-100 transition-colors"
+                    >
+                      Change Document
+                    </button>
+                    <button
+                      type="button"
+                      onClick={removePhoto}
+                      className="px-4 py-2 rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-colors flex items-center gap-1"
+                    >
+                      <X className="h-3 w-3" /> Remove
+                    </button>
+                  </div>
+                  <p className="absolute bottom-3 left-3 right-3 text-[10px] text-white bg-black/50 rounded-full px-3 py-1 truncate text-center">
+                    {photoFileName}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-gray-300 rounded-[2rem] bg-gray-50 h-32 flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-gray-100 hover:border-gray-400 transition-colors"
+                >
+                  <Camera className="h-6 w-6 text-gray-400 mb-2" />
+                  <span className="font-bold text-gray-700 text-sm">Upload Guardian ID</span>
+                  <span className="text-[10px] text-gray-500 mt-1">National ID or Passport (JPG, PNG, PDF max 5MB)</span>
+                </div>
+              )}
             </div>
 
             {/* Emergency Contact Toggle */}

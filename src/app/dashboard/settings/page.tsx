@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check } from "lucide-react";
-import { authApi, studentApi } from "@/lib/api";
+import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard } from "lucide-react";
+import { authApi, studentApi, schoolApi, paymentApi } from "@/lib/api";
 import { useLanguage, Language } from "@/components/LanguageProvider";
 
-type SettingsSection = 'school' | 'notifications' | 'security' | 'appearance' | 'localization' | 'advanced' | null;
+type SettingsSection = 'school' | 'notifications' | 'security' | 'appearance' | 'localization' | 'advanced' | 'billing' | null;
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>(null);
@@ -41,6 +41,12 @@ export default function SettingsPage() {
   const [diagnosticLogs, setDiagnosticLogs] = useState<string[]>([]);
   const [studentsCount, setStudentsCount] = useState(0);
 
+  // Billing state
+  const [paymentPlans, setPaymentPlans] = useState<any[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [billingCycle, setBillingCycle] = useState<string>("monthly");
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -55,11 +61,12 @@ export default function SettingsPage() {
   useEffect(() => {
     try {
       const user = localStorage.getItem('leoned_user');
+      let parsedUser: any = null;
       if (user) {
-        const parsed = JSON.parse(user);
-        setSchoolName(parsed.schoolName || "");
+        parsedUser = JSON.parse(user);
+        setSchoolName(parsedUser.schoolName || "");
         
-        let activeRole = parsed.role || "Admin";
+        let activeRole = parsedUser.role || "Admin";
         if (activeRole === "Teacher" || activeRole === "Faculty") {
           setUserRole("Faculty");
         } else if (activeRole === "Student" || activeRole === "student") {
@@ -95,8 +102,15 @@ export default function SettingsPage() {
       // Check query params for active section
       const params = new URLSearchParams(window.location.search);
       const section = params.get("section") as SettingsSection;
-      if (section && ['school', 'notifications', 'security', 'appearance', 'localization', 'advanced'].includes(section)) {
+      if (section && ['school', 'notifications', 'security', 'appearance', 'localization', 'advanced', 'billing'].includes(section)) {
         setActiveSection(section);
+      }
+
+      // Fetch payment plans for billing section
+      if (parsedUser?.role === 'SchoolAdmin' || !parsedUser?.role || parsedUser?.role === 'Admin') {
+        schoolApi.getPlans().then(plansData => {
+          setPaymentPlans((plansData as any)?.data || plansData || []);
+        }).catch(() => {});
       }
     } catch { /* ignore */ }
   }, []);
@@ -227,8 +241,29 @@ export default function SettingsPage() {
     setDiagnosticStatus('success');
   };
 
+  const handleSubscribe = async () => {
+    if (!selectedPlanId) {
+      setToast({ message: "Please select a plan to subscribe", type: "error" });
+      return;
+    }
+    setIsSubscribing(true);
+    try {
+      const res = await paymentApi.subscribe(selectedPlanId, billingCycle);
+      if ((res as any)?.authorizationUrl || (res as any)?.authorization_url) {
+        window.location.href = (res as any).authorizationUrl || (res as any).authorization_url;
+      } else {
+        setToast({ message: "Subscription initiated successfully", type: "success" });
+      }
+    } catch (err) {
+      setToast({ message: "Failed to initiate subscription", type: "error" });
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
   const allSections = [
     { id: 'school' as const, icon: Building2, title: 'School Profile', description: 'Update school name, address, logo, and contact information.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
+    { id: 'billing' as const, icon: CreditCard, title: 'Billing & Plans', description: 'Manage your active subscription and payment methods.', color: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-900/20' },
     { id: 'notifications' as const, icon: Bell, title: 'Notifications', description: 'Configure email alerts, SMS reminders, and in-app notifications.', color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
     { id: 'security' as const, icon: Lock, title: 'Security', description: 'Manage passwords, two-factor authentication, and access logs.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
     { id: 'appearance' as const, icon: Palette, title: 'Appearance', description: 'Customize branding colors, report card templates, and themes.', color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
@@ -238,7 +273,7 @@ export default function SettingsPage() {
   const sections = userRole === "Student"
     ? allSections.filter(s => ['security', 'appearance', 'localization'].includes(s.id))
     : userRole === "Faculty" 
-    ? allSections.filter(s => s.id !== 'school')
+    ? allSections.filter(s => ['security', 'appearance', 'localization', 'notifications'].includes(s.id))
     : allSections;
 
   return (
@@ -329,6 +364,103 @@ export default function SettingsPage() {
             <button onClick={handleSaveSchoolProfile} className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors">
               <Save className="h-4 w-4" /> Save Profile
             </button>
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'billing' && (
+        <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">Billing & Subscription</h2>
+            <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"><X className="h-5 w-5" /></button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
+            <div className="space-y-6">
+              <h3 className="text-lg font-bold text-gray-900">Select a Plan</h3>
+              <div className="space-y-4">
+                {paymentPlans.length > 0 ? paymentPlans.map((plan) => (
+                  <label key={plan.id} className={`flex items-start gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                    selectedPlanId === plan.id ? 'border-[#053d26] bg-green-50/30' : 'border-gray-100 bg-white hover:border-gray-200'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="plan"
+                      value={plan.id}
+                      checked={selectedPlanId === plan.id}
+                      onChange={() => setSelectedPlanId(plan.id)}
+                      className="mt-1 h-5 w-5 text-[#053d26] focus:ring-[#053d26] accent-[#053d26]"
+                    />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-bold text-gray-900">{plan.name}</span>
+                        <span className="font-bold text-[#053d26]">${plan.price}/mo</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mb-2">Up to {plan.studentLimit || 'unlimited'} students and {plan.teacherLimit || 'unlimited'} teachers</p>
+                      <div className="flex flex-wrap gap-2">
+                        {(plan.features || []).slice(0, 3).map((f: string, i: number) => (
+                          <span key={i} className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded-md">{f}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </label>
+                )) : (
+                  <p className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-xl">No plans available.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <h3 className="text-lg font-bold text-gray-900">Billing Cycle</h3>
+              <div className="space-y-4">
+                <label className={`flex items-center gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                  billingCycle === 'monthly' ? 'border-[#053d26] bg-green-50/30' : 'border-gray-100 bg-white hover:border-gray-200'
+                }`}>
+                  <input
+                    type="radio"
+                    name="billingCycle"
+                    value="monthly"
+                    checked={billingCycle === 'monthly'}
+                    onChange={() => setBillingCycle('monthly')}
+                    className="h-5 w-5 text-[#053d26] focus:ring-[#053d26] accent-[#053d26]"
+                  />
+                  <div>
+                    <span className="font-bold text-gray-900 block">Monthly Billing</span>
+                    <span className="text-xs text-gray-500 block mt-0.5">Pay as you go each month</span>
+                  </div>
+                </label>
+                <label className={`flex items-center gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                  billingCycle === 'annual' ? 'border-[#053d26] bg-green-50/30' : 'border-gray-100 bg-white hover:border-gray-200'
+                }`}>
+                  <input
+                    type="radio"
+                    name="billingCycle"
+                    value="annual"
+                    checked={billingCycle === 'annual'}
+                    onChange={() => setBillingCycle('annual')}
+                    className="h-5 w-5 text-[#053d26] focus:ring-[#053d26] accent-[#053d26]"
+                  />
+                  <div className="flex-1 flex justify-between items-center">
+                    <div>
+                      <span className="font-bold text-gray-900 block">Annual Billing</span>
+                      <span className="text-xs text-gray-500 block mt-0.5">Pay upfront for 12 months</span>
+                    </div>
+                    <span className="bg-green-100 text-[#053d26] text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md">Save 20%</span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="pt-6 border-t border-gray-100">
+                <button
+                  onClick={handleSubscribe}
+                  disabled={!selectedPlanId || isSubscribing}
+                  className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-xl bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50"
+                >
+                  {isSubscribing ? <Loader2 className="h-5 w-5 animate-spin" /> : <CreditCard className="h-5 w-5" />}
+                  {isSubscribing ? 'Initiating Checkout...' : 'Proceed to Payment'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

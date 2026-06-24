@@ -389,9 +389,13 @@ export default function AcademicFlow() {
                         <tr key={student.id} className="hover:bg-gray-50/30 transition-colors">
                           <td className="py-5 px-8">
                             <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded-full bg-green-50 text-[#053d26] border border-green-100 flex items-center justify-center font-bold text-sm uppercase">
-                                {student.fullName[0]}
-                              </div>
+                              {student.profilePictureUrl ? (
+                                <img src={student.profilePictureUrl} alt={student.fullName} className="h-9 w-9 rounded-full object-cover shadow-sm border border-gray-100" />
+                              ) : (
+                                <div className="h-9 w-9 rounded-full bg-green-50 text-[#053d26] border border-green-100 flex items-center justify-center font-bold text-sm uppercase">
+                                  {student.fullName[0]}
+                                </div>
+                              )}
                               <span className="font-bold text-gray-900">{student.fullName}</span>
                             </div>
                           </td>

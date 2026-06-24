@@ -60,6 +60,28 @@ export default function LoginPage() {
         else if (userObj.subscriptionPlan || userObj.adminName) userObj.role = 'schooladmin';
       }
 
+      // Ensure schoolId is captured from all possible response locations
+      if (!userObj.schoolId) {
+        const possibleSchoolId = r.schoolId || r.school?.id || r.school?._id 
+          || userObj.school?.id || userObj.school?._id;
+        if (possibleSchoolId) {
+          userObj.schoolId = possibleSchoolId;
+        }
+      }
+
+      // Fallback: extract schoolId from JWT token's `sid` claim (.NET convention)
+      if (!userObj.schoolId && token) {
+        try {
+          const jwtPayload = JSON.parse(atob(token.split('.')[1]));
+          const fromJwt = jwtPayload.schoolId || jwtPayload.SchoolId || jwtPayload.sid;
+          if (fromJwt) {
+            userObj.schoolId = fromJwt;
+          }
+        } catch {}
+      }
+
+      console.log("[Login] User object to store:", JSON.stringify(userObj));
+
       if (!token) {
         console.error("[Login] No token found in response:", r);
         throw new Error("Login succeeded but no security token was returned. Please contact support.");

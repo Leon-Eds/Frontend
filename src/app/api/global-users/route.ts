@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const API_BASE_URL = 'https://leoned.vercel.app/api';
 
 const extractArray = (obj: any): any[] => {
@@ -29,6 +31,7 @@ export async function GET(req: Request) {
         'Content-Type': 'application/json',
         'Authorization': authHeader,
       },
+      cache: 'no-store'
     });
     
     if (!schoolsRes.ok) {
@@ -38,20 +41,42 @@ export async function GET(req: Request) {
     const schoolsData = await schoolsRes.json();
     const schools = extractArray(schoolsData);
 
-    // Note: Fetching teachers and students using SuperAdmin JWT directly fails because
-    // the backend endpoints (/teacher and /student) strictly require the JWT token claims
-    // to include a "SchoolId" property. Since SuperAdmin tokens do not belong to a specific
-    // school, they lack this claim, resulting in a 400 Bad Request: "School context (SchoolId) is required."
-    // 
-    // This is a backend limitation that requires a dedicated endpoint for SuperAdmins 
-    // to fetch all global users, or a modification to the existing endpoints.
-    //
-    // For now, we will return the schools as admins, and empty lists for teachers and students.
+    // Fetch all teachers
+    let teachers = [];
+    try {
+      const teachersRes = await fetch(`${API_BASE_URL}/teacher`, {
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+        cache: 'no-store'
+      });
+      const tText = await teachersRes.text();
+      console.log(`[TEACHERS RESP] ${teachersRes.status}:`, tText.substring(0, 200));
+      if (teachersRes.ok) {
+        teachers = extractArray(JSON.parse(tText));
+      }
+    } catch (e) {
+      console.warn("Failed to fetch teachers globally", e);
+    }
+
+    // Fetch all students
+    let students = [];
+    try {
+      const studentsRes = await fetch(`${API_BASE_URL}/student`, {
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+        cache: 'no-store'
+      });
+      const sText = await studentsRes.text();
+      console.log(`[STUDENTS RESP] ${studentsRes.status}:`, sText.substring(0, 200));
+      if (studentsRes.ok) {
+        students = extractArray(JSON.parse(sText));
+      }
+    } catch (e) {
+      console.warn("Failed to fetch students globally", e);
+    }
 
     return NextResponse.json({
       schools,
-      teachers: [],
-      students: [],
+      teachers,
+      students,
     });
   } catch (error: any) {
     console.error('[global-users API] Error:', error);

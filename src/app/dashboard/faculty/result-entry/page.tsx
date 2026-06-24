@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Save, Send, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Clock, FileText, CheckCircle2, Loader2 } from "lucide-react";
+import { Search, Save, Send, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Clock, FileText, CheckCircle2, Loader2, Settings, X } from "lucide-react";
 import Link from "next/link";
-import { scoreApi, classApi, subjectApi, sessionApi, dashboardApi } from "@/lib/api";
+import { scoreApi, classApi, subjectApi, sessionApi, dashboardApi, teacherPortalApi } from "@/lib/api";
 
 interface StudentScore {
   id: string;
@@ -17,6 +17,45 @@ interface StudentScore {
   grade: string;
   pos: string;
   isMissingExam?: boolean;
+}
+
+function calculatePositions(students: StudentScore[]): StudentScore[] {
+  const sorted = [...students].sort((a, b) => {
+    const totalA = typeof a.total === 'number' ? a.total : 0;
+    const totalB = typeof b.total === 'number' ? b.total : 0;
+    return totalB - totalA;
+  });
+
+  let currentRank = 1;
+  let currentScore = -1;
+  const rankMap = new Map<string, string>();
+  
+  sorted.forEach((s, index) => {
+    const total = typeof s.total === 'number' ? s.total : 0;
+    
+    if (total !== currentScore) {
+      currentRank = index + 1;
+      currentScore = total;
+    }
+
+    let suffix = "th";
+    const lastDigit = currentRank % 10;
+    const lastTwo = currentRank % 100;
+    if (lastDigit === 1 && lastTwo !== 11) suffix = "st";
+    else if (lastDigit === 2 && lastTwo !== 12) suffix = "nd";
+    else if (lastDigit === 3 && lastTwo !== 13) suffix = "rd";
+
+    if (s.ca1 === "" && s.ca2 === "" && s.exam === "") {
+      rankMap.set(s.id, "--");
+    } else {
+      rankMap.set(s.id, `${currentRank}${suffix}`);
+    }
+  });
+
+  return students.map(s => ({
+    ...s,
+    pos: rankMap.get(s.id) || "--"
+  }));
 }
 
 export default function FacultyResultEntry() {
@@ -33,6 +72,7 @@ export default function FacultyResultEntry() {
   const [currentTermId, setCurrentTermId] = useState("");
   const [currentSessionId, setCurrentSessionId] = useState("");
   const [currentSessionName, setCurrentSessionName] = useState("");
+  const gradingConfig = { ca1: 20, ca2: 20, exam: 60 };
 
   // Fetch teacher assignments and current term on mount
   useEffect(() => {
@@ -73,6 +113,12 @@ export default function FacultyResultEntry() {
           if (currentTerm) {
             setCurrentTermId(currentTerm.id);
           }
+        } else if (dashboardStats) {
+          // Fallback to dashboardStats if sessionApi fails due to 403
+          const stats = dashboardStats as any;
+          if (stats.currentSessionId) setCurrentSessionId(stats.currentSessionId);
+          if (stats.currentSession) setCurrentSessionName(stats.currentSession);
+          if (stats.currentTermId) setCurrentTermId(stats.currentTermId);
         }
 
         if (classList.length > 0) setSelectedClass(classList[0].id);
@@ -95,7 +141,21 @@ export default function FacultyResultEntry() {
     setError("");
     try {
       const data = await scoreApi.getScoresheet(selectedClass, selectedSubject, currentTermId);
-      const scores = Array.isArray(data) ? data : [];
+      let scores = Array.isArray(data) ? data : [];
+      
+      // If no scores exist yet for this class/subject/term, fetch the students and initialize empty score rows
+      if (scores.length === 0) {
+        const classStudents = (await teacherPortalApi.getClassStudents(selectedClass)) as any[];
+        scores = classStudents.map((s: any) => ({
+          studentId: s.id,
+          studentName: s.fullName,
+          admissionNumber: s.admissionNumber,
+          ca1: "",
+          ca2: "",
+          exam: "",
+        }));
+      }
+
       const mapped: StudentScore[] = scores.map((s: any, idx: number) => {
         const ca1 = s.firstCA ?? s.ca1 ?? "";
         const ca2 = s.secondCA ?? s.ca2 ?? "";
@@ -107,10 +167,12 @@ export default function FacultyResultEntry() {
         const total = ca1Num + ca2Num + examNum;
         let grade = "N/A";
         const t = total as number;
-        if (t >= 75) grade = "A";
-        else if (t >= 60) grade = "B";
-        else if (t >= 50) grade = "C";
-        else if (t >= 40) grade = "D";
+        const maxTotal = gradingConfig.ca1 + gradingConfig.ca2 + gradingConfig.exam;
+        const percentage = maxTotal > 0 ? (t / maxTotal) * 100 : 0;
+        if (percentage >= 75) grade = "A";
+        else if (percentage >= 60) grade = "B";
+        else if (percentage >= 50) grade = "C";
+        else if (percentage >= 40) grade = "D";
         else grade = "F";
         return {
           id: s.studentId || s.id || String(idx),
@@ -125,7 +187,7 @@ export default function FacultyResultEntry() {
           isMissingExam: isMissing,
         };
       });
-      setStudents(mapped);
+      setStudents(calculatePositions(mapped));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load scoresheet";
       console.error("[Result Entry] Scoresheet error:", err);
@@ -144,7 +206,8 @@ export default function FacultyResultEntry() {
     setSaveStatus("Saving changes...");
     setIsSaving(true);
 
-    setStudents(prev => prev.map(s => {
+    setStudents(prev => {
+      const mapped = prev.map(s => {
       if (s.id !== id) return s;
 
       const numVal = value === "" ? "" : Number(value);
@@ -159,14 +222,19 @@ export default function FacultyResultEntry() {
       const total = ca1 + ca2 + exam;
       updated.total = total;
       
-      if (total >= 75) updated.grade = "A";
-      else if (total >= 60) updated.grade = "B";
-      else if (total >= 50) updated.grade = "C";
-      else if (total >= 40) updated.grade = "D";
+      const maxTotal = gradingConfig.ca1 + gradingConfig.ca2 + gradingConfig.exam;
+      const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+      
+      if (percentage >= 75) updated.grade = "A";
+      else if (percentage >= 60) updated.grade = "B";
+      else if (percentage >= 50) updated.grade = "C";
+      else if (percentage >= 40) updated.grade = "D";
       else updated.grade = "F";
 
       return updated;
-    }));
+      });
+      return calculatePositions(mapped);
+    });
 
     // Auto-save via API
     setTimeout(() => {
@@ -182,6 +250,43 @@ export default function FacultyResultEntry() {
 
   const selectedClassName = classes.find(c => c.id === selectedClass)?.name || "";
   const selectedSubjectName = subjects.find(s => s.id === selectedSubject)?.name || "";
+
+  const handleSaveDraft = async () => {
+    if (!selectedClass || !selectedSubject || !currentTermId || !currentSessionId) {
+      setError("Please select a class and subject, and ensure the current session is active.");
+      return;
+    }
+
+    setSaveStatus("Saving draft...");
+    setIsSaving(true);
+    setError("");
+    try {
+      const payload = {
+        subjectId: selectedSubject,
+        classId: selectedClass,
+        termId: currentTermId,
+        academicSessionId: currentSessionId,
+        scores: students.map(s => ({
+          studentId: s.id,
+          firstCA: s.ca1 === "" ? 0 : Number(s.ca1),
+          secondCA: s.ca2 === "" ? 0 : Number(s.ca2),
+          exam: s.exam === "" ? 0 : Number(s.exam),
+          remark: s.grade
+        }))
+      };
+
+      await scoreApi.bulkEnter(payload);
+      setSaveStatus("Draft saved successfully");
+      setTimeout(() => setSaveStatus("All changes saved"), 3000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to save draft";
+      console.error("[Result Entry] Save draft error:", err);
+      setError(message);
+      setSaveStatus("Save failed");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleSubmitScores = async () => {
     if (!selectedClass || !selectedSubject || !currentTermId || !currentSessionId) {
@@ -242,8 +347,12 @@ export default function FacultyResultEntry() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <button className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all text-sm shadow-sm">
-            <Save className="h-4 w-4" />
+          <button 
+            onClick={handleSaveDraft}
+            disabled={isSaving || isLoading || students.length === 0}
+            className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving && saveStatus === "Saving draft..." ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save Draft
           </button>
           <button 
@@ -350,19 +459,19 @@ export default function FacultyResultEntry() {
                       </td>
                       <td className="py-4 px-4 text-xs font-semibold text-gray-500">{s.admNo}</td>
                       <td className="py-4 px-4 text-center">
-                        <input type="number" min="0" max="20" value={s.ca1}
+                        <input type="number" min="0" max={20} value={s.ca1}
                           onChange={(e) => handleScoreChange(s.id, "ca1", e.target.value)}
                           className="w-14 text-center py-1.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent"
                         />
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <input type="number" min="0" max="20" value={s.ca2}
+                        <input type="number" min="0" max={20} value={s.ca2}
                           onChange={(e) => handleScoreChange(s.id, "ca2", e.target.value)}
                           className="w-14 text-center py-1.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent"
                         />
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <input type="number" min="0" max="60" value={s.exam}
+                        <input type="number" min="0" max={60} value={s.exam}
                           onChange={(e) => handleScoreChange(s.id, "exam", e.target.value)}
                           className={`w-14 text-center py-1.5 rounded-lg border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent ${s.isMissingExam ? "border-red-300 bg-red-50 text-red-600" : "border-gray-200 text-gray-700"}`}
                         />

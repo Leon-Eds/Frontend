@@ -1,0 +1,17 @@
+{
+  "schoolId": "e9d631b4-9e43-4833-988b-14313925d698",
+  "teacherRes": {
+    "status": "fulfilled",
+    "value": {
+      "isError": true,
+      "message": "School context (SchoolId) is required for this operation."
+    }
+  },
+  "studentRes": {
+    "status": "fulfilled",
+    "value": {
+      "isError": true,
+      "message": "School context (SchoolId) is required for this operation."
+    }
+  }
+}
