@@ -27,10 +27,7 @@ export async function GET(req: Request) {
     
     // Fetch all schools
     const schoolsRes = await fetch(`${API_BASE_URL}/school`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
       cache: 'no-store'
     });
     
@@ -41,42 +38,72 @@ export async function GET(req: Request) {
     const schoolsData = await schoolsRes.json();
     const schools = extractArray(schoolsData);
 
-    // Fetch all teachers
-    let teachers = [];
-    try {
-      const teachersRes = await fetch(`${API_BASE_URL}/teacher`, {
-        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-        cache: 'no-store'
-      });
-      const tText = await teachersRes.text();
-      console.log(`[TEACHERS RESP] ${teachersRes.status}:`, tText.substring(0, 200));
-      if (teachersRes.ok) {
-        teachers = extractArray(JSON.parse(tText));
-      }
-    } catch (e) {
-      console.warn("Failed to fetch teachers globally", e);
-    }
+    // Fetch detail for each school to get accurate counts and any embedded data
+    const enrichedSchools = await Promise.all(
+      schools.map(async (school: any) => {
+        const schoolId = school.id || school._id;
+        if (!schoolId) return school;
+        
+        try {
+          const detailRes = await fetch(`${API_BASE_URL}/school/${schoolId}`, {
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+            cache: 'no-store'
+          });
+          
+          if (detailRes.ok) {
+            const detail = await detailRes.json();
+            const d = detail?.data || detail;
+            return { ...school, ...d };
+          }
+        } catch {}
+        
+        return school;
+      })
+    );
 
-    // Fetch all students
-    let students = [];
-    try {
-      const studentsRes = await fetch(`${API_BASE_URL}/student`, {
-        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-        cache: 'no-store'
-      });
-      const sText = await studentsRes.text();
-      console.log(`[STUDENTS RESP] ${studentsRes.status}:`, sText.substring(0, 200));
-      if (studentsRes.ok) {
-        students = extractArray(JSON.parse(sText));
+    // Build aggregated teacher/student lists from any embedded data
+    let allTeachers: any[] = [];
+    let allStudents: any[] = [];
+    let totalTeacherCount = 0;
+    let totalStudentCount = 0;
+
+    enrichedSchools.forEach((school: any) => {
+      const schoolId = school.id || school._id;
+      const schoolName = school.name || school.schoolName || 'Unknown';
+
+      totalTeacherCount += Number(school.currentTeacherCount || 0);
+      totalStudentCount += Number(school.currentStudentCount || 0);
+
+      // If the school object happens to have embedded arrays, use them
+      if (Array.isArray(school.teachers)) {
+        school.teachers.forEach((t: any) => {
+          allTeachers.push({ ...t, id: t.id || t._id, _schoolId: schoolId, _schoolName: schoolName });
+        });
       }
-    } catch (e) {
-      console.warn("Failed to fetch students globally", e);
-    }
+      if (Array.isArray(school.students)) {
+        school.students.forEach((s: any) => {
+          allStudents.push({ ...s, id: s.id || s._id, _schoolId: schoolId, _schoolName: schoolName });
+        });
+      }
+    });
+
+    // Deduplicate
+    const dedup = (arr: any[]) => {
+      const seen = new Set();
+      return arr.filter(item => {
+        const id = item.id || item._id;
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+    };
 
     return NextResponse.json({
-      schools,
-      teachers,
-      students,
+      schools: enrichedSchools,
+      teachers: dedup(allTeachers),
+      students: dedup(allStudents),
+      totalTeacherCount,
+      totalStudentCount,
     });
   } catch (error: any) {
     console.error('[global-users API] Error:', error);

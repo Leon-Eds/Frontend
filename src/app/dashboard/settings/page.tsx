@@ -394,9 +394,9 @@ export default function SettingsPage() {
                     <div className="flex-1">
                       <div className="flex justify-between items-center mb-1">
                         <span className="font-bold text-gray-900">{plan.name}</span>
-                        <span className="font-bold text-[#053d26]">${plan.price}/mo</span>
+                        <span className="font-bold text-[#053d26]">₦{(plan.amount ?? plan.price ?? 0).toString().replace('$', '').replace('₦', '')}/{plan.billingCycle === 'annual' ? 'yr' : 'mo'}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mb-2">Up to {plan.studentLimit || 'unlimited'} students and {plan.teacherLimit || 'unlimited'} teachers</p>
+                      <p className="text-xs text-gray-500 mb-2">Up to {plan.maxStudents || plan.studentLimit || 'unlimited'} students and {plan.maxTeachers || plan.teacherLimit || 'unlimited'} teachers</p>
                       <div className="flex flex-wrap gap-2">
                         {(plan.features || []).slice(0, 3).map((f: string, i: number) => (
                           <span key={i} className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded-md">{f}</span>
@@ -453,11 +453,11 @@ export default function SettingsPage() {
               <div className="pt-6 border-t border-gray-100">
                 <button
                   onClick={handleSubscribe}
-                  disabled={!selectedPlanId || isSubscribing}
+                  disabled={!selectedPlanId || isSubscribing || paymentPlans.find(p => p.id === selectedPlanId)?.name?.toLowerCase() === 'free'}
                   className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-xl bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50"
                 >
                   {isSubscribing ? <Loader2 className="h-5 w-5 animate-spin" /> : <CreditCard className="h-5 w-5" />}
-                  {isSubscribing ? 'Initiating Checkout...' : 'Proceed to Payment'}
+                  {isSubscribing ? 'Initiating Checkout...' : (paymentPlans.find(p => p.id === selectedPlanId)?.name?.toLowerCase() === 'free' ? 'Current Plan (Free)' : 'Proceed to Payment')}
                 </button>
               </div>
             </div>

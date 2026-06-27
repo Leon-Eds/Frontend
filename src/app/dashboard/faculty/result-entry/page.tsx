@@ -141,7 +141,13 @@ export default function FacultyResultEntry() {
     setError("");
     try {
       const data = await scoreApi.getScoresheet(selectedClass, selectedSubject, currentTermId);
-      let scores = Array.isArray(data) ? data : [];
+      let scores: any[] = [];
+      if (Array.isArray(data)) {
+        scores = data;
+      } else if (data && typeof data === 'object') {
+        const d = data as any;
+        scores = d.scores || d.data || d.items || [];
+      }
       
       // If no scores exist yet for this class/subject/term, fetch the students and initialize empty score rows
       if (scores.length === 0) {
@@ -176,8 +182,8 @@ export default function FacultyResultEntry() {
         else grade = "F";
         return {
           id: s.studentId || s.id || String(idx),
-          name: s.studentName || s.fullName || "Unknown",
-          admNo: s.admissionNumber || s.admNo || "",
+          name: s.studentName || s.student?.fullName || s.fullName || "Unknown",
+          admNo: s.admissionNumber || s.student?.admissionNumber || s.admNo || "",
           ca1,
           ca2,
           exam: exam ?? "",
@@ -203,14 +209,24 @@ export default function FacultyResultEntry() {
   }, [fetchScoresheet]);
 
   const handleScoreChange = (id: string, field: "ca1" | "ca2" | "exam", value: string) => {
-    setSaveStatus("Saving changes...");
+    setSaveStatus("Unsaved changes...");
     setIsSaving(true);
 
     setStudents(prev => {
       const mapped = prev.map(s => {
       if (s.id !== id) return s;
 
-      const numVal = value === "" ? "" : Number(value);
+      let numVal: number | "" = value === "" ? "" : Number(value);
+      if (numVal !== "") {
+        if (field === "ca1" || field === "ca2") {
+          if (numVal > 20) numVal = 20;
+          if (numVal < 0) numVal = 0;
+        } else if (field === "exam") {
+          if (numVal > 60) numVal = 60;
+          if (numVal < 0) numVal = 0;
+        }
+      }
+
       const updated = { ...s, [field]: numVal };
 
       const ca1 = updated.ca1 === "" ? 0 : Number(updated.ca1);
@@ -236,11 +252,7 @@ export default function FacultyResultEntry() {
       return calculatePositions(mapped);
     });
 
-    // Auto-save via API
-    setTimeout(() => {
-      setSaveStatus("All changes saved");
-      setIsSaving(false);
-    }, 800);
+    setIsSaving(false);
   };
 
   const filteredStudents = students.filter(s => 
@@ -268,10 +280,10 @@ export default function FacultyResultEntry() {
         academicSessionId: currentSessionId,
         scores: students.map(s => ({
           studentId: s.id,
-          firstCA: s.ca1 === "" ? 0 : Number(s.ca1),
-          secondCA: s.ca2 === "" ? 0 : Number(s.ca2),
-          exam: s.exam === "" ? 0 : Number(s.exam),
-          remark: s.grade
+          firstCA: s.ca1 === "" ? null : Number(s.ca1),
+          secondCA: s.ca2 === "" ? null : Number(s.ca2),
+          exam: s.exam === "" ? null : Number(s.exam),
+          remark: s.grade === "N/A" || s.grade === "--" ? undefined : s.grade
         }))
       };
 
@@ -305,15 +317,32 @@ export default function FacultyResultEntry() {
         academicSessionId: currentSessionId,
         scores: students.map(s => ({
           studentId: s.id,
-          firstCA: s.ca1 === "" ? 0 : Number(s.ca1),
-          secondCA: s.ca2 === "" ? 0 : Number(s.ca2),
-          exam: s.exam === "" ? 0 : Number(s.exam),
-          remark: s.grade
+          firstCA: s.ca1 === "" ? null : Number(s.ca1),
+          secondCA: s.ca2 === "" ? null : Number(s.ca2),
+          exam: s.exam === "" ? null : Number(s.exam),
+          remark: s.grade === "N/A" || s.grade === "--" ? undefined : s.grade
         }))
       };
 
       await scoreApi.bulkEnter(payload);
       setSaveStatus("Ledger submitted successfully");
+      
+      // Trigger notification to Admin
+      try {
+        const storedUser = localStorage.getItem("leoned_user");
+        const userName = storedUser ? JSON.parse(storedUser).name : "A teacher";
+        const { notificationsApi } = await import("@/lib/notifications");
+        notificationsApi.addNotification({
+          title: "New Ledger Submitted",
+          message: `${userName || 'A teacher'} has submitted a ledger for ${selectedClassName} - ${selectedSubjectName}. It is now awaiting approval.`,
+          type: "info",
+          targetRole: "Admin",
+          link: "/dashboard/approvals"
+        });
+      } catch (e) {
+        console.error("Failed to send notification", e);
+      }
+
       setTimeout(() => setSaveStatus("All changes saved"), 3000);
       // Optionally refresh scoresheet
       fetchScoresheet();

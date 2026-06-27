@@ -154,7 +154,7 @@ export default function BroadcastHub() {
         recipientsCount: targetCount,
         channels: selectedChannels,
         deliveryRate: "100%",
-        cost: "$0.00"
+        cost: "₦0.00"
       };
       const updatedLogs = [newLog, ...dispatchLogs];
       localStorage.setItem("leoned_dispatch_logs", JSON.stringify(updatedLogs));
@@ -168,12 +168,12 @@ export default function BroadcastHub() {
         targetGroup,
         recipientsCount: targetCount,
         channels: selectedChannels,
-        cost: "$0.00",
+        cost: "₦0.00",
         gatewayStatus: "Online",
         transmissions: selectedChannels.map(c => ({
           channel: c,
           successRate: "100%",
-          cost: "$0.00"
+          cost: "₦0.00"
         }))
       });
 
@@ -400,7 +400,7 @@ export default function BroadcastHub() {
                 <div>
                   <div className="text-xs font-extrabold text-gray-900">Carrier Fee Waiver Active</div>
                   <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">
-                    By selecting LeonEd megaphones, push protocols, and email nodes, carrier billing is completely waived. Carrier cost: <span className="font-extrabold text-emerald-700">$0.00</span>.
+                    By selecting LeonEd megaphones, push protocols, and email nodes, carrier billing is completely waived. Carrier cost: <span className="font-extrabold text-emerald-700">₦0.00</span>.
                   </p>
                 </div>
               </div>
@@ -503,7 +503,7 @@ export default function BroadcastHub() {
                   </div>
                   <div>
                     <p className="text-[8px] text-green-200 uppercase font-bold tracking-wider">Estimated Cost</p>
-                    <p className="text-2xl font-black text-emerald-300">$0.00</p>
+                    <p className="text-2xl font-black text-emerald-300">₦0.00</p>
                   </div>
                   <div>
                     <p className="text-[8px] text-green-200 uppercase font-bold tracking-wider">Uptime Rate</p>
@@ -703,7 +703,7 @@ export default function BroadcastHub() {
               </div>
               <div className="flex justify-between items-baseline text-xs border-t border-gray-200/60 pt-4">
                 <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Gateway Carrier Fee</span>
-                <span className="font-black text-emerald-700 text-sm">$0.00 (Free)</span>
+                <span className="font-black text-emerald-700 text-sm">₦0.00 (Free)</span>
               </div>
             </div>
 

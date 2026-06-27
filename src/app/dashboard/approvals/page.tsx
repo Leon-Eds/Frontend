@@ -212,6 +212,19 @@ export default function ResultsApproval() {
       // Try to publish immediately as well
       await resultApi.publish(sub.classId, sub.termId).catch(() => {});
       
+      try {
+        const { notificationsApi } = await import("@/lib/notifications");
+        notificationsApi.addNotification({
+          title: "Results Published",
+          message: `Results for ${sub.className} - ${sub.subject} have been approved and published.`,
+          type: "success",
+          targetRole: "Student",
+          link: "/dashboard/student-portal"
+        });
+      } catch (e) {
+        console.error("Failed to send notification", e);
+      }
+
       setSubmissions(prev => prev.filter(item => item.id !== id));
       setApprovedResultsCount(prev => prev + 1);
     } catch (err: unknown) {

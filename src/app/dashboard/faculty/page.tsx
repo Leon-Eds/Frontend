@@ -13,6 +13,7 @@ export function FacultyDirectory() {
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState<CreateTeacherRequest>({
     fullName: '',
@@ -80,10 +81,34 @@ export function FacultyDirectory() {
 
     setIsSubmitting(true);
     try {
-      const teacher = await teacherApi.create(formData);
+      let profilePictureUrl = undefined;
+      if (imageFile) {
+        const formPayload = new FormData();
+        formPayload.append('file', imageFile);
+        formPayload.append('upload_preset', 'leoned_uploads');
+        formPayload.append('cloud_name', 'dvjy4jjxf');
+
+        const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dvjy4jjxf/image/upload', {
+          method: 'POST',
+          body: formPayload,
+        });
+
+        if (uploadRes.ok) {
+          const data = await uploadRes.json();
+          profilePictureUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
+        } else {
+          console.error("Cloudinary upload failed", await uploadRes.text());
+        }
+      }
+
+      const teacher = await teacherApi.create({
+        ...formData,
+        ...(profilePictureUrl ? { profilePictureUrl } : {})
+      });
       toast.success("Teacher created successfully!");
       setShowModal(false);
       setFormData({ fullName: '', email: '', phone: '', password: '' });
+      setImageFile(null);
       // Refresh the list
       await fetchTeachers();
     } catch (err: unknown) {
@@ -298,7 +323,6 @@ export function FacultyDirectory() {
             )}
 
             <form onSubmit={handleCreateTeacher} className="space-y-5">
-              {/* Profile photo upload — hidden until backend supports it
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Profile Photo (Optional)
@@ -309,14 +333,13 @@ export function FacultyDirectory() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      setFormData({ ...formData, imageFile: file });
+                      setImageFile(file);
                     }
                   }}
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#053d26] file:text-white hover:file:bg-[#042c1b] transition-colors"
                   disabled={isSubmitting}
                 />
               </div>
-              */}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">

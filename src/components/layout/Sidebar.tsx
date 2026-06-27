@@ -45,7 +45,7 @@ const adminNavigation = [
   { name: "Academic overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "Students", href: "/dashboard/students", icon: GraduationCap },
   { name: "Classes", href: "/dashboard/classes", icon: BookOpen },
-  { name: "Teachers' overview", href: "/dashboard/faculty", icon: Users },
+  { name: "Teachers", href: "/dashboard/faculty", icon: Users },
   { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
   { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
   { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
@@ -85,6 +85,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [role, setRole] = useState<string | null>(null);
   const [demoRole, setDemoRole] = useState<string>("Admin");
   const [schoolName, setSchoolName] = useState<string>("LeonEd Africa");
+  const [logoUrl, setLogoUrl] = useState<string>("/logo.png");
   const [plan, setPlan] = useState<string>("Free");
 
   useEffect(() => {
@@ -100,12 +101,18 @@ export default function Sidebar({ onClose }: SidebarProps) {
           } else if (normalizedRole === "superadmin") {
             setSchoolName("Platform Admin");
           }
+          if (user.logoUrl) {
+            setLogoUrl(user.logoUrl);
+          }
           if (user.schoolId && normalizedRole !== "superadmin") {
             schoolApi.getById(user.schoolId).then((school: any) => {
               if (school && school.subscriptionPlan) {
                 setPlan(school.subscriptionPlan);
               }
-            }).catch(e => console.warn("Failed to fetch school plan:", e));
+              if (school && school.logoUrl) {
+                setLogoUrl(school.logoUrl);
+              }
+            }).catch(e => console.warn("Failed to fetch school details:", e));
           }
         } catch (e) {
           console.error("Failed to parse user from localStorage", e);
@@ -157,14 +164,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Logo Area */}
       <div className="flex h-20 items-center justify-between px-6 border-b border-white/10">
         <Link href={role === "superadmin" ? "/super-admin" : "/dashboard"} className="flex items-center gap-3" onClick={handleNavClick}>
-          <Image
-            src="/logo.png"
-            alt="LeonEd Africa"
-            width={40}
-            height={40}
-            className="object-contain rounded-lg"
-          />
-          <div>
+          <div className="relative w-10 h-10 bg-white rounded-lg p-1 overflow-hidden shrink-0 flex items-center justify-center">
+            <Image
+              src={logoUrl || "/logo.png"}
+              alt="LeonEd Africa"
+              fill
+              className="object-contain p-0.5"
+            />
+          </div>
+          <div className="min-w-0">
             <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>{schoolName}</h1>
             {role === "superadmin" && (
               <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">

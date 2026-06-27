@@ -258,20 +258,20 @@ export default function LandingPage() {
           <div>
             <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">{t("footer.solutions")}</h4>
             <ul className="space-y-4">
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item1")}</Link></li>
+              <li><Link href="#architecture" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item1")}</Link></li>
               <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item2")}</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item3")}</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item4")}</Link></li>
+              <li><Link href="/login" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item3")}</Link></li>
+              <li><Link href="mailto:support@leoned.com" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item4")}</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">{t("footer.support")}</h4>
             <ul className="space-y-4">
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item1")}</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item2")}</Link></li>
+              <li><Link href="#why-leoned" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item1")}</Link></li>
+              <li><Link href="/demo" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item2")}</Link></li>
               <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item3")}</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item4")}</Link></li>
+              <li><Link href="/login" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item4")}</Link></li>
             </ul>
           </div>
         </div>

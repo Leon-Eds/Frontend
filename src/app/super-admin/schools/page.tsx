@@ -54,6 +54,13 @@ export default function SchoolsManagement() {
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchParam = urlParams.get('search');
+      if (searchParam) {
+        setSearch(searchParam);
+      }
+    }
     fetchSchools();
   }, []);
 
@@ -105,6 +112,17 @@ export default function SchoolsManagement() {
       </div>
     );
   }
+
+  const filteredSchools = schools.filter(s => {
+    if (!search) return true;
+    const term = search.toLowerCase();
+    return (
+      (s.name || '').toLowerCase().includes(term) ||
+      (s.email || '').toLowerCase().includes(term) ||
+      (s.adminName || '').toLowerCase().includes(term) ||
+      (s.id || s._id || '').toLowerCase().includes(term)
+    );
+  });
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -163,7 +181,7 @@ export default function SchoolsManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {schools.length > 0 ? schools.map((school) => {
+                {filteredSchools.length > 0 ? filteredSchools.map((school) => {
                   const isSchoolActive = school.isActive !== false && school.status !== 'Suspended';
                   return (
                   <tr key={school.id} className={`group hover:bg-gray-50/30 transition-all duration-500 ${isSchoolActive ? 'opacity-100' : 'opacity-40 grayscale bg-gray-50/50'}`}>
@@ -201,7 +219,7 @@ export default function SchoolsManagement() {
                         }`}>
                           {school.subscriptionPlan || 'Free'}
                         </span>
-                        <div className="text-xs text-gray-400">Next renewal: June 12, 2026</div>
+                        <div className="text-xs text-gray-400">Next renewal: {school.createdAt ? formatDate(new Date(new Date(school.createdAt).setFullYear(new Date(school.createdAt).getFullYear() + 1)).toISOString()) : 'N/A'}</div>
                       </div>
                     </td>
 
@@ -223,12 +241,12 @@ export default function SchoolsManagement() {
                     </td>
                     <td className="py-6 px-8 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Link href={`/dashboard`} className="p-2 text-gray-400 hover:text-[#053d26] hover:bg-green-50 rounded-xl transition-all" title="Access School Portal">
+                        <button onClick={() => toast.success("School portal access coming soon")} className="p-2 text-gray-400 hover:text-[#053d26] hover:bg-green-50 rounded-xl transition-all" title="Access School Portal">
                           <ExternalLink className="h-5 w-5" />
-                        </Link>
-                        <Link href={`/dashboard/settings`} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all" title="Platform Settings">
+                        </button>
+                        <button onClick={() => toast.success("School settings coming soon")} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all" title="Platform Settings">
                           <Settings className="h-5 w-5" />
-                        </Link>
+                        </button>
                         <button
                           onClick={() => handleToggleStatus(school.id)}
                           title={isSchoolActive ? "Suspend School" : "Activate School"}

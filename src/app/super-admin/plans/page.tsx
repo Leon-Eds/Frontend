@@ -140,12 +140,42 @@ export default function BillingPlansManagement() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [statsData, plansData] = await Promise.all([
-          dashboardApi.getSuperAdminDashboard(),
-          schoolApi.getPlans()
+        const [statsData, plansData, schoolsData] = await Promise.all([
+          dashboardApi.getSuperAdminDashboard().catch(() => null),
+          schoolApi.getPlans().catch(() => []),
+          schoolApi.getAll().catch(() => [])
         ]);
-        setStats((statsData as any)?.data || statsData);
-        setPlans((plansData as any)?.data || plansData || []);
+        
+        const fetchedPlans = (plansData as any)?.data || plansData || [];
+        setPlans(fetchedPlans);
+        
+        let extractedSchools: any[] = [];
+        const sData = (schoolsData as any)?.data || schoolsData;
+        if (Array.isArray(sData)) extractedSchools = sData;
+        else if (Array.isArray(sData?.items)) extractedSchools = sData.items;
+
+        let activeSubs = 0;
+        let totalRev = 0;
+
+        extractedSchools.forEach(sch => {
+          if (sch.isActive !== false) {
+            const planName = sch.subscriptionPlan || "Free";
+            const plan = fetchedPlans.find((p: any) => p.name === planName);
+            if (plan && plan.name !== "Free") {
+              activeSubs++;
+              const amount = Number(plan.amount ?? plan.price ?? 0);
+              totalRev += amount;
+            }
+          }
+        });
+
+        const backendStats = (statsData as any)?.data || statsData || {};
+        
+        setStats({
+          ...backendStats,
+          activeSubscriptions: backendStats.activeSubscriptions || activeSubs,
+          totalRevenue: backendStats.totalRevenue || backendStats.revenue || totalRev
+        });
       } catch (err) {
         console.error("Failed to fetch billing data", err);
       } finally {

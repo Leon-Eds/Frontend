@@ -192,7 +192,7 @@ export default function DashboardOverview() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">School Dashboard</h1>
         <p className="text-gray-600">
-          Welcome back, {userName}. Here is your campus overview for the <span className="text-[#b05e1c] font-semibold">{termLabel}</span>.
+          Welcome back, {userName.split(' ')[0]}. Here is your campus overview for the <span className="text-[#b05e1c] font-semibold">{termLabel}</span>.
         </p>
       </div>
 

@@ -43,6 +43,7 @@ export default function SuperAdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [schools, setSchools] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [user, setUser] = useState<any>(null);
@@ -68,9 +69,10 @@ export default function SuperAdminDashboard() {
 
       const fetchData = async () => {
         try {
-          const [statsData, schoolsData] = await Promise.all([
+          const [statsData, schoolsData, plansData] = await Promise.all([
             dashboardApi.getSuperAdminDashboard(),
-            schoolApi.getAll().catch(() => null)
+            schoolApi.getAll().catch(() => null),
+            schoolApi.getPlans().catch(() => [])
           ]);
           
           setStats(statsData);
@@ -104,6 +106,26 @@ export default function SuperAdminDashboard() {
           }
           
           setSchools(extractedSchools);
+          const fetchedPlans = (plansData as any)?.data || plansData || [];
+          setPlans(fetchedPlans);
+          
+          // Enrich schools with detail data (for currentTeacherCount, currentStudentCount)
+          if (extractedSchools.length > 0) {
+            const enriched = await Promise.all(
+              extractedSchools.map(async (school: any) => {
+                const id = school.id || school._id;
+                if (!id) return school;
+                try {
+                  const detail = await schoolApi.getById(id);
+                  const d = (detail as any)?.data || detail;
+                  return { ...school, ...d };
+                } catch {
+                  return school;
+                }
+              })
+            );
+            setSchools(enriched);
+          }
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : "Failed to load dashboard";
           setError(message);
@@ -190,18 +212,42 @@ export default function SuperAdminDashboard() {
   let totalTeachers = s?.totalTeachers || s?.totalStaff || s?.totalFaculty || 0;
 
   if (totalStudents === 0 && schools.length > 0) {
-    totalStudents = schools.reduce((acc, school) => acc + extractCount(school, ['student', 'pupil', 'learner']), 0);
+    totalStudents = schools.reduce((acc, school) => {
+      return acc + Number(school.currentStudentCount || 0) + extractCount(school, ['student', 'pupil', 'learner']);
+    }, 0);
   }
   if (totalTeachers === 0 && schools.length > 0) {
-    totalTeachers = schools.reduce((acc, school) => acc + extractCount(school, ['teacher', 'staff', 'faculty']), 0);
+    totalTeachers = schools.reduce((acc, school) => {
+      return acc + Number(school.currentTeacherCount || 0) + extractCount(school, ['teacher', 'staff', 'faculty']);
+    }, 0);
   }
 
-  const activeSubscriptions = s?.activeSubscriptions || 0;
+  let computedActiveSubs = 0;
+  let computedTotalRev = 0;
+  schools.forEach(sch => {
+    if (sch.isActive !== false) {
+      const planName = sch.subscriptionPlan || "Free";
+      const plan = plans.find((p: any) => p.name === planName);
+      if (plan && plan.name !== "Free") {
+        computedActiveSubs++;
+        computedTotalRev += Number(plan.amount ?? plan.price ?? 0);
+      }
+    }
+  });
+
+  const activeSubscriptions = s?.activeSubscriptions || computedActiveSubs;
+  const totalRevenue = s?.totalRevenue || s?.revenue || computedTotalRev;
   const platformGrowth = s?.platformGrowth || "Live";
 
   // Data Reconciliation: If count > 0 but list is empty, we flag it as "Syncing"
   const isSyncingSchools = reportedTotalSchools > 0 && schools.length === 0;
   const displayTotalSchools = isSyncingSchools ? "0" : String(reportedTotalSchools);
+
+  const planCounts = schools.reduce((acc: any, school: any) => {
+    const plan = school.subscriptionPlan || 'Free';
+    acc[plan] = (acc[plan] || 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div className="relative min-h-[80vh] w-full text-gray-900 pb-12">
@@ -278,10 +324,10 @@ export default function SuperAdminDashboard() {
 
           {/* Regular Stats */}
           {[
-            { label: "Global Students", value: totalStudents.toLocaleString(), unit: "active", icon: Users, color: "blue", trend: "+14.2% MoM" },
-            { label: "Global Teachers", value: totalTeachers.toLocaleString(), unit: "verified", icon: Briefcase, color: "emerald", trend: "Live" },
-            { label: "Active Subscriptions", value: activeSubscriptions, unit: "licences", icon: CreditCard, color: "orange", trend: "Billing" },
-            { label: "System Telemetry", value: platformGrowth, unit: "status", icon: Server, color: "purple", trend: "100% Uptime" }
+            { label: "Total Revenue", value: `₦${totalRevenue.toLocaleString()}`, unit: "earned", icon: Briefcase, color: "emerald", trend: "Growth" },
+            { label: "Premium Plans", value: planCounts['Premium'] || 0, unit: "schools", icon: CreditCard, color: "purple", trend: "Premium" },
+            { label: "Plus Plans", value: planCounts['Plus'] || 0, unit: "schools", icon: CreditCard, color: "blue", trend: "Plus" },
+            { label: "Active Subscriptions", value: activeSubscriptions, unit: "licences", icon: ShieldAlert, color: "orange", trend: "Billing" }
           ].map((stat, i) => (
             <div key={i} className={`group relative overflow-hidden rounded-[2rem] bg-white/60 backdrop-blur-xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-white/80 transition-all duration-300 hover:bg-white hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)] hover:-translate-y-1`}>
               <div className={`absolute -right-10 -top-10 h-32 w-32 bg-${stat.color}-500/5 rounded-full blur-2xl transition-transform duration-500 group-hover:scale-150 group-hover:bg-${stat.color}-500/10`} />
@@ -415,9 +461,9 @@ export default function SuperAdminDashboard() {
                                 ACTIVE
                               </span>
                             )}
-                            <div className="h-9 w-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 group-hover:text-white group-hover:bg-[#053d26] group-hover:border-[#053d26] group-hover:shadow-[0_4px_12px_rgba(5,61,38,0.3)] transition-all duration-300">
+                            <Link href={`/super-admin/schools?search=${encodeURIComponent(school.name || '')}`} className="h-9 w-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 group-hover:text-white group-hover:bg-[#053d26] group-hover:border-[#053d26] group-hover:shadow-[0_4px_12px_rgba(5,61,38,0.3)] transition-all duration-300">
                               <ArrowRight className="h-4 w-4" />
-                            </div>
+                            </Link>
                           </div>
                         </td>
                       </tr>

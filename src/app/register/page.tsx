@@ -17,6 +17,7 @@ export default function RegisterSchoolPage() {
   const [apiError, setApiError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [logoImage, setLogoImage] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     schoolName: "",
     schoolType: "",
@@ -96,7 +97,7 @@ export default function RegisterSchoolPage() {
     setApiError("");
     try {
       // Register the school
-      await authApi.register({
+      const registerRes = await authApi.register({
         schoolName: formData.schoolName,
         adminName: formData.adminName,
         email: formData.adminEmail,
@@ -126,6 +127,38 @@ export default function RegisterSchoolPage() {
       if (refreshToken) localStorage.setItem("leoned_refresh_token", refreshToken);
       if (tokenExpiry) localStorage.setItem("leoned_token_expiry", tokenExpiry);
       if (user) localStorage.setItem("leoned_user", JSON.stringify(user));
+
+      // Handle Logo Upload if present
+      if (logoImage && user?.schoolId) {
+        try {
+          const formPayload = new FormData();
+          formPayload.append('file', logoImage);
+          formPayload.append('upload_preset', 'leoned_uploads');
+          formPayload.append('cloud_name', 'dvjy4jjxf');
+
+          const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dvjy4jjxf/image/upload', {
+            method: 'POST',
+            body: formPayload,
+          });
+
+          if (uploadRes.ok) {
+            const data = await uploadRes.json();
+            const logoUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
+            // Using fetch directly as schoolApi.update might not be fully typed here
+            await fetch(`https://leoned.vercel.app/api/school/${user.schoolId}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ logoUrl })
+            });
+          }
+        } catch (uploadErr) {
+          console.error("Logo upload failed:", uploadErr);
+          // Non-fatal error, we still proceed to dashboard
+        }
+      }
 
       // Redirect straight to dashboard
       router.push("/dashboard");
@@ -256,6 +289,27 @@ export default function RegisterSchoolPage() {
                       />
                     </div>
                     {errors.schoolName && <p className="text-xs text-red-500 mt-1">{errors.schoolName}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">School Logo <span className="text-gray-400 font-normal">(Optional)</span></label>
+                    <div className="flex items-center gap-4">
+                      {logoImage && (
+                        <div className="h-12 w-12 rounded-xl border border-gray-200 overflow-hidden shrink-0 relative bg-gray-50">
+                          <Image src={URL.createObjectURL(logoImage)} alt="Logo Preview" fill className="object-cover" />
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            setLogoImage(e.target.files[0]);
+                          }
+                        }}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#053d26]/10 file:text-[#053d26] hover:file:bg-[#053d26]/20 transition-colors"
+                      />
+                    </div>
                   </div>
 
                   <div>

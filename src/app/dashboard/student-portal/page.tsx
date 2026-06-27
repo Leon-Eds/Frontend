@@ -106,7 +106,12 @@ export default function StudentPerformanceRecord() {
         });
 
         const rData = (resultsData as any)?.data || resultsData;
-        const resultsArray = Array.isArray(rData) ? rData : [];
+        let resultsArray: any[] = [];
+        if (Array.isArray(rData)) {
+          resultsArray = rData;
+        } else if (rData && typeof rData === 'object') {
+          resultsArray = rData.scores || rData.data || rData.items || [];
+        }
         
         const mappedGrades = resultsArray.map((r: any) => {
           const total = Number(r.totalScore || 0);
@@ -185,7 +190,12 @@ export default function StudentPerformanceRecord() {
       setIsLoading(true);
       const resultsData = await resultApi.getMyResults(newTermId).catch(() => []);
       const rData = (resultsData as any)?.data || resultsData;
-      const resultsArray = Array.isArray(rData) ? rData : [];
+      let resultsArray: any[] = [];
+      if (Array.isArray(rData)) {
+        resultsArray = rData;
+      } else if (rData && typeof rData === 'object') {
+        resultsArray = rData.scores || rData.data || rData.items || [];
+      }
       
       const mappedGrades = resultsArray.map((r: any) => {
         const total = Number(r.totalScore || 0);

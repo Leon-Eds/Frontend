@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 export default function GlobalUsersManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
+  const [stats, setStats] = useState({ totalUsers: 0, totalSchools: 0 });
   const [error, setError] = useState("");
   const [activeDropdownUserId, setActiveDropdownUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -220,11 +221,14 @@ export default function GlobalUsersManagement() {
     });
   };
 
+  const [enrichedSchools, setEnrichedSchools] = useState<any[]>([]);
+  const [totalTeacherCount, setTotalTeacherCount] = useState(0);
+  const [totalStudentCount, setTotalStudentCount] = useState(0);
+
   useEffect(() => {
     const fetchUsers = async () => {
       setIsLoading(true);
       try {
-        // Use server-side API route to bypass CORS header restrictions
         const token = typeof window !== 'undefined' ? localStorage.getItem('leoned_token') : null;
         const res = await fetch('/api/global-users', {
           headers: {
@@ -237,7 +241,11 @@ export default function GlobalUsersManagement() {
         }
 
         const data = await res.json();
-        const { schools = [], teachers = [], students = [] } = data;
+        const { schools = [], teachers = [], students = [], totalTeacherCount: tCount = 0, totalStudentCount: sCount = 0 } = data;
+
+        setEnrichedSchools(schools);
+        setTotalTeacherCount(tCount);
+        setTotalStudentCount(sCount);
 
         const allUsers: any[] = [];
 
@@ -247,7 +255,7 @@ export default function GlobalUsersManagement() {
             allUsers.push({
               id: s.id + '_admin',
               name: s.adminName || s.name || 'Admin',
-              email: s.email || 'No email',
+              email: s.contactEmail || s.email || 'No email',
               role: 'SchoolAdmin',
               createdAt: s.createdAt,
               isActive: s.isActive
@@ -255,7 +263,7 @@ export default function GlobalUsersManagement() {
           }
         });
 
-        // Add Teachers
+        // Add Teachers (if backend returned individual records)
         teachers.forEach((t: any) => {
           if (t && !allUsers.some(u => u.id === t.id)) {
             allUsers.push({
@@ -269,7 +277,7 @@ export default function GlobalUsersManagement() {
           }
         });
 
-        // Add Students
+        // Add Students (if backend returned individual records)
         students.forEach((st: any) => {
           if (st && !allUsers.some(u => u.id === st.id)) {
             allUsers.push({
@@ -284,6 +292,10 @@ export default function GlobalUsersManagement() {
         });
 
         setUsers(allUsers);
+        setStats({
+          totalUsers: allUsers.length + tCount + sCount,
+          totalSchools: schools.length
+        });
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load users");
       } finally {
@@ -304,6 +316,17 @@ export default function GlobalUsersManagement() {
           <UserPlus className="h-5 w-5 transition-transform group-hover:scale-110" />
           <span>Invite Admin</span>
         </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+          <span className="text-gray-500 font-medium mb-1">Total Registered Schools</span>
+          <span className="text-4xl font-black text-gray-900">{stats.totalSchools > 0 ? stats.totalSchools : users.filter(u => u.role === 'SchoolAdmin').length || 0}</span>
+        </div>
+        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+          <span className="text-gray-500 font-medium mb-1">Total Users (Platform-Wide)</span>
+          <span className="text-4xl font-black text-[#053d26]">{stats.totalUsers > 0 ? stats.totalUsers : users.length || 0}</span>
+        </div>
       </div>
 
       <div className="bg-white rounded-3xl shadow-sm border border-gray-200/60 overflow-hidden ring-1 ring-black/5">
@@ -400,7 +423,7 @@ export default function GlobalUsersManagement() {
                       <h3 className="font-bold text-gray-900 text-lg flex items-center gap-3">
                         Faculty & Teachers
                         <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                          {teachers.length} {teachers.length === 1 ? 'Teacher' : 'Teachers'}
+                          {teachers.length > 0 ? teachers.length : totalTeacherCount} {(teachers.length > 0 ? teachers.length : totalTeacherCount) === 1 ? 'Teacher' : 'Teachers'}
                         </span>
                       </h3>
                       <p className="text-sm text-gray-500 mt-0.5">Manage instructional staff across all institutions</p>
@@ -411,7 +434,31 @@ export default function GlobalUsersManagement() {
                   </div>
                 </button>
                 <div className={`transition-all duration-300 ease-in-out ${expandedGroups.teachers ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
-                  {renderUserTable(teachers, "No teachers found. Note: SuperAdmins cannot view teacher lists yet until backend support is added.")}
+                  {teachers.length > 0 ? (
+                    renderUserTable(teachers, "")
+                  ) : totalTeacherCount > 0 ? (
+                    <div className="px-6 md:px-8 pb-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {enrichedSchools.filter(s => Number(s.currentTeacherCount || 0) > 0).map((s: any) => (
+                          <div key={s.id} className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100/50">
+                            <div className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0">
+                              {(s.name || 'S')[0]}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{s.name || 'Unknown School'}</p>
+                              <p className="text-xs text-emerald-700 font-medium">{s.currentTeacherCount} teacher{s.currentTeacherCount !== 1 ? 's' : ''}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-4 text-center">Individual teacher profiles are managed within each school&apos;s dashboard.</p>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center">
+                      <Search className="h-8 w-8 mx-auto mb-3 text-gray-200" />
+                      <p className="text-sm font-medium text-gray-400">No teachers registered across any school yet.</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -429,7 +476,7 @@ export default function GlobalUsersManagement() {
                       <h3 className="font-bold text-gray-900 text-lg flex items-center gap-3">
                         Students
                         <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                          {students.length} {students.length === 1 ? 'Student' : 'Students'}
+                          {students.length > 0 ? students.length : totalStudentCount} {(students.length > 0 ? students.length : totalStudentCount) === 1 ? 'Student' : 'Students'}
                         </span>
                       </h3>
                       <p className="text-sm text-gray-500 mt-0.5">Manage enrolled learners across the platform</p>
@@ -440,7 +487,31 @@ export default function GlobalUsersManagement() {
                   </div>
                 </button>
                 <div className={`transition-all duration-300 ease-in-out ${expandedGroups.students ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
-                  {renderUserTable(students, "No students found. Note: SuperAdmins cannot view student lists yet until backend support is added.")}
+                  {students.length > 0 ? (
+                    renderUserTable(students, "")
+                  ) : totalStudentCount > 0 ? (
+                    <div className="px-6 md:px-8 pb-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {enrichedSchools.filter(s => Number(s.currentStudentCount || 0) > 0).map((s: any) => (
+                          <div key={s.id} className="flex items-center gap-3 p-4 rounded-xl bg-orange-50/50 border border-orange-100/50">
+                            <div className="h-9 w-9 rounded-lg bg-orange-100 flex items-center justify-center text-orange-700 font-bold text-sm shrink-0">
+                              {(s.name || 'S')[0]}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{s.name || 'Unknown School'}</p>
+                              <p className="text-xs text-orange-700 font-medium">{s.currentStudentCount} student{s.currentStudentCount !== 1 ? 's' : ''}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-4 text-center">Individual student profiles are managed within each school&apos;s dashboard.</p>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center">
+                      <Search className="h-8 w-8 mx-auto mb-3 text-gray-200" />
+                      <p className="text-sm font-medium text-gray-400">No students enrolled across any school yet.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

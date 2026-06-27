@@ -360,7 +360,7 @@ export interface CreateTeacherRequest {
   email: string;
   phone?: string;
   password?: string;
-  imageFile?: File;
+  profilePictureUrl?: string;
 }
 
 export interface UpdateTeacherRequest {
@@ -498,17 +498,17 @@ export interface EnterScoreRequest {
   classId: string;
   termId: string;
   academicSessionId: string;
-  firstCA: number;
-  secondCA: number;
-  exam: number;
+  firstCA?: number | null;
+  secondCA?: number | null;
+  exam?: number | null;
   remark?: string;
 }
 
 export interface BulkScoreEntry {
   studentId: string;
-  firstCA: number;
-  secondCA: number;
-  exam: number;
+  firstCA?: number | null;
+  secondCA?: number | null;
+  exam?: number | null;
   remark?: string;
 }
 

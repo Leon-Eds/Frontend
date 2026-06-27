@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BookOpen, Users, Clock, ArrowRight, CheckCircle2, AlertCircle, ChevronRight, Search, Plus, Award, UserCheck, ShieldCheck, Loader2 } from "lucide-react";
+import { BookOpen, Users, Clock, ArrowRight, CheckCircle2, AlertCircle, ChevronRight, Search, Plus, Award, UserCheck, ShieldCheck, Loader2, FileSpreadsheet } from "lucide-react";
 import Link from "next/link";
 import { teacherApi, classApi, dashboardApi, teacherPortalApi, attendanceApi } from "@/lib/api";
 
@@ -215,6 +215,13 @@ export default function MyClasses() {
               >
                 <UserCheck className="h-5 w-5" />
                 <span>Mark Attendance</span>
+              </Link>
+              <Link 
+                href="/dashboard/faculty/form-class-results" 
+                className="group relative flex items-center justify-center gap-2 px-8 py-4 bg-[#042c1b] text-white rounded-2xl font-bold hover:bg-black/40 border border-white/10 transition-all shadow-lg hover:-translate-y-0.5"
+              >
+                <FileSpreadsheet className="h-5 w-5" />
+                <span>Process Results</span>
               </Link>
             </div>
           </div>
