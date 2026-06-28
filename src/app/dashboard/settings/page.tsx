@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard } from "lucide-react";
+import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard, Camera } from "lucide-react";
 import { authApi, studentApi, schoolApi, paymentApi } from "@/lib/api";
 import { useLanguage, Language } from "@/components/LanguageProvider";
 
@@ -15,6 +15,7 @@ export default function SettingsPage() {
   const [schoolName, setSchoolName] = useState("");
   const [schoolAddress, setSchoolAddress] = useState("");
   const [schoolPhone, setSchoolPhone] = useState("");
+  const [schoolLogo, setSchoolLogo] = useState("");
 
   // Security / change password state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -65,6 +66,7 @@ export default function SettingsPage() {
       if (user) {
         parsedUser = JSON.parse(user);
         setSchoolName(parsedUser.schoolName || "");
+        if (parsedUser.logoUrl) setSchoolLogo(parsedUser.logoUrl);
         
         let activeRole = parsedUser.role || "Admin";
         if (activeRole === "Teacher" || activeRole === "Faculty") {
@@ -145,16 +147,37 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveSchoolProfile = () => {
+  const handleSaveSchoolProfile = async () => {
     try {
       const user = localStorage.getItem('leoned_user');
       if (user) {
         const parsed = JSON.parse(user);
         parsed.schoolName = schoolName;
+        parsed.logoUrl = schoolLogo;
         localStorage.setItem('leoned_user', JSON.stringify(parsed));
+        
+        if (parsed.schoolId || parsed.SchoolId) {
+          const sId = parsed.schoolId || parsed.SchoolId;
+          await schoolApi.update(sId, { name: schoolName, address: schoolAddress, contactPhone: schoolPhone, logoUrl: schoolLogo });
+        }
       }
     } catch { /* ignore */ }
-    setToast({ message: "School profile saved locally", type: "success" });
+    setToast({ message: "School profile updated successfully", type: "success" });
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setToast({ message: "Image must be less than 2MB", type: "error" });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSchoolLogo(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleToggleDarkMode = (checked: boolean) => {
@@ -333,6 +356,31 @@ export default function SettingsPage() {
                 <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"><X className="h-5 w-5" /></button>
               </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">School Logo</label>
+              <div className="flex items-center gap-4">
+                <div className="h-20 w-20 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
+                  {schoolLogo ? (
+                    <img src={schoolLogo} alt="School Logo" className="h-full w-full object-cover" />
+                  ) : (
+                    <Building2 className="h-8 w-8 text-gray-400" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm cursor-pointer transition-colors">
+                    <Camera className="h-4 w-4" />
+                    Upload Photo
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={handleLogoUpload}
+                    />
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">Recommended: Square image, max 2MB.</p>
+                </div>
+              </div>
+            </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">School Name</label>
               <input
