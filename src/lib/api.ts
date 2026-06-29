@@ -1421,11 +1421,25 @@ export const paymentPlanApi = {
 
 // Payments
 export const paymentApi = {
-  subscribe: async (planId: string, billingCycle: string = 'monthly') => {
+  subscribe: async (planId: string, callbackUrl?: string) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/payment/subscribe`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ planId, billingCycle }),
+      body: JSON.stringify({ planId, callbackUrl }),
+    });
+    return handleResponse(res);
+  },
+  manualUpgrade: async (schoolId: string, planId: string, durationMonths: number) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/payment/schools/${schoolId}/upgrade-manual`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ planId, durationMonths }),
+    });
+    return handleResponse(res);
+  },
+  getSubscriptionOverview: async () => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/subscription-logs/overview`, {
+      headers: getAuthHeaders(),
     });
     return handleResponse(res);
   },

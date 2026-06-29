@@ -12,16 +12,30 @@ import {
   School as SchoolIcon,
   Power,
   Mail,
-  Calendar
+  Calendar,
+  TrendingUp,
+  Building2,
+  CreditCard,
+  Users,
+  X
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
 export default function SchoolsManagement() {
   const [schools, setSchools] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedSchool, setSelectedSchool] = useState<any>(null);
+  
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [durationMonths, setDurationMonths] = useState("1");
+  const [isUpgrading, setIsUpgrading] = useState(false);
 
   const fetchSchools = async () => {
     setIsLoading(true);
@@ -36,16 +50,48 @@ export default function SchoolsManagement() {
       const data = await res.json();
       const { schools = [], teachers = [], students = [] } = data;
       
-      const schoolsWithCounts = schools.map((s: any) => ({
-        ...s,
-        id: s.id || s._id,
-        computedCounts: {
-          students: students.filter((st: any) => String(st.schoolId) === String(s.id || s._id) || String(st.SchoolId) === String(s.id || s._id)).length,
-          teachers: teachers.filter((t: any) => String(t.schoolId) === String(s.id || s._id) || String(t.SchoolId) === String(s.id || s._id)).length
+      const extractCount = (obj: any, keywords: string[]): number => {
+        if (!obj || typeof obj !== 'object') return 0;
+        if (obj._count) {
+          for (const key of Object.keys(obj._count)) {
+            if (keywords.some(kw => key.toLowerCase().includes(kw))) return obj._count[key];
+          }
         }
-      }));
+        for (const key of Object.keys(obj)) {
+          const lowerKey = key.toLowerCase();
+          if (lowerKey.includes('max') || lowerKey.includes('limit')) continue;
+          if (keywords.some(kw => lowerKey.includes(kw))) {
+            if (typeof obj[key] === 'number') return obj[key];
+            if (Array.isArray(obj[key])) return obj[key].length;
+          }
+        }
+        if (obj.stats) return extractCount(obj.stats, keywords);
+        return 0;
+      };
+
+      const schoolsWithCounts = schools.map((s: any) => {
+        const studentDirect = students.filter((st: any) => String(st.schoolId) === String(s.id || s._id) || String(st.SchoolId) === String(s.id || s._id)).length;
+        const teacherDirect = teachers.filter((t: any) => String(t.schoolId) === String(s.id || s._id) || String(t.SchoolId) === String(s.id || s._id)).length;
+        
+        return {
+          ...s,
+          id: s.id || s._id,
+          computedCounts: {
+            students: studentDirect > 0 ? studentDirect : Number(s.currentStudentCount || 0) + extractCount(s, ['student', 'pupil', 'learner']),
+            teachers: teacherDirect > 0 ? teacherDirect : Number(s.currentTeacherCount || 0) + extractCount(s, ['teacher', 'staff', 'faculty'])
+          }
+        };
+      });
       
       setSchools(schoolsWithCounts);
+      
+      try {
+        const { schoolApi } = await import('@/lib/api');
+        const plansData = await schoolApi.getPlans();
+        setPlans((plansData as any)?.data || plansData || []);
+      } catch (err) {
+        console.error("Failed to fetch plans", err);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load schools");
     } finally {
@@ -89,9 +135,35 @@ export default function SchoolsManagement() {
       await schoolApi.toggleStatus(schoolId, !currentlyActive);
       toast.success("Status updated successfully");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to toggle status");
-      // Revert optimistic update
+      toast.error(err instanceof Error ? err.message : "Failed to change status");
+    }
+  };
+
+  const handleOpenSettingsModal = (school: any) => {
+    setSelectedSchool(school);
+    setSelectedPlanId("");
+    setDurationMonths("1");
+    setActiveTab("overview");
+    setIsSettingsModalOpen(true);
+  };
+
+  const handleManualUpgrade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSchool || !selectedPlanId || !durationMonths) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    setIsUpgrading(true);
+    try {
+      const { paymentApi } = await import('@/lib/api');
+      await paymentApi.manualUpgrade(selectedSchool.id, selectedPlanId, parseInt(durationMonths));
+      toast.success("School upgraded successfully");
+      setIsSettingsModalOpen(false);
       fetchSchools();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to upgrade school");
+    } finally {
+      setIsUpgrading(false);
     }
   };
 
@@ -147,7 +219,6 @@ export default function SchoolsManagement() {
         </div>
       </div>
 
-      {/* Search Bar */}
       <div className="bg-white rounded-[2rem] p-4 shadow-sm border border-gray-100">
         <form onSubmit={handleSearch} className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -161,7 +232,6 @@ export default function SchoolsManagement() {
         </form>
       </div>
 
-      {/* Schools List */}
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         {isLoading ? (
           <div className="py-20 flex flex-col items-center gap-4">
@@ -202,10 +272,12 @@ export default function SchoolsManagement() {
                     <td className="py-6 px-4">
                       <div className="space-y-1">
                         <div className="text-sm font-semibold text-gray-900">{school.adminName || 'Admin User'}</div>
-                        <div className="text-xs text-gray-500 flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {school.email}
-                        </div>
+                        {school.email && (
+                          <div className="text-xs text-gray-500 flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {school.email}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="py-6 px-4">
@@ -244,7 +316,7 @@ export default function SchoolsManagement() {
                         <button onClick={() => toast.success("School portal access coming soon")} className="p-2 text-gray-400 hover:text-[#053d26] hover:bg-green-50 rounded-xl transition-all" title="Access School Portal">
                           <ExternalLink className="h-5 w-5" />
                         </button>
-                        <button onClick={() => toast.success("School settings coming soon")} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all" title="Platform Settings">
+                        <button onClick={() => handleOpenSettingsModal(school)} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all" title="School Settings">
                           <Settings className="h-5 w-5" />
                         </button>
                         <button
@@ -288,6 +360,161 @@ export default function SchoolsManagement() {
           </div>
         )}
       </div>
+
+      {isSettingsModalOpen && selectedSchool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col md:flex-row animate-in fade-in zoom-in duration-200 min-h-[500px]">
+            
+            {/* Sidebar Navigation */}
+            <div className="w-full md:w-64 bg-gray-50 border-r border-gray-100 p-6 flex flex-col shrink-0">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="h-10 w-10 rounded-xl bg-green-100 text-[#053d26] flex items-center justify-center font-bold text-lg">
+                  {(selectedSchool.name || "S").charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 truncate w-32">{selectedSchool.name}</h3>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">{selectedSchool.id}</p>
+                </div>
+              </div>
+
+              <nav className="space-y-2">
+                <button
+                  onClick={() => setActiveTab("overview")}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                    activeTab === "overview" 
+                      ? "bg-white text-[#053d26] shadow-sm border border-gray-200/50" 
+                      : "text-gray-500 hover:bg-gray-100/80"
+                  }`}
+                >
+                  <Building2 className="h-4 w-4" /> Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab("billing")}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                    activeTab === "billing" 
+                      ? "bg-white text-[#b05e1c] shadow-sm border border-gray-200/50" 
+                      : "text-gray-500 hover:bg-gray-100/80"
+                  }`}
+                >
+                  <CreditCard className="h-4 w-4" /> Subscription & Billing
+                </button>
+              </nav>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="flex-1 p-8 flex flex-col overflow-y-auto">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {activeTab === "overview" ? "School Profile" : "Plan Management"}
+                </h2>
+                <button 
+                  onClick={() => setIsSettingsModalOpen(false)}
+                  className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {activeTab === "overview" && (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Administrator</label>
+                      <p className="font-semibold text-gray-900">{selectedSchool.adminName || 'Admin User'}</p>
+                      {selectedSchool.email && (
+                        <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                          <Mail className="h-3 w-3" /> {selectedSchool.email}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Date Onboarded</label>
+                      <p className="font-semibold text-gray-900">{formatDate(selectedSchool.createdAt)}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <Users className="h-4 w-4 text-[#053d26]" /> Platform Usage
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <p className="text-2xl font-black text-gray-900">{selectedSchool.computedCounts?.students || 0}</p>
+                        <p className="text-xs text-gray-500 font-medium">Active Students</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <p className="text-2xl font-black text-gray-900">{selectedSchool.computedCounts?.teachers || 0}</p>
+                        <p className="text-xs text-gray-500 font-medium">Faculty Members</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "billing" && (
+                <form onSubmit={handleManualUpgrade} className="space-y-6 flex flex-col h-full">
+                  <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-orange-800 uppercase tracking-wider mb-1">Current Plan</p>
+                      <p className="text-lg font-black text-gray-900">{selectedSchool.subscriptionPlan || 'Free'}</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center shadow-sm">
+                      <Shield className="h-6 w-6 text-orange-500" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 flex-1">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Upgrade / Downgrade Plan</label>
+                      <select
+                        required
+                        value={selectedPlanId}
+                        onChange={(e) => setSelectedPlanId(e.target.value)}
+                        className="block w-full rounded-2xl border border-gray-200 bg-gray-50 py-3.5 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:bg-white transition-colors"
+                      >
+                        <option value="">-- Choose a Plan --</option>
+                        {plans.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} - ₦{(p.amount ?? p.price)?.toLocaleString() || 0}/mo
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Duration (Months)</label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        value={durationMonths}
+                        onChange={(e) => setDurationMonths(e.target.value)}
+                        className="block w-full rounded-2xl border border-gray-200 bg-gray-50 py-3.5 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:bg-white transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-6 mt-auto">
+                    <button
+                      type="submit"
+                      disabled={isUpgrading}
+                      className="w-full py-3.5 rounded-xl font-bold text-white bg-[#b05e1c] hover:bg-[#965017] transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isUpgrading ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" /> Processing...
+                        </>
+                      ) : (
+                        "Process Manual Override"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

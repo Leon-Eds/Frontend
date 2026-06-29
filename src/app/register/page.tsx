@@ -37,9 +37,8 @@ export default function RegisterSchoolPage() {
 
   const steps = [
     { id: 1, label: t("register.school_name") },
-    { id: 2, label: "Select Plan" },
-    { id: 3, label: t("register.admin_name") },
-    { id: 4, label: t("register.review") },
+    { id: 2, label: t("register.admin_name") },
+    { id: 3, label: t("register.review") },
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -81,7 +80,7 @@ export default function RegisterSchoolPage() {
   const nextStep = () => {
     let stepErrors: Record<string, string> = {};
     if (currentStep === 1) stepErrors = validateStep1();
-    if (currentStep === 3) stepErrors = validateStep2();
+    if (currentStep === 2) stepErrors = validateStep2();
 
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
@@ -89,7 +88,7 @@ export default function RegisterSchoolPage() {
     }
     setErrors({});
     setApiError("");
-    setCurrentStep((prev) => Math.min(prev + 1, 4));
+    setCurrentStep((prev) => Math.min(prev + 1, 3));
   };
 
   const handleRegister = async () => {
@@ -407,48 +406,8 @@ export default function RegisterSchoolPage() {
               </div>
             )}
 
-            {/* Step 2 — Select Plan */}
+            {/* Step 2 — Admin Details */}
             {currentStep === 2 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-[#b05e1c]" />
-                    Select subscription plan
-                  </h2>
-                  <p className="text-sm text-gray-500">Choose the perfect tier for your institution.</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[
-                    { id: "Free", name: "Free Tier", price: "₦0", students: "Up to 100 students", teachers: "Up to 10 teachers", desc: "For small schools starting their digital journey" },
-                    { id: "Plus", name: "Plus Plan", price: "₦15,000", students: "Up to 500 students", teachers: "Up to 30 teachers", desc: "For mid-sized growing educational centers" },
-                    { id: "Premium", name: "Premium", price: "₦30,000", students: "Unlimited students", teachers: "Unlimited teachers", desc: "Enterprise infrastructure and full support" }
-                  ].map((plan) => {
-                    const isSelected = formData.subscriptionPlan === plan.id;
-                    return (
-                      <button
-                        key={plan.id}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, subscriptionPlan: plan.id })}
-                        className={`flex flex-col text-left p-5 rounded-2xl border-2 transition-all cursor-pointer ${
-                          isSelected
-                            ? "border-[#053d26] bg-[#e8f5e9]/20 shadow-md"
-                            : "border-gray-100 hover:border-gray-200"
-                        }`}
-                      >
-                        <span className="font-bold text-gray-900 text-base mb-1">{plan.name}</span>
-                        <span className="text-[#b05e1c] text-xl font-black mb-3">{plan.price}<span className="text-[10px] font-bold text-gray-500">/mo</span></span>
-                        <span className="text-xs text-gray-600 font-semibold mb-1 flex items-center gap-1">• {plan.students}</span>
-                        <span className="text-xs text-gray-600 font-semibold mb-3 flex items-center gap-1">• {plan.teachers}</span>
-                        <span className="text-[10px] text-gray-400 leading-snug mt-auto">{plan.desc}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Step 3 — Admin Details */}
-            {currentStep === 3 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
@@ -592,8 +551,8 @@ export default function RegisterSchoolPage() {
               </div>
             )}
 
-            {/* Step 4 — Confirmation */}
-            {currentStep === 4 && (
+            {/* Step 3 — Confirmation */}
+            {currentStep === 3 && (
               <div className="space-y-6">
                 <div className="text-center">
                   <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
@@ -630,10 +589,6 @@ export default function RegisterSchoolPage() {
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-500">{t("register.est_students")}</span>
                         <span className="text-sm font-semibold text-gray-900">{formData.studentCount || "—"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Subscription Plan</span>
-                        <span className="text-sm font-semibold text-[#053d26]">{formData.subscriptionPlan}</span>
                       </div>
                     </div>
                   </div>
@@ -684,7 +639,7 @@ export default function RegisterSchoolPage() {
                 </Link>
               )}
 
-              {currentStep < 4 ? (
+              {currentStep < 3 ? (
                 <button
                   type="button"
                   onClick={nextStep}

@@ -40,9 +40,19 @@ export default function RootLayout({
                 } else {
                   document.documentElement.classList.remove('dark');
                 }
-                const theme = localStorage.getItem('leoned_theme') || 'forest';
-                document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal');
-                document.documentElement.classList.add('theme-' + theme);
+                const userStr = localStorage.getItem('leoned_user');
+                if (userStr) {
+                  const user = JSON.parse(userStr);
+                  if (user.schoolTheme && user.schoolTheme.primaryColor) {
+                    document.documentElement.style.setProperty('--theme-primary', user.schoolTheme.primaryColor);
+                  }
+                  if (user.schoolTheme && user.schoolTheme.secondaryColor) {
+                    document.documentElement.style.setProperty('--theme-secondary', user.schoolTheme.secondaryColor);
+                  }
+                  if (user.schoolTheme && user.schoolTheme.accentColor) {
+                    document.documentElement.style.setProperty('--theme-accent', user.schoolTheme.accentColor);
+                  }
+                }
               } catch (_) {}
             `,
           }}

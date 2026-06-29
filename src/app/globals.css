@@ -76,49 +76,27 @@ input[type="reset"] {
   -webkit-backdrop-filter: blur(16px);
 }
 
-/* Dynamic Themes overriding Tailwind arbitary colors at runtime */
+/* Dynamic School-Specific Themes overriding Tailwind arbitary colors at runtime */
 
-/* 1. Ocean Blue Theme */
-html.theme-ocean .text-\[\#053d26\] { color: #0f4c81 !important; }
-html.theme-ocean .bg-\[\#053d26\] { background-color: #0f4c81 !important; }
-html.theme-ocean .hover\:bg-\[\#042c1b\]:hover { background-color: #0b355c !important; }
-html.theme-ocean .border-\[\#053d26\] { border-color: #0f4c81 !important; }
-html.theme-ocean .focus\:border-\[\#053d26\]:focus { border-color: #0f4c81 !important; }
-html.theme-ocean .focus\:ring-\[\#053d26\]:focus { --tw-ring-color: #0f4c81 !important; }
-html.theme-ocean .ring-\[\#053d26\] { --tw-ring-color: #0f4c81 !important; }
-html.theme-ocean .bg-green-50 { background-color: #f0f7ff !important; }
-html.theme-ocean .text-green-700 { color: #1d4ed8 !important; }
-html.theme-ocean .border-green-100 { border-color: #dbeafe !important; }
-html.theme-ocean .bg-\[\#b2f2bb\] { background-color: #bfdbfe !important; }
-html.theme-ocean .text-\[\#053d26\] { color: #1e3a8a !important; }
+:root {
+  --theme-primary: #053d26;
+  --theme-secondary: #042c1b;
+  --theme-accent: #b05e1c;
+  --theme-badge-bg: #f0fdf4; /* emerald-50 */
+  --theme-badge-text: #047857; /* emerald-700 */
+}
 
-/* 2. Sunset Orange Theme */
-html.theme-sunset .text-\[\#053d26\] { color: #d97706 !important; }
-html.theme-sunset .bg-\[\#053d26\] { background-color: #d97706 !important; }
-html.theme-sunset .hover\:bg-\[\#042c1b\]:hover { background-color: #b45309 !important; }
-html.theme-sunset .border-\[\#053d26\] { border-color: #d97706 !important; }
-html.theme-sunset .focus\:border-\[\#053d26\]:focus { border-color: #d97706 !important; }
-html.theme-sunset .focus\:ring-\[\#053d26\]:focus { --tw-ring-color: #d97706 !important; }
-html.theme-sunset .ring-\[\#053d26\] { --tw-ring-color: #d97706 !important; }
-html.theme-sunset .bg-green-50 { background-color: #fffbeb !important; }
-html.theme-sunset .text-green-700 { color: #b45309 !important; }
-html.theme-sunset .border-green-100 { border-color: #fef3c7 !important; }
-html.theme-sunset .bg-\[\#b2f2bb\] { background-color: #fde68a !important; }
-html.theme-sunset .text-\[\#053d26\] { color: #78350f !important; }
+.text-\[\#053d26\] { color: var(--theme-primary) !important; }
+.bg-\[\#053d26\] { background-color: var(--theme-primary) !important; }
+.hover\:bg-\[\#042c1b\]:hover { background-color: var(--theme-secondary) !important; }
+.border-\[\#053d26\] { border-color: var(--theme-primary) !important; }
+.focus\:border-\[\#053d26\]:focus { border-color: var(--theme-primary) !important; }
+.focus\:ring-\[\#053d26\]:focus { --tw-ring-color: var(--theme-primary) !important; }
+.ring-\[\#053d26\] { --tw-ring-color: var(--theme-primary) !important; }
 
-/* 3. Royal Purple Theme */
-html.theme-royal .text-\[\#053d26\] { color: #6d28d9 !important; }
-html.theme-royal .bg-\[\#053d26\] { background-color: #6d28d9 !important; }
-html.theme-royal .hover\:bg-\[\#042c1b\]:hover { background-color: #5b21b6 !important; }
-html.theme-royal .border-\[\#053d26\] { border-color: #6d28d9 !important; }
-html.theme-royal .focus\:border-\[\#053d26\]:focus { border-color: #6d28d9 !important; }
-html.theme-royal .focus\:ring-\[\#053d26\]:focus { --tw-ring-color: #6d28d9 !important; }
-html.theme-royal .ring-\[\#053d26\] { --tw-ring-color: #6d28d9 !important; }
-html.theme-royal .bg-green-50 { background-color: #faf5ff !important; }
-html.theme-royal .text-green-700 { color: #6d28d9 !important; }
-html.theme-royal .border-green-100 { border-color: #f3e8ff !important; }
-html.theme-royal .bg-\[\#b2f2bb\] { background-color: #e9d5ff !important; }
-html.theme-royal .text-\[\#053d26\] { color: #4c1d95 !important; }
+/* Badges / Highlights syncing with primary theme */
+.bg-green-50, .bg-emerald-50 { background-color: var(--theme-badge-bg) !important; }
+.text-green-700, .text-emerald-700 { color: var(--theme-badge-text) !important; }
 
 /* Dark Mode CSS Variables and Overrides */
 html.dark {
@@ -335,4 +313,22 @@ html.dark .dot-grid-overlay {
 
 .animate-drift-two {
   animation: drift-blob-two 25s infinite ease-in-out;
+}
+
+/* Print Utilities */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-only, .print-only * {
+    visibility: visible;
+  }
+  .print-only {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+  }
 }

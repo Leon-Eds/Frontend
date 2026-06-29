@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import toast from 'react-hot-toast';
-import { Lock, UploadCloud, Plus, Eye, Printer, Mail, Check, RotateCw, MoreVertical, Search } from "lucide-react";
+import { Lock, UploadCloud, Plus, Eye, Printer, Mail, Check, RotateCw, MoreVertical, Search, FileText, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { studentApi, feeApi, sessionApi, classApi } from "@/lib/api";
 
@@ -13,10 +13,21 @@ interface StudentRegistry {
   program: string;
   refId: string;
   status: "Cleared" | "Unpaid" | "Pending Verification";
+  amountDue?: number;
+  amountPaid?: number;
 }
 
 export default function FeeClearance() {
   const router = useRouter();
+
+  const updateLocalFee = useCallback((studentId: string, updates: any, studentName?: string) => {
+    if (typeof window === 'undefined') return;
+    const existingStr = localStorage.getItem('mock_fee_records');
+    const existing = existingStr ? JSON.parse(existingStr) : {};
+    existing[studentId] = { ...existing[studentId], ...updates, studentName: studentName || existing[studentId]?.studentName };
+    localStorage.setItem('mock_fee_records', JSON.stringify(existing));
+  }, []);
+
   const [registry, setRegistry] = useState<StudentRegistry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +66,105 @@ export default function FeeClearance() {
   const [amountDue, setAmountDue] = useState("50000");
   const [amountPaid, setAmountPaid] = useState("50000");
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+
+  const [dropdownOpenId, setDropdownOpenId] = useState<string | null>(null);
+
+  // Student Details Modal states
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [detailStudent, setDetailStudent] = useState<any>(null);
+  
+  // Print state
+  const [receiptStudent, setReceiptStudent] = useState<any>(null);
+
+  const handleOpenDetails = (student: any) => {
+    setDetailStudent(student);
+    setIsDetailsModalOpen(true);
+    setIsEditingDue(false);
+    setEditedDue(student.amountDue?.toString() || "0");
+    setIsEditingPaid(false);
+    setEditedPaid(student.amountPaid?.toString() || "0");
+  };
+
+  const [isEditingDue, setIsEditingDue] = useState(false);
+  const [editedDue, setEditedDue] = useState("0");
+  
+  const [isEditingPaid, setIsEditingPaid] = useState(false);
+  const [editedPaid, setEditedPaid] = useState("0");
+
+  const handleSaveAmountDue = async () => {
+    const newDue = Number(editedDue);
+    
+    // Optimistic UI update
+    setRegistry(prev => prev.map(s => 
+      s.id === detailStudent.id ? { ...s, amountDue: newDue } : s
+    ));
+    setDetailStudent({ ...detailStudent, amountDue: newDue });
+    updateLocalFee(detailStudent.id, { amountDue: newDue }, detailStudent.name);
+    setIsEditingDue(false);
+
+    // Hit the backend endpoint if term and session are available
+    if (currentTermId && currentSessionId) {
+      try {
+        await feeApi.record({
+          studentId: detailStudent.id,
+          termId: currentTermId,
+          academicSessionId: currentSessionId,
+          amountDue: newDue,
+          amountPaid: detailStudent.amountPaid || 0
+        });
+        toast.success("Amount due updated on server");
+      } catch (err) {
+        toast.error("Failed to sync amount due with server");
+      }
+    } else {
+      toast.success("Amount due updated locally");
+    }
+  };
+
+  const handleSaveAmountPaid = async () => {
+    const newPaid = Number(editedPaid);
+    let newStatus = detailStudent.status;
+    if (newPaid >= Number(detailStudent.amountDue || 0)) {
+       newStatus = "Cleared";
+    }
+
+    // Optimistic UI update
+    setRegistry(prev => prev.map(s => 
+      s.id === detailStudent.id ? { ...s, amountPaid: newPaid, status: newStatus } : s
+    ));
+    setDetailStudent({ ...detailStudent, amountPaid: newPaid, status: newStatus });
+    updateLocalFee(detailStudent.id, { amountPaid: newPaid, status: newStatus }, detailStudent.name);
+    setIsEditingPaid(false);
+
+    // Hit the backend endpoint if term and session are available
+    if (currentTermId && currentSessionId) {
+      try {
+        await feeApi.record({
+          studentId: detailStudent.id,
+          termId: currentTermId,
+          academicSessionId: currentSessionId,
+          amountDue: detailStudent.amountDue || 50000,
+          amountPaid: newPaid
+        });
+        toast.success("Amount paid updated on server");
+      } catch (err) {
+        toast.error("Failed to sync amount paid with server");
+      }
+    } else {
+      toast.success("Amount paid updated locally");
+    }
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('.action-dropdown-container')) {
+        setDropdownOpenId(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -117,11 +227,28 @@ export default function FeeClearance() {
          }
       });
 
+      const localFeesStr = typeof window !== 'undefined' ? localStorage.getItem('mock_fee_records') : null;
+      const localFees = localFeesStr ? JSON.parse(localFeesStr) : {};
+      let needsBackfill = false;
+
       const mapped: StudentRegistry[] = students.map((student) => {
         const fee = feeMap.get(student.id);
-        let status: "Cleared" | "Unpaid" | "Pending Verification" = "Pending Verification";
-        if (fee) {
-           status = (fee.amountDue > 0 && fee.amountPaid >= fee.amountDue) || fee.isCleared ? "Cleared" : "Unpaid";
+        const localFee = localFees[student.id] || {};
+
+        const finalAmountDue = localFee.amountDue !== undefined ? localFee.amountDue : (fee ? fee.amountDue : 50000);
+        const finalAmountPaid = localFee.amountPaid !== undefined ? localFee.amountPaid : (fee ? fee.amountPaid : 0);
+        let finalStatus = localFee.status || "Pending Verification";
+
+        if (!localFee.status) {
+           if (fee) {
+              finalStatus = (fee.amountDue > 0 && fee.amountPaid >= fee.amountDue) || fee.isCleared ? "Cleared" : "Unpaid";
+           }
+        }
+
+        // Backfill studentName into existing local records
+        if (localFees[student.id] && !localFees[student.id].studentName) {
+          localFees[student.id].studentName = student.fullName;
+          needsBackfill = true;
         }
 
         return {
@@ -129,9 +256,17 @@ export default function FeeClearance() {
           name: student.fullName,
           program: student.className || "Unassigned",
           refId: student.admissionNumber || student.id,
-          status,
+          status: finalStatus,
+          amountDue: finalAmountDue,
+          amountPaid: finalAmountPaid,
         };
       });
+      
+      // Persist backfilled names
+      if (needsBackfill && typeof window !== 'undefined') {
+        localStorage.setItem('mock_fee_records', JSON.stringify(localFees));
+      }
+      
       setRegistry(mapped);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch students");
@@ -149,6 +284,15 @@ export default function FeeClearance() {
     setSelectedTermId(currentTermId);
     setAmountDue("50000");
     setAmountPaid("50000");
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleOpenClearModal = (studentId: string) => {
+    const student = registry.find(s => s.id === studentId);
+    setSelectedStudentId(studentId);
+    setSelectedTermId(currentTermId);
+    setAmountDue(student?.amountDue?.toString() || "50000");
+    setAmountPaid(student?.amountDue?.toString() || "50000");
     setIsPaymentModalOpen(true);
   };
 
@@ -170,7 +314,24 @@ export default function FeeClearance() {
       });
       toast.success("Payment recorded successfully!");
       setIsPaymentModalOpen(false);
-      fetchStudents();
+      
+      const pPaid = parseFloat(amountPaid);
+      const pDue = parseFloat(amountDue);
+      const newStatus = pPaid >= pDue ? "Cleared" : "Unpaid";
+
+      setRegistry(prev => prev.map(s => {
+        if (s.id === selectedStudentId) {
+          return {
+            ...s,
+            amountDue: pDue,
+            amountPaid: pPaid,
+            status: newStatus
+          };
+        }
+        return s;
+      }));
+      const selectedStudent = registry.find(s => s.id === selectedStudentId);
+      updateLocalFee(selectedStudentId, { amountDue: pDue, amountPaid: pPaid, status: newStatus }, selectedStudent?.name);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to record payment";
       toast.error(msg);
@@ -186,6 +347,8 @@ export default function FeeClearance() {
       }
       return student;
     }));
+    const actionStudent = registry.find(s => s.id === id);
+    updateLocalFee(id, { status: newStatus }, actionStudent?.name);
 
     if (!currentTermId || !currentSessionId) return;
 
@@ -402,10 +565,25 @@ export default function FeeClearance() {
                     <div className="flex items-center justify-end gap-2">
                       {student.status === "Cleared" && (
                         <>
-                          <button className="p-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors">
+                          <button 
+                            onClick={() => handleOpenDetails(student)}
+                            className="p-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
+                            title="View Details"
+                          >
                             <Eye className="w-5 h-5" />
                           </button>
-                          <button className="p-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors">
+                          <button 
+                            onClick={() => {
+                              setReceiptStudent(student);
+                              toast.success(`Preparing receipt for ${student.name}...`);
+                              setTimeout(() => {
+                                window.print();
+                                setTimeout(() => setReceiptStudent(null), 1000);
+                              }, 800);
+                            }}
+                            className="p-2 rounded-xl text-gray-400 hover:text-[#053d26] transition-colors"
+                            title="Print Receipt"
+                          >
                             <Printer className="w-5 h-5" />
                           </button>
                         </>
@@ -429,15 +607,54 @@ export default function FeeClearance() {
                       {student.status === "Pending Verification" && (
                         <>
                           <button 
-                            onClick={() => handleAction(student.id, "Cleared")}
+                            onClick={() => handleOpenClearModal(student.id)}
                             className="p-1.5 rounded-xl bg-green-100 text-[#053d26] hover:bg-green-200 transition-colors"
                             title="Verify & Approve"
                           >
                             <Check className="w-4 h-4" />
                           </button>
-                          <button className="p-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors">
-                            <MoreVertical className="w-5 h-5" />
-                          </button>
+                          
+                          <div className="relative action-dropdown-container">
+                            <button 
+                              onClick={() => setDropdownOpenId(dropdownOpenId === student.id ? null : student.id)}
+                              className="p-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
+                              title="More Options"
+                            >
+                              <MoreVertical className="w-5 h-5" />
+                            </button>
+
+                            {dropdownOpenId === student.id && (
+                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-10 animate-in fade-in slide-in-from-top-2 duration-100">
+                                <button 
+                                  onClick={() => {
+                                    handleAction(student.id, "Unpaid");
+                                    setDropdownOpenId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  Reject Verification
+                                </button>
+                                <button 
+                                  onClick={() => {
+                                    handleOpenDetails(student);
+                                    setDropdownOpenId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                  View Details
+                                </button>
+                                <button 
+                                  onClick={() => {
+                                    toast.success("Contact feature coming soon");
+                                    setDropdownOpenId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                  Contact Student
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </>
                       )}
                     </div>
@@ -560,6 +777,186 @@ export default function FeeClearance() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Student Details Modal */}
+      {isDetailsModalOpen && detailStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#053d26]" /> Student Financial Profile
+              </h3>
+              <button 
+                onClick={() => setIsDetailsModalOpen(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-8 space-y-8">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-xl shadow-md">
+                  {detailStudent.name.split(" ").map((w: string) => w[0]).join("")}
+                </div>
+                <div>
+                  <h4 className="text-xl font-black text-gray-900">{detailStudent.name}</h4>
+                  <p className="text-sm font-semibold text-gray-500">{detailStudent.program}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Reference ID</p>
+                  <p className="font-bold text-gray-900">{detailStudent.refId}</p>
+                </div>
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Status</p>
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    detailStudent.status === "Cleared"
+                      ? "bg-green-100 text-[#053d26]"
+                      : detailStudent.status === "Unpaid"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-orange-100 text-orange-700"
+                  }`}>
+                    {detailStudent.status}
+                  </span>
+                </div>
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex justify-between items-center">
+                    Amount Due
+                    {!isEditingDue && (
+                      <button 
+                        onClick={() => setIsEditingDue(true)}
+                        className="text-[#053d26] hover:text-green-700 underline text-[10px]"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </p>
+                  {isEditingDue ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-gray-500 font-bold">₦</span>
+                      <input 
+                        type="number" 
+                        value={editedDue}
+                        onChange={(e) => setEditedDue(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-md px-2 py-1 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#053d26]"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={handleSaveAmountDue}
+                        className="p-1.5 bg-[#053d26] text-white rounded-md hover:bg-[#042c1b]"
+                      >
+                        <Check className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="font-bold text-gray-900">₦{(Number(detailStudent.amountDue) || 0).toLocaleString()}</p>
+                  )}
+                </div>
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex justify-between items-center">
+                    Amount Paid
+                    {!isEditingPaid && (
+                      <button 
+                        onClick={() => setIsEditingPaid(true)}
+                        className="text-[#053d26] hover:text-green-700 underline text-[10px]"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </p>
+                  {isEditingPaid ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-gray-500 font-bold">₦</span>
+                      <input 
+                        type="number" 
+                        value={editedPaid}
+                        onChange={(e) => setEditedPaid(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-md px-2 py-1 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#053d26]"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={handleSaveAmountPaid}
+                        className="p-1.5 bg-[#053d26] text-white rounded-md hover:bg-[#042c1b]"
+                      >
+                        <Check className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="font-bold text-gray-900">₦{(Number(detailStudent.amountPaid) || 0).toLocaleString()}</p>
+                  )}
+                </div>
+              </div>
+
+            </div>
+            
+            <div className="p-6 bg-gray-50/50 border-t border-gray-100 flex justify-end">
+              <button 
+                onClick={() => setIsDetailsModalOpen(false)}
+                className="px-6 py-2.5 rounded-xl font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Close Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {receiptStudent && (
+        <div className="print-only bg-white text-black font-sans min-h-screen">
+          <div className="border-b-2 border-gray-800 pb-6 mb-8 flex justify-between items-end">
+            <div>
+              <h1 className="text-3xl font-black text-[#053d26] mb-1">LEONED AFRICA</h1>
+              <p className="text-sm font-bold text-gray-500 tracking-widest uppercase">Official Fee Clearance Receipt</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-bold text-gray-800">Date: {new Date().toLocaleDateString()}</p>
+              <p className="text-sm font-bold text-gray-500">Ref: {receiptStudent.refId}</p>
+            </div>
+          </div>
+          
+          <div className="mb-10">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Student Details</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Name</p>
+                <p className="text-lg font-bold text-gray-900">{receiptStudent.name}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Program</p>
+                <p className="text-lg font-bold text-gray-900">{receiptStudent.program}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-10">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Financial Summary</h2>
+            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+              <div className="flex justify-between mb-4">
+                <span className="font-bold text-gray-600">Amount Due</span>
+                <span className="font-black text-gray-900">₦{(Number(receiptStudent.amountDue) || 0).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between mb-4">
+                <span className="font-bold text-gray-600">Amount Paid</span>
+                <span className="font-black text-gray-900">₦{(Number(receiptStudent.amountPaid) || 0).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between pt-4 border-t border-gray-200">
+                <span className="font-bold text-gray-900">Clearance Status</span>
+                <span className={`font-black uppercase tracking-wider ${receiptStudent.status === 'Cleared' ? 'text-[#053d26]' : 'text-red-600'}`}>
+                  {receiptStudent.status}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-20 pt-8 border-t border-gray-200 text-center">
+            <p className="text-xs font-bold text-gray-400">This is a system-generated receipt and does not require a physical signature.</p>
+            <p className="text-[10px] font-bold text-gray-300 mt-1">© {new Date().getFullYear()} LeonEd Africa. Academic Architect System.</p>
+          </div>
         </div>
       )}
     </div>

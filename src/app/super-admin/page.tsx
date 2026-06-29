@@ -324,9 +324,8 @@ export default function SuperAdminDashboard() {
 
           {/* Regular Stats */}
           {[
-            { label: "Total Revenue", value: `₦${totalRevenue.toLocaleString()}`, unit: "earned", icon: Briefcase, color: "emerald", trend: "Growth" },
-            { label: "Premium Plans", value: planCounts['Premium'] || 0, unit: "schools", icon: CreditCard, color: "purple", trend: "Premium" },
-            { label: "Plus Plans", value: planCounts['Plus'] || 0, unit: "schools", icon: CreditCard, color: "blue", trend: "Plus" },
+            { label: "Total Students", value: totalStudents.toLocaleString(), unit: "learners", icon: Briefcase, color: "emerald", trend: "Growth" },
+            { label: "Total Teachers", value: totalTeachers.toLocaleString(), unit: "staff", icon: CreditCard, color: "purple", trend: "Faculty" },
             { label: "Active Subscriptions", value: activeSubscriptions, unit: "licences", icon: ShieldAlert, color: "orange", trend: "Billing" }
           ].map((stat, i) => (
             <div key={i} className={`group relative overflow-hidden rounded-[2rem] bg-white/60 backdrop-blur-xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-white/80 transition-all duration-300 hover:bg-white hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)] hover:-translate-y-1`}>

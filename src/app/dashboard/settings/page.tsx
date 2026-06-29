@@ -271,7 +271,8 @@ export default function SettingsPage() {
     }
     setIsSubscribing(true);
     try {
-      const res = await paymentApi.subscribe(selectedPlanId, billingCycle);
+      const callbackUrl = `${window.location.origin}/payment/callback`;
+      const res = await paymentApi.subscribe(selectedPlanId, callbackUrl);
       if ((res as any)?.authorizationUrl || (res as any)?.authorization_url) {
         window.location.href = (res as any).authorizationUrl || (res as any).authorization_url;
       } else {
@@ -639,36 +640,6 @@ export default function SettingsPage() {
                     darkMode ? 'translate-x-6' : 'translate-x-0'
                   }`} />
                 </button>
-              </div>
-            </div>
-
-            {/* Themes selection */}
-            <div>
-              <h3 className="text-sm font-bold text-[#053d26] uppercase tracking-wider mb-4">Branding Themes</h3>
-              <p className="text-xs text-gray-500 mb-6">Select a primary accent color for your school dashboard and portals.</p>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {[
-                  { id: 'forest', name: 'Forest Green', color: 'bg-[#053d26]' },
-                  { id: 'ocean', name: 'Ocean Blue', color: 'bg-[#0f4c81]' },
-                  { id: 'sunset', name: 'Sunset Orange', color: 'bg-[#d97706]' },
-                  { id: 'royal', name: 'Royal Purple', color: 'bg-[#6d28d9]' },
-                ].map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => handleThemeChange(t.id)}
-                    className={`flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all ${
-                      theme === t.id 
-                        ? 'border-[#053d26] ring-2 ring-[#053d26]/10 bg-gray-50' 
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
-                  >
-                    <div className={`h-8 w-8 rounded-full ${t.color} border border-white shadow-sm flex items-center justify-center`}>
-                      {theme === t.id && <Check className="h-4 w-4 text-white" />}
-                    </div>
-                    <span className="text-xs font-bold text-gray-900">{t.name}</span>
-                  </button>
-                ))}
               </div>
             </div>
           </div>

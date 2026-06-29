@@ -92,7 +92,27 @@ export default function StudentPerformanceRecord() {
           // Dispatch a custom event so the Header can pick up the change
           window.dispatchEvent(new Event("storage"));
         }
+        const studentRecordId = user.id || user._id || user.studentId;
+        const studentName = user.fullName || user.name || "";
         
+        let initialStatus = sDash?.feeStatus || sDash?.status || "Pending";
+        const localFeesStr = localStorage.getItem("mock_fee_records");
+        if (localFeesStr) {
+          const localFees = JSON.parse(localFeesStr);
+          // Try exact ID match first
+          if (localFees[studentRecordId] && localFees[studentRecordId].status) {
+            initialStatus = localFees[studentRecordId].status;
+          } else if (studentName) {
+            // Fallback: match by student name (backend returns different IDs per endpoint)
+            const matchByName = Object.values(localFees).find(
+              (rec: any) => rec.studentName && rec.studentName.toLowerCase() === studentName.toLowerCase()
+            ) as any;
+            if (matchByName && matchByName.status) {
+              initialStatus = matchByName.status;
+            }
+          }
+        }
+
         setStudentInfo({
           name: user.fullName || user.name || "Student",
           initials: (user.fullName || user.name || "S").split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
@@ -100,7 +120,7 @@ export default function StudentPerformanceRecord() {
           gpa: sDash?.gpa || 0,
           rank: sDash?.rank || "--",
           attendance: sDash?.attendance || "0%",
-          status: sDash?.feeStatus || sDash?.status || "Pending",
+          status: initialStatus,
           termLabel: currentTerm ? `Term ${(currentTerm as any).termNumber || (currentTerm as any).name || ''} ${currentSession?.name || ''}` : "Current Term",
           image: profilePic
         });
@@ -145,9 +165,27 @@ export default function StudentPerformanceRecord() {
         const userStr = localStorage.getItem("leoned_user");
         if (!userStr) return;
         const user = JSON.parse(userStr);
-        const feesData = await feeApi.getStudentFees(user.id, selectedPaymentTermId);
+        const studentRecordId = user.id || user._id || user.studentId;
+        const studentName = user.fullName || user.name || "";
+        const feesData = await feeApi.getStudentFees(studentRecordId, selectedPaymentTermId);
         const data = (feesData as any)?.data || feesData || {};
-        const feeStatus = data.status || (Number(data.balance || 0) <= 0 ? "Cleared" : "Unpaid");
+        let feeStatus = data.status || (Number(data.balance || 0) <= 0 ? "Cleared" : "Unpaid");
+
+        const localFeesStr = localStorage.getItem("mock_fee_records");
+        if (localFeesStr) {
+          const localFees = JSON.parse(localFeesStr);
+          if (localFees[studentRecordId] && localFees[studentRecordId].status) {
+            feeStatus = localFees[studentRecordId].status;
+          } else if (studentName) {
+            const matchByName = Object.values(localFees).find(
+              (rec: any) => rec.studentName && rec.studentName.toLowerCase() === studentName.toLowerCase()
+            ) as any;
+            if (matchByName && matchByName.status) {
+              feeStatus = matchByName.status;
+            }
+          }
+        }
+
         setStudentInfo(prev => ({
           ...prev,
           status: feeStatus

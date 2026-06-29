@@ -8,7 +8,7 @@ import { dashboardApi, DashboardStats, sessionApi } from "@/lib/api";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/dashboard/DataTable";
 import SetupGuide from "@/components/dashboard/SetupGuide";
-import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus, Loader2, BookOpen, Calendar, Settings, CreditCard, X } from "lucide-react";
+import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus, Loader2, BookOpen, Calendar, Settings, CreditCard, X, Zap } from "lucide-react";
 
 const AVAILABLE_SHORTCUTS = [
   { id: 'new-student', title: 'Add New Student', desc: 'Onboard a fresh learner profile', href: '/dashboard/students/new', color: 'bg-[#053d26]', iconBg: 'bg-white/10', iconColor: 'text-white', icon: UserPlus, titleColor: 'text-white', descColor: 'text-green-200' },
@@ -23,6 +23,7 @@ export default function DashboardOverview() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const [user, setUser] = useState<any>(null);
   const [hasSessions, setHasSessions] = useState<boolean>(true);
@@ -72,6 +73,14 @@ export default function DashboardOverview() {
     try {
       const parsedUser = JSON.parse(storedUser || "{}");
       setUser(parsedUser);
+
+      // Upgrade Prompt Logic
+      if (parsedUser.role !== "SuperAdmin" && (!parsedUser.subscriptionPlan || parsedUser.subscriptionPlan === "Free")) {
+        const dismissed = localStorage.getItem("leoned_upgrade_dismissed");
+        if (!dismissed) {
+          setShowUpgradePrompt(true);
+        }
+      }
 
       const userRole = parsedUser.role?.toLowerCase();
       if (userRole === "teacher" || userRole === "faculty") {
@@ -195,6 +204,38 @@ export default function DashboardOverview() {
           Welcome back, {userName.split(' ')[0]}. Here is your campus overview for the <span className="text-[#b05e1c] font-semibold">{termLabel}</span>.
         </p>
       </div>
+
+      {/* Upgrade Prompt */}
+      {showUpgradePrompt && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-in slide-in-from-top duration-500">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-blue-100 rounded-2xl text-blue-600">
+              <Zap className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">Unlock Premium Features</h3>
+              <p className="text-sm text-gray-600">You are currently on the Free plan. Upgrade to a premium plan to unlock unlimited students, teachers, and advanced analytics.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => {
+                setShowUpgradePrompt(false);
+                localStorage.setItem("leoned_upgrade_dismissed", "true");
+              }}
+              className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-white/50 rounded-xl transition-colors"
+            >
+              Dismiss
+            </button>
+            <Link
+              href="/dashboard/settings?section=billing"
+              className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md transition-all hover:shadow-lg text-sm"
+            >
+              View Plans
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Warning if no teachers created */}
       {user?.role !== "SuperAdmin" && totalTeachers === 0 && (
