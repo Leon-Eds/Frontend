@@ -360,7 +360,7 @@ export default function SettingsPage() {
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">School Logo</label>
               <div className="flex items-center gap-4">
-                <div className="h-20 w-20 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
+                <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
                   {schoolLogo ? (
                     <img src={schoolLogo} alt="School Logo" className="h-full w-full object-cover" />
                   ) : (
@@ -640,6 +640,42 @@ export default function SettingsPage() {
                     darkMode ? 'translate-x-6' : 'translate-x-0'
                   }`} />
                 </button>
+              </div>
+            </div>
+
+            {/* Color Theme Selector */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Color Theme</h3>
+              <p className="text-xs text-gray-500 mb-4">Choose a branding accent that reflects your school&apos;s identity</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { id: 'forest', label: 'Forest', colors: ['#053d26', '#047857', '#34d399'] },
+                  { id: 'ocean', label: 'Ocean', colors: ['#1e3a8a', '#2563eb', '#60a5fa'] },
+                  { id: 'sunset', label: 'Sunset', colors: ['#9a3412', '#ea580c', '#fb923c'] },
+                  { id: 'royal', label: 'Royal', colors: ['#4c1d95', '#7c3aed', '#c084fc'] },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => handleThemeChange(t.id)}
+                    className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${
+                      theme === t.id
+                        ? 'border-[#053d26] bg-green-50/50 shadow-md scale-[1.02]'
+                        : 'border-gray-100 bg-gray-50 hover:border-gray-200 hover:shadow-sm'
+                    }`}
+                  >
+                    {theme === t.id && (
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#053d26] flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                    <div className="flex gap-1.5">
+                      {t.colors.map((c, i) => (
+                        <div key={i} className="w-6 h-6 rounded-full shadow-sm border border-white/50" style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-gray-700">{t.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>

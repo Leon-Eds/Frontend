@@ -27,30 +27,26 @@ export default function FacultyAttendance() {
         const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
         
         if (userId) {
-          const allClasses = await teacherPortalApi.getClasses();
-          // The backend returns classes the teacher is assigned to.
-          // Each class has {classId, className, arm, studentCount, subjects}
-          if (Array.isArray(allClasses)) {
-            myFormClasses = allClasses;
-          } else if (allClasses && typeof allClasses === 'object') {
-            const unwrapped = (allClasses as any).data || (allClasses as any).items || [];
-            myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
-          }
-        } else {
-          // Fallback: derive classes from dashboard assignments
+          // Use the dedicated form-classes endpoint (only returns classes where teacher is form teacher)
           try {
-            const stats = await dashboardApi.getTeacherDashboard() as any;
-            if (stats?.assignments && Array.isArray(stats.assignments)) {
-              const classMap = new Map();
-              stats.assignments.forEach((a: any) => {
-                if (a.classId && !classMap.has(a.classId)) {
-                  classMap.set(a.classId, { classId: a.classId, className: a.className || 'Class' });
-                }
-              });
-              myFormClasses = Array.from(classMap.values());
+            const formClassResult = await attendanceApi.getMyFormClasses();
+            const unwrapped = Array.isArray(formClassResult) 
+              ? formClassResult 
+              : (formClassResult as any)?.data || (formClassResult as any)?.items || [];
+            myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
+          } catch (_) {
+            // Fallback: fetch all classes and filter by formTeacherId
+            try {
+              const allClasses = await teacherPortalApi.getClasses();
+              const classList = Array.isArray(allClasses) 
+                ? allClasses 
+                : (allClasses as any)?.data || (allClasses as any)?.items || [];
+              myFormClasses = classList.filter((c: any) => 
+                c.formTeacherId === userId || c.formTeacher?.id === userId
+              );
+            } catch (e2) {
+              console.error("Fallback class fetch failed:", e2);
             }
-          } catch (e) {
-            console.error("Dashboard fallback failed:", e);
           }
         }
         
@@ -142,6 +138,21 @@ export default function FacultyAttendance() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
+      </div>
+    );
+  }
+
+  if (!loading && formClasses.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto mt-20 text-center space-y-4 animate-in fade-in duration-500">
+        <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center">
+          <AlertCircle className="h-8 w-8 text-amber-500" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900">Form Teacher Access Only</h2>
+        <p className="text-sm text-gray-500 max-w-md mx-auto">
+          Attendance marking is restricted to form teachers. You are not currently assigned as a form teacher for any class. 
+          If you believe this is an error, please contact administration.
+        </p>
       </div>
     );
   }

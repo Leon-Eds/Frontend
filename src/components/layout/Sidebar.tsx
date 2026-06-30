@@ -164,7 +164,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Logo Area */}
       <div className="flex h-20 items-center justify-between px-6 border-b border-white/10">
         <Link href={role === "superadmin" ? "/super-admin" : "/dashboard"} className="flex items-center gap-3" onClick={handleNavClick}>
-          <div className="relative w-10 h-10 bg-white rounded-lg p-1 overflow-hidden shrink-0 flex items-center justify-center">
+          <div className="relative w-10 h-10 bg-white rounded-full p-1 overflow-hidden shrink-0 flex items-center justify-center">
             <Image
               src={logoUrl || "/logo.png"}
               alt="LeonEd Africa"

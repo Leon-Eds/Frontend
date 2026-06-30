@@ -294,7 +294,7 @@ export default function RegisterSchoolPage() {
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">School Logo <span className="text-gray-400 font-normal">(Optional)</span></label>
                     <div className="flex items-center gap-4">
                       {logoImage && (
-                        <div className="h-12 w-12 rounded-xl border border-gray-200 overflow-hidden shrink-0 relative bg-gray-50">
+                        <div className="h-12 w-12 rounded-full border border-gray-200 overflow-hidden shrink-0 relative bg-gray-50">
                           <Image src={URL.createObjectURL(logoImage)} alt="Logo Preview" fill className="object-cover" />
                         </div>
                       )}

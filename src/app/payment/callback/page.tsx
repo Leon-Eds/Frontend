@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { schoolApi } from "@/lib/api";
 
 import { Suspense } from "react";
 
@@ -14,19 +15,46 @@ function PaymentCallbackContent() {
   const [status, setStatus] = useState<"verifying" | "success" | "error">("verifying");
   
   useEffect(() => {
-    // Determine status from query params (e.g. Paystack or Flutterwave redirect)
-    // The actual verification happens via backend webhook.
     const ref = searchParams.get("reference") || searchParams.get("transaction_id") || searchParams.get("status");
     const errorMsg = searchParams.get("error");
     
     if (errorMsg || ref === "failed" || ref === "cancelled") {
       setStatus("error");
-    } else if (ref) {
-      // Simulate waiting for webhook to process
-      setTimeout(() => setStatus("success"), 2500);
-    } else {
-      setStatus("error");
+      return;
     }
+    
+    if (!ref) {
+      setStatus("error");
+      return;
+    }
+
+    // Wait for backend webhook to process, then refresh school data
+    const verifyAndRefresh = async () => {
+      // Give the backend webhook a moment to process
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      try {
+        // Refresh the user's school data to get the updated subscription plan
+        const userStr = localStorage.getItem("leoned_user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user.schoolId) {
+            const school = await schoolApi.getById(user.schoolId);
+            if (school && (school as any).subscriptionPlan) {
+              // Update localStorage with the new plan
+              const updatedUser = { ...user, subscriptionPlan: (school as any).subscriptionPlan };
+              localStorage.setItem("leoned_user", JSON.stringify(updatedUser));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not refresh subscription data:", err);
+      }
+      
+      setStatus("success");
+    };
+
+    verifyAndRefresh();
   }, [searchParams]);
 
   return (

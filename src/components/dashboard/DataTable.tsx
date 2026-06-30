@@ -70,7 +70,7 @@ export default function DataTable({ activities }: DataTableProps) {
                     
                     {/* Details */}
                     <div className="col-span-5 flex items-center gap-3">
-                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[10px] font-black border uppercase shadow-sm ${avatarBg}`}>
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-black border uppercase shadow-sm ${avatarBg}`}>
                         {initials}
                       </div>
                       <span className="text-xs font-extrabold text-gray-900 leading-snug group-hover:text-[#053d26] transition-colors">

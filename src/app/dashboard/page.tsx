@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import toast from 'react-hot-toast';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { dashboardApi, DashboardStats, sessionApi } from "@/lib/api";
+import { dashboardApi, DashboardStats, sessionApi, schoolApi } from "@/lib/api";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/dashboard/DataTable";
 import SetupGuide from "@/components/dashboard/SetupGuide";
@@ -74,13 +74,36 @@ export default function DashboardOverview() {
       const parsedUser = JSON.parse(storedUser || "{}");
       setUser(parsedUser);
 
-      // Upgrade Prompt Logic
-      if (parsedUser.role !== "SuperAdmin" && (!parsedUser.subscriptionPlan || parsedUser.subscriptionPlan === "Free")) {
-        const dismissed = localStorage.getItem("leoned_upgrade_dismissed");
-        if (!dismissed) {
-          setShowUpgradePrompt(true);
+      // Upgrade Prompt Logic — check both localStorage and fresh backend data
+      const checkPlan = async () => {
+        let currentPlan = parsedUser.subscriptionPlan || "Free";
+        
+        // Try to refresh plan from backend if school admin
+        if (parsedUser.role !== "SuperAdmin" && parsedUser.schoolId) {
+          try {
+            const school = await schoolApi.getById(parsedUser.schoolId) as any;
+            if (school && school.subscriptionPlan) {
+              currentPlan = school.subscriptionPlan;
+              // Update localStorage so it stays fresh
+              if (currentPlan !== parsedUser.subscriptionPlan) {
+                const updatedUser = { ...parsedUser, subscriptionPlan: currentPlan };
+                localStorage.setItem("leoned_user", JSON.stringify(updatedUser));
+              }
+            }
+          } catch (_) {
+            // Silently fall back to localStorage value
+          }
         }
-      }
+        
+        if (parsedUser.role !== "SuperAdmin" && (!currentPlan || currentPlan === "Free")) {
+          const dismissed = localStorage.getItem("leoned_upgrade_dismissed");
+          if (!dismissed) {
+            setShowUpgradePrompt(true);
+          }
+        }
+      };
+      
+      checkPlan();
 
       const userRole = parsedUser.role?.toLowerCase();
       if (userRole === "teacher" || userRole === "faculty") {
