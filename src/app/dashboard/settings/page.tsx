@@ -87,7 +87,8 @@ export default function SettingsPage() {
       // Load appearance settings
       const isDark = localStorage.getItem('leoned_dark_mode') === 'true';
       setDarkMode(isDark);
-      const activeTheme = localStorage.getItem('leoned_theme') || 'forest';
+      const sId = parsedUser?.schoolId || parsedUser?.SchoolId || '';
+      const activeTheme = (sId ? localStorage.getItem(`leoned_theme_${sId}`) : null) || 'forest';
       setTheme(activeTheme);
 
       // Load localization settings
@@ -200,13 +201,14 @@ export default function SettingsPage() {
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
     try {
-      localStorage.setItem('leoned_theme', newTheme);
-      
+      // Only store theme under school-specific key so it doesn't leak to other schools or public pages
       const userStr = localStorage.getItem('leoned_user');
       if (userStr) {
         const user = JSON.parse(userStr);
-        const sId = user.schoolId || user.SchoolId || 'default';
-        localStorage.setItem(`leoned_theme_${sId}`, newTheme);
+        const sId = user.schoolId || user.SchoolId || '';
+        if (sId) {
+          localStorage.setItem(`leoned_theme_${sId}`, newTheme);
+        }
       }
 
       document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal');

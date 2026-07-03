@@ -11,6 +11,7 @@ import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
 export default function LoginPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const [selectedRole, setSelectedRole] = useState("Admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -39,7 +40,8 @@ export default function LoginPage() {
     try {
       const response = await authApi.login({ 
         email: email.trim(), 
-        password: password.trim() 
+        password: password.trim(),
+        role: selectedRole.toLowerCase()
       });
       
       const r = response as Record<string, any>;
@@ -93,6 +95,29 @@ export default function LoginPage() {
 
       console.log("[Login] User object to store:", JSON.stringify(userObj));
 
+      // Validate that the returned role matches the selected login role
+      const returnedRole = (userObj.role || '').toLowerCase().trim();
+      const selectedRoleLower = selectedRole.toLowerCase();
+      
+      // Map selected role names to what the backend might return
+      const roleMatches = (returned: string, selected: string): boolean => {
+        if (selected === 'admin') {
+          return ['schooladmin', 'admin', 'school_admin', ''].includes(returned) 
+            || (!['teacher', 'faculty', 'student', 'parent', 'guardian', 'superadmin'].includes(returned));
+        }
+        if (selected === 'teacher') {
+          return ['teacher', 'faculty'].includes(returned);
+        }
+        if (selected === 'student') {
+          return ['student', 'parent', 'guardian'].includes(returned);
+        }
+        return true;
+      };
+
+      if (returnedRole && !roleMatches(returnedRole, selectedRoleLower)) {
+        throw new Error(`This account is registered as ${returnedRole === 'schooladmin' ? 'a School Admin' : 'a ' + returnedRole.charAt(0).toUpperCase() + returnedRole.slice(1)}. Please select the correct role and try again.`);
+      }
+
       if (!token) {
         console.error("[Login] No token found in response:", r);
         throw new Error("Login succeeded but no security token was returned. Please contact support.");
@@ -106,21 +131,21 @@ export default function LoginPage() {
       if (Object.keys(userObj).length > 0) {
         localStorage.setItem("leoned_user", JSON.stringify(userObj));
       } else {
-        localStorage.setItem("leoned_user", JSON.stringify({ role: "student", name: "User" }));
+        localStorage.setItem("leoned_user", JSON.stringify({ role: selectedRoleLower, name: "User" }));
       }
       
-      // Redirect based on role
-      const normalizedRole = userObj.role?.toLowerCase()?.trim() || "";
-      if (normalizedRole === "superadmin") {
+      // Store selected role for portal context across the app
+      localStorage.setItem("leoned_demo_role", selectedRole);
+      
+      // Redirect based on role — use selectedRole as primary since it's user intent
+      const effectiveRole = returnedRole || selectedRoleLower;
+      if (effectiveRole === "superadmin") {
         router.push("/super-admin");
-      } else if (normalizedRole === "student" || normalizedRole === "parent" || normalizedRole === "guardian") {
+      } else if (selectedRoleLower === "student" || effectiveRole === "student" || effectiveRole === "parent" || effectiveRole === "guardian") {
         router.push("/dashboard/student-portal");
-      } else if (normalizedRole === "teacher" || normalizedRole === "faculty") {
+      } else if (selectedRoleLower === "teacher" || effectiveRole === "teacher" || effectiveRole === "faculty") {
         router.push("/dashboard/faculty");
-      } else if (!normalizedRole && (userObj?.parentEmail || userObj?.admissionNumber)) {
-        router.push("/dashboard/student-portal");
       } else {
-        // Fallback, and if it's actually a student but missing explicit info, the dashboard page will catch demoRole
         router.push("/dashboard");
       }
     } catch (err: unknown) {
@@ -200,6 +225,26 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+
+          <div className="mb-6">
+            <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Login As</p>
+            <div className="grid grid-cols-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+              {["Admin", "Teacher", "Student"].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setSelectedRole(r)}
+                  className={`py-2 px-2 rounded-lg text-xs font-bold transition-all ${
+                    selectedRole === r
+                      ? "bg-white dark:bg-gray-700 text-[#053d26] dark:text-green-400 shadow-sm"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  }`}
+                >
+                  {r === "Admin" ? "School Admin" : r}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <form className="space-y-5" onSubmit={handleSubmit} autoComplete="new-password">
             <div>

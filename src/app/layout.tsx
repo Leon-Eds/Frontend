@@ -34,33 +34,36 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const dark = localStorage.getItem('leoned_dark_mode') === 'true';
+                var dark = localStorage.getItem('leoned_dark_mode') === 'true';
                 if (dark) {
                   document.documentElement.classList.add('dark');
                 } else {
                   document.documentElement.classList.remove('dark');
                 }
-                const userStr = localStorage.getItem('leoned_user');
-                if (userStr) {
-                  const user = JSON.parse(userStr);
-                  
-                  const sId = user.schoolId || user.SchoolId || 'default';
-                  const schoolTheme = localStorage.getItem('leoned_theme_' + sId);
-                  const legacyTheme = localStorage.getItem('leoned_theme');
-                  const themeToApply = schoolTheme || legacyTheme;
-                  
-                  if (themeToApply) {
-                    document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal');
-                    document.documentElement.classList.add('theme-' + themeToApply);
-                  }
-                  if (user.schoolTheme && user.schoolTheme.primaryColor) {
-                    document.documentElement.style.setProperty('--theme-primary', user.schoolTheme.primaryColor);
-                  }
-                  if (user.schoolTheme && user.schoolTheme.secondaryColor) {
-                    document.documentElement.style.setProperty('--theme-secondary', user.schoolTheme.secondaryColor);
-                  }
-                  if (user.schoolTheme && user.schoolTheme.accentColor) {
-                    document.documentElement.style.setProperty('--theme-accent', user.schoolTheme.accentColor);
+                // Only apply school themes on dashboard/portal pages, NOT on landing or login
+                var path = window.location.pathname;
+                var isDashboard = path.startsWith('/dashboard') || path.startsWith('/super-admin');
+                if (isDashboard) {
+                  var userStr = localStorage.getItem('leoned_user');
+                  if (userStr) {
+                    var user = JSON.parse(userStr);
+                    var sId = user.schoolId || user.SchoolId || '';
+                    if (sId) {
+                      var schoolTheme = localStorage.getItem('leoned_theme_' + sId);
+                      if (schoolTheme) {
+                        document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal');
+                        document.documentElement.classList.add('theme-' + schoolTheme);
+                      }
+                    }
+                    if (user.schoolTheme && user.schoolTheme.primaryColor) {
+                      document.documentElement.style.setProperty('--theme-primary', user.schoolTheme.primaryColor);
+                    }
+                    if (user.schoolTheme && user.schoolTheme.secondaryColor) {
+                      document.documentElement.style.setProperty('--theme-secondary', user.schoolTheme.secondaryColor);
+                    }
+                    if (user.schoolTheme && user.schoolTheme.accentColor) {
+                      document.documentElement.style.setProperty('--theme-accent', user.schoolTheme.accentColor);
+                    }
                   }
                 }
               } catch (_) {}
