@@ -31,6 +31,8 @@ export default function GlobalUsersManagement() {
     teachers: true,
     students: true,
   });
+  const [pages, setPages] = useState({ admins: 1, teachers: 1, students: 1 });
+  const ITEMS_PER_PAGE = 10;
 
   const toggleGroup = (group: 'admins' | 'teachers' | 'students') => {
     setExpandedGroups(prev => ({
@@ -39,7 +41,10 @@ export default function GlobalUsersManagement() {
     }));
   };
 
-  const renderUserTable = (groupUsers: any[], emptyMessage: string) => {
+  const renderUserTable = (groupUsers: any[], emptyMessage: string, page: number = 1, onPageChange?: (p: number) => void) => {
+    const totalPages = Math.ceil(groupUsers.length / ITEMS_PER_PAGE);
+    const paginatedUsers = groupUsers.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
     return (
       <div className="w-full">
         <table className="w-full text-left border-collapse">
@@ -53,7 +58,7 @@ export default function GlobalUsersManagement() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 bg-white">
-            {groupUsers.length > 0 ? groupUsers.map((user) => (
+            {paginatedUsers.length > 0 ? paginatedUsers.map((user) => (
               <tr key={user.id} className="group hover:bg-gray-50/50 transition-all duration-200">
                 <td className="py-4 px-6 md:px-8">
                   <div className="flex items-center gap-4">
@@ -152,6 +157,73 @@ export default function GlobalUsersManagement() {
             )}
           </tbody>
         </table>
+        {totalPages > 1 && onPageChange && (
+          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-100 bg-gray-50/30">
+            <span className="text-xs text-gray-500">
+              Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, groupUsers.length)} of {groupUsers.length} entries
+            </span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-transparent"><ChevronLeft className="h-4 w-4" /></button>
+              <span className="text-xs font-medium text-gray-700">Page {page} of {totalPages}</span>
+              <button onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-transparent"><ChevronRight className="h-4 w-4" /></button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderSchoolSummaryTable = (schools: any[], type: 'teachers' | 'students', page: number, onPageChange: (p: number) => void) => {
+    const totalPages = Math.ceil(schools.length / ITEMS_PER_PAGE);
+    const paginatedSchools = schools.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+    const isTeacher = type === 'teachers';
+
+    return (
+      <div className="w-full">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-gray-50/80 border-y border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="py-4 px-6 md:px-8">Institution</th>
+              <th className="py-4 px-4 text-right">{isTeacher ? 'Staff Count' : 'Student Count'}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50 bg-white">
+            {paginatedSchools.map((s) => {
+              const count = isTeacher ? Number(s.currentTeacherCount || 0) : Number(s.currentStudentCount || 0);
+              return (
+                <tr key={s.id} className="group hover:bg-gray-50/50 transition-all duration-200">
+                  <td className="py-4 px-6 md:px-8">
+                    <div className="flex items-center gap-4">
+                      <div className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center font-bold text-sm shadow-sm ${
+                        isTeacher ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-orange-100 text-orange-700 border border-orange-200'
+                      }`}>
+                        {(s.name || "S")[0].toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-gray-900 truncate">{s.name || 'Unknown School'}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-4 text-right font-medium text-gray-600">
+                    {count} {isTeacher ? (count === 1 ? 'Teacher' : 'Teachers') : (count === 1 ? 'Student' : 'Students')}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {totalPages > 1 && (
+          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-100 bg-gray-50/30">
+            <span className="text-xs text-gray-500">
+              Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, schools.length)} of {schools.length} institutions
+            </span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-transparent"><ChevronLeft className="h-4 w-4" /></button>
+              <span className="text-xs font-medium text-gray-700">Page {page} of {totalPages}</span>
+              <button onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-transparent"><ChevronRight className="h-4 w-4" /></button>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -312,10 +384,6 @@ export default function GlobalUsersManagement() {
           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mb-3">Global User Directory</h1>
           <p className="text-gray-500 text-lg max-w-2xl">Manage administrative access, faculty, and students across the entire LeonEd platform.</p>
         </div>
-        <button className="group flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#053d26] to-[#0a5c3b] text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-green-900/20 hover:shadow-xl hover:shadow-green-900/30 hover:-translate-y-0.5 transition-all duration-300">
-          <UserPlus className="h-5 w-5 transition-transform group-hover:scale-110" />
-          <span>Invite Admin</span>
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -405,7 +473,7 @@ export default function GlobalUsersManagement() {
                   </div>
                 </button>
                 <div className={`transition-all duration-300 ease-in-out ${expandedGroups.admins ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
-                  {renderUserTable(admins, "No administrators found matching search criteria")}
+                  {renderUserTable(admins, "No administrators found matching search criteria", pages.admins, (p) => setPages(prev => ({ ...prev, admins: p })))}
                 </div>
               </div>
 
@@ -435,23 +503,13 @@ export default function GlobalUsersManagement() {
                 </button>
                 <div className={`transition-all duration-300 ease-in-out ${expandedGroups.teachers ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
                   {teachers.length > 0 ? (
-                    renderUserTable(teachers, "")
+                    renderUserTable(teachers, "", pages.teachers, (p) => setPages(prev => ({ ...prev, teachers: p })))
                   ) : totalTeacherCount > 0 ? (
-                    <div className="px-6 md:px-8 pb-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {enrichedSchools.filter(s => Number(s.currentTeacherCount || 0) > 0).map((s: any) => (
-                          <div key={s.id} className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100/50">
-                            <div className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0">
-                              {(s.name || 'S')[0]}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate">{s.name || 'Unknown School'}</p>
-                              <p className="text-xs text-emerald-700 font-medium">{s.currentTeacherCount} teacher{s.currentTeacherCount !== 1 ? 's' : ''}</p>
-                            </div>
-                          </div>
-                        ))}
+                    <div>
+                      {renderSchoolSummaryTable(enrichedSchools.filter(s => Number(s.currentTeacherCount || 0) > 0), 'teachers', pages.teachers, (p) => setPages(prev => ({ ...prev, teachers: p })))}
+                      <div className="pb-6">
+                        <p className="text-xs text-gray-400 mt-4 text-center">Individual teacher profiles are managed within each school&apos;s dashboard.</p>
                       </div>
-                      <p className="text-xs text-gray-400 mt-4 text-center">Individual teacher profiles are managed within each school&apos;s dashboard.</p>
                     </div>
                   ) : (
                     <div className="p-6 text-center">
@@ -488,23 +546,13 @@ export default function GlobalUsersManagement() {
                 </button>
                 <div className={`transition-all duration-300 ease-in-out ${expandedGroups.students ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
                   {students.length > 0 ? (
-                    renderUserTable(students, "")
+                    renderUserTable(students, "", pages.students, (p) => setPages(prev => ({ ...prev, students: p })))
                   ) : totalStudentCount > 0 ? (
-                    <div className="px-6 md:px-8 pb-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {enrichedSchools.filter(s => Number(s.currentStudentCount || 0) > 0).map((s: any) => (
-                          <div key={s.id} className="flex items-center gap-3 p-4 rounded-xl bg-orange-50/50 border border-orange-100/50">
-                            <div className="h-9 w-9 rounded-lg bg-orange-100 flex items-center justify-center text-orange-700 font-bold text-sm shrink-0">
-                              {(s.name || 'S')[0]}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate">{s.name || 'Unknown School'}</p>
-                              <p className="text-xs text-orange-700 font-medium">{s.currentStudentCount} student{s.currentStudentCount !== 1 ? 's' : ''}</p>
-                            </div>
-                          </div>
-                        ))}
+                    <div>
+                      {renderSchoolSummaryTable(enrichedSchools.filter(s => Number(s.currentStudentCount || 0) > 0), 'students', pages.students, (p) => setPages(prev => ({ ...prev, students: p })))}
+                      <div className="pb-6">
+                        <p className="text-xs text-gray-400 mt-4 text-center">Individual student profiles are managed within each school&apos;s dashboard.</p>
                       </div>
-                      <p className="text-xs text-gray-400 mt-4 text-center">Individual student profiles are managed within each school&apos;s dashboard.</p>
                     </div>
                   ) : (
                     <div className="p-6 text-center">

@@ -14,6 +14,8 @@ export default function StudentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   // Role guard redirect
   useEffect(() => {
@@ -137,8 +139,8 @@ export default function StudentsPage() {
         const initials = student.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         return (
           <div className="flex items-center gap-4">
-            {student.profilePictureUrl ? (
-              <img src={student.profilePictureUrl} alt={student.fullName} className="h-10 w-10 rounded-full object-cover shadow-sm" />
+            {student.profilePictureUrl || (student as any).profilePicture || (student as any).image ? (
+              <img src={student.profilePictureUrl || (student as any).profilePicture || (student as any).image} alt={student.fullName} className="h-10 w-10 rounded-full object-cover shadow-sm" />
             ) : (
               <div className="h-10 w-10 rounded-full bg-[#e8f5e9] text-[#053d26] font-bold flex items-center justify-center text-sm">
                 {initials}
@@ -313,7 +315,7 @@ export default function StudentsPage() {
           <div className="[&>div]:border-none [&>div]:shadow-none [&_table]:w-full">
             <DataTable 
               columns={columns} 
-              data={students} 
+              data={students.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)} 
               actions={(student) => (
                 <div className="flex items-center gap-1 text-gray-400">
                   <button
@@ -342,9 +344,32 @@ export default function StudentsPage() {
             />
           </div>
 
-          {/* Results Footer */}
-          <div className="flex justify-between items-center p-6 border-t border-gray-50">
-            <span className="text-xs text-gray-500 font-medium">Showing {students.length} students</span>
+          {/* Results Footer & Pagination */}
+          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-gray-50 gap-4">
+            <span className="text-xs text-gray-500 font-medium">
+              Showing {Math.min(students.length, (currentPage - 1) * itemsPerPage + 1)} to {Math.min(students.length, currentPage * itemsPerPage)} of {students.length} students
+            </span>
+            {students.length > itemsPerPage && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 rounded-md text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <span className="text-xs font-bold text-gray-900 mx-2">
+                  Page {currentPage} of {Math.ceil(students.length / itemsPerPage)}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(students.length / itemsPerPage), p + 1))}
+                  disabled={currentPage === Math.ceil(students.length / itemsPerPage)}
+                  className="px-3 py-1 rounded-md text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -361,8 +386,8 @@ export default function StudentsPage() {
             </div>
 
             <div className="flex items-center gap-4 mb-8">
-              {viewStudent.profilePictureUrl ? (
-                <img src={viewStudent.profilePictureUrl} alt={viewStudent.fullName} className="h-16 w-16 rounded-full object-cover shadow-sm" />
+              {viewStudent.profilePictureUrl || (viewStudent as any).profilePicture || (viewStudent as any).image ? (
+                <img src={viewStudent.profilePictureUrl || (viewStudent as any).profilePicture || (viewStudent as any).image} alt={viewStudent.fullName} className="h-16 w-16 rounded-full object-cover shadow-sm" />
               ) : (
                 <div className="h-16 w-16 rounded-full bg-[#e8f5e9] text-[#053d26] font-bold flex items-center justify-center text-xl">
                   {viewStudent.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}

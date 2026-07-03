@@ -378,6 +378,7 @@ export interface Teacher {
   createdAt?: string;
   imageUrl?: string;
   image?: string;
+  profilePictureUrl?: string;
   assignments?: TeacherAssignment[];
 }
 
@@ -887,7 +888,7 @@ export const teacherApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(res);
+    return handleResponse<Teacher>(res);
   },
 
   updateStatus: async (id: string, isActive: boolean) => {
@@ -1102,6 +1103,17 @@ export const schoolApi = {
     return [];
   },
 
+  register: async (data: RegisterSchoolRequest) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/school/register`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await handleResponse(res);
+    recordActivity(`Onboarded new institution: ${data.schoolName}`, 'Platform Admin', 'VERIFIED');
+    return result;
+  },
+
   getPlans: async () => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/school/plans`, {
       headers: getAuthHeaders(),
@@ -1122,7 +1134,9 @@ export const schoolApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Updated school profile details`, 'Platform Admin', 'VERIFIED');
+    return result;
   },
 
   updatePlan: async (id: string, data: UpdateSchoolPlanRequest) => {
@@ -1131,7 +1145,9 @@ export const schoolApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Modified subscription plan to ${data.subscriptionPlan}`, 'Platform Admin', 'VERIFIED');
+    return result;
   },
 
   toggleStatus: async (id: string, isActive: boolean) => {
@@ -1140,10 +1156,12 @@ export const schoolApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ 
         isActive,
-        status: isActive ? 'Active' : 'Suspended'
+        status: isActive ? 'active' : 'Suspended'
       }),
     });
-    return handleResponse(res);
+    const result = await handleResponse(res);
+    recordActivity(`Toggled school status to ${isActive ? 'Active' : 'Suspended'}`, 'Platform Admin', 'VERIFIED');
+    return result;
   },
 };
 

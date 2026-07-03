@@ -45,6 +45,7 @@ export default function SettingsPage() {
   // Billing state
   const [paymentPlans, setPaymentPlans] = useState<any[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [activePlan, setActivePlan] = useState<string>("Free");
   const [billingCycle, setBillingCycle] = useState<string>("monthly");
   const [isSubscribing, setIsSubscribing] = useState(false);
 
@@ -67,12 +68,15 @@ export default function SettingsPage() {
         parsedUser = JSON.parse(user);
         setSchoolName(parsedUser.schoolName || "");
         if (parsedUser.logoUrl) setSchoolLogo(parsedUser.logoUrl);
+        if (parsedUser.subscriptionPlan) setActivePlan(parsedUser.subscriptionPlan);
         
         let activeRole = parsedUser.role || "Admin";
         if (activeRole === "Teacher" || activeRole === "Faculty") {
           setUserRole("Faculty");
-        } else if (activeRole === "Student" || activeRole === "student") {
+        } else if (activeRole === "Student" || activeRole === "student" || activeRole === "parent" || activeRole === "guardian") {
           setUserRole("Student");
+          window.location.href = "/dashboard/student-portal";
+          return;
         } else {
           setUserRole(localStorage.getItem('leoned_demo_role') || "Admin");
         }
@@ -197,6 +201,14 @@ export default function SettingsPage() {
     setTheme(newTheme);
     try {
       localStorage.setItem('leoned_theme', newTheme);
+      
+      const userStr = localStorage.getItem('leoned_user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const sId = user.schoolId || user.SchoolId || 'default';
+        localStorage.setItem(`leoned_theme_${sId}`, newTheme);
+      }
+
       document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal');
       document.documentElement.classList.add(`theme-${newTheme}`);
     } catch (_) {}
@@ -295,9 +307,9 @@ export default function SettingsPage() {
   ];
 
   const sections = userRole === "Student"
-    ? allSections.filter(s => ['security', 'appearance', 'localization'].includes(s.id))
+    ? allSections.filter(s => ['security', 'notifications'].includes(s.id))
     : userRole === "Faculty" 
-    ? allSections.filter(s => ['security', 'appearance', 'localization', 'notifications'].includes(s.id))
+    ? allSections.filter(s => ['security', 'notifications'].includes(s.id))
     : allSections;
 
   return (
@@ -502,11 +514,23 @@ export default function SettingsPage() {
               <div className="pt-6 border-t border-gray-100">
                 <button
                   onClick={handleSubscribe}
-                  disabled={!selectedPlanId || isSubscribing || paymentPlans.find(p => p.id === selectedPlanId)?.name?.toLowerCase() === 'free'}
+                  disabled={
+                    !selectedPlanId || 
+                    isSubscribing || 
+                    paymentPlans.find(p => p.id === selectedPlanId)?.name?.toLowerCase() === 'free' ||
+                    paymentPlans.find(p => p.id === selectedPlanId)?.name?.toLowerCase() === activePlan?.toLowerCase()
+                  }
                   className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-xl bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50"
                 >
                   {isSubscribing ? <Loader2 className="h-5 w-5 animate-spin" /> : <CreditCard className="h-5 w-5" />}
-                  {isSubscribing ? 'Initiating Checkout...' : (paymentPlans.find(p => p.id === selectedPlanId)?.name?.toLowerCase() === 'free' ? 'Current Plan (Free)' : 'Proceed to Payment')}
+                  {isSubscribing 
+                    ? 'Initiating Checkout...' 
+                    : paymentPlans.find(p => p.id === selectedPlanId)?.name?.toLowerCase() === 'free' 
+                      ? 'Free Plan (Default)' 
+                      : paymentPlans.find(p => p.id === selectedPlanId)?.name?.toLowerCase() === activePlan?.toLowerCase() 
+                        ? 'Current Plan (Already Subscribed)' 
+                        : 'Proceed to Payment'
+                  }
                 </button>
               </div>
             </div>

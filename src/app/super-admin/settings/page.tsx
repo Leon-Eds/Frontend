@@ -42,9 +42,6 @@ export default function SuperAdminSettings() {
 
   const tabs = [
     { id: "Security", name: "Security & Authority", icon: Shield },
-    { id: "Localization", name: "Platform Localization", icon: Globe },
-    { id: "Notifications", name: "Global Notifications", icon: Bell },
-    { id: "Database", name: "Database & Backups", icon: Database },
     { id: "Grading", name: "Academic Grading", icon: BookOpen },
   ];
 

@@ -206,8 +206,7 @@ export default function SetupGuide() {
         
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-5 w-5 text-[#b05e1c]" />
+            <div className="mb-2">
               <span className="text-xs font-bold uppercase tracking-widest text-green-200/80">Institutional Setup Hub</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-1">

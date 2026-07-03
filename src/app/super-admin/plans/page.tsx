@@ -21,6 +21,8 @@ import {
 
 import { dashboardApi, schoolApi, paymentPlanApi } from "@/lib/api";
 import toast from "react-hot-toast";
+import Link from "next/link";
+
 const getPlanTheme = (name: string) => {
   const lowerName = (name || '').toLowerCase();
   
@@ -154,12 +156,15 @@ export default function BillingPlansManagement() {
         if (Array.isArray(sData)) extractedSchools = sData;
         else if (Array.isArray(sData?.items)) extractedSchools = sData.items;
 
+        const planCounts: Record<string, number> = {};
         let activeSubs = 0;
         let totalRev = 0;
 
         extractedSchools.forEach(sch => {
           if (sch.isActive !== false) {
             const planName = sch.subscriptionPlan || "Free";
+            planCounts[planName] = (planCounts[planName] || 0) + 1;
+            
             const plan = fetchedPlans.find((p: any) => p.name === planName);
             if (plan && plan.name !== "Free") {
               activeSubs++;
@@ -169,12 +174,19 @@ export default function BillingPlansManagement() {
           }
         });
 
+        const plansWithCounts = fetchedPlans.map((p: any) => ({
+          ...p,
+          schoolCount: planCounts[p.name] || 0
+        }));
+
+        setPlans(plansWithCounts);
+
         const backendStats = (statsData as any)?.data || statsData || {};
         
         setStats({
           ...backendStats,
-          activeSubscriptions: backendStats.activeSubscriptions || activeSubs,
-          totalRevenue: backendStats.totalRevenue || backendStats.revenue || totalRev
+          activeSubscriptions: activeSubs, // Override backend if it's returning 0 incorrectly
+          totalRevenue: totalRev
         });
       } catch (err) {
         console.error("Failed to fetch billing data", err);
@@ -364,9 +376,12 @@ export default function BillingPlansManagement() {
                         <p className="text-lg font-black text-gray-900">{plan.schoolCount || 0}</p>
                       </div>
                     </div>
-                    <button className={`h-10 w-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 transition-all shadow-sm group-hover:shadow-md ${theme.actionBtn}`}>
+                    <Link 
+                      href={`/super-admin/schools?search=${encodeURIComponent(plan.name)}`}
+                      className={`h-10 w-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 transition-all shadow-sm group-hover:shadow-md ${theme.actionBtn}`}
+                    >
                       <ArrowUpRight className="h-5 w-5" />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               );

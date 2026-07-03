@@ -131,7 +131,7 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
         )}
 
         <Link
-          href={role === "SuperAdmin" ? "/super-admin/settings" : "/dashboard/settings"}
+          href={role === "SuperAdmin" ? "/super-admin/settings" : isStudent ? "/dashboard/student-portal" : "/dashboard/settings"}
           className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden border-2 border-gray-200 shadow-sm hover:border-[#053d26] transition-colors bg-[#053d26] flex items-center justify-center shrink-0 font-bold"
         >
           {userImage ? (

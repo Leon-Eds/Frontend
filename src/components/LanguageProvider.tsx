@@ -1251,7 +1251,7 @@ export function LanguageSelector() {
   const renderFlag = (code: Language) => {
     if (code === "en") {
       return (
-        <svg viewBox="0 0 60 30" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+        <svg viewBox="0 0 60 30" className="w-5 h-5 rounded-full overflow-hidden shadow-sm border border-gray-100 shrink-0" preserveAspectRatio="xMidYMid slice">
           <rect width="60" height="30" fill="#012169"/>
           <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6"/>
           <path d="M0,0 L60,30 M60,0 L0,30" stroke="#c8102e" strokeWidth="4"/>
@@ -1262,7 +1262,7 @@ export function LanguageSelector() {
     }
     if (code === "fr") {
       return (
-        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full overflow-hidden shadow-sm border border-gray-100 shrink-0" preserveAspectRatio="xMidYMid slice">
           <rect width="3" height="6" fill="#00209F"/>
           <rect x="3" width="3" height="6" fill="#fff"/>
           <rect x="6" width="3" height="6" fill="#F31830"/>
@@ -1271,7 +1271,7 @@ export function LanguageSelector() {
     }
     if (code === "es") {
       return (
-        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full overflow-hidden shadow-sm border border-gray-100 shrink-0" preserveAspectRatio="xMidYMid slice">
           <rect width="9" height="1.5" fill="#C60B1E"/>
           <rect y="1.5" width="9" height="3" fill="#F1BF00"/>
           <rect y="4.5" width="9" height="1.5" fill="#C60B1E"/>
@@ -1280,7 +1280,7 @@ export function LanguageSelector() {
     }
     if (code === "de") {
       return (
-        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full overflow-hidden shadow-sm border border-gray-100 shrink-0" preserveAspectRatio="xMidYMid slice">
           <rect width="9" height="2" fill="#000"/>
           <rect y="2" width="9" height="2" fill="#D00"/>
           <rect y="4" width="9" height="2" fill="#FFCE00"/>
@@ -1289,7 +1289,7 @@ export function LanguageSelector() {
     }
     if (code === "pt") {
       return (
-        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full overflow-hidden shadow-sm border border-gray-100 shrink-0" preserveAspectRatio="xMidYMid slice">
           <rect width="3.6" height="6" fill="#060"/>
           <rect x="3.6" width="5.4" height="6" fill="#f00"/>
         </svg>
@@ -1297,7 +1297,7 @@ export function LanguageSelector() {
     }
     if (code === "zh") {
       return (
-        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+        <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full overflow-hidden shadow-sm border border-gray-100 shrink-0" preserveAspectRatio="xMidYMid slice">
           <rect width="9" height="6" fill="#DE2910"/>
           <polygon points="1.5,1.2 1.9,2.4 0.9,1.7 2.1,1.7 1.1,2.4" fill="#ffde00"/>
         </svg>
@@ -1305,7 +1305,7 @@ export function LanguageSelector() {
     }
     // Nigerian languages (ig, yo, ha)
     return (
-      <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full object-cover shadow-sm border border-gray-100 shrink-0">
+      <svg viewBox="0 0 9 6" className="w-5 h-5 rounded-full overflow-hidden shadow-sm border border-gray-100 shrink-0" preserveAspectRatio="xMidYMid slice">
         <rect width="3" height="6" fill="#008751"/>
         <rect x="3" width="3" height="6" fill="#fff"/>
         <rect x="6" width="3" height="6" fill="#008751"/>

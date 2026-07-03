@@ -115,11 +115,18 @@ export default function SchoolsManagement() {
     fetchSchools();
   };
 
+  const getIsSchoolActive = (school: any) => {
+
+    if (school.isActive === true) return true;
+    if (school.isActive === false) return false;
+    return school.status !== 'Suspended';
+  };
+
   const handleToggleStatus = async (schoolId: string) => {
     // Optimistic UI update
     setSchools(prev => prev.map(s => {
       if (s.id === schoolId || s._id === schoolId) {
-        const currentlyActive = s.isActive !== false && s.status !== 'Suspended';
+        const currentlyActive = getIsSchoolActive(s);
         return {
           ...s,
           isActive: !currentlyActive,
@@ -131,11 +138,14 @@ export default function SchoolsManagement() {
 
     try {
       const targetSchool = schools.find(s => s.id === schoolId || s._id === schoolId);
-      const currentlyActive = targetSchool ? (targetSchool.isActive !== false && targetSchool.status !== 'Suspended') : true;
-      await schoolApi.toggleStatus(schoolId, !currentlyActive);
+      const currentlyActive = targetSchool ? getIsSchoolActive(targetSchool) : true;
+      const targetActive = !currentlyActive;
+      
+      await schoolApi.toggleStatus(schoolId, targetActive);
       toast.success("Status updated successfully");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to change status");
+      // Optionally revert UI here
     }
   };
 
@@ -192,7 +202,8 @@ export default function SchoolsManagement() {
       (s.name || '').toLowerCase().includes(term) ||
       (s.email || '').toLowerCase().includes(term) ||
       (s.adminName || '').toLowerCase().includes(term) ||
-      (s.id || s._id || '').toLowerCase().includes(term)
+      (s.id || s._id || '').toLowerCase().includes(term) ||
+      (s.subscriptionPlan || 'Free').toLowerCase().includes(term)
     );
   });
 
@@ -252,13 +263,27 @@ export default function SchoolsManagement() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filteredSchools.length > 0 ? filteredSchools.map((school) => {
-                  const isSchoolActive = school.isActive !== false && school.status !== 'Suspended';
+                  const isSchoolActive = getIsSchoolActive(school);
                   return (
                   <tr key={school.id} className={`group hover:bg-gray-50/30 transition-all duration-500 ${isSchoolActive ? 'opacity-100' : 'opacity-40 grayscale bg-gray-50/50'}`}>
                     <td className="py-6 px-8">
                       <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-2xl bg-green-50 flex items-center justify-center text-[#053d26] font-bold text-lg border border-green-100">
-                          {school.name?.[0] || 'S'}
+                        <div className="h-12 w-12 shrink-0">
+                          {school.logoUrl || (school as any).logo ? (
+                            <img 
+                              src={school.logoUrl || (school as any).logo} 
+                              alt={school.name} 
+                              className="h-full w-full rounded-full object-cover border border-gray-200"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(school.name || 'S')}&background=ecfdf5&color=053d26`;
+                              }}
+                            />
+                          ) : (
+                            <div className="h-full w-full rounded-full bg-green-50 flex items-center justify-center text-[#053d26] font-bold text-lg border border-green-100">
+                              {school.name?.[0] || 'S'}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <div className="font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{school.name}</div>
@@ -291,7 +316,10 @@ export default function SchoolsManagement() {
                         }`}>
                           {school.subscriptionPlan || 'Free'}
                         </span>
-                        <div className="text-xs text-gray-400">Next renewal: {school.createdAt ? formatDate(new Date(new Date(school.createdAt).setFullYear(new Date(school.createdAt).getFullYear() + 1)).toISOString()) : 'N/A'}</div>
+                        <div className="text-xs text-gray-400">Next renewal: {
+                          school.subscriptionExpiry ? formatDate(school.subscriptionExpiry) : 
+                          school.createdAt ? formatDate(new Date(new Date(school.createdAt).setMonth(new Date(school.createdAt).getMonth() + 1)).toISOString()) : 'N/A'
+                        }</div>
                       </div>
                     </td>
 
@@ -313,9 +341,6 @@ export default function SchoolsManagement() {
                     </td>
                     <td className="py-6 px-8 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => toast.success("School portal access coming soon")} className="p-2 text-gray-400 hover:text-[#053d26] hover:bg-green-50 rounded-xl transition-all" title="Access School Portal">
-                          <ExternalLink className="h-5 w-5" />
-                        </button>
                         <button onClick={() => handleOpenSettingsModal(school)} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all" title="School Settings">
                           <Settings className="h-5 w-5" />
                         </button>
@@ -352,10 +377,10 @@ export default function SchoolsManagement() {
           </div>
         )}
 
-        {!isLoading && schools.length > 0 && (
+        {!isLoading && filteredSchools.length > 0 && (
           <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Showing <span className="font-bold text-gray-900">{schools.length}</span> institutions
+              Showing <span className="font-bold text-gray-900">{filteredSchools.length}</span> institutions
             </p>
           </div>
         )}

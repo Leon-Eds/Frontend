@@ -29,7 +29,9 @@ import {
   CheckSquare,
   Calendar,
   Megaphone,
-  UserCheck
+  UserCheck,
+  Crown,
+  Sparkles
 } from "lucide-react";
 
 const schoolNavigation = [
@@ -164,21 +166,35 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Logo Area */}
       <div className="flex h-20 items-center justify-between px-6 border-b border-white/10">
         <Link href={role === "superadmin" ? "/super-admin" : "/dashboard"} className="flex items-center gap-3" onClick={handleNavClick}>
-          <div className="relative w-10 h-10 bg-white rounded-full p-1 overflow-hidden shrink-0 flex items-center justify-center">
+          <div className="relative w-10 h-10 bg-white rounded-full overflow-hidden shrink-0 flex items-center justify-center border-2 border-white/10 shadow-sm">
             <Image
               src={logoUrl || "/logo.png"}
               alt="LeonEd Africa"
               fill
-              className="object-contain p-0.5"
+              className="object-cover"
             />
           </div>
           <div className="min-w-0">
             <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>{schoolName}</h1>
-            {role === "superadmin" && (
+            {role === "superadmin" ? (
               <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">
                 {t("sidebar.super_admin")}
               </p>
-            )}
+            ) : role !== "student" && role !== "parent" && role !== "teacher" && role !== "faculty" ? (
+              <div className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                plan.toLowerCase() === 'gold' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                plan.toLowerCase() === 'silver' ? 'bg-gray-300/20 text-gray-300 border border-gray-400/30 shadow-[0_0_8px_rgba(209,213,219,0.15)]' :
+                plan.toLowerCase() === 'platinum' || plan.toLowerCase() === 'pro' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-[0_0_8px_rgba(59,130,246,0.15)]' :
+                'bg-white/10 text-green-200 border border-white/10'
+              }`}>
+                {plan.toLowerCase() === 'gold' || plan.toLowerCase() === 'platinum' || plan.toLowerCase() === 'pro' ? (
+                  <Crown className="w-2.5 h-2.5" />
+                ) : (
+                  <Sparkles className="w-2.5 h-2.5" />
+                )}
+                <span>{plan} Plan</span>
+              </div>
+            ) : null}
           </div>
         </Link>
         {/* Close button visible only on mobile */}
@@ -244,14 +260,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
       {/* Bottom Navigation */}
       <div className="border-t border-white/10 p-4 space-y-1">
-        <Link
-          href={role === "superadmin" ? "/super-admin/settings" : "/dashboard/settings"}
-          onClick={handleNavClick}
-          className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
-        >
-          <Settings className="h-5 w-5 text-green-300" />
-          {t("nav.settings")}
-        </Link>
+        {role !== "student" && role !== "parent" && role !== "guardian" && demoRole !== "Student" && (
+          <Link
+            href={role === "superadmin" ? "/super-admin/settings" : "/dashboard/settings"}
+            onClick={handleNavClick}
+            className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
+          >
+            <Settings className="h-5 w-5 text-green-300" />
+            {t("nav.settings")}
+          </Link>
+        )}
         <Link
           href="/support"
           onClick={handleNavClick}

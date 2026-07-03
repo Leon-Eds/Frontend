@@ -149,7 +149,8 @@ export default function DashboardOverview() {
           }
           
           const localActivities = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`leoned_local_activities_${schoolId}`) || '[]') : [];
-          const apiActivities = data?.recentActivities || [];
+          // Filter backend activities to only show those belonging to this specific school
+          const apiActivities = (data?.recentActivities || []).filter((act: any) => act.schoolId === schoolId);
           const combined = [...localActivities, ...apiActivities].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
           
           setStats({

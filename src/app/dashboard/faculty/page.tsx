@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, ArrowLeft, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone, MoreVertical } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { teacherApi, Teacher, CreateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi, teacherPortalApi, attendanceApi } from '@/lib/api';
+import { teacherApi, Teacher, CreateTeacherRequest, UpdateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi, teacherPortalApi, attendanceApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 export function FacultyDirectory() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -23,6 +23,11 @@ export function FacultyDirectory() {
   });
 
   const [assignModal, setAssignModal] = useState<{isOpen: boolean, teacherId: string, teacherName: string}>({isOpen: false, teacherId: '', teacherName: ''});
+  const [editModal, setEditModal] = useState<{isOpen: boolean, teacher: Teacher | null}>({isOpen: false, teacher: null});
+  const [editFormData, setEditFormData] = useState<UpdateTeacherRequest>({
+    fullName: '',
+    phone: '',
+  });
   const [assignData, setAssignData] = useState({ classId: '', subjectId: '' });
   const [classesList, setClassesList] = useState<any[]>([]);
   const [subjectsList, setSubjectsList] = useState<any[]>([]);
@@ -114,6 +119,55 @@ export function FacultyDirectory() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create teacher";
       setFormError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateTeacher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModal.teacher) return;
+    setFormError("");
+
+    if (!editFormData.fullName?.trim()) {
+      setFormError("Full name is required.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      let profilePictureUrl = undefined;
+      if (imageFile) {
+        const formPayload = new FormData();
+        formPayload.append('file', imageFile);
+        formPayload.append('upload_preset', 'leoned_uploads');
+        formPayload.append('cloud_name', 'dvjy4jjxf');
+
+        const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dvjy4jjxf/image/upload', {
+          method: 'POST',
+          body: formPayload,
+        });
+
+        if (uploadRes.ok) {
+          const data = await uploadRes.json();
+          profilePictureUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
+        }
+      }
+
+      const updated = await teacherApi.update(editModal.teacher.id, {
+        ...editFormData,
+        ...(profilePictureUrl ? { profilePictureUrl } : {})
+      });
+      
+      toast.success("Teacher updated successfully!");
+      setEditModal({isOpen: false, teacher: null});
+      setImageFile(null);
+      if (activeTeacher && activeTeacher.id === editModal.teacher.id) {
+         setActiveTeacher({ ...activeTeacher, ...updated, ...(profilePictureUrl ? { profilePictureUrl } : {}) });
+      }
+      await fetchTeachers();
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Failed to update teacher");
     } finally {
       setIsSubmitting(false);
     }
@@ -237,9 +291,9 @@ export function FacultyDirectory() {
                   className="group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl border border-gray-100 hover:border-green-200 hover:shadow-md hover:bg-green-50/30 transition-all cursor-pointer bg-white gap-4 md:gap-0"
                 >
                   <div className="flex items-center gap-4">
-                    {teacher.imageUrl || teacher.image ? (
+                    {teacher.profilePictureUrl || teacher.imageUrl || teacher.image ? (
                       <img 
-                        src={teacher.imageUrl || teacher.image} 
+                        src={teacher.profilePictureUrl || teacher.imageUrl || teacher.image} 
                         alt={teacher.fullName} 
                         className="h-12 w-12 rounded-full object-cover border border-gray-100 shadow-sm"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -507,6 +561,111 @@ export function FacultyDirectory() {
         </div>
       )}
 
+      {/* Edit Teacher Modal */}
+      {editModal.isOpen && editModal.teacher && (
+        <div className="fixed inset-0 z-[60] overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setEditModal({isOpen: false, teacher: null})}></div>
+            
+            <div className="relative w-full max-w-md transform overflow-hidden rounded-[2rem] bg-white p-8 shadow-2xl transition-all animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-green-50 text-[#053d26] rounded-xl">
+                    <UserPlus className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">Edit Teacher</h3>
+                </div>
+                <button
+                  onClick={() => setEditModal({isOpen: false, teacher: null})}
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {formError && (
+                <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium text-red-800">{formError}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateTeacher} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Profile Photo (Optional)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setImageFile(file);
+                      }
+                    }}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#053d26] file:text-white hover:file:bg-[#042c1b] transition-colors"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    value={editFormData.fullName}
+                    onChange={(e) => setEditFormData({ ...editFormData, fullName: e.target.value })}
+                    className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                    placeholder="e.g. Dr. Aisha Johnson"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    autoComplete="off"
+                    value={editFormData.phone}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                    className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                    placeholder="+234 801 234 5678"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditModal({isOpen: false, teacher: null})}
+                    className="w-full py-3 rounded-full bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Slide-over Detail Panel */}
       {activeTeacher && (
         <div className="fixed inset-0 z-50 overflow-hidden flex">
@@ -514,15 +673,26 @@ export function FacultyDirectory() {
           <div className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h2 className="text-lg font-bold text-gray-900">Teacher Profile</h2>
-              <button onClick={() => setActiveTeacher(null)} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => {
+                    setEditFormData({ fullName: activeTeacher.fullName, phone: activeTeacher.phone || '' });
+                    setEditModal({ isOpen: true, teacher: activeTeacher });
+                  }}
+                  className="px-4 py-1.5 rounded-full text-xs font-bold text-[#053d26] bg-green-50 hover:bg-green-100 transition-colors"
+                >
+                  Edit Profile
+                </button>
+                <button onClick={() => setActiveTeacher(null)} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-8">
               {/* Profile Header */}
               <div className="flex items-center gap-4">
-                {activeTeacher.imageUrl || activeTeacher.image ? (
-                  <img src={activeTeacher.imageUrl || activeTeacher.image} className="w-20 h-20 rounded-full object-cover shadow-sm" alt="Teacher" />
+                {activeTeacher.profilePictureUrl || activeTeacher.imageUrl || activeTeacher.image ? (
+                  <img src={activeTeacher.profilePictureUrl || activeTeacher.imageUrl || activeTeacher.image} className="w-20 h-20 rounded-full object-cover shadow-sm" alt="Teacher" />
                 ) : (
                   <div className="w-20 h-20 rounded-full bg-[#053d26] text-white flex items-center justify-center text-2xl font-bold shadow-inner">
                      {activeTeacher.fullName ? activeTeacher.fullName.split(' ').filter(Boolean).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() : 'T'}
@@ -695,6 +865,9 @@ export function FacultyHomepage() {
           .slice(0, 2)
           .toUpperCase();
         setTeacherInitials(initials);
+        
+        const pic = user.profilePictureUrl || user.imageUrl || user.photo || user.image || user.teacher?.profilePictureUrl || user.teacher?.imageUrl || user.teacher?.photo || user.teacher?.image || null;
+        if (pic) setTeacherImage(pic);
 
         let assignments: any[] = [];
         let formClass: any = null;
@@ -702,6 +875,15 @@ export function FacultyHomepage() {
         try {
           localStats = await dashboardApi.getTeacherDashboard();
           console.log("[FacultyHomepage DEBUG] Teacher stats:", JSON.stringify(localStats, null, 2));
+          
+          // Try to extract profile picture from dashboard stats
+          if (!pic && localStats) {
+            const dashPic = localStats.profilePictureUrl || localStats.imageUrl || localStats.photo ||
+              localStats.teacher?.profilePictureUrl || localStats.teacher?.imageUrl || localStats.teacher?.photo ||
+              localStats.teacher?.image || localStats.image || null;
+            if (dashPic) setTeacherImage(dashPic);
+          }
+          
           if (localStats.assignments) {
             assignments = (localStats.assignments as any[]).map((a: any) => {
               const classObj = a.class || {};
@@ -865,28 +1047,41 @@ export function FacultyHomepage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
       {/* Welcome Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold text-[#053d26] uppercase tracking-wider mb-1">{currentDate}</p>
-          <h1 className="text-3xl font-bold text-gray-900 leading-tight">Welcome, {teacherName}</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage your classes, view schedules, and enter student results.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm border border-gray-100 relative overflow-hidden">
+        {/* Subtle decorative background */}
+        <div className="absolute right-0 top-0 w-64 h-64 bg-gradient-to-bl from-green-50/50 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse"></span>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{currentDate}</p>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-tight">
+            Welcome back, <span className="text-[#053d26]">{teacherName}</span>
+          </h1>
+          <p className="text-gray-500 text-sm mt-2 max-w-lg leading-relaxed">
+            Manage your classes, view schedules, and enter student results with ease.
+          </p>
         </div>
         
-        <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-full border border-gray-200 shadow-sm shrink-0">
-          {teacherImage ? (
-            <img 
-              src={teacherImage} 
-              alt={teacherName} 
-              className="h-10 w-10 rounded-full object-cover"
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-sm shadow-inner">
-              {teacherInitials}
-            </div>
-          )}
-          <div className="pr-2">
-            <p className="font-bold text-sm text-gray-900">{teacherName}</p>
-            <p className="text-xs text-gray-500 font-medium">Faculty Member</p>
+        <div className="relative z-10 flex items-center gap-4 bg-gray-50/80 px-5 py-3 rounded-2xl border border-gray-100 shadow-inner shrink-0">
+          <div className="relative">
+            {teacherImage ? (
+              <img 
+                src={teacherImage} 
+                alt={teacherName} 
+                className="h-12 w-12 rounded-xl object-cover shadow-sm"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#053d26] to-[#032517] text-white font-bold flex items-center justify-center text-lg shadow-sm">
+                {teacherInitials}
+              </div>
+            )}
+            <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
+          </div>
+          <div className="pr-2 hidden sm:block">
+            <p className="font-extrabold text-sm text-gray-900">{teacherName}</p>
+            <p className="text-[11px] text-[#b05e1c] font-bold uppercase tracking-widest mt-0.5">Faculty Member</p>
           </div>
         </div>
       </div>
@@ -894,28 +1089,29 @@ export function FacultyHomepage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {stats.map((stat, i) => {
-          const bgGradients = [
-            "from-emerald-500/10 to-teal-500/10 border-emerald-500/20",
-            "from-orange-500/10 to-amber-500/10 border-orange-500/20"
+          const accents = [
+            { bg: "bg-[#053d26]", text: "text-[#053d26]", iconBg: "bg-[#053d26]/10" },
+            { bg: "bg-[#b05e1c]", text: "text-[#b05e1c]", iconBg: "bg-[#b05e1c]/10" }
           ];
-          const iconColors = [
-            "bg-emerald-500 text-white shadow-emerald-200",
-            "bg-orange-500 text-white shadow-orange-200"
-          ];
-          const bgGrad = bgGradients[i % bgGradients.length];
-          const iconColor = iconColors[i % iconColors.length];
+          const style = accents[i % accents.length];
           return (
-            <div key={i} className={`relative overflow-hidden bg-gradient-to-br ${bgGrad} rounded-3xl p-6 shadow-sm border transition-all hover:shadow-md hover:scale-[1.02] flex items-start gap-4 group`}>
-              <div className="absolute -right-6 -top-6 opacity-5 group-hover:scale-110 transition-transform duration-500">
-                <stat.icon className="w-32 h-32" />
+            <div key={i} className={`relative overflow-hidden bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 flex items-start gap-5 group`}>
+              <div className={`absolute top-0 left-0 w-full h-1.5 ${style.bg} opacity-90`}></div>
+              
+              <div className={`p-4 rounded-2xl shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3 ${style.iconBg} ${style.text}`}>
+                <stat.icon className="h-8 w-8" />
               </div>
-              <div className={`p-4 rounded-2xl shrink-0 shadow-lg ${iconColor}`}>
-                <stat.icon className="h-7 w-7" />
+              
+              <div className="space-y-1.5 relative z-10 pt-1">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">{stat.title}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className={`text-4xl font-black ${style.text} leading-none tracking-tight`}>{stat.value}</p>
+                </div>
+                <p className="text-xs text-gray-500 font-medium pt-1 line-clamp-1">{stat.desc}</p>
               </div>
-              <div className="space-y-1 relative z-10 pt-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-600">{stat.title}</p>
-                <p className="text-3xl font-black text-gray-900 leading-none tracking-tight">{stat.value}</p>
-                <p className="text-xs text-gray-600 font-medium pt-1">{stat.desc}</p>
+              
+              <div className={`absolute -right-8 -bottom-8 opacity-[0.03] group-hover:scale-125 transition-transform duration-700 ${style.text} pointer-events-none`}>
+                <stat.icon className="w-40 h-40" />
               </div>
             </div>
           );
@@ -928,65 +1124,67 @@ export function FacultyHomepage() {
         {/* Left 2 Columns: Assigned Subjects & Workload */}
         <div className="lg:col-span-2 space-y-8">
           
-          <div className="bg-white rounded-[2rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
-            <div className="flex justify-between items-center border-b border-gray-50 pb-4">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <BookText className="h-5 w-5 text-[#053d26]" />
+          <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-8">
+            <div className="flex justify-between items-center border-b border-gray-50 pb-5">
+              <h2 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                <BookText className="h-6 w-6 text-[#053d26]" />
                 Your Workload
               </h2>
-              <span className="text-xs font-bold text-[#b05e1c] bg-[#b05e1c]/10 px-3 py-1 rounded-full">Academic Responsibilities</span>
+              <span className="text-xs font-bold text-[#b05e1c] bg-[#b05e1c]/10 px-3 py-1.5 rounded-xl uppercase tracking-wider">Academic Responsibilities</span>
             </div>
             
             <div className="space-y-6">
               {/* Form Class Indicators */}
               {formClasses && formClasses.length > 0 && formClasses.map((fc, index) => (
-                <div key={fc.classId || fc.id || fc._id || index} className="group relative overflow-hidden bg-gradient-to-br from-[#053d26] to-[#042c1b] p-6 rounded-3xl flex items-center justify-between transition-all duration-500 hover:shadow-lg hover:shadow-[#053d26]/20 mb-4">
-                  <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-700">
-                    <Award className="h-24 w-24 text-white" />
+                <div key={fc.classId || fc.id || fc._id || index} className="group relative overflow-hidden bg-gradient-to-br from-[#053d26] to-[#021f13] p-6 rounded-[2rem] flex items-center justify-between transition-all duration-500 hover:shadow-xl hover:shadow-[#053d26]/20 mb-4 border border-[#042c1b]">
+                  <div className="absolute top-0 right-0 p-8 opacity-5 transform translate-x-4 -translate-y-4 group-hover:scale-125 transition-transform duration-700 pointer-events-none">
+                    <Award className="h-32 w-32 text-white" />
                   </div>
-                  <div className="relative z-10 flex items-center gap-4">
-                    <div className="p-3 bg-white/10 backdrop-blur-sm rounded-2xl text-white shadow-inner">
-                      <Award className="h-6 w-6" />
+                  <div className="relative z-10 flex items-center gap-5">
+                    <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-amber-400 shadow-inner">
+                      <Award className="h-7 w-7" />
                     </div>
                     <div>
-                      <h4 className="font-extrabold text-white text-lg tracking-wide">Form Teacher</h4>
-                      <p className="text-green-100 font-medium text-sm flex items-center gap-2 mt-1">
+                      <h4 className="font-black text-white text-xl tracking-tight">Form Teacher</h4>
+                      <p className="text-emerald-100/80 font-medium text-sm flex items-center gap-2 mt-0.5">
                         Class: {fc.className || fc.name || "Assigned Class"} {fc.arm ? `(${fc.arm})` : ''}
                       </p>
                     </div>
                   </div>
-                  <Link href="/dashboard/faculty/attendance" className="relative z-10 bg-white text-[#053d26] hover:bg-green-50 px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-colors flex items-center gap-2">
+                  <Link href="/dashboard/faculty/attendance" className="relative z-10 bg-white text-[#053d26] hover:bg-emerald-50 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:shadow transition-all flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4" />
                     Mark Attendance
                   </Link>
                 </div>
               ))}
 
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pt-4">Subject Assignments</h3>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pt-2">Subject Assignments</h3>
               
               {assignedSubjects.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {assignedSubjects.map((sub, idx) => (
-                    <div key={idx} className="group p-5 rounded-2xl bg-gray-50/50 hover:bg-white border border-gray-100 hover:border-gray-200 transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between relative overflow-hidden">
-                      <div className="absolute -right-4 -top-4 bg-gray-50 p-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
+                    <div key={idx} className="group p-5 rounded-3xl bg-gray-50/80 hover:bg-white border border-gray-100 hover:border-emerald-500/30 transition-all duration-300 shadow-sm hover:shadow-md flex flex-col justify-between relative overflow-hidden">
+                      <div className="absolute -right-4 -top-4 bg-emerald-50 p-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0 pointer-events-none"></div>
                       <div className="space-y-1 relative z-10">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="px-2 py-1 bg-white shadow-sm border border-gray-100 text-xs font-bold text-gray-700 rounded-lg">
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="px-2.5 py-1 bg-white shadow-sm border border-gray-100 text-xs font-bold text-gray-700 rounded-lg">
                             {sub.className}
                           </span>
-                          <span className="text-xs font-bold text-[#b05e1c] bg-[#b05e1c]/10 px-2 py-1 rounded-md">
+                          <span className="text-[11px] font-bold text-[#b05e1c] bg-[#b05e1c]/10 px-2 py-1 rounded-md uppercase tracking-wider">
                             {sub.studentCount} Students
                           </span>
                         </div>
-                        <h4 className="font-extrabold text-gray-900 text-lg">{sub.subject}</h4>
+                        <h4 className="font-extrabold text-gray-900 text-lg tracking-tight">{sub.subject}</h4>
                       </div>
-                      <div className="mt-6 relative z-10">
+                      <div className="mt-8 relative z-10">
                         <Link 
                           href={`/dashboard/faculty/result-entry?classId=${sub.id}&subjectId=${sub.id}`}
                           className="flex items-center justify-between w-full text-sm font-bold text-[#053d26] hover:text-[#0a6c4a] transition-colors group/btn"
                         >
                           <span>Manage Grades</span>
-                          <ArrowRight className="h-4 w-4 transform group-hover/btn:translate-x-1 transition-transform" />
+                          <div className="bg-emerald-100 p-1.5 rounded-lg group-hover/btn:bg-emerald-200 transition-colors">
+                            <ArrowRight className="h-4 w-4 transform group-hover/btn:translate-x-0.5 transition-transform" />
+                          </div>
                         </Link>
                       </div>
                     </div>
@@ -1004,40 +1202,38 @@ export function FacultyHomepage() {
 
         {/* Right 1 Column: Quick Hub */}
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-[#053d26] to-[#b05e1c] rounded-[2rem] p-1">
-            <div className="bg-white rounded-[1.8rem] p-6 h-full space-y-6">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-50 pb-4">
-                Teacher Hub
-              </h3>
+          <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest flex items-center gap-2 border-b border-gray-50 pb-5">
+              Teacher Hub
+            </h3>
 
-              <div className="grid grid-cols-1 gap-4">
-                <Link 
-                  href="/dashboard/faculty/result-entry" 
-                  className="group w-full rounded-2xl bg-gray-50 hover:bg-[#053d26] p-4 text-left flex items-center gap-4 transition-all duration-300 border border-gray-100 hover:border-transparent hover:shadow-lg hover:shadow-[#053d26]/20"
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#053d26] shadow-sm group-hover:scale-110 transition-transform">
-                    <CheckSquare className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <div className="font-extrabold text-sm text-gray-900 group-hover:text-white transition-colors">Submit Grades</div>
-                    <div className="text-[11px] text-gray-500 font-medium group-hover:text-green-100/80 transition-colors mt-0.5">Enter CA and Exam marks</div>
-                  </div>
-                </Link>
+            <div className="grid grid-cols-1 gap-4">
+              <Link 
+                href="/dashboard/faculty/result-entry" 
+                className="group w-full rounded-3xl bg-gray-50 hover:bg-[#053d26] p-4 text-left flex items-center gap-5 transition-all duration-300 border border-transparent hover:shadow-xl hover:shadow-[#053d26]/20"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#053d26] shadow-sm group-hover:scale-110 transition-transform duration-300">
+                  <CheckSquare className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="font-extrabold text-sm text-gray-900 group-hover:text-white transition-colors">Submit Grades</div>
+                  <div className="text-[11px] text-gray-500 font-medium group-hover:text-emerald-100/80 transition-colors mt-0.5">Enter CA and Exam marks</div>
+                </div>
+              </Link>
 
-                <Link 
-                  href="/dashboard/faculty/classes" 
-                  className="group w-full rounded-2xl bg-gray-50 hover:bg-[#b05e1c] p-4 text-left flex items-center gap-4 transition-all duration-300 border border-gray-100 hover:border-transparent hover:shadow-lg hover:shadow-[#b05e1c]/20"
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#b05e1c] shadow-sm group-hover:scale-110 transition-transform">
-                    <BookOpen className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <div className="font-extrabold text-sm text-gray-900 group-hover:text-white transition-colors">Class Rosters</div>
-                    <div className="text-[11px] text-gray-500 font-medium group-hover:text-orange-100/80 transition-colors mt-0.5">Review assigned student lists</div>
-                  </div>
-                </Link>
-                
-              </div>
+              <Link 
+                href="/dashboard/faculty/classes" 
+                className="group w-full rounded-3xl bg-gray-50 hover:bg-[#b05e1c] p-4 text-left flex items-center gap-5 transition-all duration-300 border border-transparent hover:shadow-xl hover:shadow-[#b05e1c]/20"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#b05e1c] shadow-sm group-hover:scale-110 transition-transform duration-300">
+                  <BookOpen className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="font-extrabold text-sm text-gray-900 group-hover:text-white transition-colors">Class Rosters</div>
+                  <div className="text-[11px] text-gray-500 font-medium group-hover:text-orange-100/80 transition-colors mt-0.5">Review assigned student lists</div>
+                </div>
+              </Link>
+              
             </div>
           </div>
         </div>

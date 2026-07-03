@@ -387,62 +387,80 @@ export default function StudentPerformanceRecord() {
                 {grades.length > 0 && (
                   <button
                     onClick={handleDownloadResults}
-                    disabled={isDownloading}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow-sm disabled:opacity-50 shrink-0"
+                    disabled={isDownloading || studentInfo.status !== 'Cleared'}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    title={studentInfo.status !== 'Cleared' ? "Clear fee balance to download results" : "Download PDF Report Card"}
                   >
                     {isDownloading ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <Download className="h-3.5 w-3.5" />
                     )}
-                    {isDownloading ? "Downloading..." : "Download Results"}
+                    {studentInfo.status !== 'Cleared' ? "Locked (Fees Unpaid)" : isDownloading ? "Downloading..." : "Download Results"}
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-wider text-gray-400 border-b border-gray-50">
-                    <th className="py-4 px-6">Subject</th>
-                    <th className="py-4 px-4 text-center">CA 1 (20)</th>
-                    <th className="py-4 px-4 text-center">CA 2 (20)</th>
-                    <th className="py-4 px-4 text-center">Exam (60)</th>
-                    <th className="py-4 px-4 text-center">Total (100)</th>
-                    <th className="py-4 px-6 text-center">Grade</th>
-                    <th className="py-4 px-6">Remark</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {grades.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="py-4 pl-6 font-bold text-gray-900 text-sm">
-                        {item.name}
-                      </td>
-                      <td className="py-4 px-4 text-center font-medium text-gray-600">{item.ca1}</td>
-                      <td className="py-4 px-4 text-center font-medium text-gray-600">{item.ca2}</td>
-                      <td className="py-4 px-4 text-center font-medium text-gray-600">{item.exam}</td>
-                      <td className="py-4 px-4 text-center font-black text-gray-900">{item.total}</td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-black">
-                          {item.grade}
-                        </span>
-                      </td>
-                      <td className="py-4 pr-6 text-xs text-gray-500 italic">
-                        &quot;{item.remark}&quot;
-                      </td>
+            <div className="relative">
+              {studentInfo.status !== 'Cleared' && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm p-6 text-center">
+                  <div className="bg-white rounded-3xl shadow-xl border border-rose-100 p-8 max-w-sm w-full space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+                      <AlertCircle className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-gray-900">Clearance Required</h3>
+                      <p className="text-xs text-gray-500 font-medium mt-1 leading-relaxed">
+                        You have an outstanding fee balance for this term. Please visit the Finance office to clear your dues and unlock your academic results.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className={`overflow-x-auto ${studentInfo.status !== 'Cleared' ? 'pointer-events-none select-none opacity-40' : ''}`}>
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-wider text-gray-400 border-b border-gray-50">
+                      <th className="py-4 px-6">Subject</th>
+                      <th className="py-4 px-4 text-center">CA 1 (20)</th>
+                      <th className="py-4 px-4 text-center">CA 2 (20)</th>
+                      <th className="py-4 px-4 text-center">Exam (60)</th>
+                      <th className="py-4 px-4 text-center">Total (100)</th>
+                      <th className="py-4 px-6 text-center">Grade</th>
+                      <th className="py-4 px-6">Remark</th>
                     </tr>
-                  ))}
-                  {grades.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-sm text-gray-500 font-semibold">
-                        No results published for this term yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {grades.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="py-4 pl-6 font-bold text-gray-900 text-sm">
+                          {studentInfo.status !== 'Cleared' ? "█████████" : item.name}
+                        </td>
+                        <td className="py-4 px-4 text-center font-medium text-gray-600">{studentInfo.status !== 'Cleared' ? "██" : item.ca1}</td>
+                        <td className="py-4 px-4 text-center font-medium text-gray-600">{studentInfo.status !== 'Cleared' ? "██" : item.ca2}</td>
+                        <td className="py-4 px-4 text-center font-medium text-gray-600">{studentInfo.status !== 'Cleared' ? "██" : item.exam}</td>
+                        <td className="py-4 px-4 text-center font-black text-gray-900">{studentInfo.status !== 'Cleared' ? "███" : item.total}</td>
+                        <td className="py-4 px-4 text-center">
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${studentInfo.status !== 'Cleared' ? 'bg-gray-200 text-gray-400' : 'bg-gray-100 text-gray-700'}`}>
+                            {studentInfo.status !== 'Cleared' ? "█" : item.grade}
+                          </span>
+                        </td>
+                        <td className="py-4 pr-6 text-xs text-gray-500 italic">
+                          {studentInfo.status !== 'Cleared' ? "████████████" : `"${item.remark}"`}
+                        </td>
+                      </tr>
+                    ))}
+                    {grades.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-sm text-gray-500 font-semibold">
+                          No results published for this term yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

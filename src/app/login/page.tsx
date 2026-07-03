@@ -46,7 +46,18 @@ export default function LoginPage() {
       const token = r.token;
       const refreshToken = r.refreshToken;
       const tokenExpiry = r.tokenExpiry;
-      let userObj = { ...(r.user || r.student || r.parent || r.guardian || r) };
+      let userObj = { ...(r.user || r.teacher || r.student || r.parent || r.guardian || r) };
+      
+      // Merge nested teacher data into userObj if present separately
+      if (r.teacher && typeof r.teacher === 'object') {
+        userObj = { ...userObj, teacher: r.teacher };
+        if (!userObj.profilePictureUrl && r.teacher.profilePictureUrl) {
+          userObj.profilePictureUrl = r.teacher.profilePictureUrl;
+        }
+        if (!userObj.name && r.teacher.fullName) {
+          userObj.name = r.teacher.fullName;
+        }
+      }
       
       // Explicitly set role if backend wraps it in specific keys but omits the role string
       if (r.student && !userObj.role) userObj.role = 'student';

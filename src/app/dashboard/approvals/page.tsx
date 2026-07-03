@@ -55,6 +55,8 @@ export default function ResultsApproval() {
   // Revision details modal state
   const [selectedSubmission, setSelectedSubmission] = useState<PendingSubmission | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectComment, setRejectComment] = useState("");
 
   // Derived stats
   const urgentCount = submissions.filter(s => s.status === "Pending").length;
@@ -233,18 +235,32 @@ export default function ResultsApproval() {
     }
   };
 
-  const handleRequestRevision = async (id: string) => {
+  const handleRequestRevision = (id: string) => {
     const sub = submissions.find(s => s.id === id);
     if (!sub) return;
+    setSelectedSubmission(sub);
+    setRejectComment("");
+    setIsRejectModalOpen(true);
+  };
+
+  const submitRevision = async () => {
+    if (!selectedSubmission) return;
 
     try {
-      await resultApi.approve(sub.classId, sub.termId, { approve: false, adminComment: "Revision requested" });
+      await resultApi.approve(selectedSubmission.classId, selectedSubmission.termId, { 
+        approve: false, 
+        adminComment: rejectComment || "Revision requested" 
+      });
       setSubmissions(prev => prev.map(item => {
-        if (item.id === id) {
-          return { ...item, status: "Revision Requested" };
+        if (item.id === selectedSubmission.id) {
+          return { ...item, status: "Revision Requested", adminComment: rejectComment || "Revision requested" };
         }
         return item;
       }));
+      toast.success("Revision requested successfully");
+      setIsRejectModalOpen(false);
+      setSelectedSubmission(null);
+      setRejectComment("");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to request revision";
       toast.error(message);
@@ -573,6 +589,64 @@ export default function ResultsApproval() {
                 className="px-6 py-2.5 rounded-full bg-gray-950 text-white text-xs font-bold hover:bg-gray-800 transition-all shadow"
               >
                 Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject/Request Revision Modal */}
+      {isRejectModalOpen && selectedSubmission && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-gray-100 space-y-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-orange-500" />
+                Request Revision
+              </h3>
+              <button 
+                onClick={() => {
+                  setIsRejectModalOpen(false);
+                  setSelectedSubmission(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                You are requesting a revision for <strong>{selectedSubmission.className} — {selectedSubmission.subject}</strong> submitted by {selectedSubmission.teacher}.
+              </p>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Administrator Feedback</label>
+                <textarea
+                  value={rejectComment}
+                  onChange={(e) => setRejectComment(e.target.value)}
+                  placeholder="Explain why this submission is being rejected and what the teacher needs to correct..."
+                  className="w-full rounded-xl border border-gray-200 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 min-h-[120px] resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  setIsRejectModalOpen(false);
+                  setSelectedSubmission(null);
+                }}
+                className="px-6 py-2.5 rounded-full bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitRevision}
+                disabled={!rejectComment.trim()}
+                className="px-6 py-2.5 rounded-full bg-orange-600 text-white text-xs font-bold hover:bg-orange-700 transition-all shadow disabled:opacity-50"
+              >
+                Send to Teacher
               </button>
             </div>
           </div>

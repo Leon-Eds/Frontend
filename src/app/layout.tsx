@@ -43,6 +43,16 @@ export default function RootLayout({
                 const userStr = localStorage.getItem('leoned_user');
                 if (userStr) {
                   const user = JSON.parse(userStr);
+                  
+                  const sId = user.schoolId || user.SchoolId || 'default';
+                  const schoolTheme = localStorage.getItem('leoned_theme_' + sId);
+                  const legacyTheme = localStorage.getItem('leoned_theme');
+                  const themeToApply = schoolTheme || legacyTheme;
+                  
+                  if (themeToApply) {
+                    document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal');
+                    document.documentElement.classList.add('theme-' + themeToApply);
+                  }
                   if (user.schoolTheme && user.schoolTheme.primaryColor) {
                     document.documentElement.style.setProperty('--theme-primary', user.schoolTheme.primaryColor);
                   }

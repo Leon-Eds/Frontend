@@ -158,6 +158,88 @@ html.dark .glass-panel {
   background: rgba(30, 30, 30, 0.7) !important;
 }
 
+/* --------------------------------------------------------- */
+/* Light Mode Theme Overrides */
+/* --------------------------------------------------------- */
+
+/* OCEAN THEME */
+html.theme-ocean .text-\[\#053d26\],
+html.theme-ocean .text-green-700 {
+  color: #2563eb !important;
+}
+html.theme-ocean .bg-\[\#053d26\],
+html.theme-ocean .bg-green-600,
+html.theme-ocean .bg-green-700 {
+  background-color: #2563eb !important;
+}
+html.theme-ocean .hover\:bg-\[\#042c1b\]:hover,
+html.theme-ocean .hover\:bg-green-800:hover {
+  background-color: #1d4ed8 !important;
+}
+html.theme-ocean .bg-green-50,
+html.theme-ocean .bg-\[\#b2f2bb\] {
+  background-color: #eff6ff !important;
+  color: #1e3a8a !important;
+}
+html.theme-ocean .border-green-100 {
+  border-color: #dbeafe !important;
+}
+html.theme-ocean .border-\[\#053d26\] {
+  border-color: #2563eb !important;
+}
+
+/* SUNSET THEME */
+html.theme-sunset .text-\[\#053d26\],
+html.theme-sunset .text-green-700 {
+  color: #ea580c !important;
+}
+html.theme-sunset .bg-\[\#053d26\],
+html.theme-sunset .bg-green-600,
+html.theme-sunset .bg-green-700 {
+  background-color: #ea580c !important;
+}
+html.theme-sunset .hover\:bg-\[\#042c1b\]:hover,
+html.theme-sunset .hover\:bg-green-800:hover {
+  background-color: #c2410c !important;
+}
+html.theme-sunset .bg-green-50,
+html.theme-sunset .bg-\[\#b2f2bb\] {
+  background-color: #fff7ed !important;
+  color: #78350f !important;
+}
+html.theme-sunset .border-green-100 {
+  border-color: #ffedd5 !important;
+}
+html.theme-sunset .border-\[\#053d26\] {
+  border-color: #ea580c !important;
+}
+
+/* ROYAL THEME */
+html.theme-royal .text-\[\#053d26\],
+html.theme-royal .text-green-700 {
+  color: #7c3aed !important;
+}
+html.theme-royal .bg-\[\#053d26\],
+html.theme-royal .bg-green-600,
+html.theme-royal .bg-green-700 {
+  background-color: #7c3aed !important;
+}
+html.theme-royal .hover\:bg-\[\#042c1b\]:hover,
+html.theme-royal .hover\:bg-green-800:hover {
+  background-color: #6d28d9 !important;
+}
+html.theme-royal .bg-green-50,
+html.theme-royal .bg-\[\#b2f2bb\] {
+  background-color: #f5f3ff !important;
+  color: #4c1d95 !important;
+}
+html.theme-royal .border-green-100 {
+  border-color: #ede9fe !important;
+}
+html.theme-royal .border-\[\#053d26\] {
+  border-color: #7c3aed !important;
+}
+
 /* Theme Accent Overrides in Dark Mode */
 html.dark .text-\[\#053d26\] {
   color: #34d399 !important; /* Vibrant light emerald for forest default theme */

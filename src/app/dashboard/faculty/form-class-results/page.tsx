@@ -2,18 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet } from "lucide-react";
-import { resultApi, sessionApi, classApi } from "@/lib/api";
+import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 export default function FormClassResults() {
   const router = useRouter();
   const [results, setResults] = useState<any[]>([]);
+  const [remarks, setRemarks] = useState<Record<string, string>>({});
   const [formClass, setFormClass] = useState<any>(null);
   const [currentTerm, setCurrentTerm] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   useEffect(() => {
     const init = async () => {
@@ -21,12 +23,53 @@ export default function FormClassResults() {
         const storedUser = localStorage.getItem("leoned_user");
         if (!storedUser) return router.push("/login");
         
-        // Use a heuristic to find form class
-        const classes = await classApi.getAll();
-        let fc = classes.find(c => c.formTeacherId === JSON.parse(storedUser).id || c.formTeacherId === JSON.parse(storedUser).teacher?.id);
+        const user = JSON.parse(storedUser);
+        const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
+        
+        // Find form class
+        let myFormClass: any = null;
+        let allClasses: any[] = [];
+        
+        try {
+          const classesRes = await teacherPortalApi.getClasses();
+          allClasses = Array.isArray(classesRes) ? classesRes : ((classesRes as any)?.data || (classesRes as any)?.items || []);
+          
+          if (userId) {
+            try {
+              const formClassesRes = await attendanceApi.getMyFormClasses();
+              const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
+              const myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
+              if (myFormClasses.length > 0) {
+                const fc = myFormClasses[0];
+                myFormClass = { ...fc, classId: fc.id || fc.classId || fc._id, className: fc.name || fc.className || "Class" };
+              }
+            } catch (e) {}
+            
+            if (!myFormClass) {
+              const today = new Date().toISOString().split('T')[0];
+              for (const cls of allClasses) {
+                const cId = cls.classId || cls.id || cls._id;
+                if (!cId) continue;
+                try {
+                  await attendanceApi.getClassAttendance(cId, today);
+                  myFormClass = { ...cls, classId: cId, className: cls.className || cls.name };
+                  break;
+                } catch (e: any) {
+                  const errorMsg = e instanceof Error ? e.message : String(e);
+                  if (!errorMsg.includes('403')) {
+                    myFormClass = { ...cls, classId: cId, className: cls.className || cls.name };
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {}
+        
+        let fc = myFormClass;
         
         // Just mock it if not found easily for the demo
-        if (!fc && classes.length > 0) fc = classes[0];
+        if (!fc && allClasses.length > 0) fc = allClasses[0];
         
         if (!fc) {
           setError("You are not assigned as a Form Teacher to any class.");
@@ -46,12 +89,39 @@ export default function FormClassResults() {
         }
         setCurrentTerm(activeTerm);
 
+        const targetClassId = fc.classId || fc.id || fc._id;
+
         // Compute first to ensure we have latest results
-        await resultApi.compute(fc.id, activeTerm.id).catch(() => {});
+        await resultApi.compute(targetClassId, activeTerm.id).catch(() => {});
         
         // Fetch results
-        const classResults = await resultApi.getClassResults(fc.id, activeTerm.id);
-        setResults(Array.isArray(classResults) ? classResults : []);
+        const classResults = await resultApi.getClassResults(targetClassId, activeTerm.id);
+        const rData = (classResults as any)?.data || classResults;
+        let resultsArray: any[] = [];
+        if (Array.isArray(rData)) {
+          resultsArray = rData;
+        } else if (rData && typeof rData === 'object') {
+          resultsArray = rData.scores || rData.data || rData.items || rData.students || [];
+        }
+        
+        // Fetch students to populate profile pictures
+        try {
+          const classStudentsRes = await teacherPortalApi.getClassStudents(targetClassId);
+          const safeClassStudents = Array.isArray(classStudentsRes) ? classStudentsRes : ((classStudentsRes as any)?.data || (classStudentsRes as any)?.items || []);
+          
+          resultsArray = resultsArray.map(r => {
+             const sId = r.student?.id || r.studentId;
+             const sInfo = safeClassStudents.find((s: any) => s.id === sId || s.studentId === sId || s._id === sId);
+             if (sInfo) {
+               r.student = { ...(r.student || {}), ...sInfo, ...sInfo.user, ...sInfo.student };
+             }
+             return r;
+          });
+        } catch (e) {
+          console.error("Failed to fetch class students for pictures", e);
+        }
+
+        setResults(resultsArray);
       } catch (err: any) {
         setError(err.message || "Failed to load results.");
       } finally {
@@ -64,12 +134,29 @@ export default function FormClassResults() {
   const handleSubmitToAdmin = async () => {
     if (!formClass || !currentTerm) return;
     setIsSubmitting(true);
+    setValidationErrors([]);
     try {
-      await resultApi.submit(formClass.id, currentTerm.id, { students: [] } as any);
+      const payload = {
+        students: results.map((res: any) => {
+          const sId = res.student?.id || res.studentId;
+          return {
+            studentId: sId,
+            formTeacherRemark: remarks[sId] || ""
+          };
+        })
+      };
+      
+      await resultApi.submit(formClass.id, currentTerm.id, payload as any);
       toast.success("Results submitted to School Admin for final approval!");
       router.push("/dashboard/faculty/classes");
     } catch (err: any) {
-      toast.error(err.message || "Failed to submit results.");
+      if (err.message && err.message.includes("checkAllSubjectsEntered")) {
+        setValidationErrors(["Submission blocked: Not all active students have scores recorded for every subject. Please check the score ledger."]);
+      } else if (err.message) {
+        setValidationErrors([err.message]);
+      } else {
+        toast.error("Failed to submit results.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -124,6 +211,20 @@ export default function FormClassResults() {
         </button>
       </div>
 
+      {validationErrors.length > 0 && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-bold text-rose-900">Cannot Submit Results</h3>
+              <ul className="mt-1 text-sm text-rose-700 space-y-1 list-disc list-inside">
+                {validationErrors.map((err, i) => <li key={i}>{err}</li>)}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -133,23 +234,59 @@ export default function FormClassResults() {
                 <th className="px-6 py-4 text-center">Total Score</th>
                 <th className="px-6 py-4 text-center">Average</th>
                 <th className="px-6 py-4 text-center">Grade</th>
+                <th className="px-6 py-4">Form Teacher Remark</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {results.length > 0 ? results.map((res: any, idx: number) => (
+              {results.length > 0 ? results.map((res: any, idx: number) => {
+                const sId = res.student?.id || res.studentId || idx.toString();
+                const studentName = res.student?.fullName || res.studentName || `Student ${idx + 1}`;
+                const profilePic = res.student?.profilePictureUrl || res.student?.imageUrl || res.student?.image || res.profilePictureUrl || res.imageUrl;
+                const avg = res.averageScore || res.average || res.totalScore || 0;
+                const computedGrade = res.grade || (avg >= 75 ? "A+" : avg >= 70 ? "A" : avg >= 60 ? "B+" : avg >= 50 ? "B" : avg >= 40 ? "C" : "F");
+                
+                return (
                 <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-bold text-gray-900">{res.student?.fullName || res.studentName || `Student ${idx + 1}`}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-gray-200 overflow-hidden shrink-0 flex items-center justify-center text-xs font-bold text-gray-500">
+                        {profilePic ? (
+                          <img src={profilePic} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          studentName[0].toUpperCase()
+                        )}
+                      </div>
+                      <span className="font-bold text-gray-900">{studentName}</span>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-center font-medium">{res.totalScore || "-"}</td>
-                  <td className="px-6 py-4 text-center font-medium">{res.averageScore ? res.averageScore.toFixed(1) : "-"}</td>
+                  <td className="px-6 py-4 text-center font-medium">{avg ? Number(avg).toFixed(1) : "-"}</td>
                   <td className="px-6 py-4 text-center">
-                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded font-bold">{res.remark || "C"}</span>
+                    <span className={`px-2.5 py-1 rounded font-black text-xs ${
+                      computedGrade.includes('A') ? 'bg-green-100 text-green-700' :
+                      computedGrade.includes('B') ? 'bg-blue-100 text-blue-700' :
+                      computedGrade.includes('C') ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {computedGrade}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <input 
+                      type="text"
+                      className="w-full max-w-xs px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#053d26]"
+                      placeholder="Enter remark..."
+                      value={remarks[sId] || ""}
+                      onChange={(e) => setRemarks(prev => ({ ...prev, [sId]: e.target.value }))}
+                    />
                   </td>
                 </tr>
-              )) : (
+              )}) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     <FileSpreadsheet className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-                    <p>No results computed yet. Ask subject teachers to enter scores first.</p>
+                    <p className="font-medium text-gray-900">No results found</p>
+                    <p className="text-xs mt-1">Make sure subject scores have been entered for this class.</p>
                   </td>
                 </tr>
               )}

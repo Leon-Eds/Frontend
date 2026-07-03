@@ -47,6 +47,8 @@ export default function SuperAdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [user, setUser] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -74,9 +76,28 @@ export default function SuperAdminDashboard() {
             schoolApi.getAll().catch(() => null),
             schoolApi.getPlans().catch(() => [])
           ]);
+          let allLocalActivities: any[] = [];
+          if (typeof window !== 'undefined') {
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.startsWith('leoned_local_activities_')) {
+                try {
+                  const acts = JSON.parse(localStorage.getItem(key) || '[]');
+                  allLocalActivities = [...allLocalActivities, ...acts];
+                } catch(e) {}
+              }
+            }
+          }
           
-          setStats(statsData);
+          const sObj = (statsData as any)?.data || statsData || {};
+          const apiActivities = sObj.recentActivities || [];
           
+          const combinedActivities = [...allLocalActivities, ...apiActivities].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+          setStats({
+            ...(statsData as any),
+            recentActivities: combinedActivities
+          });
           // Data Extraction Strategy: 
           // 1. Check if schools are nested in statsData (common for dashboards)
           // 2. Fallback to dedicated schoolsData endpoint
@@ -235,8 +256,8 @@ export default function SuperAdminDashboard() {
     }
   });
 
-  const activeSubscriptions = s?.activeSubscriptions || computedActiveSubs;
-  const totalRevenue = s?.totalRevenue || s?.revenue || computedTotalRev;
+  const activeSubscriptions = computedActiveSubs; // Prefer computed over s?.activeSubscriptions
+  const totalRevenue = computedTotalRev; // Prefer computed over s?.totalRevenue
   const platformGrowth = s?.platformGrowth || "Live";
 
   // Data Reconciliation: If count > 0 but list is empty, we flag it as "Syncing"
@@ -268,7 +289,6 @@ export default function SuperAdminDashboard() {
             </div>
             <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight flex items-center gap-4">
               Platform Overview
-              <span className="text-[10px] font-bold text-gray-500 bg-gray-100/80 backdrop-blur-sm px-2.5 py-1 rounded-md border border-gray-200/80 uppercase tracking-widest hidden sm:inline-block shadow-sm">v1.2.0-Alpha</span>
             </h1>
             <p className="text-sm text-gray-500 font-medium mt-3 flex items-center gap-2">
               Welcome back, <span className="font-extrabold text-gray-800">{user?.name}</span> 
@@ -325,10 +345,9 @@ export default function SuperAdminDashboard() {
           {/* Regular Stats */}
           {[
             { label: "Total Students", value: totalStudents.toLocaleString(), unit: "learners", icon: Briefcase, color: "emerald", trend: "Growth" },
-            { label: "Total Teachers", value: totalTeachers.toLocaleString(), unit: "staff", icon: CreditCard, color: "purple", trend: "Faculty" },
-            { label: "Active Subscriptions", value: activeSubscriptions, unit: "licences", icon: ShieldAlert, color: "orange", trend: "Billing" }
+            { label: "Total Teachers", value: totalTeachers.toLocaleString(), unit: "staff", icon: CreditCard, color: "purple", trend: "Faculty" }
           ].map((stat, i) => (
-            <div key={i} className={`group relative overflow-hidden rounded-[2rem] bg-white/60 backdrop-blur-xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-white/80 transition-all duration-300 hover:bg-white hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)] hover:-translate-y-1`}>
+            <div key={i} className={`lg:col-span-2 md:col-span-1 col-span-1 group relative overflow-hidden rounded-[2rem] bg-white/60 backdrop-blur-xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-white/80 transition-all duration-300 hover:bg-white hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)] hover:-translate-y-1`}>
               <div className={`absolute -right-10 -top-10 h-32 w-32 bg-${stat.color}-500/5 rounded-full blur-2xl transition-transform duration-500 group-hover:scale-150 group-hover:bg-${stat.color}-500/10`} />
               <div className="relative z-10 flex flex-col h-full justify-between">
                 <div className="flex justify-between items-start mb-6">
@@ -382,7 +401,7 @@ export default function SuperAdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {schools.length > 0 ? schools.map((school) => {
+                  {schools.length > 0 ? schools.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((school) => {
                     const studentCount = extractCount(school, ['student', 'pupil', 'learner']);
                     const staffCount = extractCount(school, ['teacher', 'staff', 'faculty']);
                     const schoolGrad = getSeededGradient(school.name || 'School');
@@ -498,10 +517,34 @@ export default function SuperAdminDashboard() {
                 </tbody>
               </table>
             </div>
+            {/* Pagination Controls */}
+            {schools.length > itemsPerPage && (
+              <div className="flex items-center justify-between px-4 pt-6 mt-4 border-t border-gray-100/50">
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                  Page <span className="text-[#053d26]">{currentPage}</span> of <span className="text-[#053d26]">{Math.ceil(schools.length / itemsPerPage)}</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-[10px] font-bold text-gray-600 uppercase tracking-widest disabled:opacity-50 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm active:scale-95"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(schools.length / itemsPerPage), p + 1))}
+                    disabled={currentPage === Math.ceil(schools.length / itemsPerPage)}
+                    className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-[10px] font-bold text-gray-600 uppercase tracking-widest disabled:opacity-50 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm active:scale-95"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-8">
-            <DataTable activities={stats?.recentActivities} />
+            <DataTable activities={stats?.recentActivities || s?.recentActivities} />
           </div>
         </div>
       </div>
