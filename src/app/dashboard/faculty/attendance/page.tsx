@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { CheckCircle2, XCircle, AlertCircle, Save, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { CheckCircle2, XCircle, AlertCircle, Save, Loader2, QrCode } from "lucide-react";
 import { teacherPortalApi, dashboardApi, attendanceApi } from "@/lib/api";
 import toast from "react-hot-toast";
+import QRScanner from "@/components/dashboard/QRScanner";
 
 export default function FacultyAttendance() {
   const [students, setStudents] = useState<any[]>([]);
@@ -14,6 +15,7 @@ export default function FacultyAttendance() {
   
   const [formClasses, setFormClasses] = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -183,6 +185,15 @@ export default function FacultyAttendance() {
             className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26]"
           />
           <button 
+            onClick={() => setIsScanning(!isScanning)}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-colors shadow-sm ${
+              isScanning ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
+          >
+            <QrCode className="h-4 w-4" />
+            {isScanning ? "Close Scanner" : "Scan ID"}
+          </button>
+          <button 
             onClick={handleSave}
             disabled={isSaving || !selectedClassId}
             className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm disabled:opacity-70"
@@ -192,6 +203,32 @@ export default function FacultyAttendance() {
           </button>
         </div>
       </div>
+
+      {isScanning && (
+        <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm animate-in zoom-in duration-300">
+          <h3 className="text-lg font-bold text-center mb-4">Scan Student ID Card</h3>
+          <QRScanner 
+            onScanSuccess={(decodedText) => {
+              // Extract student ID from QR text
+              let studentId = decodedText;
+              try {
+                // Handle JSON format if encoded
+                const data = JSON.parse(decodedText);
+                studentId = data.id || data.studentId || decodedText;
+              } catch(e) {}
+              
+              // Verify student is in this class
+              const isStudentInClass = students.some(s => (s.id || s._id || s.studentId) === studentId);
+              if (isStudentInClass) {
+                handleMark(studentId, 'Present');
+                toast.success(`Student marked present!`);
+              } else {
+                toast.error("Student not found in this class.");
+              }
+            }}
+          />
+        </div>
+      )}
 
       {!selectedClassId && !loading && (
         <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100 flex items-center gap-4 text-orange-800 animate-in fade-in">

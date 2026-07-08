@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { sessionApi, AcademicSession, CreateSessionRequest, CreateTermRequest } from '@/lib/api';
 import { DatePicker } from '@/components/ui/form/DatePicker';
+import PromotionsManager from '@/components/dashboard/PromotionsManager';
 
 export default function SessionRollover() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function SessionRollover() {
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<'sessions'|'promotions'>('sessions');
 
   // Create session modal
   const [showCreateSession, setShowCreateSession] = useState(false);
@@ -206,12 +208,34 @@ export default function SessionRollover() {
             Orchestrate the end-of-year transition with surgical precision. Manage academic sessions, terms, batch promotions, and initialize the upcoming session architecture.
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateSession(true)}
-          className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm shrink-0"
-        >
-          <Plus className="h-5 w-5" /> New Session
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="bg-gray-100 p-1 rounded-xl flex items-center shrink-0">
+            <button
+              onClick={() => setActiveTab('sessions')}
+              className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors ${
+                activeTab === 'sessions' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Sessions & Terms
+            </button>
+            <button
+              onClick={() => setActiveTab('promotions')}
+              className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors ${
+                activeTab === 'promotions' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Student Promotions
+            </button>
+          </div>
+          {activeTab === 'sessions' && (
+            <button
+              onClick={() => setShowCreateSession(true)}
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm shrink-0"
+            >
+              <Plus className="h-5 w-5" /> New Session
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Loading / Error */}
@@ -227,6 +251,8 @@ export default function SessionRollover() {
           <p className="text-sm text-gray-500 mb-6">{error}</p>
           <button onClick={fetchSessions} className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors">Retry</button>
         </div>
+      ) : activeTab === 'promotions' ? (
+        <PromotionsManager currentSession={currentSession} sessions={sessions} />
       ) : (
         <>
           {/* Top Session Cards */}

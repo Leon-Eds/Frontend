@@ -23,6 +23,7 @@ import {
   Loader2
 } from "lucide-react";
 import { announcementApi } from "@/lib/api";
+import { useAnnouncementsWebSocket } from "@/hooks/useAnnouncementsWebSocket";
 
 interface Announcement {
   id: string;
@@ -102,6 +103,9 @@ export default function BroadcastHub() {
     }
   };
 
+  // Listen to websocket events
+  useAnnouncementsWebSocket(fetchAnnouncements);
+
   // Load existing data from localStorage (no mock seeding)
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -133,7 +137,7 @@ export default function BroadcastHub() {
 
     setIsSending(true);
     try {
-      const audience = targetGroup === "All" ? "All" : "Teachers";
+      const audience = targetGroup === "All" ? "All" : targetGroup === "Students" ? "Students" : targetGroup === "Parents" ? "Parents" : "Teachers";
       
       // 1. Save announcement to backend API
       if (selectedChannels.includes("megaphone")) {
@@ -280,7 +284,9 @@ export default function BroadcastHub() {
                     onChange={(e) => setTargetGroup(e.target.value)}
                     className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs font-bold text-gray-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                   >
-                    <option value="All">All School Teachers (48)</option>
+                    <option value="All">All School Staff (48)</option>
+                    <option value="Students">All Students</option>
+                    <option value="Parents">All Parents / Guardians</option>
                     <option value="Math">Maths Department (5)</option>
                     <option value="Science">Sciences Department (12)</option>
                   </select>
@@ -296,6 +302,9 @@ export default function BroadcastHub() {
                     <option value="General">General Memo</option>
                     <option value="Academic">Academic Notice</option>
                     <option value="Finance">Financial Info</option>
+                    <option value="Health">Health Alert</option>
+                    <option value="Reminder">Reminder</option>
+                    <option value="Summons">Summons</option>
                     <option value="Emergency">Emergency</option>
                   </select>
                 </div>
@@ -442,6 +451,9 @@ export default function BroadcastHub() {
                       category === "Academic" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
                       category === "Finance" ? "bg-amber-50 text-amber-700 border border-amber-100" :
                       category === "Emergency" ? "bg-rose-50 text-rose-700 border border-rose-100" :
+                      category === "Health" ? "bg-red-50 text-red-700 border border-red-100" :
+                      category === "Summons" ? "bg-purple-50 text-purple-700 border border-purple-100" :
+                      category === "Reminder" ? "bg-blue-50 text-blue-700 border border-blue-100" :
                       "bg-gray-100 text-gray-500"
                     }`}>
                       📢 {category} Announcement

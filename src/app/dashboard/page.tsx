@@ -149,9 +149,9 @@ export default function DashboardOverview() {
           }
           
           const localActivities = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`leoned_local_activities_${schoolId}`) || '[]') : [];
-          // Filter backend activities to only show those belonging to this specific school
-          const apiActivities = (data?.recentActivities || []).filter((act: any) => act.schoolId === schoolId);
-          const combined = [...localActivities, ...apiActivities].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          // Use backend activities directly since the endpoint already filters by school
+          const apiActivities = data?.recentActivities || [];
+          const combined = [...localActivities, ...apiActivities].sort((a: any, b: any) => new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime());
           
           setStats({
             ...data,

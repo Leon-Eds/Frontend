@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { dashboardApi, schoolApi, DashboardStats } from "@/lib/api";
+import { dashboardApi, schoolApi, paymentApi, DashboardStats } from "@/lib/api";
 import DataTable from "@/components/dashboard/DataTable";
 import { 
   School, 
@@ -47,6 +47,7 @@ export default function SuperAdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [user, setUser] = useState<any>(null);
+  const [overviewData, setOverviewData] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -71,10 +72,11 @@ export default function SuperAdminDashboard() {
 
       const fetchData = async () => {
         try {
-          const [statsData, schoolsData, plansData] = await Promise.all([
+          const [statsData, schoolsData, plansData, subscriptionData] = await Promise.all([
             dashboardApi.getSuperAdminDashboard(),
             schoolApi.getAll().catch(() => null),
-            schoolApi.getPlans().catch(() => [])
+            schoolApi.getPlans().catch(() => []),
+            paymentApi.getSubscriptionOverview().catch(() => null)
           ]);
           let allLocalActivities: any[] = [];
           if (typeof window !== 'undefined') {
@@ -129,6 +131,7 @@ export default function SuperAdminDashboard() {
           setSchools(extractedSchools);
           const fetchedPlans = (plansData as any)?.data || plansData || [];
           setPlans(fetchedPlans);
+          setOverviewData((subscriptionData as any)?.data || subscriptionData || null);
           
           // Enrich schools with detail data (for currentTeacherCount, currentStudentCount)
           if (extractedSchools.length > 0) {
@@ -256,8 +259,8 @@ export default function SuperAdminDashboard() {
     }
   });
 
-  const activeSubscriptions = computedActiveSubs; // Prefer computed over s?.activeSubscriptions
-  const totalRevenue = computedTotalRev; // Prefer computed over s?.totalRevenue
+  const activeSubscriptions = overviewData?.totalSubscribers ?? computedActiveSubs; 
+  const totalRevenue = overviewData?.totalRevenue ?? computedTotalRev; 
   const platformGrowth = s?.platformGrowth || "Live";
 
   // Data Reconciliation: If count > 0 but list is empty, we flag it as "Syncing"

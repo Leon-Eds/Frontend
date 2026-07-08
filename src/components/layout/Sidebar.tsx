@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { schoolApi } from "@/lib/api";
+import { schoolApi, resultApi } from "@/lib/api";
 import { useLanguage } from "@/components/LanguageProvider";
 import { 
   LayoutDashboard, 
@@ -41,6 +41,7 @@ const schoolNavigation = [
   { name: "Financials", href: "/dashboard/finance", icon: Banknote },
   { name: "Staff Directory", href: "/dashboard/faculty", icon: Users },
   { name: "Session Rollover", href: "/dashboard/rollover", icon: CalendarClock },
+  { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
 ];
 
 const adminNavigation = [
@@ -48,8 +49,11 @@ const adminNavigation = [
   { name: "Students", href: "/dashboard/students", icon: GraduationCap },
   { name: "Classes", href: "/dashboard/classes", icon: BookOpen },
   { name: "Teachers", href: "/dashboard/faculty", icon: Users },
+  { name: "Support Staff", href: "/dashboard/staff", icon: UserPlus },
   { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
+  { name: "Attendance History", href: "/dashboard/faculty/attendance/history", icon: ClipboardList },
   { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
+  { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
   { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
 ];
 
@@ -57,16 +61,22 @@ const facultyNavigation = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Classes", href: "/dashboard/faculty/classes", icon: FolderKanban },
   { name: "Result Entry", href: "/dashboard/faculty/result-entry", icon: CheckSquare },
+  { name: "Form Class", href: "/dashboard/faculty/form-class-results", icon: GraduationCap },
   { name: "Attendance", href: "/dashboard/faculty/attendance", icon: UserCheck },
+  { name: "Attendance History", href: "/dashboard/faculty/attendance/history", icon: ClipboardList },
 ];
 
 const studentNavigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Students", href: "/dashboard/student-portal", icon: GraduationCap },
-  { name: "Teachers", href: "/dashboard", icon: Users },
-  { name: "Classes", href: "/dashboard", icon: BookOpen },
-  { name: "Finance", href: "/dashboard", icon: Banknote },
-  { name: "Reports", href: "/dashboard/student-portal", icon: FileText },
+  { name: "Dashboard", href: "/dashboard/student-portal", icon: LayoutDashboard },
+  { name: "My Results", href: "/dashboard/student-portal", icon: GraduationCap },
+  { name: "Fee Clearance", href: "/dashboard/student-portal", icon: Banknote },
+  { name: "Attendance", href: "/dashboard/student-portal", icon: UserCheck },
+];
+
+const bursarNavigation = [
+  { name: "Fee Clearance", href: "/dashboard/finance", icon: DollarSign },
+  { name: "Payment Logs", href: "/dashboard/finance", icon: Banknote },
+  { name: "Revenue Reports", href: "/dashboard/reports", icon: FileText },
 ];
 
 const superAdminNavigation = [
@@ -74,6 +84,7 @@ const superAdminNavigation = [
   { name: "Manage Schools", href: "/super-admin/schools", icon: School },
   { name: "Global Users", href: "/super-admin/users", icon: Users },
   { name: "Billing & Plans", href: "/super-admin/plans", icon: CreditCard },
+  { name: "Payment Logs", href: "/super-admin/payments", icon: Banknote },
 ];
 
 interface SidebarProps {
@@ -89,6 +100,32 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [schoolName, setSchoolName] = useState<string>("LeonEd Africa");
   const [logoUrl, setLogoUrl] = useState<string>("/logo.png");
   const [plan, setPlan] = useState<string>("Free");
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    const fetchPendingCount = async () => {
+      try {
+        const stored = localStorage.getItem("leoned_user");
+        if (!stored) return;
+        const user = JSON.parse(stored);
+        if (user.role?.toLowerCase() === "admin") {
+          const res = await resultApi.getPendingApprovalsCount();
+          if (res && typeof res.data?.count === "number") {
+            setPendingApprovalsCount(res.data.count);
+          }
+        }
+      } catch (err) {
+        // Silently fail if endpoint fails or returns error
+      }
+    };
+
+    fetchPendingCount();
+    interval = setInterval(fetchPendingCount, 15000); // Poll every 15s
+    
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -108,11 +145,18 @@ export default function Sidebar({ onClose }: SidebarProps) {
           }
           if (user.schoolId && normalizedRole !== "superadmin") {
             schoolApi.getById(user.schoolId).then((school: any) => {
+              let updated = false;
               if (school && school.subscriptionPlan) {
                 setPlan(school.subscriptionPlan);
               }
               if (school && school.logoUrl) {
                 setLogoUrl(school.logoUrl);
+                user.logoUrl = school.logoUrl;
+                updated = true;
+              }
+              if (updated) {
+                localStorage.setItem("leoned_user", JSON.stringify(user));
+                localStorage.setItem("leoned_persistent_school_logo", school.logoUrl);
               }
             }).catch(e => console.warn("Failed to fetch school details:", e));
           }
@@ -131,6 +175,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
             setDemoRole("Faculty");
           } else if (normalizedRole === "student" || normalizedRole === "parent" || normalizedRole === "guardian") {
             setDemoRole("Student");
+          } else if (normalizedRole === "bursar") {
+            setDemoRole("Bursar");
           } else {
             setDemoRole(localStorage.getItem("leoned_demo_role") || "Admin");
           }
@@ -145,9 +191,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
   if (role === "superadmin") {
     navigation = superAdminNavigation;
   } else {
-    if (demoRole === "Admin") navigation = adminNavigation;
-    else if (demoRole === "Faculty") navigation = facultyNavigation;
+    if (demoRole === "Admin" || demoRole === "School Admin") navigation = adminNavigation;
+    else if (demoRole === "Faculty" || demoRole === "Teacher") navigation = facultyNavigation;
     else if (demoRole === "Student") navigation = studentNavigation;
+    else if (demoRole === "Bursar") navigation = bursarNavigation;
   }
 
   const handleLogout = () => {
@@ -210,7 +257,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Main Navigation */}
       <nav className="flex-1 space-y-1 pl-4 pr-2 py-6 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
         {navigation.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/dashboard" && item.href !== "/super-admin" && pathname.startsWith(item.href));
+          const isActive = 
+            pathname === item.href || 
+            (item.href !== "/dashboard" && 
+             item.href !== "/super-admin" && 
+             pathname.startsWith(item.href + "/") && 
+             !navigation.some(other => other.href.length > item.href.length && pathname.startsWith(other.href)));
           return (
             <Link
               key={item.name}
@@ -223,7 +275,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               }`}
             >
               <item.icon className={`h-5 w-5 ${isActive ? "text-white" : "text-green-300"}`} />
-              {t("sidebar." + item.name.toLowerCase().replace(/['\s&]+/g, "_"))}
+              <span className="flex-1 text-left">{t("sidebar." + item.name.toLowerCase().replace(/['\s&]+/g, "_"))}</span>
+              {item.href === "/dashboard/approvals" && pendingApprovalsCount > 0 && (
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${isActive ? "bg-white text-[#095838]" : "bg-red-500 text-white"}`}>
+                  {pendingApprovalsCount}
+                </span>
+              )}
             </Link>
           );
         })}

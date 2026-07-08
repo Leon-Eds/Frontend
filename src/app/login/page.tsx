@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,6 +18,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [displayLogo, setDisplayLogo] = useState("/logo.png");
+
+  useEffect(() => {
+    const savedLogo = localStorage.getItem("leoned_persistent_school_logo");
+    if (savedLogo) {
+      setDisplayLogo(savedLogo);
+    }
+  }, []);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -60,6 +68,15 @@ export default function LoginPage() {
           userObj.name = r.teacher.fullName;
         }
       }
+
+      // Merge school data (address, phone) if returned in login
+      if (r.school && typeof r.school === 'object') {
+        if (!userObj.address && r.school.address) userObj.address = r.school.address;
+        if (!userObj.phone && r.school.phone) userObj.phone = r.school.phone;
+        if (!userObj.logoUrl && r.school.logoUrl) userObj.logoUrl = r.school.logoUrl;
+      }
+      
+      if (!userObj.logoUrl && r.logoUrl) userObj.logoUrl = r.logoUrl;
       
       // Explicitly set role if backend wraps it in specific keys but omits the role string
       if (r.student && !userObj.role) userObj.role = 'student';
@@ -93,6 +110,14 @@ export default function LoginPage() {
         } catch {}
       }
 
+      // Restore logo from local cache if backend didn't return it
+      if (userObj.schoolId && !userObj.logoUrl && typeof window !== 'undefined') {
+        const savedLogo = localStorage.getItem(`leoned_logo_${userObj.schoolId}`);
+        if (savedLogo) {
+          userObj.logoUrl = savedLogo;
+        }
+      }
+
       console.log("[Login] User object to store:", JSON.stringify(userObj));
 
       // Validate that the returned role matches the selected login role
@@ -103,13 +128,16 @@ export default function LoginPage() {
       const roleMatches = (returned: string, selected: string): boolean => {
         if (selected === 'admin') {
           return ['schooladmin', 'admin', 'school_admin', ''].includes(returned) 
-            || (!['teacher', 'faculty', 'student', 'parent', 'guardian', 'superadmin'].includes(returned));
+            || (!['teacher', 'faculty', 'student', 'parent', 'guardian', 'bursar'].includes(returned));
         }
         if (selected === 'teacher') {
           return ['teacher', 'faculty'].includes(returned);
         }
         if (selected === 'student') {
           return ['student', 'parent', 'guardian'].includes(returned);
+        }
+        if (selected === 'bursar') {
+          return ['bursar'].includes(returned);
         }
         return true;
       };
@@ -130,6 +158,9 @@ export default function LoginPage() {
 
       if (Object.keys(userObj).length > 0) {
         localStorage.setItem("leoned_user", JSON.stringify(userObj));
+        if (userObj.logoUrl) {
+          localStorage.setItem("leoned_persistent_school_logo", userObj.logoUrl);
+        }
       } else {
         localStorage.setItem("leoned_user", JSON.stringify({ role: selectedRoleLower, name: "User" }));
       }
@@ -145,6 +176,8 @@ export default function LoginPage() {
         router.push("/dashboard/student-portal");
       } else if (selectedRoleLower === "teacher" || effectiveRole === "teacher" || effectiveRole === "faculty") {
         router.push("/dashboard/faculty");
+      } else if (selectedRoleLower === "bursar" || effectiveRole === "bursar") {
+        router.push("/dashboard/bursar");
       } else {
         router.push("/dashboard");
       }
@@ -206,7 +239,7 @@ export default function LoginPage() {
         {/* Logo Section */}
         <div className="flex flex-col items-center justify-center mb-8">
           <Image
-            src="/logo.png"
+            src={displayLogo}
             alt="LeonEd Africa"
             width={100}
             height={100}
@@ -228,13 +261,13 @@ export default function LoginPage() {
 
           <div className="mb-6">
             <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Login As</p>
-            <div className="grid grid-cols-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-              {["Admin", "Teacher", "Student"].map((r) => (
+            <div className="grid grid-cols-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+              {["Admin", "Teacher", "Student", "Bursar"].map((r) => (
                 <button
                   key={r}
                   type="button"
                   onClick={() => setSelectedRole(r)}
-                  className={`py-2 px-2 rounded-lg text-xs font-bold transition-all ${
+                  className={`py-2 px-1 rounded-lg text-xs font-bold transition-all ${
                     selectedRole === r
                       ? "bg-white dark:bg-gray-700 text-[#053d26] dark:text-green-400 shadow-sm"
                       : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"

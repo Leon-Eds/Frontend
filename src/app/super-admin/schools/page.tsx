@@ -36,7 +36,11 @@ export default function SchoolsManagement() {
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [durationMonths, setDurationMonths] = useState("1");
   const [isUpgrading, setIsUpgrading] = useState(false);
-
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const fetchSchools = async () => {
     setIsLoading(true);
     try {
@@ -177,6 +181,32 @@ export default function SchoolsManagement() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!selectedSchool) return;
+    if (newAdminPassword.length < 6) {
+      toast.error("New password must be at least 6 characters.");
+      return;
+    }
+    
+    setIsResettingPassword(true);
+    try {
+      const { schoolApi } = await import('@/lib/api');
+      await schoolApi.resetAdminPassword(selectedSchool.id, newAdminPassword);
+      toast.success("Admin password reset successfully");
+      setNewAdminPassword("");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to reset password";
+      if (message.includes("404")) {
+        toast.error("Endpoint unavailable (HTTP 404): Backend implementation missing.");
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setIsResettingPassword(false);
+      setIsResetConfirmOpen(false);
+    }
+  };
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
@@ -206,6 +236,18 @@ export default function SchoolsManagement() {
       (s.subscriptionPlan || 'Free').toLowerCase().includes(term)
     );
   });
+
+  const totalPages = Math.ceil(filteredSchools.length / ITEMS_PER_PAGE);
+  const paginatedSchools = filteredSchools.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Reset to page 1 when search changes
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -238,7 +280,7 @@ export default function SchoolsManagement() {
             placeholder="Search institutions by name, email, or ID..."
             className="w-full bg-gray-50 border-none rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </form>
       </div>
@@ -262,7 +304,7 @@ export default function SchoolsManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filteredSchools.length > 0 ? filteredSchools.map((school) => {
+                {paginatedSchools.length > 0 ? paginatedSchools.map((school) => {
                   const isSchoolActive = getIsSchoolActive(school);
                   return (
                   <tr key={school.id} className={`group hover:bg-gray-50/30 transition-all duration-500 ${isSchoolActive ? 'opacity-100' : 'opacity-40 grayscale bg-gray-50/50'}`}>
@@ -380,8 +422,39 @@ export default function SchoolsManagement() {
         {!isLoading && filteredSchools.length > 0 && (
           <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Showing <span className="font-bold text-gray-900">{filteredSchools.length}</span> institutions
+              Showing <span className="font-bold text-gray-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredSchools.length)}</span> of <span className="font-bold text-gray-900">{filteredSchools.length}</span> institutions
             </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm font-bold rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-9 h-9 text-sm font-bold rounded-xl transition-colors ${
+                      page === currentPage
+                        ? 'bg-[#053d26] text-white'
+                        : 'border border-gray-200 hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 text-sm font-bold rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -473,6 +546,23 @@ export default function SchoolsManagement() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="bg-rose-50 rounded-2xl p-6 border border-rose-100">
+                    <h4 className="text-sm font-bold text-rose-900 mb-2 flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-rose-600" /> Security
+                    </h4>
+                    <p className="text-xs text-rose-700 mb-4">
+                      Force resetting the password will invalidate the current administrator's session and generate a new password.
+                    </p>
+                    <button 
+                      onClick={() => setIsResetConfirmOpen(true)}
+                      disabled={isResettingPassword}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
+                    >
+                      <Power className="h-4 w-4" />
+                      Force Reset Password
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -536,6 +626,48 @@ export default function SchoolsManagement() {
                   </div>
                 </form>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Confirmation Modal */}
+      {isResetConfirmOpen && selectedSchool && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !isResettingPassword && setIsResetConfirmOpen(false)} />
+          <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6 text-center animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Power className="h-8 w-8" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Reset Password?</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Are you sure you want to reset the admin password for <span className="font-bold text-gray-700">{selectedSchool.name}</span>? This will invalidate their current session.
+            </p>
+            <div className="mb-6 text-left">
+              <label className="block text-xs font-bold text-gray-700 mb-1">New Password</label>
+              <input
+                type="password"
+                value={newAdminPassword}
+                onChange={(e) => setNewAdminPassword(e.target.value)}
+                placeholder="Enter at least 6 characters"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-all text-sm text-gray-900"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsResetConfirmOpen(false)}
+                disabled={isResettingPassword}
+                className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetPassword}
+                disabled={isResettingPassword}
+                className="flex-1 py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isResettingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : "Yes, Reset"}
+              </button>
             </div>
           </div>
         </div>

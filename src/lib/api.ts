@@ -4,7 +4,7 @@ const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname =
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 
-function getAuthHeaders(): HeadersInit {
+export function getAuthHeaders(): HeadersInit {
   if (typeof window === 'undefined') return { 'Content-Type': 'application/json' };
   const token = localStorage.getItem('leoned_token');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -261,7 +261,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 // ─── Types ─────────────────────────────────────────────────────────────
 
 export type Gender = 'Male' | 'Female' | 'Other';
-export type StudentStatus = 'Active' | 'Graduated' | 'Archived' | 'Suspended';
+export type StudentStatus = 'Active' | 'Graduated' | 'Archived' | 'Suspended' | 'Left';
 export type SubscriptionPlan = 'Free' | 'Plus' | 'Premium';
 export type TermNumber = 'First' | 'Second' | 'Third';
 export type GradeLetter = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
@@ -381,6 +381,36 @@ export interface Teacher {
   image?: string;
   profilePictureUrl?: string;
   assignments?: TeacherAssignment[];
+}
+
+// Staff
+export interface CreateStaffRequest {
+  fullName: string;
+  email: string;
+  phone?: string;
+  password?: string;
+  role: string;
+  profilePictureUrl?: string;
+}
+
+export interface UpdateStaffRequest {
+  fullName?: string;
+  phone?: string;
+  role?: string;
+  profilePictureUrl?: string;
+}
+
+export interface Staff {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  role: string;
+  isActive: boolean;
+  createdAt?: string;
+  imageUrl?: string;
+  image?: string;
+  profilePictureUrl?: string;
 }
 
 export interface TeacherAssignment {
@@ -773,20 +803,30 @@ export const studentApi = {
     return handleResponse(res);
   },
 
-  uploadImage: async (id: string, file: File) => {
+  uploadImage: async (id: string, file: File): Promise<string> => {
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('file', file);
+    
     const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}/image`, {
       method: 'POST',
       headers: getAuthHeadersMultipart(),
       body: formData,
     });
+    const data = await handleResponse<{ imageUrl: string }>(res);
+    return data.imageUrl;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
     return handleResponse(res);
   },
 
-  delete: async (id: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}`, {
-      method: 'DELETE',
+  resetPassword: async (id: string): Promise<void> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}/reset-password`, {
+      method: 'POST',
       headers: getAuthHeaders(),
     });
     return handleResponse(res);
@@ -1151,6 +1191,15 @@ export const schoolApi = {
     return result;
   },
 
+  resetAdminPassword: async (id: string, newPassword?: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/school/${id}/reset-admin-password`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(newPassword ? { newPassword } : {}),
+    });
+    return handleResponse(res);
+  },
+
   toggleStatus: async (id: string, isActive: boolean) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/school/${id}/status`, {
       method: 'PUT',
@@ -1263,6 +1312,13 @@ export const resultApi = {
     });
     return handleResponse(res);
   },
+
+  getPendingApprovalsCount: async () => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/approvals/pending-count`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<{ data?: { count: number } }>(res);
+  },
 };
 
 // Report Cards
@@ -1364,7 +1420,7 @@ export interface Announcement {
   id: string;
   title: string;
   content: string;
-  audience?: 'All' | 'Students' | 'Teachers' | 'Class';
+  audience?: 'All' | 'Students' | 'Teachers' | 'Class' | 'Parents';
   targetClassId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -1374,7 +1430,7 @@ export interface Announcement {
 export interface CreateAnnouncementRequest {
   title: string;
   content: string;
-  audience?: 'All' | 'Students' | 'Teachers' | 'Class';
+  audience?: 'All' | 'Students' | 'Teachers' | 'Class' | 'Parents';
   targetClassId?: string;
 }
 
@@ -1464,6 +1520,43 @@ export const paymentApi = {
   },
 };
 
+// Staff API (Bursar, Librarian, etc.)
+export const staffApi = {
+  getAll: async (): Promise<Staff[]> => {
+    // The backend uses /bursar to list all bursars (which act as staff for now)
+    const res = await fetchWithTimeout(`${API_BASE_URL}/bursar`, {
+      headers: getAuthHeaders(),
+    });
+    const parsed = await res.clone().json().catch(() => null);
+    console.log('[staffApi.getAll] GET /bursar response:', res.status, parsed);
+    return handleResponse<Staff[]>(res);
+  },
+  create: async (data: CreateStaffRequest): Promise<Staff> => {
+    // Placeholder endpoint, waiting for backend implementation
+    const res = await fetchWithTimeout(`${API_BASE_URL}/staff/create`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Staff>(res);
+  },
+  update: async (id: string, data: UpdateStaffRequest): Promise<Staff> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/staff/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Staff>(res);
+  },
+  delete: async (id: string): Promise<void> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/staff/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  }
+};
+
 // Teacher Portal
 export const teacherPortalApi = {
   getAssignments: async () => {
@@ -1487,6 +1580,135 @@ export const teacherPortalApi = {
   getClassStudents: async (classId: string) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/classes/${classId}/students`, {
       headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+};
+
+// Bursar Portal
+export const bursarApi = {
+  create: async (data: any) => {
+    const body = JSON.stringify(data);
+    console.log('[bursarApi.create] Request URL:', `${API_BASE_URL}/bursar`);
+    console.log('[bursarApi.create] Request body:', body);
+    const res = await fetchWithTimeout(`${API_BASE_URL}/bursar`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body,
+    });
+    console.log('[bursarApi.create] Response status:', res.status);
+    if (!res.ok) {
+      const errorText = await res.clone().text();
+      console.error('[bursarApi.create] Error response:', errorText);
+    }
+    return handleResponse(res);
+  },
+  getStudentFees: async (studentId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/bursar/fees/student/${studentId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  getClassFees: async (classId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/bursar/fees/class/${classId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  recordFee: async (data: any) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/bursar/fees/record`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await handleResponse(res);
+    recordActivity(`Recorded student fee payment of ₦${data.amountPaid.toLocaleString()}`, 'Financials', 'VERIFIED');
+    return result;
+  },
+  clearFee: async (studentId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/bursar/fees/clear/${studentId}?termId=${termId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+    const result = await handleResponse(res);
+    recordActivity(`Cleared student term fees via Bursar`, 'Financials', 'VERIFIED');
+    return result;
+  },
+  getReport: async (params?: any) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const res = await fetchWithTimeout(`${API_BASE_URL}/bursar/fees/report${qs}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+};
+
+// Reports API
+export const reportApi = {
+  getEnrollment: async (termId?: string) => {
+    const qs = termId ? `?termId=${termId}` : '';
+    const res = await fetchWithTimeout(`${API_BASE_URL}/report/enrollment${qs}`, { headers: getAuthHeaders() });
+    return handleResponse(res);
+  },
+  getAttendance: async (termId?: string) => {
+    const qs = termId ? `?termId=${termId}` : '';
+    const res = await fetchWithTimeout(`${API_BASE_URL}/report/attendance${qs}`, { headers: getAuthHeaders() });
+    return handleResponse(res);
+  },
+  getPerformance: async (termId?: string) => {
+    const qs = termId ? `?termId=${termId}` : '';
+    const res = await fetchWithTimeout(`${API_BASE_URL}/report/performance${qs}`, { headers: getAuthHeaders() });
+    return handleResponse(res);
+  },
+  getFeePayment: async (termId?: string) => {
+    const qs = termId ? `?termId=${termId}` : '';
+    const res = await fetchWithTimeout(`${API_BASE_URL}/report/feepayment${qs}`, { headers: getAuthHeaders() });
+    return handleResponse(res);
+  },
+  getRevenue: async (termId?: string) => {
+    const qs = termId ? `?termId=${termId}` : '';
+    const res = await fetchWithTimeout(`${API_BASE_URL}/report/revenue${qs}`, { headers: getAuthHeaders() });
+    return handleResponse(res);
+  },
+  getStudentStatus: async (termId?: string) => {
+    const qs = termId ? `?termId=${termId}` : '';
+    const res = await fetchWithTimeout(`${API_BASE_URL}/report/studentstatus${qs}`, { headers: getAuthHeaders() });
+    return handleResponse(res);
+  },
+  getStaff: async () => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/report/staff`, { headers: getAuthHeaders() });
+    return handleResponse(res);
+  },
+  getOutstandingFees: async (termId?: string) => {
+    const qs = termId ? `?termId=${termId}` : '';
+    const res = await fetchWithTimeout(`${API_BASE_URL}/report/outstandingfees${qs}`, { headers: getAuthHeaders() });
+    return handleResponse(res);
+  },
+};
+
+// Promotion API
+export const promotionApi = {
+  promote: async (data: { studentIds: string[], targetClassId: string, targetAcademicSessionId: string }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/promotion/promote`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  graduate: async (data: { studentIds: string[] }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/promotion/graduate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  markLeft: async (studentId: string, reason?: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/promotion/mark-left/${studentId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason }),
     });
     return handleResponse(res);
   },

@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import toast from 'react-hot-toast';
-import { Lock, UploadCloud, Plus, Eye, Printer, Mail, Check, RotateCw, MoreVertical, Search, FileText, X } from "lucide-react";
+import { Eye, Search, Filter, Download, MoreVertical, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Printer, AlertCircle, Loader2, RotateCw, Lock, UploadCloud, Plus, Mail, Check, FileText, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { studentApi, feeApi, sessionApi, classApi } from "@/lib/api";
+import { studentApi, feeApi, sessionApi, classApi, bursarApi } from "@/lib/api";
 
 interface StudentRegistry {
   id: string;
@@ -33,12 +33,15 @@ export default function FeeClearance() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
   // Role guard redirect
   useEffect(() => {
     try {
       const stored = localStorage.getItem("leoned_user");
       if (stored) {
         const user = JSON.parse(stored);
+        setCurrentUser(user);
         const userRole = user.role?.toLowerCase();
         if (userRole === "teacher" || userRole === "faculty") {
           router.push("/dashboard/faculty");
@@ -65,6 +68,8 @@ export default function FeeClearance() {
   const [selectedTermId, setSelectedTermId] = useState("");
   const [amountDue, setAmountDue] = useState("50000");
   const [amountPaid, setAmountPaid] = useState("50000");
+  const [paymentDescription, setPaymentDescription] = useState("");
+  const [receiptImageUrl, setReceiptImageUrl] = useState("");
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
   const [dropdownOpenId, setDropdownOpenId] = useState<string | null>(null);
@@ -105,12 +110,14 @@ export default function FeeClearance() {
     // Hit the backend endpoint if term and session are available
     if (currentTermId && currentSessionId) {
       try {
-        await feeApi.record({
+        await bursarApi.recordFee({
           studentId: detailStudent.id,
           termId: currentTermId,
           academicSessionId: currentSessionId,
           amountDue: newDue,
-          amountPaid: detailStudent.amountPaid || 0
+          amountPaid: detailStudent.amountPaid || 0,
+          description: "System generated (Amount Due updated)",
+          receiptImageUrl: ""
         });
         toast.success("Amount due updated on server");
       } catch (err) {
@@ -139,12 +146,14 @@ export default function FeeClearance() {
     // Hit the backend endpoint if term and session are available
     if (currentTermId && currentSessionId) {
       try {
-        await feeApi.record({
+        await bursarApi.recordFee({
           studentId: detailStudent.id,
           termId: currentTermId,
           academicSessionId: currentSessionId,
           amountDue: detailStudent.amountDue || 50000,
-          amountPaid: newPaid
+          amountPaid: newPaid,
+          description: "System generated (Amount Paid updated)",
+          receiptImageUrl: ""
         });
         toast.success("Amount paid updated on server");
       } catch (err) {
@@ -259,6 +268,8 @@ export default function FeeClearance() {
           status: finalStatus,
           amountDue: finalAmountDue,
           amountPaid: finalAmountPaid,
+          paymentDescription: localFee.description || "Tuition Fee",
+          paymentDate: localFee.date || new Date().toISOString(),
         };
       });
       
@@ -293,6 +304,8 @@ export default function FeeClearance() {
     setSelectedTermId(currentTermId);
     setAmountDue(student?.amountDue?.toString() || "50000");
     setAmountPaid(student?.amountDue?.toString() || "50000");
+    setPaymentDescription("");
+    setReceiptImageUrl("");
     setIsPaymentModalOpen(true);
   };
 
@@ -305,12 +318,14 @@ export default function FeeClearance() {
 
     setIsSubmittingPayment(true);
     try {
-      await feeApi.record({
+      await bursarApi.recordFee({
         studentId: selectedStudentId,
         termId: selectedTermId,
         academicSessionId: currentSessionId,
         amountDue: parseFloat(amountDue),
-        amountPaid: parseFloat(amountPaid)
+        amountPaid: parseFloat(amountPaid),
+        description: paymentDescription,
+        receiptImageUrl: receiptImageUrl
       });
       toast.success("Payment recorded successfully!");
       setIsPaymentModalOpen(false);
@@ -325,13 +340,21 @@ export default function FeeClearance() {
             ...s,
             amountDue: pDue,
             amountPaid: pPaid,
-            status: newStatus
+            status: newStatus,
+            paymentDescription: paymentDescription || "Manual Fee Payment",
+            paymentDate: new Date().toISOString()
           };
         }
         return s;
       }));
       const selectedStudent = registry.find(s => s.id === selectedStudentId);
-      updateLocalFee(selectedStudentId, { amountDue: pDue, amountPaid: pPaid, status: newStatus }, selectedStudent?.name);
+      updateLocalFee(selectedStudentId, { 
+        amountDue: pDue, 
+        amountPaid: pPaid, 
+        status: newStatus,
+        description: paymentDescription || "Manual Fee Payment",
+        date: new Date().toISOString()
+      }, selectedStudent?.name);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to record payment";
       toast.error(msg);
@@ -480,7 +503,10 @@ export default function FeeClearance() {
                 <UploadCloud className="h-4 w-4" />
                 Upload Batch
               </button>
-              <button className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-gray-200 text-gray-700 font-bold text-xs hover:bg-gray-50 transition-all shadow-sm">
+              <button 
+                onClick={handleOpenPaymentModal}
+                className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-gray-200 text-gray-700 font-bold text-xs hover:bg-gray-50 transition-all shadow-sm"
+              >
                 Manual Entry
               </button>
             </div>
@@ -585,6 +611,36 @@ export default function FeeClearance() {
                             title="Print Receipt"
                           >
                             <Printer className="w-5 h-5" />
+                          </button>
+                          <button 
+                            onClick={async () => {
+                              setReceiptStudent(student);
+                              toast.success(`Preparing PDF receipt for ${student.name}...`);
+                              setTimeout(async () => {
+                                const element = document.getElementById("receipt-container");
+                                if (element) {
+                                  try {
+                                    // @ts-ignore
+                                    const html2pdf = (await import("html2pdf.js")).default;
+                                    const opt: any = {
+                                      margin: 0.5,
+                                      filename: `${student.name.replace(/\s+/g, '_')}_Receipt.pdf`,
+                                      image: { type: 'jpeg', quality: 0.98 },
+                                      html2canvas: { scale: 2, useCORS: true },
+                                      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                                    };
+                                    await html2pdf().set(opt).from(element).save();
+                                  } catch (e) {
+                                    console.error(e);
+                                  }
+                                }
+                                setTimeout(() => setReceiptStudent(null), 1000);
+                              }, 800);
+                            }}
+                            className="p-2 rounded-xl text-gray-400 hover:text-[#b05e1c] transition-colors"
+                            title="Download PDF"
+                          >
+                            <Download className="w-5 h-5" />
                           </button>
                         </>
                       )}
@@ -758,6 +814,43 @@ export default function FeeClearance() {
                   className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
                 />
               </div>
+
+              {/* Description / Notes */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Description/Notes</label>
+                <textarea
+                  value={paymentDescription}
+                  onChange={(e) => setPaymentDescription(e.target.value)}
+                  placeholder="e.g. Cleared via Bank Transfer"
+                  rows={2}
+                  className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors resize-none"
+                />
+              </div>
+
+              {/* Receipt Image URL */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Receipt Image (Optional)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={receiptImageUrl}
+                    onChange={(e) => setReceiptImageUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
+                  />
+                  <button type="button" onClick={handleUploadClick} className="px-4 bg-gray-100 rounded-2xl text-xs font-bold hover:bg-gray-200 whitespace-nowrap">
+                    Upload
+                  </button>
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
+                     const file = e.target.files?.[0];
+                     if (file) {
+                       toast.success(`Receipt ${file.name} selected. Please add image URL directly for now!`);
+                       // Simple mock since this is a local demo, usually you'd upload to cloudinary here
+                       setReceiptImageUrl(`https://res.cloudinary.com/demo/image/upload/sample.jpg`);
+                     }
+                  }} />
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
@@ -907,55 +1000,78 @@ export default function FeeClearance() {
       )}
 
       {receiptStudent && (
-        <div className="print-only bg-white text-black font-sans min-h-screen">
-          <div className="border-b-2 border-gray-800 pb-6 mb-8 flex justify-between items-end">
-            <div>
-              <h1 className="text-3xl font-black text-[#053d26] mb-1">LEONED AFRICA</h1>
-              <p className="text-sm font-bold text-gray-500 tracking-widest uppercase">Official Fee Clearance Receipt</p>
+        <div id="receipt-container" className="print-only bg-white text-black font-sans p-6 relative">
+          <div 
+            className="absolute top-0 left-0 right-0 h-2" 
+            style={{ backgroundColor: currentUser?.themeColor || '#053d26' }}
+          />
+          <div className="border-b border-gray-800 pb-3 mb-4 mt-2 flex justify-between items-end">
+            <div className="flex items-center gap-3">
+              {currentUser?.logoUrl && (
+                <img src={currentUser.logoUrl} alt="School Logo" className="h-12 w-12 object-contain" />
+              )}
+              <div>
+                <h1 
+                  className="text-xl font-black mb-0.5 uppercase"
+                  style={{ color: currentUser?.themeColor || '#053d26' }}
+                >
+                  {currentUser?.schoolName || currentUser?.name || 'LEONED AFRICA'}
+                </h1>
+                <p className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">Official Fee Clearance Receipt</p>
+              </div>
             </div>
             <div className="text-right">
-              <p className="text-sm font-bold text-gray-800">Date: {new Date().toLocaleDateString()}</p>
-              <p className="text-sm font-bold text-gray-500">Ref: {receiptStudent.refId}</p>
+              <p className="text-xs font-bold text-gray-800">
+                Date: {new Date(receiptStudent.paymentDate || Date.now()).toLocaleDateString()}
+              </p>
+              <p className="text-xs font-bold text-gray-500">Ref: {receiptStudent.refId}</p>
             </div>
           </div>
           
-          <div className="mb-10">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Student Details</h2>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="mb-4">
+            <h2 className="text-sm font-bold text-gray-900 mb-2">Student Details</h2>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Name</p>
-                <p className="text-lg font-bold text-gray-900">{receiptStudent.name}</p>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Name</p>
+                <p className="text-sm font-bold text-gray-900">{receiptStudent.name}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Program</p>
-                <p className="text-lg font-bold text-gray-900">{receiptStudent.program}</p>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Program / Class</p>
+                <p className="text-sm font-bold text-gray-900">{receiptStudent.program}</p>
               </div>
             </div>
           </div>
 
-          <div className="mb-10">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Financial Summary</h2>
-            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-              <div className="flex justify-between mb-4">
-                <span className="font-bold text-gray-600">Amount Due</span>
-                <span className="font-black text-gray-900">₦{(Number(receiptStudent.amountDue) || 0).toLocaleString()}</span>
+          <div className="mb-4">
+            <h2 className="text-sm font-bold text-gray-900 mb-2">Financial Summary</h2>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="flex justify-between mb-2">
+                <span className="text-xs font-bold text-gray-600">Payment Description</span>
+                <span className="text-xs font-bold text-gray-900">{receiptStudent.paymentDescription || "Tuition Fee"}</span>
               </div>
-              <div className="flex justify-between mb-4">
-                <span className="font-bold text-gray-600">Amount Paid</span>
-                <span className="font-black text-gray-900">₦{(Number(receiptStudent.amountPaid) || 0).toLocaleString()}</span>
+              <div className="flex justify-between mb-2">
+                <span className="text-xs font-bold text-gray-600">Amount Due</span>
+                <span className="text-sm font-black text-gray-900">₦{(Number(receiptStudent.amountDue) || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between pt-4 border-t border-gray-200">
-                <span className="font-bold text-gray-900">Clearance Status</span>
-                <span className={`font-black uppercase tracking-wider ${receiptStudent.status === 'Cleared' ? 'text-[#053d26]' : 'text-red-600'}`}>
+              <div className="flex justify-between mb-2">
+                <span className="text-xs font-bold text-gray-600">Amount Paid</span>
+                <span className="text-sm font-black text-gray-900">₦{(Number(receiptStudent.amountPaid) || 0).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-gray-200">
+                <span className="text-xs font-bold text-gray-900">Clearance Status</span>
+                <span 
+                  className="text-sm font-black uppercase tracking-wider"
+                  style={{ color: receiptStudent.status === 'Cleared' ? (currentUser?.themeColor || '#053d26') : '#dc2626' }}
+                >
                   {receiptStudent.status}
                 </span>
               </div>
             </div>
           </div>
           
-          <div className="mt-20 pt-8 border-t border-gray-200 text-center">
-            <p className="text-xs font-bold text-gray-400">This is a system-generated receipt and does not require a physical signature.</p>
-            <p className="text-[10px] font-bold text-gray-300 mt-1">© {new Date().getFullYear()} LeonEd Africa. Academic Architect System.</p>
+          <div className="mt-8 pt-4 border-t border-gray-200 text-center">
+            <p className="text-[10px] font-bold text-gray-400">This is a system-generated receipt and does not require a physical signature.</p>
+            <p className="text-[9px] font-bold text-gray-300 mt-1">© {new Date().getFullYear()} {currentUser?.schoolName || currentUser?.name || 'LeonEd Africa'}. Academic Architect System.</p>
           </div>
         </div>
       )}

@@ -69,6 +69,8 @@ export default function SettingsPage() {
         setSchoolName(parsedUser.schoolName || "");
         if (parsedUser.logoUrl) setSchoolLogo(parsedUser.logoUrl);
         if (parsedUser.subscriptionPlan) setActivePlan(parsedUser.subscriptionPlan);
+        if (parsedUser.address || parsedUser.schoolAddress) setSchoolAddress(parsedUser.address || parsedUser.schoolAddress);
+        if (parsedUser.phone || parsedUser.adminPhone) setSchoolPhone(parsedUser.phone || parsedUser.adminPhone);
         
         let activeRole = parsedUser.role || "Admin";
         if (activeRole === "Teacher" || activeRole === "Faculty") {
@@ -118,6 +120,16 @@ export default function SettingsPage() {
         schoolApi.getPlans().then(plansData => {
           setPaymentPlans((plansData as any)?.data || plansData || []);
         }).catch(() => {});
+
+        // Fetch latest school profile to get address and phone
+        const sId = parsedUser?.schoolId || parsedUser?.SchoolId || parsedUser?.id;
+        if (sId) {
+          schoolApi.getById(sId).then((school: any) => {
+            if (school?.address) setSchoolAddress(school.address);
+            if (school?.phone) setSchoolPhone(school.phone);
+            if (school?.name) setSchoolName(school.name);
+          }).catch(() => {});
+        }
       }
     } catch { /* ignore */ }
   }, []);
@@ -164,6 +176,7 @@ export default function SettingsPage() {
         if (parsed.schoolId || parsed.SchoolId) {
           const sId = parsed.schoolId || parsed.SchoolId;
           await schoolApi.update(sId, { name: schoolName, address: schoolAddress, contactPhone: schoolPhone, logoUrl: schoolLogo });
+          localStorage.setItem(`leoned_logo_${sId}`, schoolLogo);
         }
       }
     } catch { /* ignore */ }

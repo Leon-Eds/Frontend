@@ -2,18 +2,22 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, ArrowLeft, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone, MoreVertical } from 'lucide-react';
+import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, ArrowLeft, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone, MoreVertical, Wallet } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { teacherApi, Teacher, CreateTeacherRequest, UpdateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi, teacherPortalApi, attendanceApi } from '@/lib/api';
+import { teacherApi, Teacher, CreateTeacherRequest, UpdateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi, teacherPortalApi, attendanceApi, bursarApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { useAnnouncementsWebSocket } from "@/hooks/useAnnouncementsWebSocket";
 export function FacultyDirectory() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showBursarModal, setShowBursarModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const [bursarData, setBursarData] = useState({ fullName: '', email: '', phone: '', password: '' });
 
   const [formData, setFormData] = useState<CreateTeacherRequest>({
     fullName: '',
@@ -173,6 +177,22 @@ export function FacultyDirectory() {
     }
   };
 
+  const handleBursarSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setFormError("");
+    try {
+      await bursarApi.create(bursarData);
+      toast.success("Bursar created successfully!");
+      setShowBursarModal(false);
+      setBursarData({ fullName: '', email: '', phone: '', password: '' });
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Failed to create bursar");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Columns removed in favor of list view
 
   const activeCount = teachers.filter(t => t.isActive).length;
@@ -189,13 +209,22 @@ export function FacultyDirectory() {
             Manage your intellectual capital. Coordinate teacher assignments, track performance indicators, and maintain pedagogical standards across all departments.
           </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm shrink-0"
-        >
-          <UserPlus className="h-5 w-5" />
-          Add New Teacher
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={() => setShowBursarModal(true)}
+            className="flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-[#053d26] text-[#053d26] font-bold hover:bg-green-50 transition-colors shadow-sm shrink-0"
+          >
+            <Wallet className="h-5 w-5" />
+            Add Bursar
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm shrink-0"
+          >
+            <UserPlus className="h-5 w-5" />
+            Add New Teacher
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -561,6 +590,53 @@ export function FacultyDirectory() {
         </div>
       )}
 
+      {/* Add Bursar Modal */}
+      {showBursarModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowBursarModal(false)}>
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Add New Bursar</h2>
+              <button onClick={() => setShowBursarModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            {formError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-red-800">{formError}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleBursarSubmit} className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Full Name</label>
+                <input required type="text" value={bursarData.fullName} onChange={e => setBursarData({...bursarData, fullName: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="E.g. Jane Doe" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email</label>
+                <input required type="email" value={bursarData.email} onChange={e => setBursarData({...bursarData, email: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="jane@school.com" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Phone</label>
+                <input type="tel" value={bursarData.phone} onChange={e => setBursarData({...bursarData, phone: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="+1234567890" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Password</label>
+                <input required type="password" value={bursarData.password} onChange={e => setBursarData({...bursarData, password: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="Min. 8 characters" />
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowBursarModal(false)} className="px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50">
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isSubmitting ? 'Creating...' : 'Create Bursar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Edit Teacher Modal */}
       {editModal.isOpen && editModal.teacher && (
         <div className="fixed inset-0 z-[60] overflow-y-auto">
@@ -843,6 +919,17 @@ export function FacultyHomepage() {
   const [teacherInitials, setTeacherInitials] = useState("");
   const [stats, setStats] = useState<any[]>([]);
   const [assignedSubjects, setAssignedSubjects] = useState<any[]>([]);
+
+  const fetchAnnouncementsOnly = useCallback(async () => {
+    try {
+      const list = await announcementApi.getAll({ pageSize: 2 });
+      setAnnouncements(list);
+    } catch (e) {
+      console.error("Failed to load announcements", e);
+    }
+  }, []);
+
+  useAnnouncementsWebSocket(fetchAnnouncementsOnly);
   const [teacherImage, setTeacherImage] = useState<string | null>(null);
   const [formClasses, setFormClasses] = useState<any[]>([]);
 
