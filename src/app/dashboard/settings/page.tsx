@@ -354,8 +354,8 @@ export default function SettingsPage() {
   ];
 
   const sections = userRole === "Student"
-    ? allSections.filter(s => ['security', 'notifications'].includes(s.id))
-    : userRole === "Faculty" 
+    ? allSections.filter(s => ['notifications'].includes(s.id))
+    : userRole === "Faculty"
     ? allSections.filter(s => ['security', 'notifications'].includes(s.id))
     : allSections;
 

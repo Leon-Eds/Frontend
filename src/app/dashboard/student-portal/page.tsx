@@ -1,319 +1,82 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Award, CheckCircle2, TrendingUp, AlertCircle, FileText, Star, GraduationCap, Loader2, Download } from "lucide-react";
-import { dashboardApi, resultApi, sessionApi, feeApi, reportCardApi, studentApi, attendanceApi } from "@/lib/api";
-import toast from 'react-hot-toast';
+import { User, BookOpen, Clock, CreditCard, MessageSquare, GraduationCap, Loader2, AlertCircle } from "lucide-react";
 
-interface SubjectGrade {
-  name: string;
-  ca1: number;
-  ca2: number;
-  exam: number;
-  total: number;
-  grade: string;
-  remark: string;
-}
+import StudentProfile from "@/components/student-portal/StudentProfile";
+import StudentAcademics from "@/components/student-portal/StudentAcademics";
+import StudentFinance from "@/components/student-portal/StudentFinance";
+import StudentAttendance from "@/components/student-portal/StudentAttendance";
+import StudentMessages from "@/components/student-portal/StudentMessages";
+import { studentApi, dashboardApi } from "@/lib/api";
 
-export default function StudentPerformanceRecord() {
-  const [grades, setGrades] = useState<SubjectGrade[]>([]);
+export default function StudentPortal() {
+  const [activeTab, setActiveTab] = useState('profile');
+  const [studentInfo, setStudentInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-  
-  const [allTerms, setAllTerms] = useState<any[]>([]);
-  const [selectedTermId, setSelectedTermId] = useState<string>('');
-  const [selectedPaymentTermId, setSelectedPaymentTermId] = useState<string>('');
-  
-  const [studentInfo, setStudentInfo] = useState({
-    name: "",
-    initials: "",
-    className: "",
-    gpa: 0,
-    rank: "--",
-    attendance: "96%",
-    status: "Cleared",
-    termLabel: "Current Term",
-    image: null as string | null
-  });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchInfo = async () => {
       try {
-        setIsLoading(true);
         const userStr = localStorage.getItem("leoned_user");
         if (!userStr) throw new Error("Not logged in");
         const user = JSON.parse(userStr);
+        const studentId = user.studentId || user.id || user._id;
         
-        const sessions = await sessionApi.getAll().catch(() => []);
-        const sList = Array.isArray(sessions) ? sessions : [];
-        const currentSession = sList.find((s: any) => s.isCurrent);
-        const currentTerm = currentSession?.terms?.find((t: any) => t.isCurrent);
+        // Fetch detailed profile from the student dashboard endpoint
+        const detailsResponse = await dashboardApi.getStudentDashboard().catch(() => null);
+        const details = (detailsResponse as any)?.data || (detailsResponse as any)?.student || (detailsResponse as any)?.user || detailsResponse;
         
-        // Extract all terms for dropdowns
-        const terms: any[] = [];
-        sList.forEach((s: any) => {
-          if (s.terms) {
-            s.terms.forEach((t: any) => {
-              terms.push({ ...t, sessionName: s.name });
-            });
-          }
-        });
-        setAllTerms(terms);
-        
-        // We do not throw here, just gracefully fallback if no active term
-        const termId = currentTerm?.id || 'default';
-        setSelectedTermId(termId);
-        setSelectedPaymentTermId(termId);
-
-        // Fetch dashboard first to get the REAL student ID
-        const dash = await dashboardApi.getStudentDashboard().catch(() => null);
-        const sDash = (dash as any)?.data || dash || {};
-        
-        const realStudentId = sDash?.studentId || user.studentId || user.id || user._id;
-
-        const [resultsData, studentProfile, myAttendanceData] = await Promise.all([
-          resultApi.getMyResults(termId).catch(() => []),
-          studentApi.getById(realStudentId).catch(() => null),
-          attendanceApi.getStudentAttendance(realStudentId, termId).catch(() => null)
-        ]);
-
-        let attendanceRecs: any[] = [];
-        if (Array.isArray(myAttendanceData)) {
-          attendanceRecs = myAttendanceData;
-        } else if (myAttendanceData && typeof myAttendanceData === 'object') {
-          attendanceRecs = (myAttendanceData as any).records || (myAttendanceData as any).data || (myAttendanceData as any).items || [];
-        }
-        
-        let calculatedAttendanceRate = sDash?.attendance || "0%";
-        
-        if (Array.isArray(attendanceRecs) && attendanceRecs.length > 0) {
-           const presentDays = attendanceRecs.filter((r: any) => r.status === 'Present' || r.status === 'Late').length;
-           const rate = Math.round((presentDays / attendanceRecs.length) * 100);
-           calculatedAttendanceRate = `${rate}%`;
+        let profilePic = user.profilePictureUrl || user.image || user.imageUrl || null;
+        if (user.role === 'student' && !profilePic) {
+          const sDash = typeof window !== 'undefined' ? (window as any).debug_sDash || {} : {};
+          profilePic = sDash.studentImage || null;
         }
 
-        const profile = (studentProfile as any)?.data || studentProfile || {};
-        
-        console.log("DEBUG STUDENT PORTAL - profile:", profile);
-        console.log("DEBUG STUDENT PORTAL - user:", user);
-        console.log("DEBUG STUDENT PORTAL - sDash:", sDash);
-        console.log("DEBUG STUDENT PORTAL - realStudentId:", realStudentId);
-        
-        if (typeof window !== 'undefined') {
-          (window as any).debug_sDash = sDash;
-        }
-        
-        // Deep extract profile picture from all possible locations
-        const profilePic = 
-          profile.profilePictureUrl || profile.profilePicture || profile.imageUrl || profile.photo || profile.image || 
-          user.profilePictureUrl || user.profilePicture || user.imageUrl || user.photo || user.image || 
-          user.student?.profilePictureUrl || user.student?.profilePicture || user.student?.imageUrl || user.student?.photo || user.student?.image ||
-          user.teacher?.profilePictureUrl || user.teacher?.profilePicture || user.teacher?.imageUrl || user.teacher?.photo || user.teacher?.image || 
-          sDash?.profilePictureUrl || sDash?.profilePicture || sDash?.imageUrl || sDash?.photo || sDash?.image || 
-          sDash?.student?.profilePictureUrl || sDash?.student?.profilePicture || sDash?.student?.imageUrl || sDash?.student?.photo || sDash?.student?.image || null;
-        
-        if (profilePic && (!user.profilePictureUrl && !user.profilePicture && !user.imageUrl && !user.image)) {
-          const updatedUser = { ...user, profilePictureUrl: profilePic };
-          localStorage.setItem("leoned_user", JSON.stringify(updatedUser));
-          // Dispatch a custom event so the Header can pick up the change
-          window.dispatchEvent(new Event("storage"));
-        }
-        const studentRecordId = realStudentId;
-        const studentName = user.fullName || user.name || "";
-        
-        let initialStatus = sDash?.feeStatus || sDash?.status || "Pending";
-        const localFeesStr = localStorage.getItem("mock_fee_records");
-        if (localFeesStr) {
-          const localFees = JSON.parse(localFeesStr);
-          // Try exact ID match first
-          if (localFees[studentRecordId] && localFees[studentRecordId].status) {
-            initialStatus = localFees[studentRecordId].status;
-          } else if (studentName) {
-            // Fallback: match by student name (backend returns different IDs per endpoint)
-            const matchByName = Object.values(localFees).find(
-              (rec: any) => rec.studentName && rec.studentName.toLowerCase() === studentName.toLowerCase()
-            ) as any;
-            if (matchByName && matchByName.status) {
-              initialStatus = matchByName.status;
-            }
-          }
-        }
-
-        setStudentInfo({
-          name: user.fullName || user.name || "Student",
-          initials: (user.fullName || user.name || "S").split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
-          className: user.className || sDash?.className || "",
-          gpa: sDash?.gpa || 0,
-          rank: sDash?.rank || "--",
-          attendance: calculatedAttendanceRate,
-          status: initialStatus,
-          termLabel: currentTerm ? `Term ${(currentTerm as any).termNumber || (currentTerm as any).name || ''} ${currentSession?.name || ''}` : "Current Term",
-          image: profilePic
-        });
-
-        const rData = (resultsData as any)?.data || resultsData;
-        let resultsArray: any[] = [];
-        if (Array.isArray(rData)) {
-          resultsArray = rData;
-        } else if (rData && typeof rData === 'object') {
-          resultsArray = rData.scores || rData.data || rData.items || [];
-        }
-        
-        const mappedGrades = resultsArray.map((r: any) => {
-          const total = Number(r.totalScore || 0);
-          return {
-            name: r.subjectName || "Unknown",
-            ca1: r.firstCA || 0,
-            ca2: r.secondCA || 0,
-            exam: r.examScore || 0,
-            total: total,
-            grade: r.grade || (total >= 75 ? "A+" : total >= 70 ? "A" : total >= 60 ? "B+" : total >= 50 ? "B" : total >= 40 ? "C" : "F"),
-            remark: r.remark || "N/A"
-          };
-        });
-        
-        setGrades(mappedGrades);
+        const mergedInfo = { 
+          ...user, 
+          ...(user.student || {}), 
+          ...(details || {}), 
+          ...((details as any)?.student || {}),
+          _rawDetails: detailsResponse,
+          profilePictureUrl: profilePic || (details as any)?.profilePictureUrl || (details as any)?.student?.profilePictureUrl || null,
+          admissionNumber: user.admissionNumber || (details as any)?.admissionNumber || (user.email ? user.email.split('@')[0].toUpperCase() : ""),
+          className: user.className || user.formClass || (details as any)?.className || "",
+          gender: user.gender || (details as any)?.gender || "",
+          dateOfBirth: user.dateOfBirth || (details as any)?.dateOfBirth || null
+        };
+        setStudentInfo(mergedInfo);
       } catch (err) {
-        console.error(err);
-        setError("Failed to load your portal data.");
+        setError("Failed to load user info");
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchData();
+    fetchInfo();
   }, []);
 
-  useEffect(() => {
-    if (!selectedPaymentTermId) return;
-    const fetchTermFees = async () => {
-      try {
-        const userStr = localStorage.getItem("leoned_user");
-        if (!userStr) return;
-        const user = JSON.parse(userStr);
-        const sDash = (window as any).debug_sDash || {};
-        const studentRecordId = sDash.studentId || user.studentId || user.id || user._id;
-        const studentName = user.fullName || user.name || "";
-        const feesData = await feeApi.getStudentFees(studentRecordId, selectedPaymentTermId);
-        const data = (feesData as any)?.data || feesData || {};
-        let feeStatus = data.status || (Number(data.balance || 0) <= 0 ? "Cleared" : "Unpaid");
+  if (isLoading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (error) return <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4"><AlertCircle className="h-10 w-10 text-red-500" /><p className="text-red-500 font-bold">{error}</p></div>;
 
-        const localFeesStr = localStorage.getItem("mock_fee_records");
-        if (localFeesStr) {
-          const localFees = JSON.parse(localFeesStr);
-          if (localFees[studentRecordId] && localFees[studentRecordId].status) {
-            feeStatus = localFees[studentRecordId].status;
-          } else if (studentName) {
-            const matchByName = Object.values(localFees).find(
-              (rec: any) => rec.studentName && rec.studentName.toLowerCase() === studentName.toLowerCase()
-            ) as any;
-            if (matchByName && matchByName.status) {
-              feeStatus = matchByName.status;
-            }
-          }
-        }
-
-        setStudentInfo(prev => ({
-          ...prev,
-          status: feeStatus
-        }));
-      } catch (err) {
-        console.error("Failed to fetch term fee status", err);
-      }
-    };
-    fetchTermFees();
-  }, [selectedPaymentTermId]);
-
-  const handleDownloadResults = async () => {
-    try {
-      const userStr = localStorage.getItem("leoned_user");
-      if (!userStr) return;
-      const user = JSON.parse(userStr);
-      
-      setIsDownloading(true);
-      const blob = await reportCardApi.downloadPdf(user.id, selectedTermId);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `Report_Card_${studentInfo.name.replace(/\s+/g, "_")}_Term_${selectedTermId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast.success("Results downloaded successfully!");
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Failed to download results");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleTermChange = async (newTermId: string) => {
-    setSelectedTermId(newTermId);
-    try {
-      setIsLoading(true);
-      const resultsData = await resultApi.getMyResults(newTermId).catch(() => []);
-      const rData = (resultsData as any)?.data || resultsData;
-      let resultsArray: any[] = [];
-      if (Array.isArray(rData)) {
-        resultsArray = rData;
-      } else if (rData && typeof rData === 'object') {
-        resultsArray = rData.scores || rData.data || rData.items || [];
-      }
-      
-      const mappedGrades = resultsArray.map((r: any) => {
-        const total = Number(r.totalScore || 0);
-        return {
-          name: r.subjectName || "Unknown",
-          ca1: r.firstCA || 0,
-          ca2: r.secondCA || 0,
-          exam: r.examScore || 0,
-          total: total,
-          grade: r.grade || (total >= 75 ? "A+" : total >= 70 ? "A" : total >= 60 ? "B+" : total >= 50 ? "B" : total >= 40 ? "C" : "F"),
-          remark: r.remark || "N/A"
-        };
-      });
-      setGrades(mappedGrades);
-      
-      // Update term label
-      const selectedTerm = allTerms.find(t => t.id === newTermId);
-      if (selectedTerm) {
-        setStudentInfo(prev => ({
-          ...prev,
-          termLabel: `Term ${selectedTerm.termNumber || selectedTerm.name || ''} ${selectedTerm.sessionName || ''}`
-        }));
-      }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load results for selected term.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh] text-gray-400 font-semibold text-sm">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        Loading your portal...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <AlertCircle className="h-10 w-10 text-red-400" />
-        <p className="text-red-600 font-semibold text-sm">{error}</p>
-      </div>
-    );
-  }
+  const tabs = [
+    { id: 'profile', label: 'My Profile', icon: User },
+    { id: 'academics', label: 'Academics', icon: BookOpen },
+    { id: 'finance', label: 'Finance & Receipts', icon: CreditCard },
+    { id: 'attendance', label: 'Attendance', icon: Clock },
+    { id: 'messages', label: 'Messages', icon: MessageSquare },
+  ];
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
-      
+    <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500 pb-12">
+      {/* TEMP DEBUG BOX */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-black text-green-400 p-4 rounded-xl text-xs overflow-auto max-h-64">
+          <p className="text-white mb-2 font-bold">RAW DASHBOARD DATA (Please show AI):</p>
+          <pre>{JSON.stringify(studentInfo?._rawDetails || "No raw details", null, 2)}</pre>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div className="relative rounded-[2rem] bg-[#053d26] text-white p-8 sm:p-10 overflow-hidden shadow-lg border border-[#042c1b]">
         <div className="absolute right-0 top-0 opacity-10 translate-x-12 -translate-y-12">
@@ -322,179 +85,58 @@ export default function StudentPerformanceRecord() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3">
             <span className="bg-[#b05e1c] text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              Official Performance Record
+              Student Portal
             </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight">Student Portal</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight">Welcome, {studentInfo?.fullName || studentInfo?.name}</h1>
             <p className="text-sm text-green-100 max-w-xl">
-              Preview verified academic summaries, subject indexes, and transcript records for {studentInfo.termLabel}.
+              Manage your academic profile, view term results, track fee payments, and access important messages from the school.
             </p>
           </div>
           <div className="flex items-center gap-4 shrink-0 bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10">
             <div className="h-12 w-12 rounded-full bg-[#b05e1c] text-white font-bold flex items-center justify-center text-lg shadow-inner overflow-hidden border-2 border-white/20">
-              {studentInfo.image ? (
-                <img src={studentInfo.image} alt={studentInfo.name} className="h-full w-full object-cover" />
+              {studentInfo?.profilePictureUrl ? (
+                <img src={studentInfo.profilePictureUrl} alt="Profile" className="h-full w-full object-cover" />
               ) : (
-                studentInfo.initials
+                <User className="h-6 w-6" />
               )}
             </div>
             <div>
-              <p className="font-bold text-sm">{studentInfo.name}</p>
-              <p className="text-xs text-green-200">{studentInfo.className}</p>
+              <p className="font-bold text-sm">{studentInfo?.fullName || studentInfo?.name}</p>
+              <p className="text-xs text-green-200">{studentInfo?.admissionNumber || studentInfo?.studentId || 'Student'}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Performance Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        
-        {/* Attendance */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-start gap-4">
-          <div className="p-3 rounded-2xl shrink-0 text-teal-700 bg-teal-50">
-            <CheckCircle2 className="h-6 w-6" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Attendance Rate</p>
-            <p className="text-2xl font-black text-gray-900 leading-none">{studentInfo.attendance}</p>
-            <p className="text-[11px] text-gray-500 font-medium pt-1">Term Record</p>
-          </div>
-        </div>
-
-        {/* Clearance Status */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-2xl shrink-0 ${studentInfo.status === 'Cleared' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
-              <Star className="h-6 w-6" />
-            </div>
-            <div className="space-y-1 w-full">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Clearance & Payments</p>
-                <select 
-                  value={selectedPaymentTermId}
-                  onChange={(e) => setSelectedPaymentTermId(e.target.value)}
-                  className="text-xs border-0 bg-gray-50 rounded-lg px-2 py-1 font-semibold text-gray-700 outline-none cursor-pointer focus:ring-1 focus:ring-gray-200"
-                >
-                  <option value="">Select Term</option>
-                  {allTerms.map(t => (
-                    <option key={t.id} value={t.id}>Term {t.termNumber || t.name} {t.sessionName}</option>
-                  ))}
-                </select>
-              </div>
-              <p className={`text-2xl font-black leading-none pt-1 ${studentInfo.status === 'Cleared' ? 'text-green-700' : 'text-red-700'}`}>{studentInfo.status.toUpperCase()}</p>
-              <p className="text-[11px] text-gray-500 font-medium pt-1">Finance & Registry verified</p>
-            </div>
-          </div>
-        </div>
-
+      {/* Tabs */}
+      <div className="flex overflow-x-auto hide-scrollbar gap-3 pb-2 border-b border-gray-100">
+        {tabs.map(tab => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                isActive
+                  ? 'bg-[#053d26] text-white shadow-md'
+                  : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'
+              }`}
+            >
+              <tab.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Subject Grades Table - Full Width */}
-        <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-[#b05e1c]" />
-                Subject Performance Ledger
-              </h2>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Term:</span>
-                  <select
-                    value={selectedTermId}
-                    onChange={(e) => handleTermChange(e.target.value)}
-                    className="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-[#b05e1c] focus:border-[#b05e1c] block p-2.5 font-semibold transition-colors"
-                  >
-                    {allTerms.map(t => (
-                      <option key={t.id} value={t.id}>Term {t.termNumber || t.name} {t.sessionName}</option>
-                    ))}
-                  </select>
-                </div>
-                {grades.length > 0 && (
-                  <button
-                    onClick={handleDownloadResults}
-                    disabled={isDownloading || studentInfo.status !== 'Cleared'}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                    title={studentInfo.status !== 'Cleared' ? "Clear fee balance to download results" : "Download PDF Report Card"}
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Download className="h-3.5 w-3.5" />
-                    )}
-                    {studentInfo.status !== 'Cleared' ? "Locked (Fees Unpaid)" : isDownloading ? "Downloading..." : "Download Results"}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="relative">
-              {studentInfo.status !== 'Cleared' && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm p-6 text-center">
-                  <div className="bg-white rounded-3xl shadow-xl border border-rose-100 p-8 max-w-sm w-full space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-                      <AlertCircle className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black text-gray-900">Clearance Required</h3>
-                      <p className="text-xs text-gray-500 font-medium mt-1 leading-relaxed">
-                        You have an outstanding fee balance for this term. Please visit the Finance office to clear your dues and unlock your academic results.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div className={`overflow-x-auto ${studentInfo.status !== 'Cleared' ? 'pointer-events-none select-none opacity-40' : ''}`}>
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-wider text-gray-400 border-b border-gray-50">
-                      <th className="py-4 px-6">Subject</th>
-                      <th className="py-4 px-4 text-center">CA 1 (20)</th>
-                      <th className="py-4 px-4 text-center">CA 2 (20)</th>
-                      <th className="py-4 px-4 text-center">Exam (60)</th>
-                      <th className="py-4 px-4 text-center">Total (100)</th>
-                      <th className="py-4 px-6 text-center">Grade</th>
-                      <th className="py-4 px-6">Remark</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {grades.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="py-4 pl-6 font-bold text-gray-900 text-sm">
-                          {studentInfo.status !== 'Cleared' ? "█████████" : item.name}
-                        </td>
-                        <td className="py-4 px-4 text-center font-medium text-gray-600">{studentInfo.status !== 'Cleared' ? "██" : item.ca1}</td>
-                        <td className="py-4 px-4 text-center font-medium text-gray-600">{studentInfo.status !== 'Cleared' ? "██" : item.ca2}</td>
-                        <td className="py-4 px-4 text-center font-medium text-gray-600">{studentInfo.status !== 'Cleared' ? "██" : item.exam}</td>
-                        <td className="py-4 px-4 text-center font-black text-gray-900">{studentInfo.status !== 'Cleared' ? "███" : item.total}</td>
-                        <td className="py-4 px-4 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${studentInfo.status !== 'Cleared' ? 'bg-gray-200 text-gray-400' : 'bg-gray-100 text-gray-700'}`}>
-                            {studentInfo.status !== 'Cleared' ? "█" : item.grade}
-                          </span>
-                        </td>
-                        <td className="py-4 pr-6 text-xs text-gray-500 italic">
-                          {studentInfo.status !== 'Cleared' ? "████████████" : `"${item.remark}"`}
-                        </td>
-                      </tr>
-                    ))}
-                    {grades.length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="py-8 text-center text-sm text-gray-500 font-semibold">
-                          No results published for this term yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-
+      {/* Content */}
+      <div className="mt-6 min-h-[400px]">
+        {activeTab === 'profile' && <StudentProfile studentInfo={studentInfo} />}
+        {activeTab === 'academics' && <StudentAcademics studentInfo={studentInfo} />}
+        {activeTab === 'finance' && <StudentFinance studentInfo={studentInfo} />}
+        {activeTab === 'attendance' && <StudentAttendance studentInfo={studentInfo} />}
+        {activeTab === 'messages' && <StudentMessages studentInfo={studentInfo} />}
       </div>
-
     </div>
   );
 }

@@ -69,6 +69,11 @@ export default function LoginPage() {
         }
       }
 
+      // Merge nested student data into userObj
+      if (r.student && typeof r.student === 'object') {
+        userObj = { ...userObj, student: r.student, ...r.student };
+      }
+
       // Merge school data (address, phone) if returned in login
       if (r.school && typeof r.school === 'object') {
         if (!userObj.address && r.school.address) userObj.address = r.school.address;
@@ -299,7 +304,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder={t("login.email") === "Email Address" ? "Email or Registration Number" : t("login.email")}
+                  placeholder={selectedRole === "Student" ? "Admission Number or Email" : (t("login.email") === "Email Address" ? "Email or Registration Number" : t("login.email"))}
                   disabled={isLoading}
                 />
               </div>
