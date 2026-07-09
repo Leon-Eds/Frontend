@@ -74,6 +74,8 @@ export default function LoginPage() {
         if (!userObj.address && r.school.address) userObj.address = r.school.address;
         if (!userObj.phone && r.school.phone) userObj.phone = r.school.phone;
         if (!userObj.logoUrl && r.school.logoUrl) userObj.logoUrl = r.school.logoUrl;
+        if (r.school.theme) userObj.schoolTheme = r.school.theme;
+        if (r.school.font) userObj.schoolFont = r.school.font;
       }
       
       if (!userObj.logoUrl && r.logoUrl) userObj.logoUrl = r.logoUrl;
@@ -160,6 +162,10 @@ export default function LoginPage() {
         localStorage.setItem("leoned_user", JSON.stringify(userObj));
         if (userObj.logoUrl) {
           localStorage.setItem("leoned_persistent_school_logo", userObj.logoUrl);
+        }
+        if (userObj.schoolId) {
+          if (userObj.schoolTheme) localStorage.setItem(`leoned_theme_${userObj.schoolId}`, userObj.schoolTheme);
+          if (userObj.schoolFont) localStorage.setItem(`leoned_font_${userObj.schoolId}`, userObj.schoolFont);
         }
       } else {
         localStorage.setItem("leoned_user", JSON.stringify({ role: selectedRoleLower, name: "User" }));

@@ -210,18 +210,11 @@ export default function MyClasses() {
             
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 shrink-0">
               <Link 
-                href="/dashboard/faculty/attendance" 
+                href={`/dashboard/faculty/classes/${formClass.classId}`}
                 className="group relative flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#053d26] rounded-2xl font-bold hover:bg-green-50 transition-all shadow-lg hover:shadow-white/20 hover:-translate-y-0.5"
               >
-                <UserCheck className="h-5 w-5" />
-                <span>Mark Attendance</span>
-              </Link>
-              <Link 
-                href="/dashboard/faculty/form-class-results" 
-                className="group relative flex items-center justify-center gap-2 px-8 py-4 bg-[#042c1b] text-white rounded-2xl font-bold hover:bg-black/40 border border-white/10 transition-all shadow-lg hover:-translate-y-0.5"
-              >
-                <FileSpreadsheet className="h-5 w-5" />
-                <span>Process Results</span>
+                <BookOpen className="h-5 w-5" />
+                <span>Open Class Hub</span>
               </Link>
             </div>
           </div>
@@ -285,10 +278,10 @@ export default function MyClasses() {
 
               <div className="mt-8 pt-6 border-t border-gray-50">
                 <Link 
-                  href={`/dashboard/faculty/result-entry?classId=${cls.id}&subjectId=${cls.subjectId}`}
+                  href={`/dashboard/faculty/classes/${cls.id}?subjectId=${cls.subjectId}`}
                   className="flex items-center justify-between w-full py-3.5 px-5 rounded-2xl bg-gray-50 group-hover:bg-[#053d26] border border-gray-100 group-hover:border-[#053d26] text-gray-700 group-hover:text-white font-bold text-sm transition-all duration-300 shadow-sm group-hover:shadow-md"
                 >
-                  <span>Open Ledger</span>
+                  <span>Open Class Hub</span>
                   <ChevronRight className="h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>

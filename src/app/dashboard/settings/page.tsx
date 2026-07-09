@@ -28,6 +28,7 @@ export default function SettingsPage() {
   // Appearance state
   const [darkMode, setDarkMode] = useState(false);
   const [theme, setTheme] = useState('forest');
+  const [font, setFont] = useState('sans');
 
   // Localization state
   const { language, setLanguage } = useLanguage();
@@ -92,6 +93,8 @@ export default function SettingsPage() {
       const sId = parsedUser?.schoolId || parsedUser?.SchoolId || '';
       const activeTheme = (sId ? localStorage.getItem(`leoned_theme_${sId}`) : null) || 'forest';
       setTheme(activeTheme);
+      const activeFont = (sId ? localStorage.getItem(`leoned_font_${sId}`) : null) || 'sans';
+      setFont(activeFont);
 
       // Load localization settings
       const savedTimezone = localStorage.getItem('leoned_timezone') || 'GMT+1';
@@ -177,6 +180,7 @@ export default function SettingsPage() {
           const sId = parsed.schoolId || parsed.SchoolId;
           await schoolApi.update(sId, { name: schoolName, address: schoolAddress, contactPhone: schoolPhone, logoUrl: schoolLogo });
           localStorage.setItem(`leoned_logo_${sId}`, schoolLogo);
+          window.dispatchEvent(new CustomEvent('leoned_logo_updated', { detail: { logoUrl: schoolLogo } }));
         }
       }
     } catch { /* ignore */ }
@@ -211,14 +215,15 @@ export default function SettingsPage() {
     setToast({ message: `Dark mode ${checked ? 'enabled' : 'disabled'}`, type: 'success' });
   };
 
-  const handleThemeChange = (newTheme: string) => {
+  const handleThemeChange = async (newTheme: string) => {
     setTheme(newTheme);
     try {
       // Only store theme under school-specific key so it doesn't leak to other schools or public pages
       const userStr = localStorage.getItem('leoned_user');
+      let sId = '';
       if (userStr) {
         const user = JSON.parse(userStr);
-        const sId = user.schoolId || user.SchoolId || '';
+        sId = user.schoolId || user.SchoolId || '';
         if (sId) {
           localStorage.setItem(`leoned_theme_${sId}`, newTheme);
         }
@@ -226,8 +231,35 @@ export default function SettingsPage() {
 
       document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal');
       document.documentElement.classList.add(`theme-${newTheme}`);
+      
+      if (sId) {
+        await schoolApi.update(sId, { theme: newTheme }).catch(() => {});
+      }
     } catch (_) {}
     setToast({ message: `Branding theme updated to ${newTheme.toUpperCase()}`, type: 'success' });
+  };
+
+  const handleFontChange = async (newFont: string) => {
+    setFont(newFont);
+    try {
+      const userStr = localStorage.getItem('leoned_user');
+      let sId = '';
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        sId = user.schoolId || user.SchoolId || '';
+        if (sId) {
+          localStorage.setItem(`leoned_font_${sId}`, newFont);
+        }
+      }
+
+      document.documentElement.classList.remove('font-sans', 'font-serif', 'font-mono');
+      document.documentElement.classList.add(`font-${newFont}`);
+
+      if (sId) {
+        await schoolApi.update(sId, { font: newFont }).catch(() => {});
+      }
+    } catch (_) {}
+    setToast({ message: `Typography updated to ${newFont.toUpperCase()}`, type: 'success' });
   };
 
   const handleSaveLocalization = () => {
@@ -713,6 +745,37 @@ export default function SettingsPage() {
                       ))}
                     </div>
                     <span className="text-xs font-bold text-gray-700">{t.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Font Selector */}
+            <div className="mt-8">
+              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Typography</h3>
+              <p className="text-xs text-gray-500 mb-4">Choose a font style that reflects your school&apos;s identity</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[
+                  { id: 'sans', label: 'Modern (Sans)', class: 'font-sans' },
+                  { id: 'serif', label: 'Classic (Serif)', class: 'font-serif' },
+                  { id: 'mono', label: 'Technical (Mono)', class: 'font-mono' },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => handleFontChange(f.id)}
+                    className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${
+                      font === f.id
+                        ? 'border-[#053d26] bg-green-50/50 shadow-md scale-[1.02]'
+                        : 'border-gray-100 bg-gray-50 hover:border-gray-200 hover:shadow-sm'
+                    }`}
+                  >
+                    {font === f.id && (
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#053d26] flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                    <span className={`text-2xl font-bold text-gray-900 ${f.class}`}>Aa</span>
+                    <span className="text-xs font-bold text-gray-700">{f.label}</span>
                   </button>
                 ))}
               </div>

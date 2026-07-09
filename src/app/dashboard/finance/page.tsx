@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import toast from 'react-hot-toast';
-import { Eye, Search, Filter, Download, MoreVertical, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Printer, AlertCircle, Loader2, RotateCw, Lock, UploadCloud, Plus, Mail, Check, FileText, X } from "lucide-react";
+import { Eye, Search, Filter, Download, MoreVertical, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Printer, AlertCircle, Loader2, RotateCw, Lock, UploadCloud, Plus, Mail, Check, FileText, X, Settings2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { studentApi, feeApi, sessionApi, classApi, bursarApi } from "@/lib/api";
+import Link from "next/link";
+import { studentApi, feeApi, sessionApi, classApi, bursarApi, uploadToCloudinary } from "@/lib/api";
 
 interface StudentRegistry {
   id: string;
@@ -84,47 +85,50 @@ export default function FeeClearance() {
   const handleOpenDetails = (student: any) => {
     setDetailStudent(student);
     setIsDetailsModalOpen(true);
-    setIsEditingDue(false);
-    setEditedDue(student.amountDue?.toString() || "0");
     setIsEditingPaid(false);
     setEditedPaid(student.amountPaid?.toString() || "0");
   };
 
-  const [isEditingDue, setIsEditingDue] = useState(false);
-  const [editedDue, setEditedDue] = useState("0");
+  const [isManagingCustomFees, setIsManagingCustomFees] = useState(false);
+  const [allFeeStructures, setAllFeeStructures] = useState<any[]>([]);
+  const [studentCustomFeesMap, setStudentCustomFeesMap] = useState<Record<string, string[]>>({});
+  const [tempSelectedCustomFees, setTempSelectedCustomFees] = useState<string[]>([]);
   
   const [isEditingPaid, setIsEditingPaid] = useState(false);
   const [editedPaid, setEditedPaid] = useState("0");
 
-  const handleSaveAmountDue = async () => {
-    const newDue = Number(editedDue);
-    
-    // Optimistic UI update
-    setRegistry(prev => prev.map(s => 
-      s.id === detailStudent.id ? { ...s, amountDue: newDue } : s
-    ));
-    setDetailStudent({ ...detailStudent, amountDue: newDue });
-    updateLocalFee(detailStudent.id, { amountDue: newDue }, detailStudent.name);
-    setIsEditingDue(false);
+  const handleSaveCustomFees = async () => {
+    try {
+      const { feeStructureApi } = await import('@/lib/api');
+      await feeStructureApi.saveStudentCustomFees(detailStudent.id, tempSelectedCustomFees);
+      
+      // Update local state map
+      setStudentCustomFeesMap(prev => ({
+        ...prev,
+        [detailStudent.id]: tempSelectedCustomFees
+      }));
+      
+      // Recompute the amount due for optimistic UI
+      const sClass = detailStudent.class || detailStudent.className || "";
+      let computedDue = 0;
+      allFeeStructures.filter(s => s.type === 'base').forEach(base => {
+        if (base.applicableLevels.some((l: string) => sClass.replace(/\s+/g, '').toLowerCase().includes(l.replace(/\s+/g, '').toLowerCase()))) {
+          computedDue += base.amount;
+        }
+      });
+      allFeeStructures.filter(s => s.type === 'custom' && tempSelectedCustomFees.includes(s.id)).forEach(custom => {
+        computedDue += custom.amount;
+      });
 
-    // Hit the backend endpoint if term and session are available
-    if (currentTermId && currentSessionId) {
-      try {
-        await bursarApi.recordFee({
-          studentId: detailStudent.id,
-          termId: currentTermId,
-          academicSessionId: currentSessionId,
-          amountDue: newDue,
-          amountPaid: detailStudent.amountPaid || 0,
-          description: "System generated (Amount Due updated)",
-          receiptImageUrl: ""
-        });
-        toast.success("Amount due updated on server");
-      } catch (err) {
-        toast.error("Failed to sync amount due with server");
-      }
-    } else {
-      toast.success("Amount due updated locally");
+      setRegistry(prev => prev.map(s => 
+        s.id === detailStudent.id ? { ...s, amountDue: computedDue } : s
+      ));
+      setDetailStudent({ ...detailStudent, amountDue: computedDue });
+      
+      toast.success("Custom fees assigned successfully");
+      setIsManagingCustomFees(false);
+    } catch (err) {
+      toast.error("Failed to assign custom fees");
     }
   };
 
@@ -236,6 +240,13 @@ export default function FeeClearance() {
          }
       });
 
+      // Load fee structures
+      const { feeStructureApi } = await import('@/lib/api');
+      const feeStructures = await feeStructureApi.getStructures();
+      const customFeesMap = await feeStructureApi.getStudentCustomFees();
+      setAllFeeStructures(feeStructures);
+      setStudentCustomFeesMap(customFeesMap);
+
       const localFeesStr = typeof window !== 'undefined' ? localStorage.getItem('mock_fee_records') : null;
       const localFees = localFeesStr ? JSON.parse(localFeesStr) : {};
       let needsBackfill = false;
@@ -243,8 +254,27 @@ export default function FeeClearance() {
       const mapped: StudentRegistry[] = students.map((student) => {
         const fee = feeMap.get(student.id);
         const localFee = localFees[student.id] || {};
+        const sClass = (student as any).class || student.className || "";
 
-        const finalAmountDue = localFee.amountDue !== undefined ? localFee.amountDue : (fee ? fee.amountDue : 50000);
+        // Compute Base Fees
+        let computedDue = 0;
+        feeStructures.filter(s => s.type === 'base').forEach(base => {
+          if (base.applicableLevels.some(l => sClass.replace(/\s+/g, '').toLowerCase().includes(l.replace(/\s+/g, '').toLowerCase()))) {
+            computedDue += base.amount;
+          }
+        });
+        
+        // Compute Custom Fees
+        const studentCustoms = customFeesMap[student.id] || [];
+        feeStructures.filter(s => s.type === 'custom' && studentCustoms.includes(s.id)).forEach(custom => {
+          computedDue += custom.amount;
+        });
+
+        // If no base fee matches, default to 0. (Previously 50000)
+        
+        // Override local fees if we want to enforce the computed structure. 
+        // We still allow localFee.amountPaid.
+        const finalAmountDue = computedDue;
         const finalAmountPaid = localFee.amountPaid !== undefined ? localFee.amountPaid : (fee ? fee.amountPaid : 0);
         let finalStatus = localFee.status || "Pending Verification";
 
@@ -263,6 +293,7 @@ export default function FeeClearance() {
         return {
           id: student.id,
           name: student.fullName,
+          avatarUrl: student.profilePictureUrl || (student as any).avatarUrl,
           program: student.className || "Unassigned",
           refId: student.admissionNumber || student.id,
           status: finalStatus,
@@ -293,8 +324,8 @@ export default function FeeClearance() {
   const handleOpenPaymentModal = () => {
     setSelectedStudentId("");
     setSelectedTermId(currentTermId);
-    setAmountDue("50000");
-    setAmountPaid("50000");
+    setAmountDue("0");
+    setAmountPaid("0");
     setIsPaymentModalOpen(true);
   };
 
@@ -302,8 +333,8 @@ export default function FeeClearance() {
     const student = registry.find(s => s.id === studentId);
     setSelectedStudentId(studentId);
     setSelectedTermId(currentTermId);
-    setAmountDue(student?.amountDue?.toString() || "50000");
-    setAmountPaid(student?.amountDue?.toString() || "50000");
+    setAmountDue(student?.amountDue?.toString() || "0");
+    setAmountPaid("0");
     setPaymentDescription("");
     setReceiptImageUrl("");
     setIsPaymentModalOpen(true);
@@ -433,9 +464,19 @@ export default function FeeClearance() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold text-gray-900 leading-tight">Fee Clearance</h1>
-          <p className="text-gray-500 leading-relaxed text-sm">
-            Manage academic access & payment verification
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-gray-500 leading-relaxed text-sm">
+              Manage academic access & payment verification
+            </p>
+            <div className="h-4 w-px bg-gray-300 hidden md:block"></div>
+            <Link 
+              href="/dashboard/finance/setup"
+              className="text-[#053d26] text-sm font-bold hover:underline flex items-center gap-1"
+            >
+              <Settings2 className="w-4 h-4" />
+              Fee Structures Setup
+            </Link>
+          </div>
         </div>
 
         {/* Local Search input */}
@@ -453,76 +494,7 @@ export default function FeeClearance() {
         </div>
       </div>
 
-      {/* Access Lock & Verification Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Academic Access Lock */}
-        <div className="rounded-3xl bg-[#fdf2f2] p-8 border border-red-100 shadow-sm flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center text-red-600">
-              <Lock className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-red-950">Academic Access Lock</h3>
-            <p className="text-xs text-red-700 leading-relaxed font-semibold">
-              Students with <span className="font-bold underline">Unpaid</span> status have their examination results and semester registration automatically locked. Access is restored only upon verified receipt clearance.
-            </p>
-          </div>
 
-          <div className="flex items-center justify-between border-t border-red-200/50 pt-6 mt-8">
-            <div>
-              <p className="text-[10px] text-red-600 font-bold uppercase tracking-wider">Currently Locked</p>
-              <p className="text-3xl font-black text-red-950">{registry.filter(s => s.status === 'Unpaid').length} Students</p>
-            </div>
-            <button className="px-5 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors shadow">
-              Review List
-            </button>
-          </div>
-        </div>
-
-        {/* Verify Payment Receipts */}
-        <div className="lg:col-span-2 rounded-3xl bg-white p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between gap-8">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            accept=".pdf,.png,.jpg,.jpeg" 
-            style={{ display: 'none' }} 
-          />
-          <div className="flex flex-col justify-between flex-1 space-y-6">
-            <div className="space-y-3">
-              <h3 className="text-lg font-bold text-gray-900">Verify Payment Receipts</h3>
-              <p className="text-xs text-gray-400 font-semibold leading-relaxed">
-                Bulk upload bank statements or individual student payment vouchers for automated reconciliation.
-              </p>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-3">
-              <button 
-                onClick={handleUploadClick}
-                className="flex items-center gap-2 px-5 py-3 rounded-full bg-[#053d26] text-white font-bold text-xs hover:bg-[#042c1b] transition-all shadow-md"
-              >
-                <UploadCloud className="h-4 w-4" />
-                Upload Batch
-              </button>
-              <button 
-                onClick={handleOpenPaymentModal}
-                className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-gray-200 text-gray-700 font-bold text-xs hover:bg-gray-50 transition-all shadow-sm"
-              >
-                Manual Entry
-              </button>
-            </div>
-          </div>
-
-          {/* Dotted Dropzone */}
-          <div 
-            onClick={handleUploadClick}
-            className="flex-1 border-2 border-dashed border-gray-200 rounded-[2rem] bg-gray-50/50 hover:bg-gray-50 transition-all flex flex-col items-center justify-center p-8 text-center cursor-pointer min-h-[160px]"
-          >
-            <UploadCloud className="h-8 w-8 text-gray-400 mb-2" />
-            <p className="text-xs font-bold text-gray-600">Drag & drop files here</p>
-            <p className="text-[10px] text-gray-400 font-semibold mt-1">Accepts PDF, PNG, JPG (Max 10MB)</p>
-          </div>
-        </div>
-      </div>
 
       {/* Active Students Registry Table */}
       <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
@@ -534,11 +506,7 @@ export default function FeeClearance() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {/* System Status badge */}
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-100 text-green-700 text-[10px] font-black uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              System Live: Syncing with Bank APIs
-            </span>
+
             <button className="px-3.5 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-600 transition-colors">
               Filter by Program
             </button>
@@ -564,8 +532,12 @@ export default function FeeClearance() {
                 <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="py-5 px-8">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-sm shadow-md">
-                        {student.name.split(" ").map(w => w[0]).join("")}
+                      <div className="w-10 h-10 rounded-full bg-[#053d26] text-white font-bold flex items-center justify-center text-sm shadow-md overflow-hidden shrink-0">
+                        {student.avatarUrl ? (
+                          <img src={student.avatarUrl} alt={student.name} className="w-full h-full object-cover" />
+                        ) : (
+                          student.name.split(" ").map(w => w[0]).join("").substring(0, 2)
+                        )}
                       </div>
                       <div>
                         <p className="font-bold text-gray-900 text-sm">{student.name}</p>
@@ -759,7 +731,16 @@ export default function FeeClearance() {
                 <select
                   required
                   value={selectedStudentId}
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  onChange={(e) => {
+                    const sId = e.target.value;
+                    setSelectedStudentId(sId);
+                    const student = registry.find(s => s.id === sId);
+                    if (student) {
+                      setAmountDue(student.amountDue?.toString() || "0");
+                    } else {
+                      setAmountDue("0");
+                    }
+                  }}
                   className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
                 >
                   <option value="">-- Choose a Student --</option>
@@ -792,14 +773,9 @@ export default function FeeClearance() {
               {/* Amount Due */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Amount Due (₦)</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  value={amountDue}
-                  onChange={(e) => setAmountDue(e.target.value)}
-                  className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
-                />
+                <div className="block w-full rounded-2xl border border-gray-100 bg-gray-50 py-3 px-4 text-sm font-bold text-gray-500">
+                  {Number(amountDue).toLocaleString()}
+                </div>
               </div>
 
               {/* Amount Paid */}
@@ -841,12 +817,18 @@ export default function FeeClearance() {
                   <button type="button" onClick={handleUploadClick} className="px-4 bg-gray-100 rounded-2xl text-xs font-bold hover:bg-gray-200 whitespace-nowrap">
                     Upload
                   </button>
-                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={async (e) => {
                      const file = e.target.files?.[0];
                      if (file) {
-                       toast.success(`Receipt ${file.name} selected. Please add image URL directly for now!`);
-                       // Simple mock since this is a local demo, usually you'd upload to cloudinary here
-                       setReceiptImageUrl(`https://res.cloudinary.com/demo/image/upload/sample.jpg`);
+                       const toastId = toast.loading(`Uploading ${file.name}...`);
+                       try {
+                         const url = await uploadToCloudinary(file);
+                         setReceiptImageUrl(url);
+                         toast.success(`Receipt uploaded successfully!`, { id: toastId });
+                       } catch (err) {
+                         console.error(err);
+                         toast.error(`Failed to upload receipt`, { id: toastId });
+                       }
                      }
                   }} />
                 </div>
@@ -917,38 +899,51 @@ export default function FeeClearance() {
                     {detailStudent.status}
                   </span>
                 </div>
-                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 relative">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex justify-between items-center">
                     Amount Due
-                    {!isEditingDue && (
-                      <button 
-                        onClick={() => setIsEditingDue(true)}
-                        className="text-[#053d26] hover:text-green-700 underline text-[10px]"
-                      >
-                        Edit
-                      </button>
-                    )}
+                    <button 
+                      onClick={() => {
+                        setTempSelectedCustomFees(studentCustomFeesMap[detailStudent.id] || []);
+                        setIsManagingCustomFees(!isManagingCustomFees);
+                      }}
+                      className="text-[#053d26] hover:text-green-700 underline text-[10px]"
+                    >
+                      {isManagingCustomFees ? "Cancel" : "Manage Fees"}
+                    </button>
                   </p>
-                  {isEditingDue ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-gray-500 font-bold">₦</span>
-                      <input 
-                        type="number" 
-                        value={editedDue}
-                        onChange={(e) => setEditedDue(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-md px-2 py-1 text-sm font-bold text-gray-900 focus:outline-none focus:border-[#053d26]"
-                        autoFocus
-                      />
+                  {isManagingCustomFees && (
+                    <div className="absolute top-full right-0 mt-2 w-64 bg-white shadow-2xl border border-gray-200 rounded-xl p-4 z-20">
+                      <h4 className="text-xs font-bold text-gray-900 mb-2 border-b pb-1">Assign Custom Fees</h4>
+                      <div className="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                        {allFeeStructures.filter(s => s.type === 'custom').length === 0 && (
+                           <p className="text-xs text-gray-500 italic">No custom fees defined.</p>
+                        )}
+                        {allFeeStructures.filter(s => s.type === 'custom').map(fee => (
+                          <label key={fee.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                            <input 
+                              type="checkbox" 
+                              className="rounded text-[#053d26] focus:ring-[#053d26]"
+                              checked={tempSelectedCustomFees.includes(fee.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) setTempSelectedCustomFees([...tempSelectedCustomFees, fee.id]);
+                                else setTempSelectedCustomFees(tempSelectedCustomFees.filter(id => id !== fee.id));
+                              }}
+                            />
+                            <span className="flex-1 truncate">{fee.name}</span>
+                            <span className="text-xs font-bold text-gray-500">₦{fee.amount.toLocaleString()}</span>
+                          </label>
+                        ))}
+                      </div>
                       <button 
-                        onClick={handleSaveAmountDue}
-                        className="p-1.5 bg-[#053d26] text-white rounded-md hover:bg-[#042c1b]"
+                        onClick={handleSaveCustomFees}
+                        className="w-full py-1.5 bg-[#053d26] text-white text-xs font-bold rounded-lg hover:bg-[#042c1b]"
                       >
-                        <Check className="w-3 h-3" />
+                        Save Assignment
                       </button>
                     </div>
-                  ) : (
-                    <p className="font-bold text-gray-900">₦{(Number(detailStudent.amountDue) || 0).toLocaleString()}</p>
                   )}
+                  <p className="font-bold text-gray-900">₦{(Number(detailStudent.amountDue) || 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex justify-between items-center">

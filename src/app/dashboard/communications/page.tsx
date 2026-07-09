@@ -75,7 +75,6 @@ export default function BroadcastHub() {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("General");
   const [targetGroup, setTargetGroup] = useState("All");
-  const [selectedChannels, setSelectedChannels] = useState<string[]>(["megaphone"]);
   
   // UI states
   const [isSending, setIsSending] = useState(false);
@@ -116,16 +115,6 @@ export default function BroadcastHub() {
     setDispatchLogs(storedLogs ? JSON.parse(storedLogs) : []);
   }, []);
 
-  const handleChannelToggle = (channel: string) => {
-    if (selectedChannels.includes(channel)) {
-      if (selectedChannels.length > 1) {
-        setSelectedChannels(selectedChannels.filter(c => c !== channel));
-      }
-    } else {
-      setSelectedChannels([...selectedChannels, channel]);
-    }
-  };
-
   const handleBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
@@ -140,13 +129,11 @@ export default function BroadcastHub() {
       const audience = targetGroup === "All" ? "All" : targetGroup === "Students" ? "Students" : targetGroup === "Parents" ? "Parents" : "Teachers";
       
       // 1. Save announcement to backend API
-      if (selectedChannels.includes("megaphone")) {
-        await announcementApi.create({
-          title,
-          content,
-          audience,
-        });
-      }
+      await announcementApi.create({
+        title,
+        content,
+        audience,
+      });
 
       // 2. Save log local UI telemetry
       const newDate = new Date().toISOString();
@@ -156,7 +143,7 @@ export default function BroadcastHub() {
         subject: title,
         date: newDate,
         recipientsCount: targetCount,
-        channels: selectedChannels,
+        channels: ["megaphone"],
         deliveryRate: "100%",
         cost: "₦0.00"
       };
@@ -171,14 +158,14 @@ export default function BroadcastHub() {
         date: newDate,
         targetGroup,
         recipientsCount: targetCount,
-        channels: selectedChannels,
+        channels: ["megaphone"],
         cost: "₦0.00",
         gatewayStatus: "Online",
-        transmissions: selectedChannels.map(c => ({
-          channel: c,
+        transmissions: [{
+          channel: "megaphone",
           successRate: "100%",
           cost: "₦0.00"
-        }))
+        }]
       });
 
       setShowReceipt(true);
@@ -310,70 +297,6 @@ export default function BroadcastHub() {
                 </div>
               </div>
 
-              {/* Channels Grid */}
-              <div className="space-y-3">
-                <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider">Transmission Channels (Zero Carrier Fees)</label>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Megaphone */}
-                  <div 
-                    onClick={() => handleChannelToggle("megaphone")}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-300 flex flex-col justify-between ${
-                      selectedChannels.includes("megaphone")
-                        ? "bg-[#053d26]/5 border-[#053d26] text-[#053d26] shadow-sm"
-                        : "border-gray-200 text-gray-500 bg-gray-50/20 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <Megaphone className="h-5 w-5" />
-                      <div className="text-[8px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Free</div>
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-[10px] font-extrabold uppercase tracking-wide">Megaphone Board</div>
-                      <div className="text-[8px] opacity-70 mt-0.5">Post to teacher homepage bulletin</div>
-                    </div>
-                  </div>
-
-                  {/* Email */}
-                  <div 
-                    onClick={() => handleChannelToggle("email")}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-300 flex flex-col justify-between ${
-                      selectedChannels.includes("email")
-                        ? "bg-blue-50/30 border-blue-500 text-blue-700 shadow-sm"
-                        : "border-gray-200 text-gray-500 bg-gray-50/20 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <Mail className="h-5 w-5" />
-                      <div className="text-[8px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">Zero Fee</div>
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-[10px] font-extrabold uppercase tracking-wide">Email Blast</div>
-                      <div className="text-[8px] opacity-70 mt-0.5">Free bulk mail to teacher inboxes</div>
-                    </div>
-                  </div>
-
-                  {/* In-app Notification */}
-                  <div 
-                    onClick={() => handleChannelToggle("push")}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-300 flex flex-col justify-between ${
-                      selectedChannels.includes("push")
-                        ? "bg-purple-50/30 border-purple-500 text-purple-700 shadow-sm"
-                        : "border-gray-200 text-gray-500 bg-gray-50/20 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <Bell className="h-5 w-5" />
-                      <div className="text-[8px] font-black text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">Free</div>
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-[10px] font-extrabold uppercase tracking-wide">Web-Push Alert</div>
-                      <div className="text-[8px] opacity-70 mt-0.5">Real-time dynamic browser alert</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Title Input */}
               <div className="space-y-2">
                 <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider">Broadcast Title</label>
@@ -401,19 +324,6 @@ export default function BroadcastHub() {
                 />
               </div>
 
-              {/* Pricing Notice */}
-              <div className="p-4.5 rounded-2xl bg-emerald-50/50 border border-emerald-100/50 flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
-                  <DollarSign className="h-4.5 w-4.5" />
-                </div>
-                <div>
-                  <div className="text-xs font-extrabold text-gray-900">Carrier Fee Waiver Active</div>
-                  <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">
-                    By selecting LeonEd megaphones, push protocols, and email nodes, carrier billing is completely waived. Carrier cost: <span className="font-extrabold text-emerald-700">₦0.00</span>.
-                  </p>
-                </div>
-              </div>
-
               {/* Submit */}
               <button
                 type="submit"
@@ -423,12 +333,12 @@ export default function BroadcastHub() {
                 {isSending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Broadcasting Over Gateways...
+                    Publishing...
                   </>
                 ) : (
                   <>
-                    <Send className="h-4 w-4" />
-                    Launch Zero-Fee Broadcast
+                    <Megaphone className="h-4 w-4" />
+                    Publish Announcement
                   </>
                 )}
               </button>
@@ -444,13 +354,12 @@ export default function BroadcastHub() {
               </div>
 
               {/* Bulletin Mock-Card */}
-              {selectedChannels.includes("megaphone") ? (
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                      category === "Academic" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                      category === "Finance" ? "bg-amber-50 text-amber-700 border border-amber-100" :
-                      category === "Emergency" ? "bg-rose-50 text-rose-700 border border-rose-100" :
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
+                <div className="flex justify-between items-start">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                    category === "Academic" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                    category === "Finance" ? "bg-amber-50 text-amber-700 border border-amber-100" :
+                    category === "Emergency" ? "bg-rose-50 text-rose-700 border border-rose-100" :
                       category === "Health" ? "bg-red-50 text-red-700 border border-red-100" :
                       category === "Summons" ? "bg-purple-50 text-purple-700 border border-purple-100" :
                       category === "Reminder" ? "bg-blue-50 text-blue-700 border border-blue-100" :
@@ -473,57 +382,8 @@ export default function BroadcastHub() {
                     <span className="text-emerald-600">● Live on bulletin</span>
                   </div>
                 </div>
-              ) : (
-                <div className="p-8 text-center bg-gray-100/50 rounded-3xl border border-dashed border-gray-200 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">
-                  Dashboard Megaphone Disabled
-                </div>
-              )}
+            </div>
 
-              {/* Email Mock-Card */}
-              {selectedChannels.includes("email") && (
-                <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-2">
-                  <div className="text-[8px] text-gray-400 font-bold uppercase tracking-wider border-b border-gray-50 pb-2 flex justify-between">
-                    <span>From: admin@leoned.edu.ng</span>
-                    <span>To: teachers-group@leoned.edu.ng</span>
-                  </div>
-                  <div className="space-y-1 pt-1">
-                    <div className="text-[10px] font-extrabold text-gray-800"><span className="text-gray-400 font-semibold">Subject:</span> {title || "No Subject Specified"}</div>
-                    <div className="text-[9px] text-gray-500 font-medium bg-gray-50 p-3 rounded-lg border border-gray-100 whitespace-pre-wrap max-h-36 overflow-y-auto mt-2">
-                      {content || "Email body content will appear here..."}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Quick Stats Panel */}
-            <div className="bg-gradient-to-br from-[#053d26] to-[#0a5737] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-md">
-              <div className="absolute -right-6 -top-6 h-28 w-28 bg-white/5 rounded-full" />
-              <div className="relative z-10 space-y-5">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-amber-400" />
-                  <h3 className="text-xs font-black uppercase tracking-wider">Communications Telemetry</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-[8px] text-green-200 uppercase font-bold tracking-wider">Active Channels</p>
-                    <p className="text-2xl font-black">{selectedChannels.length}</p>
-                  </div>
-                  <div>
-                    <p className="text-[8px] text-green-200 uppercase font-bold tracking-wider">SMS Credits</p>
-                    <p className="text-2xl font-black">Unlimited</p>
-                  </div>
-                  <div>
-                    <p className="text-[8px] text-green-200 uppercase font-bold tracking-wider">Estimated Cost</p>
-                    <p className="text-2xl font-black text-emerald-300">₦0.00</p>
-                  </div>
-                  <div>
-                    <p className="text-[8px] text-green-200 uppercase font-bold tracking-wider">Uptime Rate</p>
-                    <p className="text-2xl font-black">100%</p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       )}

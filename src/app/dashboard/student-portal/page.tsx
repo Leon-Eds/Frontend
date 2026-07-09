@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Award, CheckCircle2, TrendingUp, AlertCircle, FileText, Star, GraduationCap, Loader2, Download } from "lucide-react";
-import { dashboardApi, resultApi, sessionApi, feeApi, reportCardApi, studentApi } from "@/lib/api";
+import { dashboardApi, resultApi, sessionApi, feeApi, reportCardApi, studentApi, attendanceApi } from "@/lib/api";
 import toast from 'react-hot-toast';
 
 interface SubjectGrade {
@@ -66,14 +66,39 @@ export default function StudentPerformanceRecord() {
         setSelectedTermId(termId);
         setSelectedPaymentTermId(termId);
 
-        const [dash, resultsData, studentProfile] = await Promise.all([
-          dashboardApi.getStudentDashboard().catch(() => null),
+        // Fetch dashboard first to get the REAL student ID
+        const dash = await dashboardApi.getStudentDashboard().catch(() => null);
+        const sDash = (dash as any)?.data || dash || {};
+        
+        const realStudentId = sDash?.studentId || user.studentId || user.id || user._id;
+
+        const [resultsData, studentProfile, myAttendanceData] = await Promise.all([
           resultApi.getMyResults(termId).catch(() => []),
-          studentApi.getById(user.id || user._id || user.studentId).catch(() => null)
+          studentApi.getById(realStudentId).catch(() => null),
+          attendanceApi.getStudentAttendance(realStudentId, termId).catch(() => null)
         ]);
 
-        const sDash = (dash as any)?.data || dash || {};
+        let attendanceRecs: any[] = [];
+        if (Array.isArray(myAttendanceData)) {
+          attendanceRecs = myAttendanceData;
+        } else if (myAttendanceData && typeof myAttendanceData === 'object') {
+          attendanceRecs = (myAttendanceData as any).records || (myAttendanceData as any).data || (myAttendanceData as any).items || [];
+        }
+        
+        let calculatedAttendanceRate = sDash?.attendance || "0%";
+        
+        if (Array.isArray(attendanceRecs) && attendanceRecs.length > 0) {
+           const presentDays = attendanceRecs.filter((r: any) => r.status === 'Present' || r.status === 'Late').length;
+           const rate = Math.round((presentDays / attendanceRecs.length) * 100);
+           calculatedAttendanceRate = `${rate}%`;
+        }
+
         const profile = (studentProfile as any)?.data || studentProfile || {};
+        
+        console.log("DEBUG STUDENT PORTAL - profile:", profile);
+        console.log("DEBUG STUDENT PORTAL - user:", user);
+        console.log("DEBUG STUDENT PORTAL - sDash:", sDash);
+        console.log("DEBUG STUDENT PORTAL - realStudentId:", realStudentId);
         
         if (typeof window !== 'undefined') {
           (window as any).debug_sDash = sDash;
@@ -81,18 +106,20 @@ export default function StudentPerformanceRecord() {
         
         // Deep extract profile picture from all possible locations
         const profilePic = 
-          profile.profilePictureUrl || profile.imageUrl || profile.photo || profile.image || 
-          user.profilePictureUrl || user.imageUrl || user.photo || user.image || 
-          user.student?.profilePictureUrl || user.student?.imageUrl || user.student?.photo || user.student?.image ||
-          user.teacher?.profilePictureUrl || user.teacher?.imageUrl || user.teacher?.photo || user.teacher?.image || null;
+          profile.profilePictureUrl || profile.profilePicture || profile.imageUrl || profile.photo || profile.image || 
+          user.profilePictureUrl || user.profilePicture || user.imageUrl || user.photo || user.image || 
+          user.student?.profilePictureUrl || user.student?.profilePicture || user.student?.imageUrl || user.student?.photo || user.student?.image ||
+          user.teacher?.profilePictureUrl || user.teacher?.profilePicture || user.teacher?.imageUrl || user.teacher?.photo || user.teacher?.image || 
+          sDash?.profilePictureUrl || sDash?.profilePicture || sDash?.imageUrl || sDash?.photo || sDash?.image || 
+          sDash?.student?.profilePictureUrl || sDash?.student?.profilePicture || sDash?.student?.imageUrl || sDash?.student?.photo || sDash?.student?.image || null;
         
-        if (profilePic && (!user.profilePictureUrl && !user.imageUrl && !user.image)) {
+        if (profilePic && (!user.profilePictureUrl && !user.profilePicture && !user.imageUrl && !user.image)) {
           const updatedUser = { ...user, profilePictureUrl: profilePic };
           localStorage.setItem("leoned_user", JSON.stringify(updatedUser));
           // Dispatch a custom event so the Header can pick up the change
           window.dispatchEvent(new Event("storage"));
         }
-        const studentRecordId = user.id || user._id || user.studentId;
+        const studentRecordId = realStudentId;
         const studentName = user.fullName || user.name || "";
         
         let initialStatus = sDash?.feeStatus || sDash?.status || "Pending";
@@ -119,7 +146,7 @@ export default function StudentPerformanceRecord() {
           className: user.className || sDash?.className || "",
           gpa: sDash?.gpa || 0,
           rank: sDash?.rank || "--",
-          attendance: sDash?.attendance || "0%",
+          attendance: calculatedAttendanceRate,
           status: initialStatus,
           termLabel: currentTerm ? `Term ${(currentTerm as any).termNumber || (currentTerm as any).name || ''} ${currentSession?.name || ''}` : "Current Term",
           image: profilePic
@@ -165,7 +192,8 @@ export default function StudentPerformanceRecord() {
         const userStr = localStorage.getItem("leoned_user");
         if (!userStr) return;
         const user = JSON.parse(userStr);
-        const studentRecordId = user.id || user._id || user.studentId;
+        const sDash = (window as any).debug_sDash || {};
+        const studentRecordId = sDash.studentId || user.studentId || user.id || user._id;
         const studentName = user.fullName || user.name || "";
         const feesData = await feeApi.getStudentFees(studentRecordId, selectedPaymentTermId);
         const data = (feesData as any)?.data || feesData || {};
@@ -287,7 +315,7 @@ export default function StudentPerformanceRecord() {
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
       
       {/* Welcome Banner */}
-      <div className="relative rounded-[2rem] bg-gradient-to-br from-[#053d26] to-[#042c1b] text-white p-8 sm:p-10 overflow-hidden shadow-lg border border-[#042c1b]">
+      <div className="relative rounded-[2rem] bg-[#053d26] text-white p-8 sm:p-10 overflow-hidden shadow-lg border border-[#042c1b]">
         <div className="absolute right-0 top-0 opacity-10 translate-x-12 -translate-y-12">
           <GraduationCap className="w-64 h-64" />
         </div>

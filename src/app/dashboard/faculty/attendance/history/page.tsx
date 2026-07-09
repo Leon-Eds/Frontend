@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import {
   CheckCircle2,
   XCircle,
@@ -14,11 +14,17 @@ import {
   Download,
 } from "lucide-react";
 import { attendanceApi, teacherPortalApi } from "@/lib/api";
+import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import toast from "react-hot-toast";
 
-export default function AttendanceHistory() {
+function AttendanceHistoryInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialClassId = searchParams.get("classId") || "";
+  
   const [formClasses, setFormClasses] = useState<any[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedClassId, setSelectedClassId] = useState<string>(initialClassId);
   const [selectedClassName, setSelectedClassName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [loadingRecords, setLoadingRecords] = useState(false);
@@ -48,7 +54,12 @@ export default function AttendanceHistory() {
     return days;
   }, [weekStart]);
 
-  const formatDate = (d: Date) => d.toISOString().split("T")[0];
+  const formatDate = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
   const formatShortDay = (d: Date) =>
     d.toLocaleDateString("en-US", { weekday: "short" });
   const formatDayNum = (d: Date) => d.getDate();
@@ -164,10 +175,15 @@ export default function AttendanceHistory() {
           try {
             const data = await attendanceApi.getClassAttendance(selectedClassId, dateStr);
             const recs = (data as any)?.records || data || [];
+            const returnedDate = (data as any)?.date;
+            
             const dayMap: Record<string, string> = {};
-            if (Array.isArray(recs)) {
+            const isWrongDate = returnedDate && returnedDate !== dateStr && !returnedDate.startsWith(dateStr);
+            
+            if (Array.isArray(recs) && !isWrongDate) {
               recs.forEach((r: any) => {
                 if (r.studentId && r.status) {
+                  if (r.date && r.date !== dateStr && !r.date.startsWith(dateStr)) return;
                   dayMap[r.studentId] = r.status;
                 }
               });
@@ -280,63 +296,90 @@ export default function AttendanceHistory() {
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#053d26]">Attendance History</h1>
-          <p className="text-gray-600 text-sm mt-1">
-            View past attendance records for your form classes.
-          </p>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.back()}
+            className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors shrink-0"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-[#053d26]">Attendance History</h1>
+            <p className="text-gray-600 text-sm mt-1">
+              View past attendance records for your form classes.
+            </p>
+          </div>
         </div>
 
-        {/* Class selector */}
-        {formClasses.length > 1 && (
-          <select
-            value={selectedClassId}
-            onChange={(e) => {
-              setSelectedClassId(e.target.value);
-              const cls = formClasses.find(
-                (c) => (c.classId || c.id || c._id) === e.target.value
-              );
-              setSelectedClassName(cls?.name || cls?.className || "");
-            }}
-            className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26]"
+        <div className="flex flex-wrap items-center gap-3">
+          <Link 
+            href={`/dashboard/faculty/attendance?classId=${selectedClassId}`}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#053d26]/5 text-[#053d26] hover:bg-[#053d26] hover:text-white transition-colors border border-[#053d26]/10"
           >
-            {formClasses.map((c) => (
-              <option key={c.classId || c.id || c._id} value={c.classId || c.id || c._id}>
-                {c.name || c.className}
-              </option>
-            ))}
-          </select>
-        )}
+            Mark Today
+          </Link>
+          {/* Class selector */}
+          {formClasses.length > 1 && (
+            <select
+              value={selectedClassId}
+              onChange={(e) => {
+                setSelectedClassId(e.target.value);
+                const cls = formClasses.find(
+                  (c) => (c.classId || c.id || c._id) === e.target.value
+                );
+                setSelectedClassName(cls?.name || cls?.className || "");
+              }}
+              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26]"
+            >
+              {formClasses.map((c) => (
+                <option key={c.classId || c.id || c._id} value={c.classId || c.id || c._id}>
+                  {c.name || c.className}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {/* Week Navigator */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => navigateWeek("prev")}
-            className="p-2 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
-          </button>
-
-          <div className="flex items-center gap-3">
-            <Calendar className="h-4 w-4 text-[#053d26]" />
-            <span className="text-sm font-bold text-gray-900">{formatMonthRange()}</span>
-            <button
-              onClick={goToCurrentWeek}
-              className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#053d26]/10 text-[#053d26] hover:bg-[#053d26]/20 transition-colors"
-            >
+      <div className="flex items-center justify-between bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+        <button
+          onClick={() => navigateWeek("prev")}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <ChevronLeft className="h-5 w-5 text-gray-600" />
+        </button>
+        <div className="relative flex items-center gap-3 font-medium text-gray-900 group cursor-pointer">
+          <input 
+            type="date"
+            className="absolute inset-0 opacity-0 cursor-pointer w-full"
+            value={formatDate(weekStart)}
+            onChange={(e) => {
+              if (e.target.value) {
+                const selectedDate = new Date(e.target.value);
+                const dayOfWeek = selectedDate.getDay();
+                const monday = new Date(selectedDate);
+                monday.setDate(selectedDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                monday.setHours(0, 0, 0, 0);
+                setWeekStart(monday);
+              }
+            }}
+          />
+          <Calendar className="h-5 w-5 text-[#053d26] group-hover:scale-110 transition-transform" />
+          <span className="group-hover:text-[#053d26] transition-colors">{formatMonthRange()}</span>
+          {isToday(weekStart) && (
+            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 font-bold uppercase tracking-wide">
               This Week
-            </button>
-          </div>
-
-          <button
-            onClick={() => navigateWeek("next")}
-            className="p-2 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <ChevronRight className="h-5 w-5 text-gray-600" />
-          </button>
+            </span>
+          )}
         </div>
+        <button
+          onClick={() => navigateWeek("next")}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-30"
+          disabled={isFuture(weekDays[4])}
+        >
+          <ChevronRight className="h-5 w-5 text-gray-600" />
+        </button>
       </div>
 
       {/* Week Stats */}
@@ -382,24 +425,33 @@ export default function AttendanceHistory() {
                     key={formatDate(day)}
                     className={`py-4 px-4 text-center min-w-[80px] ${
                       isToday(day) ? "bg-[#053d26]/5" : ""
-                    }`}
+                    } ${!isFuture(day) ? "hover:bg-gray-100 cursor-pointer transition-colors" : ""}`}
                   >
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                        {formatShortDay(day)}
-                      </span>
-                      <span
-                        className={`text-sm font-black ${
-                          isToday(day)
-                            ? "text-white bg-[#053d26] w-7 h-7 rounded-full flex items-center justify-center"
-                            : isFuture(day)
-                            ? "text-gray-300"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        {formatDayNum(day)}
-                      </span>
-                    </div>
+                    {isFuture(day) ? (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                          {formatShortDay(day)}
+                        </span>
+                        <span className="text-sm font-black text-gray-300">
+                          {formatDayNum(day)}
+                        </span>
+                      </div>
+                    ) : (
+                      <Link href={`/dashboard/faculty/attendance?classId=${selectedClassId}&date=${formatDate(day)}`} className="flex flex-col items-center gap-0.5 group">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 group-hover:text-[#053d26] transition-colors">
+                          {formatShortDay(day)}
+                        </span>
+                        <span
+                          className={`text-sm font-black transition-colors ${
+                            isToday(day)
+                              ? "text-white bg-[#053d26] w-7 h-7 rounded-full flex items-center justify-center group-hover:bg-[#032517]"
+                              : "text-gray-700 group-hover:text-[#053d26]"
+                          }`}
+                        >
+                          {formatDayNum(day)}
+                        </span>
+                      </Link>
+                    )}
                   </th>
                 ))}
                 <th className="py-4 px-4 text-center text-[10px] font-black uppercase tracking-wider text-gray-400 min-w-[80px]">
@@ -437,13 +489,17 @@ export default function AttendanceHistory() {
                     >
                       <td className="py-3 px-5 sticky left-0 bg-white">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#053d26] flex items-center justify-center text-white text-[10px] font-black shrink-0">
-                            {(student.fullName || student.name || "?")
-                              .split(" ")
-                              .map((n: string) => n[0])
-                              .join("")
-                              .slice(0, 2)
-                              .toUpperCase()}
+                          <div className="w-8 h-8 rounded-full bg-[#053d26] flex items-center justify-center text-white text-[10px] font-black shrink-0 relative overflow-hidden">
+                            {student.profilePictureUrl ? (
+                              <img src={student.profilePictureUrl} alt={student.fullName || student.name || "Student"} className="w-full h-full object-cover" />
+                            ) : (
+                              (student.fullName || student.name || "?")
+                                .split(" ")
+                                .map((n: string) => n[0])
+                                .join("")
+                                .slice(0, 2)
+                                .toUpperCase()
+                            )}
                           </div>
                           <div>
                             <p className="text-xs font-bold text-gray-900 leading-tight">
@@ -461,11 +517,20 @@ export default function AttendanceHistory() {
                         return (
                           <td
                             key={dateStr}
-                            className={`py-3 px-4 text-center ${
+                            className={`py-3 px-4 text-center relative group ${
                               isToday(day) ? "bg-[#053d26]/5" : ""
                             }`}
                           >
-                            <div className="flex flex-col items-center gap-0.5">
+                            {!isFuture(day) ? (
+                              <Link 
+                                href={`/dashboard/faculty/attendance?classId=${selectedClassId}&date=${dateStr}`}
+                                className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 bg-[#053d26]/10 transition-opacity z-10 rounded-lg m-1"
+                                title="Edit Attendance"
+                              >
+                                <span className="text-[10px] font-bold text-[#053d26] uppercase tracking-wider bg-white px-2 py-0.5 rounded-md shadow-sm">Edit</span>
+                              </Link>
+                            ) : null}
+                            <div className={`flex flex-col items-center gap-0.5 transition-opacity ${!isFuture(day) ? 'group-hover:opacity-30' : ''}`}>
                               {getStatusIcon(status)}
                               <span
                                 className={`text-[10px] font-black ${
@@ -531,5 +596,18 @@ export default function AttendanceHistory() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AttendanceHistory() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[50vh] text-gray-400 font-semibold text-sm">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        Loading...
+      </div>
+    }>
+      <AttendanceHistoryInner />
+    </Suspense>
   );
 }

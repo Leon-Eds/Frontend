@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { schoolApi, resultApi } from "@/lib/api";
+import { schoolApi, resultApi, authApi } from "@/lib/api";
 import { useLanguage } from "@/components/LanguageProvider";
 import { 
   LayoutDashboard, 
@@ -51,7 +51,6 @@ const adminNavigation = [
   { name: "Teachers", href: "/dashboard/faculty", icon: Users },
   { name: "Support Staff", href: "/dashboard/staff", icon: UserPlus },
   { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
-  { name: "Attendance History", href: "/dashboard/faculty/attendance/history", icon: ClipboardList },
   { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
   { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
   { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
@@ -60,10 +59,6 @@ const adminNavigation = [
 const facultyNavigation = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Classes", href: "/dashboard/faculty/classes", icon: FolderKanban },
-  { name: "Result Entry", href: "/dashboard/faculty/result-entry", icon: CheckSquare },
-  { name: "Form Class", href: "/dashboard/faculty/form-class-results", icon: GraduationCap },
-  { name: "Attendance", href: "/dashboard/faculty/attendance", icon: UserCheck },
-  { name: "Attendance History", href: "/dashboard/faculty/attendance/history", icon: ClipboardList },
 ];
 
 const studentNavigation = [
@@ -126,6 +121,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
     
     return () => clearInterval(interval);
   }, []);
+  useEffect(() => {
+    const handleLogoUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.logoUrl) {
+        setLogoUrl(customEvent.detail.logoUrl);
+      }
+    };
+    window.addEventListener('leoned_logo_updated', handleLogoUpdate);
+    return () => window.removeEventListener('leoned_logo_updated', handleLogoUpdate);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -140,11 +145,19 @@ export default function Sidebar({ onClose }: SidebarProps) {
           } else if (normalizedRole === "superadmin") {
             setSchoolName("Platform Admin");
           }
-          if (user.logoUrl) {
-            setLogoUrl(user.logoUrl);
+          
+          const sId = user.schoolId || user.school?.id || user.school?._id;
+          let bestLogo = user.logoUrl;
+          if (sId) {
+            const cachedSchoolLogo = localStorage.getItem(`leoned_logo_${sId}`);
+            if (cachedSchoolLogo) bestLogo = cachedSchoolLogo;
           }
-          if (user.schoolId && normalizedRole !== "superadmin") {
-            schoolApi.getById(user.schoolId).then((school: any) => {
+          if (bestLogo) {
+            setLogoUrl(bestLogo);
+          }
+          
+          if (sId && normalizedRole !== "superadmin") {
+            schoolApi.getById(sId).then((school: any) => {
               let updated = false;
               if (school && school.subscriptionPlan) {
                 setPlan(school.subscriptionPlan);
@@ -156,7 +169,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               }
               if (updated) {
                 localStorage.setItem("leoned_user", JSON.stringify(user));
-                localStorage.setItem("leoned_persistent_school_logo", school.logoUrl);
+                localStorage.setItem(`leoned_logo_${sId}`, school.logoUrl);
               }
             }).catch(e => console.warn("Failed to fetch school details:", e));
           }
@@ -197,7 +210,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
     else if (demoRole === "Bursar") navigation = bursarNavigation;
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await authApi.logout(); } catch (err) {}
     localStorage.removeItem("leoned_token");
     localStorage.removeItem("leoned_refresh_token");
     localStorage.removeItem("leoned_user");

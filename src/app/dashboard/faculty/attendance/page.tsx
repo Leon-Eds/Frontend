@@ -1,20 +1,29 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { CheckCircle2, XCircle, AlertCircle, Save, Loader2, QrCode } from "lucide-react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { CheckCircle2, XCircle, AlertCircle, Save, Loader2, QrCode, ChevronLeft } from "lucide-react";
 import { teacherPortalApi, dashboardApi, attendanceApi } from "@/lib/api";
 import toast from "react-hot-toast";
 import QRScanner from "@/components/dashboard/QRScanner";
+import { useSearchParams, useRouter } from "next/navigation";
 
-export default function FacultyAttendance() {
+function FacultyAttendanceInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialClassId = searchParams.get("classId") || "";
+  const initialDate = searchParams.get("date") || (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
   const [students, setStudents] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<Record<string, 'Present' | 'Absent' | 'Late'>>({});
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(initialDate);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
   const [formClasses, setFormClasses] = useState<any[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedClassId, setSelectedClassId] = useState<string>(initialClassId);
   const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
@@ -53,7 +62,9 @@ export default function FacultyAttendance() {
         }
         
         setFormClasses(myFormClasses);
-        if (myFormClasses.length > 0) {
+        if (initialClassId && myFormClasses.some((c: any) => (c.classId || c.id || c._id) === initialClassId)) {
+          setSelectedClassId(initialClassId);
+        } else if (myFormClasses.length > 0) {
           setSelectedClassId(myFormClasses[0].classId || myFormClasses[0].id || myFormClasses[0]._id);
         }
       } catch (err) {
@@ -80,12 +91,22 @@ export default function FacultyAttendance() {
         try {
           const existingData = await attendanceApi.getClassAttendance(selectedClassId, date).catch(() => null);
           const existingRecords = (existingData as any)?.records || existingData || [];
+          const returnedDate = (existingData as any)?.date;
+          
           if (Array.isArray(existingRecords)) {
-            existingRecords.forEach(r => {
-              if (r.studentId && r.status) {
-                savedAttendance[r.studentId] = r.status;
-              }
-            });
+            // If the backend returned a date that doesn't match our selected date, ignore these records
+            // This prevents old attendance from showing up on days where no attendance was taken
+            const isWrongDate = returnedDate && returnedDate !== date && !returnedDate.startsWith(date);
+            
+            if (!isWrongDate) {
+              existingRecords.forEach(r => {
+                if (r.studentId && r.status) {
+                  // Additional fallback: if individual records have dates, ensure they match
+                  if (r.date && r.date !== date && !r.date.startsWith(date)) return;
+                  savedAttendance[r.studentId] = r.status;
+                }
+              });
+            }
           }
         } catch (e) {
           console.error("No existing attendance found", e);
@@ -162,9 +183,17 @@ export default function FacultyAttendance() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h1 className="text-3xl font-bold text-[#053d26]">Daily Attendance</h1>
-          <p className="text-gray-600 text-sm mt-1">Mark students present, absent, or late for your form classes.</p>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.back()}
+            className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors shrink-0"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-[#053d26]">Daily Attendance</h1>
+            <p className="text-gray-600 text-sm mt-1">Mark students present, absent, or late for your form classes.</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {formClasses.length > 1 && (
@@ -257,8 +286,24 @@ export default function FacultyAttendance() {
                 return (
                 <tr key={sId} className="hover:bg-gray-50/50 transition-colors">
                   <td className="py-4 px-6 font-bold text-gray-900 text-sm">
-                    {student.fullName || student.name}
-                    <div className="text-xs text-gray-400 font-medium">{student.admissionNumber || "N/A"}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-[#053d26] flex items-center justify-center text-white text-[10px] font-black shrink-0 relative overflow-hidden">
+                        {student.profilePictureUrl ? (
+                          <img src={student.profilePictureUrl} alt={student.fullName || student.name || "Student"} className="w-full h-full object-cover" />
+                        ) : (
+                          (student.fullName || student.name || "?")
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase()
+                        )}
+                      </div>
+                      <div>
+                        {student.fullName || student.name}
+                        <div className="text-xs text-gray-400 font-medium">{student.admissionNumber || "N/A"}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-center gap-2">
@@ -308,5 +353,18 @@ export default function FacultyAttendance() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FacultyAttendance() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[50vh] text-gray-400 font-semibold text-sm">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        Loading...
+      </div>
+    }>
+      <FacultyAttendanceInner />
+    </Suspense>
   );
 }

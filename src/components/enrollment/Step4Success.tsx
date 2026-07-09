@@ -13,9 +13,17 @@ export const Step4Success: React.FC<Step4Props> = ({ data, onReset }) => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Main Success Area */}
       <div className="lg:col-span-8 bg-white rounded-3xl p-10 md:p-16 shadow-sm flex flex-col items-center justify-center text-center">
-        <div className="h-24 w-24 rounded-full bg-[#053d26] flex items-center justify-center mb-8 shadow-lg shadow-green-900/20">
-          <ShieldCheck className="h-12 w-12 text-white" />
-        </div>
+        {(data as any).profilePictureUrl ? (
+          <img 
+            src={(data as any).profilePictureUrl} 
+            alt="Student Passport" 
+            className="h-24 w-24 rounded-full object-cover border-4 border-[#053d26] mb-8 shadow-lg shadow-green-900/20"
+          />
+        ) : (
+          <div className="h-24 w-24 rounded-full bg-[#053d26] flex items-center justify-center mb-8 shadow-lg shadow-green-900/20">
+            <User className="h-12 w-12 text-white" />
+          </div>
+        )}
         
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 max-w-md leading-tight">
           Student Successfully Enrolled
@@ -56,30 +64,24 @@ export const Step4Success: React.FC<Step4Props> = ({ data, onReset }) => {
       {/* Right Info Sidebar */}
       <div className="lg:col-span-4 space-y-6">
         <div className="bg-[#053d26] rounded-3xl p-8 shadow-sm text-white">
-          <h3 className="text-xl font-bold mb-8">Next Milestones</h3>
+          <h3 className="text-xl font-bold mb-4">Student Credentials</h3>
+          <p className="text-sm text-green-100/80 mb-6">
+            Please share these credentials with the student or parent. They will be required for portal access.
+          </p>
           
-          <div className="space-y-8">
-            <div className="flex gap-4">
-              <div className="h-8 w-8 rounded-full border border-white/20 flex items-center justify-center font-bold text-sm shrink-0 text-green-300">1</div>
-              <div>
-                <h4 className="font-bold text-sm mb-1">Assign Teacher Advisor</h4>
-                <p className="text-xs text-green-100/70">Select from the Academic Flow directory.</p>
-              </div>
+          <div className="space-y-4 bg-[#042c1b] p-5 rounded-2xl border border-green-800">
+            <div>
+              <p className="text-xs text-green-300 font-bold uppercase tracking-widest mb-1">Email / Admission No.</p>
+              <p className="font-bold text-lg">{data.admissionNumber || "N/A"}</p>
             </div>
             
-            <div className="flex gap-4">
-              <div className="h-8 w-8 rounded-full border border-white/20 flex items-center justify-center font-bold text-sm shrink-0 text-green-300">2</div>
-              <div>
-                <h4 className="font-bold text-sm mb-1">Generate ID Card</h4>
-                <p className="text-xs text-green-100/70">Download PDF for print shop.</p>
-              </div>
-            </div>
+            <div className="h-px bg-green-800/50 w-full"></div>
             
-            <div className="flex gap-4">
-              <div className="h-8 w-8 rounded-full border border-white/20 flex items-center justify-center font-bold text-sm shrink-0 text-green-300">3</div>
-              <div>
-                <h4 className="font-bold text-sm mb-1">Parent Portal Access</h4>
-                <p className="text-xs text-green-100/70">Send credentials via secure email.</p>
+            <div>
+              <p className="text-xs text-green-300 font-bold uppercase tracking-widest mb-1">Password</p>
+              <div className="flex items-center justify-between">
+                <p className="font-bold text-lg tracking-wider">{data.password || "password"}</p>
+                <span className="text-[10px] bg-green-500/20 text-green-200 px-2 py-1 rounded font-bold">DEFAULT</span>
               </div>
             </div>
           </div>

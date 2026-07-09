@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search as SearchIcon, Bell as BellIcon, HelpCircle as HelpIcon, Menu as MenuIcon, LogOut, Home } from "lucide-react";
 import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
 import NotificationsPopover from "./NotificationsPopover";
+import { authApi } from "@/lib/api";
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -24,9 +25,9 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
         const user = JSON.parse(localStorage.getItem("leoned_user") || "{}");
         setUserName(user.fullName || user.name || "Admin");
         setRole(user.role);
-        const profilePic = user.imageUrl || user.image || user.profilePictureUrl || user.photo || 
-          user.student?.profilePictureUrl || user.student?.imageUrl || user.student?.photo || user.student?.image ||
-          user.teacher?.profilePictureUrl || user.teacher?.imageUrl || user.teacher?.photo || user.teacher?.image;
+        const profilePic = user.imageUrl || user.image || user.profilePictureUrl || user.profilePicture || user.photo || 
+          user.student?.profilePictureUrl || user.student?.profilePicture || user.student?.imageUrl || user.student?.photo || user.student?.image ||
+          user.teacher?.profilePictureUrl || user.teacher?.profilePicture || user.teacher?.imageUrl || user.teacher?.photo || user.teacher?.image;
           
         if (profilePic) {
           setUserImage(profilePic);
@@ -50,7 +51,8 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await authApi.logout(); } catch(e) {}
     localStorage.removeItem("leoned_token");
     localStorage.removeItem("leoned_refresh_token");
     localStorage.removeItem("leoned_user");

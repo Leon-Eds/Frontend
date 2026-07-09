@@ -15,6 +15,8 @@ import {
   Plus
 } from "lucide-react";
 
+import { authApi } from "@/lib/api";
+
 const sidebarNav = [
   { name: "Deployment", href: "/ops/deployment", icon: Rocket },
   { name: "QA Testing", href: "/ops/qa", icon: CheckSquare },
@@ -40,8 +42,9 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (typeof window !== "undefined") {
+      try { await authApi.logout(); } catch (err) {}
       localStorage.removeItem("leoned_token");
       localStorage.removeItem("leoned_user");
       router.push("/login");

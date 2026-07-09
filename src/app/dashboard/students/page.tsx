@@ -85,6 +85,10 @@ export default function StudentsPage() {
   // Delete
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
 
   const fetchStudents = useCallback(async () => {
     setIsLoading(true);
@@ -136,19 +140,20 @@ export default function StudentsPage() {
     }
   };
 
-  const handleResetPassword = async (id: string) => {
-    if (!window.confirm("Are you sure you want to reset this student's password? A new temporary password will be auto-generated.")) return;
+  const handleResetPassword = async () => {
+    if (!resetPasswordId || !newPassword) return;
+    setIsResetting(true);
     try {
-      await studentApi.resetPassword(id);
-      toast.success("Password reset successfully. Check student record for new password.");
+      await studentApi.resetPassword(resetPasswordId, newPassword);
+      toast.success("Password reset successfully.");
+      setResetPasswordId(null);
+      setNewPassword("");
       await fetchStudents();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to reset password";
-      if (message.includes("404")) {
-        toast.error("Endpoint unavailable (HTTP 404): Backend implementation missing.");
-      } else {
-        toast.error(message);
-      }
+      toast.error(message);
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -503,33 +508,31 @@ export default function StudentsPage() {
               ))}
             </div>
 
-            <div className="flex justify-between items-center mt-8">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => { setViewStudent(null); setIdCardStudent(viewStudent); }}
-                  className="flex items-center gap-2 px-4 py-3 rounded-full bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 transition-colors text-sm border border-blue-100"
-                >
-                  <CreditCard className="h-4 w-4" /> View ID Card
-                </button>
-                <button
-                  onClick={() => handleResetPassword(viewStudent.id)}
-                  className="flex items-center gap-2 px-4 py-3 rounded-full bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 transition-colors text-sm border border-rose-100"
-                >
-                  <Power className="h-4 w-4" /> Reset Password
-                </button>
-                <button
-                  onClick={() => handleMarkLeft(viewStudent.id)}
-                  disabled={isMarkingLeft || viewStudent.status === 'Left'}
-                  className="flex items-center gap-2 px-4 py-3 rounded-full bg-orange-50 text-orange-600 font-bold hover:bg-orange-100 transition-colors text-sm border border-orange-100 disabled:opacity-50"
-                >
-                  <AlertCircle className="h-4 w-4" /> {isMarkingLeft ? "Updating..." : "Mark as Left"}
-                </button>
-              </div>
+            <div className="grid grid-cols-2 gap-3 mt-8">
+              <button
+                onClick={() => { setViewStudent(null); setIdCardStudent(viewStudent); }}
+                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 transition-colors text-sm border border-blue-100/50 shadow-sm"
+              >
+                <CreditCard className="h-4 w-4" /> View ID Card
+              </button>
+              <button
+                onClick={() => setResetPasswordId(viewStudent.id)}
+                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 transition-colors text-sm border border-rose-100/50 shadow-sm"
+              >
+                <Power className="h-4 w-4" /> Reset Password
+              </button>
+              <button
+                onClick={() => handleMarkLeft(viewStudent.id)}
+                disabled={isMarkingLeft || viewStudent.status === 'Left'}
+                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-orange-50 text-orange-600 font-bold hover:bg-orange-100 transition-colors text-sm border border-orange-100/50 shadow-sm disabled:opacity-50"
+              >
+                <AlertCircle className="h-4 w-4" /> {isMarkingLeft ? "Updating..." : "Mark as Left"}
+              </button>
               <button
                 onClick={() => { setViewStudent(null); openEdit(viewStudent); }}
-                className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-sm"
+                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-sm shadow-md"
               >
-                Edit Student
+                <Edit2 className="h-4 w-4" /> Edit Student
               </button>
             </div>
           </div>
@@ -597,7 +600,7 @@ export default function StudentsPage() {
                   className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Guardian Phone</label>
                   <input
@@ -611,15 +614,6 @@ export default function StudentsPage() {
                   <input
                     value={editForm.parentEmail || ''}
                     onChange={e => setEditForm(f => ({ ...f, parentEmail: e.target.value }))}
-                    className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Guardian Password</label>
-                  <input
-                    type="password"
-                    value={editForm.password || ''}
-                    onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
                     className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
                   />
                 </div>
@@ -892,6 +886,50 @@ export default function StudentsPage() {
           </div>
         </div>
       )}
+
+      {/* Reset Password Confirmation Modal */}
+      {resetPasswordId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setResetPasswordId(null)}>
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                <Power className="h-6 w-6 text-orange-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Reset Password</h3>
+                <p className="text-sm text-gray-500">Set a new password for this student</p>
+              </div>
+            </div>
+            <div className="mb-8">
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">New Password</label>
+              <input
+                type="text"
+                placeholder="Enter new password (min 6 chars)"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setResetPasswordId(null)}
+                className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetPassword}
+                disabled={isResetting}
+                className="px-6 py-3 rounded-full bg-orange-600 text-white font-bold hover:bg-orange-700 transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                {isResetting ? 'Resetting...' : 'Reset'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

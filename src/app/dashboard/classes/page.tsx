@@ -168,11 +168,34 @@ export default function AcademicFlow() {
   };
 
   const handleRemoveStudent = async (studentId: string, studentName: string) => {
-    if (!confirm(`Are you sure you want to remove ${studentName} from this class?`)) return;
     try {
       setIsSubmitting(true);
-      await studentApi.update(studentId, { classId: "" });
-      setSuccessMsg(`${studentName} removed from class.`);
+      await studentApi.update(studentId, { classId: null as any });
+      
+      toast.success(
+        (t) => (
+          <div className="flex flex-col gap-2">
+            <span>{studentName} removed from class.</span>
+            <button
+              onClick={async () => {
+                toast.dismiss(t.id);
+                try {
+                  await studentApi.update(studentId, { classId: selectedClassId || "" });
+                  toast.success(`${studentName} restored to class.`);
+                  await fetchData();
+                } catch (e) {
+                  toast.error("Failed to restore student");
+                }
+              }}
+              className="text-xs bg-white text-gray-900 font-bold px-3 py-1.5 rounded self-start shadow-sm border border-gray-200 hover:bg-gray-50"
+            >
+              Undo
+            </button>
+          </div>
+        ),
+        { duration: 5000 }
+      );
+      
       await fetchData();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to remove student");

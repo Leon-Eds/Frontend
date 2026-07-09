@@ -44,9 +44,10 @@ export const StudentEnrollmentWizard = () => {
         const latestData = formDataRef.current;
         console.log('[StudentWizard] Submitting:', JSON.stringify(latestData, (k, v) => v instanceof File ? `[File: ${v.name}]` : v, 2));
         const student = await studentApi.create(latestData as CreateStudentRequest);
-        // Save the generated admission number back to the form data so the success screen can display it
+        // Save the generated fields (like admissionNumber, password) back to the form data
         setFormData((prev) => ({ 
           ...prev, 
+          ...student,
           admissionNumber: student.admissionNumber || student.id || prev.admissionNumber 
         }));
         setCurrentStep(4);

@@ -590,6 +590,8 @@ export interface UpdateSchoolRequest {
   contactEmail?: string;
   contactPhone?: string;
   logoUrl?: string;
+  theme?: string;
+  font?: string;
 }
 
 export interface UpdateSchoolPlanRequest {
@@ -625,6 +627,14 @@ export const authApi = {
       body: JSON.stringify(data),
     });
     return handleResponse<LoginResponse>(res);
+  },
+
+  logout: async () => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/logout`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
   },
 
   register: async (data: RegisterSchoolRequest) => {
@@ -713,6 +723,28 @@ export const dashboardApi = {
   },
 };
 
+export const uploadToCloudinary = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'leoned_uploads');
+  formData.append('cloud_name', 'dvjy4jjxf');
+
+  const response = await fetch('https://api.cloudinary.com/v1_1/dvjy4jjxf/image/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    console.error('Cloudinary upload failed:', errData);
+    throw new Error('Failed to upload image to Cloudinary');
+  }
+
+  const data = await response.json();
+  const optimizedUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
+  return optimizedUrl;
+};
+
 // Students
 export const studentApi = {
   getAll: async (schoolId?: string): Promise<Student[]> => {
@@ -738,32 +770,6 @@ export const studentApi = {
   create: async (data: CreateStudentRequest): Promise<Student> => {
     const cleanData: Record<string, unknown> = {};
     
-    const uploadToCloudinary = async (file: File): Promise<string> => {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', 'leoned_uploads');
-      formData.append('cloud_name', 'dvjy4jjxf');
-
-      const response = await fetch('https://api.cloudinary.com/v1_1/dvjy4jjxf/image/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        console.error('Cloudinary upload failed:', errData);
-        throw new Error('Failed to upload image to Cloudinary');
-      }
-
-      const data = await response.json();
-      // Use f_auto and q_auto to optimize image delivery automatically
-      // Instead of the raw URL, we can construct the optimized URL or just return secure_url
-      // We'll return secure_url directly for simplicity, or we can transform it:
-      // A quick regex to inject f_auto,q_auto into the secure_url
-      const optimizedUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
-      return optimizedUrl;
-    };
-
     if (data.imageFile) {
       try { cleanData.profilePictureUrl = await uploadToCloudinary(data.imageFile); } catch (e) { console.error(e); }
     }
@@ -824,10 +830,11 @@ export const studentApi = {
     return handleResponse(res);
   },
 
-  resetPassword: async (id: string): Promise<void> => {
+  resetPassword: async (id: string, newPassword: string): Promise<void> => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}/reset-password`, {
-      method: 'POST',
+      method: 'PUT',
       headers: getAuthHeaders(),
+      body: JSON.stringify({ newPassword }),
     });
     return handleResponse(res);
   },
@@ -1404,6 +1411,51 @@ export const feeApi = {
   },
 };
 
+export interface FeeStructure {
+  id: string;
+  name: string;
+  amount: number;
+  type: 'base' | 'custom';
+  applicableLevels: string[]; // e.g. ["JSS 1", "JSS 2"]
+}
+
+export const feeStructureApi = {
+  getStructures: async (): Promise<FeeStructure[]> => {
+    if (typeof window !== 'undefined') {
+      const data = localStorage.getItem('mock_fee_structures');
+      if (data) return JSON.parse(data);
+    }
+    // Default mock data
+    return [
+      { id: 'fs_1', name: 'Basic School Fee', amount: 50000, type: 'base', applicableLevels: ['JSS 1', 'JSS 2', 'JSS 3'] },
+      { id: 'fs_2', name: 'Senior School Fee', amount: 70000, type: 'base', applicableLevels: ['SS 1', 'SS 2', 'SS 3'] },
+      { id: 'fs_3', name: 'School Bus Levy', amount: 15000, type: 'custom', applicableLevels: [] },
+      { id: 'fs_4', name: 'Excursion Fee', amount: 5000, type: 'custom', applicableLevels: [] }
+    ];
+  },
+  saveStructures: async (structures: FeeStructure[]) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mock_fee_structures', JSON.stringify(structures));
+    }
+  },
+  getStudentCustomFees: async (): Promise<Record<string, string[]>> => {
+    // Map of studentId -> array of FeeStructure IDs
+    if (typeof window !== 'undefined') {
+      const data = localStorage.getItem('mock_student_custom_fees');
+      if (data) return JSON.parse(data);
+    }
+    return {};
+  },
+  saveStudentCustomFees: async (studentId: string, feeIds: string[]) => {
+    if (typeof window !== 'undefined') {
+      const data = localStorage.getItem('mock_student_custom_fees');
+      const parsed = data ? JSON.parse(data) : {};
+      parsed[studentId] = feeIds;
+      localStorage.setItem('mock_student_custom_fees', JSON.stringify(parsed));
+    }
+  }
+};
+
 // Global Users (for superadmin) — NOTE: /api/auth/admins endpoint was removed in Node.js backend
 // Falling back to schoolApi.getAll() which returns schools with admin info
 export const userApi = {
@@ -1650,13 +1702,17 @@ export const reportApi = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/enrollment${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
-  getAttendance: async (termId?: string) => {
+  getAttendance: async (classId?: string, termId?: string) => {
+    if (!classId) throw new Error("classId is required for attendance report");
     const qs = termId ? `?termId=${termId}` : '';
-    const res = await fetchWithTimeout(`${API_BASE_URL}/report/attendance${qs}`, { headers: getAuthHeaders() });
+    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/class/${classId}/stats${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
-  getPerformance: async (termId?: string) => {
-    const qs = termId ? `?termId=${termId}` : '';
+  getPerformance: async (classId?: string, termId?: string) => {
+    const q = new URLSearchParams();
+    if (classId) q.append('classId', classId);
+    if (termId) q.append('termId', termId);
+    const qs = q.toString() ? `?${q.toString()}` : '';
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/performance${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
@@ -1665,8 +1721,11 @@ export const reportApi = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/feepayment${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
-  getRevenue: async (termId?: string) => {
-    const qs = termId ? `?termId=${termId}` : '';
+  getRevenue: async (startDate?: string, endDate?: string) => {
+    const q = new URLSearchParams();
+    if (startDate) q.append('startDate', startDate);
+    if (endDate) q.append('endDate', endDate);
+    const qs = q.toString() ? `?${q.toString()}` : '';
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/revenue${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
@@ -1676,8 +1735,17 @@ export const reportApi = {
     return handleResponse(res);
   },
   getStaff: async () => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/report/staff`, { headers: getAuthHeaders() });
-    return handleResponse(res);
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher?pageSize=1000`, { headers: getAuthHeaders() });
+    const data = await handleResponse<any>(res);
+    const teachers = Array.isArray(data) ? data : (data.items || data.data || []);
+    return teachers.map((t: any) => ({
+      staffId: t.id || t._id,
+      fullName: t.fullName || t.name,
+      email: t.email || t.systemEmail,
+      phone: t.phone || "N/A",
+      role: t.role || "Teacher",
+      status: t.status || "Active"
+    }));
   },
   getOutstandingFees: async (termId?: string) => {
     const qs = termId ? `?termId=${termId}` : '';

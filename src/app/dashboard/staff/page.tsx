@@ -293,18 +293,13 @@ export default function StaffDirectory() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Role <span className="text-red-500">*</span></label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26]"
-                    disabled={isSubmitting}
-                  >
-                    <option value="Bursar">Bursar / Finance Officer</option>
-                    <option value="Librarian">Librarian</option>
-                    <option value="Nurse">School Nurse</option>
-                    <option value="Admin">Administrator</option>
-                  </select>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Role</label>
+                  <input
+                    type="text"
+                    value="Bursar / Finance Officer"
+                    disabled
+                    className="block w-full rounded-xl border border-gray-200 bg-gray-100 py-3 px-4 text-gray-500 cursor-not-allowed"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password <span className="text-red-500">*</span></label>

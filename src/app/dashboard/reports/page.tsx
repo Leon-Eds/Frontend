@@ -13,7 +13,7 @@ import {
   Calendar,
   Printer
 } from "lucide-react";
-import { reportApi } from "@/lib/api";
+import { reportApi, classApi, sessionApi } from "@/lib/api";
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -26,6 +26,13 @@ export default function ReportsHub() {
   const [isLoading, setIsLoading] = useState(false);
   const [reportData, setReportData] = useState<any[]>([]);
 
+  const [classes, setClasses] = useState<any[]>([]);
+  const [terms, setTerms] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedTermId, setSelectedTermId] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState<string>(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]);
+
   const reportTypes = [
     { id: "enrollment", name: "Enrollment Status", icon: Users, desc: "Current student numbers" },
     { id: "attendance", name: "Attendance Records", icon: Calendar, desc: "Daily & term attendance" },
@@ -37,24 +44,64 @@ export default function ReportsHub() {
     { id: "outstandingfees", name: "Outstanding Fees", icon: AlertCircle, desc: "Pending balances" },
   ];
 
-  const fetchReport = async (type: string) => {
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        const [classesData, sessionsData] = await Promise.all([
+          classApi.getAll().catch((e) => { console.error(e); return []; }),
+          sessionApi.getAll().catch((e) => { console.error(e); return []; })
+        ]);
+        
+        const validClasses = Array.isArray(classesData) ? classesData : [];
+        setClasses(validClasses);
+        if (validClasses.length > 0) {
+          setSelectedClassId(validClasses[0].id || (validClasses[0] as any)._id || (validClasses[0] as any).classId);
+        }
+
+        const validSessions = Array.isArray(sessionsData) ? sessionsData : [];
+        const activeSession = validSessions.find((s: any) => s.isCurrent) || validSessions[0];
+        if (activeSession && Array.isArray(activeSession.terms)) {
+          setTerms(activeSession.terms);
+          const activeTerm = activeSession.terms.find((t: any) => t.isCurrent);
+          if (activeTerm) setSelectedTermId(activeTerm.id || (activeTerm as any)._id || (activeTerm as any).termId);
+          else if (activeSession.terms.length > 0) {
+            setSelectedTermId(activeSession.terms[0].id || (activeSession.terms[0] as any)._id || (activeSession.terms[0] as any).termId);
+          }
+        } else {
+          setTerms([]);
+        }
+      } catch (err) {
+        console.error("Failed to load filters for reports", err);
+      }
+    };
+    loadFilters();
+  }, []);
+
+  const fetchReport = async (type: string, classId: string, termId: string) => {
+    // Attendance and Performance require classId and termId. Wait until they are loaded if the active report is one of them.
+    if (["attendance", "performance"].includes(type) && (!classId || !termId)) {
+      toast.error(`Please ensure a class and term are selected for the ${type} report.`);
+      setReportData([]);
+      return;
+    }
+    
     setIsLoading(true);
     setReportData([]);
     try {
       let res: any;
       switch (type) {
-        case "enrollment": res = await reportApi.getEnrollment(); break;
-        case "attendance": res = await reportApi.getAttendance(); break;
-        case "performance": res = await reportApi.getPerformance(); break;
-        case "feepayment": res = await reportApi.getFeePayment(); break;
-        case "revenue": res = await reportApi.getRevenue(); break;
-        case "studentstatus": res = await reportApi.getStudentStatus(); break;
+        case "enrollment": res = await reportApi.getEnrollment(termId); break;
+        case "attendance": res = await reportApi.getAttendance(classId, termId); break;
+        case "performance": res = await reportApi.getPerformance(classId, termId); break;
+        case "feepayment": res = await reportApi.getFeePayment(termId); break;
+        case "revenue": res = await reportApi.getRevenue(startDate, endDate); break;
+        case "studentstatus": res = await reportApi.getStudentStatus(termId); break;
         case "staff": res = await reportApi.getStaff(); break;
         case "outstandingfees": res = await reportApi.getOutstandingFees(); break;
       }
       let fetchedData = res?.data || res || [];
       if (fetchedData && !Array.isArray(fetchedData)) {
-        fetchedData = fetchedData.items || fetchedData.records || fetchedData.results || fetchedData.students || fetchedData.staff || fetchedData.data || [];
+        fetchedData = fetchedData.items || fetchedData.records || fetchedData.results || fetchedData.students || fetchedData.staff || fetchedData.data || fetchedData.stats || fetchedData.attendance || fetchedData.performance || fetchedData.teachers || [];
       }
       setReportData(Array.isArray(fetchedData) ? fetchedData : []);
     } catch (e: any) {
@@ -65,8 +112,8 @@ export default function ReportsHub() {
   };
 
   useEffect(() => {
-    fetchReport(activeReport);
-  }, [activeReport]);
+    fetchReport(activeReport, selectedClassId, selectedTermId);
+  }, [activeReport, selectedClassId, selectedTermId, startDate, endDate]);
 
   const handleExportExcel = () => {
     if (!reportData || reportData.length === 0) {
@@ -145,6 +192,49 @@ export default function ReportsHub() {
           <p className="text-gray-600">Comprehensive analytics and printable reports for all school operations.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          {['attendance', 'performance'].includes(activeReport) && classes.length > 0 && (
+            <select
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              className="px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] shadow-sm appearance-none min-w-[120px]"
+            >
+              {classes.map(c => (
+                <option key={c.id || c._id || c.classId} value={c.id || c._id || c.classId}>
+                  {c.name || c.className || "Class"}
+                </option>
+              ))}
+            </select>
+          )}
+          {['attendance', 'performance', 'enrollment', 'feepayment', 'studentstatus'].includes(activeReport) && terms.length > 0 && (
+            <select
+              value={selectedTermId}
+              onChange={(e) => setSelectedTermId(e.target.value)}
+              className="px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] shadow-sm appearance-none min-w-[150px]"
+            >
+              {terms.map(t => (
+                <option key={t.id || t._id || t.termId} value={t.id || t._id || t.termId}>
+                  {t.name || t.termName || "Term"}
+                </option>
+              ))}
+            </select>
+          )}
+          {activeReport === 'revenue' && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] shadow-sm"
+              />
+              <span className="text-gray-400 font-bold">to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] shadow-sm"
+              />
+            </div>
+          )}
           <button 
             onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors shadow-sm"
