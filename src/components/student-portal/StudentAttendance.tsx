@@ -45,19 +45,55 @@ export default function StudentAttendance({ studentInfo }: { studentInfo: any })
     const fetchAttendance = async () => {
       try {
         setIsLoading(true);
-        const res = await attendanceApi.getMyAttendance(selectedTermId).catch(() => []);
-        const data = (res as any)?.data || res;
-        const records = Array.isArray(data) ? data : (data.records || []);
+        console.log("[DEBUG] studentInfo in attendance:", studentInfo);
+        const studentId = studentInfo?.id || studentInfo?.studentId || studentInfo?._id;
+        
+        let res;
+        try {
+          res = await attendanceApi.getMyAttendance(selectedTermId);
+        } catch (e) {
+          console.warn("[DEBUG] getMyAttendance failed or 404, falling back...");
+          if (studentId) {
+             try {
+                res = await attendanceApi.getStudentAttendance(studentId, selectedTermId);
+             } catch (e2) {
+                console.warn("[DEBUG] getStudentAttendance also failed or 404.");
+                res = [];
+             }
+          }
+          else res = [];
+        }
+        
+        // If myAttendance returns empty records BUT no stats, fallback to getStudentAttendance
+        let data = (res as any)?.data || res;
+        let records = Array.isArray(data) ? data : (data.records || data.items || data.attendance || Object.values(data).filter(v => typeof v === 'object' && (v as any).status) || []);
+        
+        if (records.length === 0 && studentId) {
+           const fallbackRes = await attendanceApi.getStudentAttendance(studentId, selectedTermId).catch(() => []);
+           data = (fallbackRes as any)?.data || fallbackRes;
+           records = Array.isArray(data) ? data : (data.records || data.items || data.attendance || Object.values(data).filter(v => typeof v === 'object' && (v as any).status) || []);
+        }
+
+        console.log("[DEBUG] Raw attendance fetch result:", JSON.stringify(res, null, 2));
+        console.log("[DEBUG] Extracted records:", records);
         
         // Compute stats
-        let present = 0, absent = 0, late = 0;
-        records.forEach((r: any) => {
-          if (r.status === 'Present') present++;
-          else if (r.status === 'Absent') absent++;
-          else if (r.status === 'Late') late++;
-        });
-        const total = present + absent + late;
-        const percentage = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+        let present = data?.present ?? 0;
+        let absent = data?.absent ?? 0;
+        let late = data?.late ?? 0;
+        let percentage = data?.attendancePercentage ?? 0;
+
+        // If the API didn't provide stats but we have records, compute manually
+        if (records.length > 0 && data?.attendancePercentage === undefined) {
+          present = 0; absent = 0; late = 0;
+          records.forEach((r: any) => {
+            if (r.status === 'Present') present++;
+            else if (r.status === 'Absent') absent++;
+            else if (r.status === 'Late') late++;
+          });
+          const total = present + absent + late;
+          percentage = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+        }
         
         setAttendanceRecords(records);
         setStats({ present, absent, late, percentage });

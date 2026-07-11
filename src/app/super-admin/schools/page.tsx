@@ -39,6 +39,7 @@ export default function SchoolsManagement() {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const fetchSchools = async () => {
@@ -187,6 +188,10 @@ export default function SchoolsManagement() {
       toast.error("New password must be at least 6 characters.");
       return;
     }
+    if (newAdminPassword !== confirmAdminPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
     
     setIsResettingPassword(true);
     try {
@@ -194,6 +199,8 @@ export default function SchoolsManagement() {
       await schoolApi.resetAdminPassword(selectedSchool.id, newAdminPassword);
       toast.success("Admin password reset successfully");
       setNewAdminPassword("");
+      setConfirmAdminPassword("");
+      setIsResetConfirmOpen(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to reset password";
       if (message.includes("404")) {
@@ -650,6 +657,14 @@ export default function SchoolsManagement() {
                 value={newAdminPassword}
                 onChange={(e) => setNewAdminPassword(e.target.value)}
                 placeholder="Enter at least 6 characters"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-all text-sm text-gray-900 mb-3"
+              />
+              <label className="block text-xs font-bold text-gray-700 mb-1">Confirm Password</label>
+              <input
+                type="password"
+                value={confirmAdminPassword}
+                onChange={(e) => setConfirmAdminPassword(e.target.value)}
+                placeholder="Confirm password"
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-all text-sm text-gray-900"
               />
             </div>

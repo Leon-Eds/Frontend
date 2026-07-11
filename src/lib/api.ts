@@ -18,7 +18,7 @@ export function getAuthHeaders(): HeadersInit {
   let sid: string | undefined;
   try {
     const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
-    sid = user.schoolId || user.school?.id || user.school?._id;
+    sid = user.schoolId || user.SchoolId || user.school?.id || user.school?._id || user.student?.schoolId || user.student?.SchoolId;
   } catch {
     // Silently ignore parse errors
   }
@@ -26,7 +26,10 @@ export function getAuthHeaders(): HeadersInit {
   // Fallback: decode the JWT token to extract schoolId from its payload
   if (!sid && token) {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      let base64 = token.split('.')[1];
+      base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) { base64 += '='; }
+      const payload = JSON.parse(atob(base64));
       sid = payload.schoolId || payload.SchoolId || payload.school_id || payload.sid;
     } catch {
       // Silently ignore decode errors
@@ -51,11 +54,14 @@ function getAuthHeadersMultipart(): HeadersInit {
   let sid: string | undefined;
   try {
     const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
-    sid = user.schoolId || user.school?.id || user.school?._id;
+    sid = user.schoolId || user.SchoolId || user.school?.id || user.school?._id || user.student?.schoolId || user.student?.SchoolId;
   } catch {}
   if (!sid && token) {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      let base64 = token.split('.')[1];
+      base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) { base64 += '='; }
+      const payload = JSON.parse(atob(base64));
       sid = payload.schoolId || payload.SchoolId || payload.school_id || payload.sid;
     } catch {}
   }
@@ -592,6 +598,9 @@ export interface UpdateSchoolRequest {
   logoUrl?: string;
   theme?: string;
   font?: string;
+  bankAccountName?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
 }
 
 export interface UpdateSchoolPlanRequest {
@@ -845,6 +854,22 @@ export const studentApi = {
     });
     return handleResponse<Student[]>(res);
   },
+
+  downloadMyIdCard: async (): Promise<Blob> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/idcard/download`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to download ID card (${res.status})`);
+    return res.blob();
+  },
+
+  downloadIdCard: async (id: string): Promise<Blob> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}/idcard`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to download ID card (${res.status})`);
+    return res.blob();
+  },
 };
 
 // Attendance
@@ -874,8 +899,8 @@ export const attendanceApi = {
   },
   getMyAttendance: async (termId?: string) => {
     const url = termId 
-      ? `${API_BASE_URL}/attendance/my?termId=${termId}`
-      : `${API_BASE_URL}/attendance/my`;
+      ? `${API_BASE_URL}/attendance/my-record?termId=${termId}`
+      : `${API_BASE_URL}/attendance/my-record`;
     const res = await fetchWithTimeout(url, {
       headers: getAuthHeaders(),
     });
@@ -884,6 +909,15 @@ export const attendanceApi = {
   getMyFormClasses: async () => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/my-form-classes`, {
       headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  
+  scanIdCard: async (admissionNumber: string, date: string, status: 'Present' | 'Absent' | 'Late', remarks?: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/scan`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ admissionNumber, date, status, remarks }),
     });
     return handleResponse(res);
   },
@@ -1376,7 +1410,7 @@ export const gradingApi = {
 // Fees
 export const feeApi = {
   record: async (data: RecordFeeRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/fee/record`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee/upload-receipt`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -1409,6 +1443,21 @@ export const feeApi = {
     });
     return handleResponse(res);
   },
+
+  getMyStatus: async (termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee/my-status?termId=${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  downloadReceiptPdf: async (paymentId: string): Promise<Blob> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee/receipt/${paymentId}/pdf`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to download fee receipt (${res.status})`);
+    return res.blob();
+  },
 };
 
 export interface FeeStructure {
@@ -1417,6 +1466,8 @@ export interface FeeStructure {
   amount: number;
   type: 'base' | 'custom';
   applicableLevels: string[]; // e.g. ["JSS 1", "JSS 2"]
+  bankName?: string;
+  accountNumber?: string;
 }
 
 export const feeStructureApi = {
@@ -1472,8 +1523,9 @@ export interface Announcement {
   id: string;
   title: string;
   content: string;
-  audience?: 'All' | 'Students' | 'Teachers' | 'Class' | 'Parents';
+  audience?: 'All' | 'Students' | 'Teachers' | 'Class' | 'Parents' | 'SpecificUser';
   targetClassId?: string;
+  targetUserId?: string;
   createdAt?: string;
   updatedAt?: string;
   schoolId?: string;
@@ -1482,8 +1534,9 @@ export interface Announcement {
 export interface CreateAnnouncementRequest {
   title: string;
   content: string;
-  audience?: 'All' | 'Students' | 'Teachers' | 'Class' | 'Parents';
+  audience?: 'All' | 'Students' | 'Teachers' | 'Class' | 'Parents' | 'SpecificUser';
   targetClassId?: string;
+  targetUserId?: string;
 }
 
 // Announcements API
@@ -1689,6 +1742,12 @@ export const bursarApi = {
   getReport: async (params?: any) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';
     const res = await fetchWithTimeout(`${API_BASE_URL}/bursar/fees/report${qs}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  getPendingCount: async () => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/bursar/fees/pending-count`, {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);

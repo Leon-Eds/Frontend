@@ -1,19 +1,8 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { Toaster } from "react-hot-toast";
 import Script from "next/script";
-
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "LeonEd Africa | Academic Architect",
@@ -29,8 +18,19 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${jakarta.variable} ${geistMono.variable} font-sans h-full antialiased`}
+      className="font-sans h-full antialiased"
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet" />
+        <style>{`
+          :root {
+            --font-jakarta: "Plus Jakarta Sans", sans-serif;
+            --font-geist-mono: "Geist Mono", monospace;
+          }
+        `}</style>
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <Script id="theme-initializer">
           {`

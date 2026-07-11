@@ -114,10 +114,8 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
   const handleDownloadResults = async () => {
     try {
       setIsDownloading(true);
-      const studentRecordId = studentInfo.studentId || studentInfo.id || studentInfo._id;
-      // Depending on API, it might be reportCardApi.downloadPdf(studentRecordId, selectedTermId)
-      // or a specific endpoint for 'my'
-      const blob = await reportCardApi.downloadPdf(studentRecordId, selectedTermId);
+      // Use the student-specific endpoint
+      const blob = await reportCardApi.downloadMyPdf(selectedTermId);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

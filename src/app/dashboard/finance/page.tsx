@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import toast from 'react-hot-toast';
-import { Eye, Search, Filter, Download, MoreVertical, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Printer, AlertCircle, Loader2, RotateCw, Lock, UploadCloud, Plus, Mail, Check, FileText, X, Settings2 } from "lucide-react";
+import { Eye, Search, Filter, Download, MoreVertical, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Printer, AlertCircle, Loader2, RotateCw, Lock, UploadCloud, Plus, Mail, Check, FileText, X, Settings2, XCircle, CheckCircle, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { studentApi, feeApi, sessionApi, classApi, bursarApi, uploadToCloudinary } from "@/lib/api";
@@ -222,7 +222,15 @@ export default function FeeClearance() {
       let feeRecords: any[] = [];
       if (currentTerm) {
          const classList = Array.isArray(classes) ? classes : [];
-         const feePromises = classList.map((c: any) => feeApi.getClassFees(c.id, currentTerm.id).catch(() => []));
+         
+         const feePromises = classList.map(async (c: any) => {
+           let fees = await feeApi.getClassFees(c.id, currentTerm.id).catch(() => []) as any;
+           if (!fees || fees.length === 0 || (fees.data && fees.data.length === 0)) {
+             fees = await bursarApi.getClassFees(c.id).catch(() => []) as any;
+           }
+           return fees;
+         });
+         
          const classFees = await Promise.all(feePromises);
          
          feeRecords = classFees.map(f => {
@@ -231,14 +239,39 @@ export default function FeeClearance() {
            if (f && typeof f === 'object' && 'items' in f) return (f as any).items;
            return [];
          }).flat();
+         console.log("[DEBUG] Fetched feeRecords:", feeRecords);
+      }
+
+      // FALLBACK: If feeRecords is empty, try fetching individually for each student
+      if (feeRecords.length === 0 && currentTerm) {
+         console.log("[DEBUG] Bulk fetch returned empty, falling back to individual getStudentFees...");
+         const individualPromises = students.map(async (s: any) => {
+            const res = await feeApi.getStudentFees(s.id, currentTerm.id).catch(() => null) as any;
+            let items: any[] = [];
+            if (Array.isArray(res)) items = res;
+            else if (res && Array.isArray(res.data)) items = res.data;
+            else if (res && Array.isArray(res.items)) items = res.items;
+            else if (res && typeof res === 'object') items = [res.data || res];
+            
+            return items.map(item => ({ ...item, studentId: s.id }));
+         });
+         const individualResults = await Promise.all(individualPromises);
+         feeRecords = individualResults.flat().filter(Boolean);
+         console.log("[DEBUG] Flattened Individual fetch feeRecords:", feeRecords);
       }
 
       const feeMap = new Map();
       feeRecords.forEach(f => {
-         if (f && f.studentId) {
-            feeMap.set(f.studentId, f);
+         if (!f) return;
+         const sId = f.studentId || f.student?.id || f.student?._id || (typeof f.student === 'string' ? f.student : null);
+         if (sId) {
+            feeMap.set(sId.toString(), f);
+         } else {
+            console.warn("[DEBUG] Could not extract student ID from fee record:", f);
          }
       });
+      console.log("[DEBUG] Final feeMap keys:", Array.from(feeMap.keys()));
+      console.log("[DEBUG] Students available to map:", students.map(s => ({ id: s.id, refId: (s as any).refId, studentId: (s as any).studentId, name: s.fullName })));
 
       // Load fee structures
       const { feeStructureApi } = await import('@/lib/api');
@@ -252,7 +285,11 @@ export default function FeeClearance() {
       let needsBackfill = false;
 
       const mapped: StudentRegistry[] = students.map((student) => {
-        const fee = feeMap.get(student.id);
+        const fee = feeMap.get(student.id) || feeMap.get((student as any).refId) || feeMap.get((student as any).studentId);
+        if (student.fullName === "Kid Gojo") {
+           console.log("[DEBUG] Kid Gojo fee record JSON:", JSON.stringify(fee, null, 2));
+        }
+        
         const localFee = localFees[student.id] || {};
         const sClass = (student as any).class || student.className || "";
 
@@ -272,16 +309,25 @@ export default function FeeClearance() {
 
         // If no base fee matches, default to 0. (Previously 50000)
         
-        // Override local fees if we want to enforce the computed structure. 
-        // We still allow localFee.amountPaid.
         const finalAmountDue = computedDue;
-        const finalAmountPaid = localFee.amountPaid !== undefined ? localFee.amountPaid : (fee ? fee.amountPaid : 0);
-        let finalStatus = localFee.status || "Pending Verification";
-
-        if (!localFee.status) {
-           if (fee) {
-              finalStatus = (fee.amountDue > 0 && fee.amountPaid >= fee.amountDue) || fee.isCleared ? "Cleared" : "Unpaid";
-           }
+        const finalAmountPaid = fee ? fee.amountPaid || fee.paidAmount || 0 : 0;
+        
+        let finalStatus = "Unpaid";
+        if (fee) {
+          const fs = fee.status ? fee.status.toLowerCase() : "";
+          if (fs === "cleared" || fee.isCleared || (fee.amountDue > 0 && finalAmountPaid >= fee.amountDue)) {
+            finalStatus = "Cleared";
+          } else if (fs === "pending" || fs === "pending verification" || fee.receiptImageUrl || fee.receiptUrl) {
+            finalStatus = "Pending Verification";
+          } else if (fs === "notrecorded" || fs === "unpaid") {
+            finalStatus = "Unpaid";
+          } else if (fs) {
+            finalStatus = fee.status; // use as is
+          } else if (finalAmountDue === 0) {
+            finalStatus = "Cleared";
+          }
+        } else if (finalAmountDue === 0) {
+          finalStatus = "Cleared";
         }
 
         // Backfill studentName into existing local records
@@ -296,9 +342,10 @@ export default function FeeClearance() {
           avatarUrl: student.profilePictureUrl || (student as any).avatarUrl,
           program: student.className || "Unassigned",
           refId: student.admissionNumber || student.id,
-          status: finalStatus,
+          status: finalStatus as "Cleared" | "Unpaid" | "Pending Verification",
           amountDue: finalAmountDue,
           amountPaid: finalAmountPaid,
+          receiptImageUrl: fee?.receiptImageUrl || fee?.receiptUrl || fee?.imageUrl || fee?.receipt || fee?.paymentReceipt || fee?.proofOfPayment || null,
           paymentDescription: localFee.description || "Tuition Fee",
           paymentDate: localFee.date || new Date().toISOString(),
         };
@@ -407,16 +454,30 @@ export default function FeeClearance() {
     if (!currentTermId || !currentSessionId) return;
 
     try {
+      const amountDue = actionStudent?.amountDue || 50000;
+      console.log("[DEBUG] handleAction called with:", { id, newStatus, currentTermId, currentSessionId, amountDue });
       if (newStatus === "Cleared") {
-        await feeApi.clearFees(id, currentTermId);
-      } else if (newStatus === "Unpaid") {
-        await feeApi.record({
+        const payload = {
           studentId: id,
           termId: currentTermId,
           academicSessionId: currentSessionId,
-          amountDue: 1000, // default placeholder
+          amountDue: amountDue,
+          amountPaid: amountDue
+        };
+        console.log("[DEBUG] Sending feeApi.record for Cleared:", payload);
+        const res = await feeApi.record(payload);
+        console.log("[DEBUG] feeApi.record response:", res);
+      } else if (newStatus === "Unpaid") {
+        const payload = {
+          studentId: id,
+          termId: currentTermId,
+          academicSessionId: currentSessionId,
+          amountDue: amountDue,
           amountPaid: 0
-        });
+        };
+        console.log("[DEBUG] Sending feeApi.record for Unpaid:", payload);
+        const res = await feeApi.record(payload);
+        console.log("[DEBUG] feeApi.record response:", res);
       }
     } catch (err) {
       console.error("Failed to update fee status:", err);
@@ -617,27 +678,12 @@ export default function FeeClearance() {
                         </>
                       )}
                       
-                      {student.status === "Unpaid" && (
-                        <>
-                          <button 
-                            onClick={() => handleAction(student.id, "Pending Verification")}
-                            className="p-2 rounded-xl text-gray-400 hover:text-[#053d26] transition-colors"
-                            title="Trigger Re-Verification"
-                          >
-                            <RotateCw className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors">
-                            <Mail className="w-5 h-5" />
-                          </button>
-                        </>
-                      )}
-
-                      {student.status === "Pending Verification" && (
+                      {(student.status === "Pending Verification" || student.status === "Unpaid") && (
                         <>
                           <button 
                             onClick={() => handleOpenClearModal(student.id)}
                             className="p-1.5 rounded-xl bg-green-100 text-[#053d26] hover:bg-green-200 transition-colors"
-                            title="Verify & Approve"
+                            title={student.status === "Pending Verification" ? "Verify & Approve" : "Clear Payment"}
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -653,15 +699,40 @@ export default function FeeClearance() {
 
                             {dropdownOpenId === student.id && (
                               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-10 animate-in fade-in slide-in-from-top-2 duration-100">
+                                {student.status !== "Unpaid" && (
+                                  <button 
+                                    onClick={() => {
+                                      handleAction(student.id, "Unpaid");
+                                      setDropdownOpenId(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left font-bold"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                    Reject / Mark Unpaid
+                                  </button>
+                                )}
                                 <button 
                                   onClick={() => {
-                                    handleAction(student.id, "Unpaid");
+                                    handleAction(student.id, "Cleared");
                                     setDropdownOpenId(null);
                                   }}
-                                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
                                 >
-                                  Reject Verification
+                                  <CheckCircle className="w-4 h-4" />
+                                  Force Clear Student
                                 </button>
+                                {student.status === "Unpaid" && (
+                                  <button 
+                                    onClick={() => {
+                                      handleAction(student.id, "Pending Verification");
+                                      setDropdownOpenId(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                                  >
+                                    <RotateCw className="w-4 h-4" />
+                                    Trigger Re-Verification
+                                  </button>
+                                )}
                                 <button 
                                   onClick={() => {
                                     handleOpenDetails(student);
@@ -980,6 +1051,29 @@ export default function FeeClearance() {
                 </div>
               </div>
 
+              {detailStudent.receiptImageUrl && (
+                <div className="mt-4 bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex justify-between items-center">
+                    Uploaded Payment Receipt
+                    <a 
+                      href={detailStudent.receiptImageUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[#053d26] hover:text-green-700 underline flex items-center gap-1 normal-case tracking-normal"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      View Full Size
+                    </a>
+                  </p>
+                  <div className="rounded-xl overflow-hidden border border-gray-200 bg-white flex items-center justify-center p-2">
+                    <img 
+                      src={detailStudent.receiptImageUrl} 
+                      alt="Payment Receipt" 
+                      className="w-full max-h-64 object-contain rounded-lg"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="p-6 bg-gray-50/50 border-t border-gray-100 flex justify-end">

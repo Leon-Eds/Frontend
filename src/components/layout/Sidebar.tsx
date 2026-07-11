@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { schoolApi, resultApi, authApi } from "@/lib/api";
+import { schoolApi, resultApi, authApi, bursarApi } from "@/lib/api";
 import { useLanguage } from "@/components/LanguageProvider";
 import { 
   LayoutDashboard, 
@@ -96,6 +96,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [logoUrl, setLogoUrl] = useState<string>("/logo.png");
   const [plan, setPlan] = useState<string>("Free");
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [pendingFeesCount, setPendingFeesCount] = useState<number>(0);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -109,6 +110,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
           const res = await resultApi.getPendingApprovalsCount();
           if (res && typeof res.data?.count === "number") {
             setPendingApprovalsCount(res.data.count);
+          }
+          
+          const feesRes = await bursarApi.getPendingCount().catch(() => null);
+          if (feesRes && typeof (feesRes as any).data?.count === "number") {
+            setPendingFeesCount((feesRes as any).data.count);
           }
         }
       } catch (err) {
@@ -293,6 +299,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
               {item.href === "/dashboard/approvals" && pendingApprovalsCount > 0 && (
                 <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${isActive ? "bg-white text-[#095838]" : "bg-red-500 text-white"}`}>
                   {pendingApprovalsCount}
+                </span>
+              )}
+              {item.href === "/dashboard/finance" && pendingFeesCount > 0 && (
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${isActive ? "bg-white text-[#095838]" : "bg-red-500 text-white"}`}>
+                  {pendingFeesCount}
                 </span>
               )}
             </Link>

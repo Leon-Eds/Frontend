@@ -1,18 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { feeStructureApi, FeeStructure } from "@/lib/api";
+import { feeStructureApi, FeeStructure, classApi } from "@/lib/api";
 import { Plus, Edit, Trash2, Save, X, Settings2, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-const AVAILABLE_LEVELS = ["JSS 1", "JSS 2", "JSS 3", "SS 1", "SS 2", "SS 3"];
-
 export default function FeeStructureSetup() {
   const router = useRouter();
   const [structures, setStructures] = useState<FeeStructure[]>([]);
   const [loading, setLoading] = useState(true);
+  const [availableLevels, setAvailableLevels] = useState<string[]>([]);
 
   // Edit/Add modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,8 +25,18 @@ export default function FeeStructureSetup() {
   const loadStructures = async () => {
     setLoading(true);
     try {
-      const data = await feeStructureApi.getStructures();
+      const [data, classes] = await Promise.all([
+        feeStructureApi.getStructures(),
+        classApi.getAll().catch(() => [])
+      ]);
       setStructures(data || []);
+      
+      const levels = Array.from(new Set(classes.map(c => c.name || (c as any).className || '').filter(Boolean)));
+      if (levels.length > 0) {
+        setAvailableLevels(levels as string[]);
+      } else {
+        setAvailableLevels(["JSS 1", "JSS 2", "JSS 3", "SS 1", "SS 2", "SS 3"]);
+      }
     } catch (err) {
       toast.error("Failed to load fee structures");
     } finally {
@@ -240,11 +249,33 @@ export default function FeeStructureSetup() {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Bank Name (Optional)</label>
+                <input 
+                  type="text" 
+                  value={editingStructure.bankName || ''} 
+                  onChange={e => setEditingStructure({ ...editingStructure, bankName: e.target.value })}
+                  placeholder="e.g. Zenith Bank"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26] transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Account Number (Optional)</label>
+                <input 
+                  type="text" 
+                  value={editingStructure.accountNumber || ''} 
+                  onChange={e => setEditingStructure({ ...editingStructure, accountNumber: e.target.value })}
+                  placeholder="e.g. 1234567890"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26] transition-all"
+                />
+              </div>
+
               {editingStructure.type === 'base' && (
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Applicable Levels</label>
                   <div className="flex flex-wrap gap-2">
-                    {AVAILABLE_LEVELS.map(level => {
+                    {availableLevels.map(level => {
                       const isSelected = editingStructure.applicableLevels?.includes(level);
                       return (
                         <button

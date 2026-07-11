@@ -73,10 +73,10 @@ export default function RequestDemoPage() {
             <>
               <div className="text-center mb-10">
                 <div className="inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold text-[#053d26] bg-green-100 mb-4">
-                  SCHEDULE A DEMO
+                  CONTACT SALES
                 </div>
                 <h1 className="text-3xl lg:text-4xl font-bold text-[#053d26] mb-2">
-                  Request a Demo
+                  Contact Sales
                 </h1>
                 <p className="text-gray-600 max-w-md mx-auto">
                   See how LeonEd Africa can transform your school&apos;s academic management. Our team will walk you through the platform.
@@ -193,9 +193,9 @@ export default function RequestDemoPage() {
               <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-6">
                 <CheckCircle2 className="h-8 w-8 text-[#053d26]" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">Demo Request Received!</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">Request Received!</h2>
               <p className="text-gray-500 mb-8 max-w-sm mx-auto">
-                Thank you, {formData.name}. Our team will contact you at <span className="font-semibold text-gray-700">{formData.email}</span> within 24 hours to schedule your demo.
+                Thank you, {formData.name}. Our team will contact you at <span className="font-semibold text-gray-700">{formData.email}</span> within 24 hours to discuss your needs.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Link

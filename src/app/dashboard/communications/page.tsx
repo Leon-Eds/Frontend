@@ -75,6 +75,7 @@ export default function BroadcastHub() {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("General");
   const [targetGroup, setTargetGroup] = useState("All");
+  const [targetUserId, setTargetUserId] = useState("");
   
   // UI states
   const [isSending, setIsSending] = useState(false);
@@ -126,18 +127,29 @@ export default function BroadcastHub() {
 
     setIsSending(true);
     try {
-      const audience = targetGroup === "All" ? "All" : targetGroup === "Students" ? "Students" : targetGroup === "Parents" ? "Parents" : "Teachers";
+      const audience = targetGroup === "All" ? "All" 
+        : targetGroup === "Students" ? "Students" 
+        : targetGroup === "Parents" ? "Parents" 
+        : targetGroup === "SpecificUser" ? "SpecificUser"
+        : "Teachers";
       
+      if (targetGroup === "SpecificUser" && !targetUserId.trim()) {
+        setFormError("Target User ID is required when sending to a specific user.");
+        setIsSending(false);
+        return;
+      }
+
       // 1. Save announcement to backend API
       await announcementApi.create({
         title,
         content,
         audience,
+        ...(targetGroup === "SpecificUser" ? { targetUserId: targetUserId.trim() } : {})
       });
 
       // 2. Save log local UI telemetry
       const newDate = new Date().toISOString();
-      const targetCount = targetGroup === "All" ? 48 : targetGroup === "Math" ? 5 : 12;
+      const targetCount = targetGroup === "All" ? 48 : targetGroup === "SpecificUser" ? 1 : targetGroup === "Math" ? 5 : 12;
       const newLog: DispatchLog = {
         id: `log-${Date.now()}`,
         subject: title,
@@ -174,6 +186,7 @@ export default function BroadcastHub() {
       setTitle("");
       setContent("");
       setCategory("General");
+      setTargetUserId("");
       fetchAnnouncements();
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : "Failed to execute broadcast");
@@ -274,10 +287,24 @@ export default function BroadcastHub() {
                     <option value="All">All School Staff (48)</option>
                     <option value="Students">All Students</option>
                     <option value="Parents">All Parents / Guardians</option>
+                    <option value="SpecificUser">Specific User</option>
                     <option value="Math">Maths Department (5)</option>
                     <option value="Science">Sciences Department (12)</option>
                   </select>
                 </div>
+                
+                {targetGroup === "SpecificUser" && (
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Target User ID (Admission Number / ID)</label>
+                    <input 
+                      type="text" 
+                      value={targetUserId}
+                      onChange={(e) => setTargetUserId(e.target.value)}
+                      placeholder="e.g. STUD-12345 or User UUID"
+                      className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Broadcast Category</label>

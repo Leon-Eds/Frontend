@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Save, Send, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Clock, FileText, CheckCircle2, Loader2, Settings, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { scoreApi, classApi, subjectApi, sessionApi, dashboardApi, teacherPortalApi } from "@/lib/api";
 
 interface StudentScore {
@@ -59,6 +60,7 @@ function calculatePositions(students: StudentScore[]): StudentScore[] {
 }
 
 export default function FacultyResultEntry() {
+  const router = useRouter();
   const [students, setStudents] = useState<StudentScore[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [saveStatus, setSaveStatus] = useState("All changes saved");
@@ -360,19 +362,27 @@ export default function FacultyResultEntry() {
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
       {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="bg-orange-100 text-[#b05e1c] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              {currentSessionName || "Current Session"}
-            </span>
-            <span className="bg-green-100 text-[#053d26] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              {selectedClassName} {selectedSubjectName}
-            </span>
+        <div className="flex items-start gap-4">
+          <button 
+            onClick={() => router.back()}
+            className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors shrink-0 mt-1"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="bg-orange-100 text-[#b05e1c] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                {currentSessionName || "Current Session"}
+              </span>
+              <span className="bg-green-100 text-[#053d26] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                {selectedClassName} {selectedSubjectName}
+              </span>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 leading-tight">Teacher Score Entry Ledger</h1>
+            <p className="text-gray-500 max-w-2xl leading-relaxed text-sm">
+              Enter and verify results for the selected class and subject. Auto-saves changes securely.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 leading-tight">Teacher Score Entry Ledger</h1>
-          <p className="text-gray-500 max-w-2xl leading-relaxed text-sm">
-            Enter and verify results for the selected class and subject. Auto-saves changes securely.
-          </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">

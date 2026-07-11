@@ -20,6 +20,7 @@ export default function StaffDirectory() {
     password: '',
     role: 'Bursar',
   });
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [editModal, setEditModal] = useState<{isOpen: boolean, staff: Staff | null}>({isOpen: false, staff: null});
   const [editFormData, setEditFormData] = useState<UpdateStaffRequest>({
@@ -78,6 +79,11 @@ export default function StaffDirectory() {
       return;
     }
 
+    if (formData.password !== confirmPassword) {
+      setFormError("Passwords do not match.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       if (formData.role === 'Bursar' || formData.role === 'Bursar / Finance Officer') {
@@ -91,6 +97,7 @@ export default function StaffDirectory() {
       toast.success("Staff created successfully!");
       setShowModal(false);
       setFormData({ fullName: '', email: '', phone: '', password: '', role: 'Bursar' });
+      setConfirmPassword('');
       await fetchStaffs();
     } catch (err: unknown) {
       console.error('[Staff Page] Creation failed. Full error:', err);
@@ -307,6 +314,16 @@ export default function StaffDirectory() {
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26]"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password <span className="text-red-500">*</span></label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26]"
                     disabled={isSubmitting}
                   />

@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { CreditCard, UploadCloud, CheckCircle2, AlertCircle, Loader2, Download, Receipt } from "lucide-react";
-import { feeApi, sessionApi, uploadToCloudinary } from "@/lib/api";
+import { feeApi, sessionApi, schoolApi, uploadToCloudinary } from "@/lib/api";
 import toast from "react-hot-toast";
 
 export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
   const [feesData, setFeesData] = useState<any>(null);
+  const [feeBreakdown, setFeeBreakdown] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bankDetails, setBankDetails] = useState<{bankAccountName?: string, bankName?: string, bankAccountNumber?: string} | null>(null);
 
   const [terms, setTerms] = useState<any[]>([]);
   const [selectedTermId, setSelectedTermId] = useState<string>('');
@@ -29,7 +31,7 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
         sList.forEach((s: any) => {
           if (s.terms) {
             s.terms.forEach((t: any) => {
-              tList.push({ ...t, sessionName: s.name });
+              tList.push({ ...t, sessionName: s.name, sessionId: s.id || s._id });
               if (t.isCurrent) currTermId = t.id || t._id;
             });
           }
@@ -49,40 +51,34 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
     if (!selectedTermId) return;
     try {
       setIsLoading(true);
-      const studentRecordId = studentInfo.studentId || studentInfo.id || studentInfo._id;
-      const res = await feeApi.getStudentFees(studentRecordId, selectedTermId);
+      setError(null);
+      
+      const { feeStructureApi } = await import('@/lib/api');
+      const structures = await feeStructureApi.getStructures();
+      const customFeesMap = await feeStructureApi.getStudentCustomFees();
+      
+      const studentId = studentInfo.studentId || studentInfo.id || studentInfo._id;
+      const studentClass = studentInfo.className || studentInfo.formClass || "JSS 1";
+      
+      const applicableStructures = structures.filter((s: any) => {
+        if (s.type === 'base') {
+          const match = s.applicableLevels.some((l: string) => 
+            l === 'All' || studentClass.replace(/\s+/g, '').toLowerCase().includes(l.replace(/\s+/g, '').toLowerCase())
+          );
+          if (match) return true;
+        }
+        if (s.type === 'custom' && customFeesMap[studentId]?.includes(s.id)) {
+          return true;
+        }
+        return false;
+      });
+      setFeeBreakdown(applicableStructures);
+
+      const res = await feeApi.getMyStatus(selectedTermId);
       const data = (res as any)?.data || res;
       setFeesData(data);
     } catch (err) {
       console.error(err);
-      
-      // Fallback to mock data if backend fails (e.g., 403 Forbidden)
-      const studentRecordId = studentInfo.studentId || studentInfo.id || studentInfo._id;
-      const studentName = studentInfo.fullName || studentInfo.name || "";
-      const localFeesStr = localStorage.getItem("mock_fee_records");
-      
-      if (localFeesStr) {
-        try {
-          const localFees = JSON.parse(localFeesStr);
-          let mockData = null;
-          
-          if (localFees[studentRecordId]) {
-            mockData = localFees[studentRecordId];
-          } else if (studentName) {
-            const matchByName = Object.values(localFees).find(
-              (rec: any) => rec.studentName && rec.studentName.toLowerCase() === studentName.toLowerCase()
-            ) as any;
-            if (matchByName) mockData = matchByName;
-          }
-          
-          if (mockData) {
-            setFeesData(mockData);
-            setIsLoading(false);
-            return; // Successfully fell back to mock
-          }
-        } catch (e) {}
-      }
-      
       setError("Failed to load fee information.");
     } finally {
       setIsLoading(false);
@@ -92,6 +88,31 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
   useEffect(() => {
     fetchFees();
   }, [selectedTermId, studentInfo]);
+
+  useEffect(() => {
+    const fetchSchoolBankDetails = async () => {
+      try {
+        const userStr = localStorage.getItem('leoned_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          const sId = user.schoolId || user.SchoolId || studentInfo?.schoolId;
+          if (sId) {
+            const school: any = await schoolApi.getById(sId);
+            if (school?.bankName || school?.bankAccountNumber) {
+              setBankDetails({ 
+                bankAccountName: school.bankAccountName, 
+                bankName: school.bankName, 
+                bankAccountNumber: school.bankAccountNumber 
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch school bank details", err);
+      }
+    };
+    fetchSchoolBankDetails();
+  }, [studentInfo]);
 
   const handleUploadReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,12 +130,15 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
       const receiptUrl = await uploadToCloudinary(receiptFile);
       
       const studentRecordId = studentInfo.studentId || studentInfo.id || studentInfo._id;
+      const selectedTerm = terms.find(t => (t.id || t._id) === selectedTermId);
+      
       await feeApi.record({
         studentId: studentRecordId,
         termId: selectedTermId,
+        academicSessionId: selectedTerm?.sessionId,
         amountPaid: Number(amount),
         notes: description,
-        receiptUrl: receiptUrl,
+        receiptImageUrl: receiptUrl,
         paymentDate: new Date().toISOString(),
         paymentMethod: "Bank Transfer",
         status: "Pending" // Explicitly mark as pending for bursar approval
@@ -136,7 +160,30 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
   const status = feesData?.status || (Number(feesData?.balance || 0) <= 0 && feesData ? "Cleared" : "Unpaid");
   
   // Try to parse payment history if it exists
-  const paymentHistory = Array.isArray(feesData?.history) ? feesData.history : [];
+  let paymentHistory = Array.isArray(feesData?.history) ? feesData.history : (Array.isArray(feesData?.payments) ? feesData.payments : []);
+  
+  // If no history array but there is payment data on the main record, synthesize an entry
+  if (paymentHistory.length === 0 && feesData && (feesData.amountPaid > 0 || feesData.status === 'Pending' || feesData.receiptImageUrl)) {
+      paymentHistory = [{
+          id: feesData.id || feesData._id,
+          amountPaid: feesData.amountPaid || 0,
+          date: feesData.paymentDate || feesData.clearedAt || feesData.updatedAt || feesData.createdAt || new Date().toISOString(),
+          status: feesData.status === 'NotRecorded' ? 'Unpaid' : feesData.status,
+          method: feesData.paymentMethod || "Bank Transfer",
+          receiptUrl: feesData.receiptImageUrl || feesData.receiptUrl,
+          notes: feesData.notes || feesData.description || "Tuition Payment"
+      }];
+  }
+  
+  // Compute local fallback if backend returns 0
+  const computedTotal = feeBreakdown.reduce((sum, f) => sum + Number(f.amount || 0), 0);
+  const backendTotal = Number(feesData?.totalAmount || feesData?.amountDue || 0);
+  const totalAmount = backendTotal > 0 ? backendTotal : computedTotal;
+  
+  const backendPaid = Number(feesData?.amountPaid || feesData?.paidAmount || 0);
+  const balance = totalAmount - backendPaid;
+  
+  const showUploadForm = totalAmount > 0 && balance > 0;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -173,7 +220,7 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* Fee Summary */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className={showUploadForm ? "lg:col-span-8 space-y-6" : "lg:col-span-12 space-y-6"}>
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Term Fee Summary</h3>
@@ -190,16 +237,57 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
               <div className="flex gap-8 text-right">
                 <div>
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Amount Due</p>
-                  <p className="text-2xl font-extrabold text-gray-900">₦{Number(feesData?.totalAmount || 0).toLocaleString()}</p>
+                  <p className="text-2xl font-extrabold text-gray-900">₦{totalAmount.toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Balance</p>
-                  <p className={`text-2xl font-extrabold ${Number(feesData?.balance || 0) > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                    ₦{Number(feesData?.balance || 0).toLocaleString()}
+                  <p className={`text-2xl font-extrabold ${balance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    ₦{balance.toLocaleString()}
                   </p>
                 </div>
               </div>
             </div>
+
+            {/* Fee Breakdown */}
+            {feeBreakdown.length > 0 && (
+              <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Fee Breakdown & Payment Details</h3>
+                
+                {bankDetails && (bankDetails.bankName || bankDetails.bankAccountNumber) && (
+                  <div className="mb-6 p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl flex items-start gap-4">
+                    <Receipt className="w-6 h-6 text-emerald-600 mt-1 shrink-0" />
+                    <div>
+                      <h4 className="font-bold text-emerald-900 mb-2">School Payment Account</h4>
+                      <div className="text-sm text-emerald-800 space-y-1 bg-white/60 inline-block p-3 rounded-xl border border-emerald-50">
+                        {bankDetails.bankAccountName && <p><span className="font-bold uppercase tracking-wider text-xs text-emerald-600 mr-2">Account Name:</span> <span className="font-medium text-emerald-950">{bankDetails.bankAccountName}</span></p>}
+                        {bankDetails.bankName && <p><span className="font-bold uppercase tracking-wider text-xs text-emerald-600 mr-2">Bank:</span> <span className="font-medium text-emerald-950">{bankDetails.bankName}</span></p>}
+                        {bankDetails.bankAccountNumber && <p><span className="font-bold uppercase tracking-wider text-xs text-emerald-600 mr-2">Account No:</span> <span className="font-mono text-emerald-950 text-base">{bankDetails.bankAccountNumber}</span></p>}
+                      </div>
+                      <p className="text-xs text-emerald-600 mt-3 font-medium">Please use this account for all fee payments, and upload the receipt below.</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {feeBreakdown.map((fee: any, idx: number) => (
+                    <div key={idx} className="p-4 rounded-2xl border border-gray-100 bg-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <p className="font-bold text-gray-900">{fee.name}</p>
+                        {(fee.bankName || fee.accountNumber) && (
+                          <div className="text-sm text-gray-600 mt-1 space-y-0.5">
+                            {fee.bankName && <p><span className="font-semibold text-gray-800">Bank:</span> {fee.bankName}</p>}
+                            {fee.accountNumber && <p><span className="font-semibold text-gray-800">Account No:</span> {fee.accountNumber}</p>}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right whitespace-nowrap">
+                        <p className="font-extrabold text-[#053d26]">₦{Number(fee.amount).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Payment History */}
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
@@ -232,9 +320,33 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
                         }`}>
                           {payment.status || 'Cleared'}
                         </span>
+                        {payment.status === 'Cleared' && (payment.id || payment._id) && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const toastId = toast.loading('Generating Receipt...');
+                                const blob = await feeApi.downloadReceiptPdf(payment.id || payment._id);
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `Receipt-${payment.id || payment._id}.pdf`;
+                                document.body.appendChild(a);
+                                a.click();
+                                a.remove();
+                                window.URL.revokeObjectURL(url);
+                                toast.success('Receipt downloaded!', { id: toastId });
+                              } catch (e) {
+                                toast.error('Failed to download receipt');
+                              }
+                            }}
+                            className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:underline"
+                          >
+                            <Download className="w-3 h-3" /> Download Receipt
+                          </button>
+                        )}
                         {payment.receiptUrl && (
                           <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-bold text-[#053d26] hover:underline">
-                            <Receipt className="w-3 h-3" /> View Receipt
+                            <Receipt className="w-3 h-3" /> View Uploaded Image
                           </a>
                         )}
                       </div>
@@ -246,55 +358,55 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
           </div>
 
           {/* Upload Receipt Form */}
-          <div className="lg:col-span-4 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 h-fit">
-            <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Submit Payment</h3>
-            <form onSubmit={handleUploadReceipt} className="space-y-5">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Amount Paid (₦)</label>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="e.g. 50000"
-                  className="w-full rounded-2xl bg-gray-100 py-3 px-4 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
-                  disabled={isUploading}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Receipt Image</label>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                  className="w-full rounded-2xl bg-gray-100 py-2 px-4 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#053d26] file:text-white hover:file:bg-[#042c1b]"
-                  disabled={isUploading}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Description / Notes</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g. First installment paid via Zenith Bank"
-                  rows={3}
-                  className="w-full rounded-2xl bg-gray-100 py-3 px-4 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors resize-none"
-                  disabled={isUploading}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isUploading || !receiptFile || !amount}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#053d26] hover:bg-[#042c1b] text-white rounded-xl font-bold transition-all disabled:opacity-50"
-              >
-                {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
-                {isUploading ? "Uploading..." : "Submit Receipt"}
-              </button>
-            </form>
-          </div>
-
+          {showUploadForm && (
+            <div className="lg:col-span-4 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 h-fit">
+              <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Submit Payment</h3>
+              <form onSubmit={handleUploadReceipt} className="space-y-5">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Amount Paid (₦)</label>
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="w-full border-gray-200 rounded-xl focus:ring-[#053d26] focus:border-[#053d26]"
+                    placeholder="e.g. 50000"
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Receipt Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-[#053d26]/10 file:text-[#053d26] hover:file:bg-[#053d26]/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Description / Notes</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full border-gray-200 rounded-xl focus:ring-[#053d26] focus:border-[#053d26] resize-none"
+                    rows={3}
+                    placeholder="e.g. First installment paid via Zenith Bank"
+                  ></textarea>
+                </div>
+                <button
+                  type="submit"
+                  disabled={isUploading || !receiptFile || !amount}
+                  className="w-full flex items-center justify-center gap-2 bg-[#4285F4] hover:bg-[#3367D6] text-white py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <UploadCloud className="w-5 h-5" />
+                  )}
+                  {isUploading ? "Uploading..." : "Submit Receipt"}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       )}
     </div>

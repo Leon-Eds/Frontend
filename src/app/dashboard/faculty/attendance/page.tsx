@@ -115,7 +115,7 @@ function FacultyAttendanceInner() {
         const defaultAtt: Record<string, 'Present' | 'Absent' | 'Late'> = {};
         const safeClassStudents = Array.isArray(classStudents) ? classStudents : ((classStudents as any)?.data || (classStudents as any)?.items || []);
         safeClassStudents.forEach((s: any) => {
-          const sId = s.studentId || s.id || s._id;
+          const sId = s.student?.id || s.studentId || s.id || s._id;
           defaultAtt[sId] = (savedAttendance[sId] as any) || 'Present';
         });
         setAttendance(defaultAtt);
@@ -243,16 +243,28 @@ function FacultyAttendanceInner() {
               try {
                 // Handle JSON format if encoded
                 const data = JSON.parse(decodedText);
-                studentId = data.id || data.studentId || decodedText;
+                studentId = data.admissionNumber || data.id || data.studentId || decodedText;
               } catch(e) {}
               
-              // Verify student is in this class
-              const isStudentInClass = students.some(s => (s.id || s._id || s.studentId) === studentId);
-              if (isStudentInClass) {
-                handleMark(studentId, 'Present');
-                toast.success(`Student marked present!`);
+              // Verify student is in this class (we can check by id or admissionNumber)
+              const student = students.find(s => 
+                (s.student?.id || s.id || s._id || s.studentId) === studentId || (s.student?.admissionNumber || s.admissionNumber) === studentId
+              );
+              
+              if (student) {
+                const sId = student.student?.id || student.id || student._id || student.studentId;
+                handleMark(sId, 'Present');
+                
+                // Fire the new backend API endpoint for immediate QR scanning
+                attendanceApi.scanIdCard(student.admissionNumber || sId, date, 'Present', 'Scanned via QR Code')
+                  .then(() => toast.success(`${student.fullName || student.name} marked present!`))
+                  .catch((err) => {
+                     console.error("QR Scan Sync Error:", err);
+                     // Note: We still marked them present locally, so they can hit "Save Register" later as a fallback
+                     toast.success(`${student.fullName || student.name} marked present locally. (Sync failed)`);
+                  });
               } else {
-                toast.error("Student not found in this class.");
+                toast.error(`Student ${studentId} not found in this class.`);
               }
             }}
           />
@@ -282,7 +294,7 @@ function FacultyAttendanceInner() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {students.map((student) => {
-                const sId = student.studentId || student.id || student._id;
+                const sId = student.student?.id || student.studentId || student.id || student._id;
                 return (
                 <tr key={sId} className="hover:bg-gray-50/50 transition-colors">
                   <td className="py-4 px-6 font-bold text-gray-900 text-sm">

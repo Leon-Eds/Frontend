@@ -43,7 +43,7 @@ const translations: Record<Language, Record<string, string>> = {
     "hero.title": "Digitizing African Classrooms, One School at a Time.",
     "hero.subtitle": "The complete digital management solution for student records, automated result processing, and secure portal access. Built for the future of African education.",
     "hero.cta.register": "Register Your School",
-    "hero.cta.demo": "Request Demo",
+    "hero.cta.demo": "Contact Us",
     "hero.trusted": "Trusted by 500+ institutions across the continent",
     "hero.architect": "THE ACADEMIC ARCHITECT",
     "hero.automated_processing": "Automated Result Processing",
@@ -131,10 +131,10 @@ const translations: Record<Language, Record<string, string>> = {
     "register.registering": "Registering...",
     "register.complete": "Complete Registration",
     // Demo
-    "demo.title": "Request a Free Demo",
+    "demo.title": "Contact Sales",
     "demo.subtitle": "Experience the academic architect in action",
     "demo.submit": "Submit Request",
-    "demo.success": "Demo requested successfully!",
+    "demo.success": "Request submitted successfully!",
     // Layout headers
     "header.academic_architect": "Academic Architect",
     "header.search": "Search records...",

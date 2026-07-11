@@ -1,5 +1,7 @@
 "use client";
 
+import IdCard from "@/components/shared/IdCard";
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { Eye, Edit2, Download, TrendingUp, AlertCircle, CheckCircle2, Loader2, UserPlus, X, Trash2, Save, GraduationCap, Power, CreditCard, Printer } from 'lucide-react';
@@ -42,6 +44,7 @@ export default function StudentsPage() {
 
   // ID Card modal
   const [idCardStudent, setIdCardStudent] = useState<Student | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [principalName, setPrincipalName] = useState<string>('Principal');
   const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '', phone: '', logo: '', theme: '#053d26' });
   const idCardRef = useRef<HTMLDivElement>(null);
@@ -173,19 +176,32 @@ export default function StudentsPage() {
     }
   };
 
-  const handleDownloadIdCard = async () => {
-    if (!idCardRef.current || !idCardStudent) return;
-    try {
-      const dataUrl = await toPng(idCardRef.current, { cacheBust: true, quality: 1, pixelRatio: 3 });
-      const link = document.createElement('a');
-      link.download = `${idCardStudent.fullName.replace(/\s+/g, '_')}_ID_Card.png`;
-      link.href = dataUrl;
-      link.click();
-      toast.success("ID Card downloaded successfully!");
-    } catch (err) {
-      toast.error("Failed to generate ID Card image.");
+  const handlePreviewIdCard = (student: Student) => {
+    setViewStudent(null);
+    setIdCardStudent(student);
+  };
+
+  const handleDownloadFromPreview = async () => {
+    if (!idCardStudent || !idCardRef.current) return;
+    const toastId = toast.loading('Generating PDF...');
+    const opt: any = {
+      margin:       0.5,
+      filename:     `ID-Card-${idCardStudent.admissionNumber || idCardStudent.fullName}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+    const html2pdf = (await import('html2pdf.js')).default;
+    html2pdf().set(opt).from(idCardRef.current).save().then(() => {
+      toast.success('Downloaded successfully!', { id: toastId });
+    }).catch((err: any) => {
+      toast.error('Failed to generate PDF', { id: toastId });
       console.error(err);
-    }
+    });
+  };
+
+  const closePreview = () => {
+    setIdCardStudent(null);
   };
 
   const handleDelete = async () => {
@@ -510,7 +526,7 @@ export default function StudentsPage() {
 
             <div className="grid grid-cols-2 gap-3 mt-8">
               <button
-                onClick={() => { setViewStudent(null); setIdCardStudent(viewStudent); }}
+                onClick={() => handlePreviewIdCard(viewStudent)}
                 className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 transition-colors text-sm border border-blue-100/50 shadow-sm"
               >
                 <CreditCard className="h-4 w-4" /> View ID Card
@@ -676,211 +692,66 @@ export default function StudentsPage() {
         </div>
       )}
 
-      {/* ID Card Modal */}
+      {/* ID Card Preview Modal */}
       {idCardStudent && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 print:bg-white print:p-0 print:z-auto print:static">
-          <div className="absolute inset-0 print:hidden" onClick={() => setIdCardStudent(null)}></div>
-          
-          <div className="relative bg-gray-50 rounded-3xl p-6 md:p-10 max-w-4xl w-full shadow-2xl flex flex-col items-center print:shadow-none print:p-0 print:m-0 print:bg-white overflow-y-auto max-h-[90vh]">
-            <button onClick={() => setIdCardStudent(null)} className="absolute top-4 right-4 p-2 bg-white rounded-full text-gray-500 hover:text-gray-900 shadow-sm print:hidden z-10">
-              <X className="h-5 w-5" />
-            </button>
-
-            {/* Actions */}
-            <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 print:hidden relative z-10">
-              <div>
-                <h3 className="text-xl font-black text-gray-900">Student ID Card</h3>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-gray-100 bg-gray-50 shrink-0 gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <h3 className="font-bold text-lg text-gray-800">ID Card Preview</h3>
                 <input 
                   type="text" 
                   value={principalName}
                   onChange={(e) => setPrincipalName(e.target.value)}
                   placeholder="Principal's Name"
-                  className="mt-2 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#053d26] w-full sm:w-auto"
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#053d26] w-full sm:w-48"
                 />
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => window.print()} className="p-2 bg-white rounded-full text-gray-600 hover:text-[#053d26] shadow-sm hover:shadow-md transition-all" title="Print ID Card">
-                  <Printer className="h-5 w-5" />
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <button onClick={() => window.print()} className="p-2 bg-white rounded-lg border border-gray-200 text-gray-600 hover:text-[#053d26] shadow-sm hover:bg-gray-50 transition-all" title="Print ID Card">
+                  <Printer className="h-4 w-4" />
                 </button>
-                <button onClick={handleDownloadIdCard} className="p-2 bg-white rounded-full text-gray-600 hover:text-[#053d26] shadow-sm hover:shadow-md transition-all" title="Download Image">
-                  <Download className="h-5 w-5" />
+                <button 
+                  onClick={handleDownloadFromPreview}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#053d26] hover:bg-[#042c1b] text-white rounded-lg font-bold text-sm transition-colors"
+                >
+                  <Download className="w-4 h-4" /> Download PDF
+                </button>
+                <button 
+                  onClick={closePreview}
+                  className="p-2 hover:bg-gray-200 text-gray-500 rounded-lg transition-colors ml-2"
+                >
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
-
-            {/* The Actual ID Card */}
-            <div 
-              ref={idCardRef} 
-              className="flex flex-col sm:flex-row gap-6 items-center print:flex-row print:gap-4 print:items-start"
-            >
-              {/* FRONT CARD */}
-              <div 
-                className="bg-white overflow-hidden shadow-xl relative flex flex-col shrink-0 print:shadow-none print:rounded-none"
-                style={{ width: '3.375in', height: '5.375in', border: `2px solid ${schoolInfo.theme}`, borderRadius: '1rem' }}
-              >
-              {/* Header */}
-              <div 
-                className="w-full pt-5 pb-3 px-4 text-center text-white flex flex-col items-center relative"
-                style={{ backgroundColor: schoolInfo.theme }}
-              >
-                <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, white 1px, transparent 1px)', backgroundSize: '10px 10px' }} />
-                
-                {schoolInfo.logo ? (
-                  <img src={schoolInfo.logo} alt="School Logo" className="h-14 w-14 object-contain bg-white rounded-full p-1 mb-3 shadow-md relative z-10" />
-                ) : (
-                  <div className="h-14 w-14 rounded-full bg-white text-gray-900 flex items-center justify-center font-black text-2xl mb-3 shadow-md relative z-10">
-                    {schoolInfo.name.charAt(0)}
-                  </div>
-                )}
-                <h2 className="text-[14px] font-black uppercase tracking-widest relative z-10 leading-tight">
-                  {schoolInfo.name}
-                </h2>
-                <p className="text-[10px] font-bold tracking-[0.2em] opacity-90 relative z-10 mt-1 uppercase text-white/90">Student Identity Card</p>
-              </div>
-                              {/* Body */}
-                <div className="flex-1 flex flex-col items-center justify-center px-4 bg-white relative">
-                  {/* Photo */}
-                  <div className="relative mb-4 mt-2">
-                    <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-50 shadow-md relative z-10">
-                      {idCardStudent.profilePictureUrl || (idCardStudent as any).profilePicture || (idCardStudent as any).image ? (
-                        <img src={idCardStudent.profilePictureUrl || (idCardStudent as any).profilePicture || (idCardStudent as any).image} alt={idCardStudent.fullName} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-100">
-                          <UserPlus className="h-12 w-12" />
-                        </div>
-                      )}
-                    </div>
-                    {/* Decorative background element behind photo */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full opacity-10" style={{ backgroundColor: schoolInfo.theme }}></div>
-                  </div>
-
-                  {/* Info */}
-                  <div className="text-center w-full relative z-10">
-                    <h3 className="text-xl font-black text-gray-900 leading-tight uppercase tracking-wide mb-1" style={{ color: schoolInfo.theme }}>{idCardStudent.fullName}</h3>
-                    <div className="w-16 h-1 mx-auto my-3 rounded-full opacity-20" style={{ backgroundColor: schoolInfo.theme }}></div>
-                    <div className="flex flex-col gap-1.5 mt-4">
-                      <p className="text-sm font-bold text-gray-800 tracking-wider flex items-center justify-center gap-2">
-                        <span className="uppercase text-gray-400 font-bold text-[11px] w-14 text-right">ID:</span> 
-                        <span className="text-left w-36 truncate">{idCardStudent.admissionNumber || 'N/A'}</span>
-                      </p>
-                      <p className="text-sm font-bold text-gray-800 tracking-wider flex items-center justify-center gap-2">
-                        <span className="uppercase text-gray-400 font-bold text-[11px] w-14 text-right">Class:</span> 
-                        <span className="text-left w-36 truncate">{idCardStudent.className || 'Unassigned'}</span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Front Footer */}
-                <div 
-                  className="w-full py-3 px-4 text-center flex flex-col items-center justify-center border-t-4 shrink-0"
-                  style={{ backgroundColor: '#f8fafc', borderColor: schoolInfo.theme }}
-                >
-                  <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase">Front</p>
-                </div>
-              </div>
-
-              {/* BACK CARD */}
-              <div 
-                className="bg-white overflow-hidden shadow-xl relative flex flex-col shrink-0 print:shadow-none print:rounded-none"
-                style={{ width: '3.375in', height: '5.375in', border: `2px solid ${schoolInfo.theme}`, borderRadius: '1rem' }}
-              >
-                {/* Back Header */}
-                <div 
-                  className="w-full pt-4 pb-3 px-4 text-center text-white flex flex-col items-center relative shrink-0"
-                  style={{ backgroundColor: schoolInfo.theme }}
-                >
-                  <p className="text-[9px] font-bold tracking-wider opacity-90 leading-relaxed uppercase">
-                    This ID card is the property of
-                  </p>
-                  <h2 className="text-[12px] font-black uppercase tracking-widest mt-1">
-                    {schoolInfo.name}
-                  </h2>
-                </div>
-
-                {/* Back Body */}
-                <div className="flex-1 flex flex-col items-center justify-between py-6 px-4 bg-white relative text-center">
-                  <div className="w-full">
-                    <p className="text-[10px] text-gray-600 font-semibold mb-4 px-2 leading-relaxed">
-                      Must be worn at all times while on school premises. Non-transferable.
-                    </p>
-                    
-                    {/* QR Code */}
-                    <div className="inline-block p-2 bg-white border-2 rounded-xl shadow-sm relative z-10" style={{ borderColor: `${schoolInfo.theme}20` }}>
-                      <QRCode 
-                        value={JSON.stringify({ s: schoolInfo.name, n: idCardStudent.fullName, id: idCardStudent.admissionNumber })} 
-                        size={100}
-                        level="Q"
-                        fgColor={schoolInfo.theme}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Principal & Validity */}
-                  <div className="w-full mt-4">
-                    <div className="flex flex-col items-center mb-3">
-                      <div className="w-32 border-b-2 border-gray-400 mb-1">
-                        <p className="text-lg text-gray-800" style={{ fontFamily: "'Brush Script MT', 'Bradley Hand', cursive" }}>{principalName || ' '}</p>
-                      </div>
-                      <p className="text-[9px] font-bold text-gray-500 uppercase">Principal / Admin</p>
-                    </div>
-                    
-                    <div className="bg-gray-100 py-1.5 px-4 rounded-full inline-block">
-                      <p className="text-[10px] font-bold text-gray-800">
-                        VALID TILL: <span style={{ color: schoolInfo.theme }}>DEC {new Date().getFullYear() + 1}</span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Back Footer */}
-                <div 
-                  className="w-full py-2 px-4 text-center flex flex-col items-center justify-center border-t-4 shrink-0"
-                  style={{ backgroundColor: '#f8fafc', borderColor: schoolInfo.theme }}
-                >
-                  <p className="text-[9px] font-bold text-gray-600 mb-1">If found, please return to:</p>
-                  <p className="text-[10px] font-black text-gray-800 mb-1 leading-tight">{schoolInfo.name}</p>
-                  {schoolInfo.address && <p className="text-[8px] text-gray-500 truncate max-w-full">{schoolInfo.address}</p>}
-                  {schoolInfo.phone && <p className="text-[8px] text-gray-500">{schoolInfo.phone}</p>}
-                  
-                  <div className="mt-2 pt-1 border-t border-gray-200 w-1/2">
-                    <p className="text-[7px] font-bold text-gray-400 tracking-widest uppercase">Powered by LeonEd</p>
-                  </div>
-                </div>
+            
+            <div className="flex-1 bg-gray-100 p-8 overflow-y-auto flex items-center justify-center">
+              <div className="scale-75 sm:scale-90 md:scale-100 origin-top flex justify-center">
+                <IdCard 
+                  ref={idCardRef}
+                  student={idCardStudent}
+                  schoolInfo={schoolInfo}
+                  principalName={principalName}
+                />
               </div>
             </div>
-
+            
             {/* Print Styles */}
             <style dangerouslySetInnerHTML={{__html: `
               @media print {
-                body * {
-                  visibility: hidden;
-                }
-                .fixed.inset-0.z-\\[100\\] {
-                  position: absolute !important;
-                  left: 0 !important;
-                  top: 0 !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  width: 100% !important;
-                  height: 100% !important;
-                  background: white !important;
-                }
-                .fixed.inset-0.z-\\[100\\] > div:last-child > div:last-child,
-                .fixed.inset-0.z-\\[100\\] > div:last-child > div:last-child * {
-                  visibility: visible;
-                }
-                .fixed.inset-0.z-\\[100\\] > div:last-child > div:last-child {
+                body * { visibility: hidden; }
+                .id-card-container, .id-card-container * { visibility: visible; }
+                .id-card-container {
                   position: absolute;
                   left: 0;
                   top: 0;
+                  transform: scale(0.9);
+                  transform-origin: top left;
                   -webkit-print-color-adjust: exact !important;
                   print-color-adjust: exact !important;
                 }
-                @page {
-                  size: 3.375in 5.375in;
-                  margin: 0;
-                }
+                @page { size: landscape; margin: 0; }
               }
             `}} />
           </div>

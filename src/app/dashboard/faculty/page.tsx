@@ -18,6 +18,7 @@ export function FacultyDirectory() {
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [bursarData, setBursarData] = useState({ fullName: '', email: '', phone: '', password: '' });
+  const [confirmBursarPassword, setConfirmBursarPassword] = useState("");
 
   const [formData, setFormData] = useState<CreateTeacherRequest>({
     fullName: '',
@@ -25,6 +26,7 @@ export function FacultyDirectory() {
     phone: '',
     password: '',
   });
+  const [confirmTeacherPassword, setConfirmTeacherPassword] = useState("");
 
   const [assignModal, setAssignModal] = useState<{isOpen: boolean, teacherId: string, teacherName: string}>({isOpen: false, teacherId: '', teacherName: ''});
   const [editModal, setEditModal] = useState<{isOpen: boolean, teacher: Teacher | null}>({isOpen: false, teacher: null});
@@ -88,6 +90,11 @@ export function FacultyDirectory() {
       return;
     }
 
+    if (formData.password !== confirmTeacherPassword) {
+      setFormError("Passwords do not match.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       let profilePictureUrl = undefined;
@@ -117,6 +124,7 @@ export function FacultyDirectory() {
       toast.success("Teacher created successfully!");
       setShowModal(false);
       setFormData({ fullName: '', email: '', phone: '', password: '' });
+      setConfirmTeacherPassword('');
       setImageFile(null);
       // Refresh the list
       await fetchTeachers();
@@ -179,13 +187,18 @@ export function FacultyDirectory() {
 
   const handleBursarSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setFormError("");
+    if (bursarData.password !== confirmBursarPassword) {
+      setFormError("Passwords do not match.");
+      return;
+    }
+    setIsSubmitting(true);
     try {
       await bursarApi.create(bursarData);
       toast.success("Bursar created successfully!");
       setShowBursarModal(false);
       setBursarData({ fullName: '', email: '', phone: '', password: '' });
+      setConfirmBursarPassword('');
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : "Failed to create bursar");
     } finally {
@@ -479,12 +492,25 @@ export function FacultyDirectory() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder="Min 6 characters"
+                  placeholder="Min. 8 characters"
                   disabled={isSubmitting}
                 />
               </div>
 
-
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmTeacherPassword}
+                  onChange={(e) => setConfirmTeacherPassword(e.target.value)}
+                  className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                  placeholder="Confirm password"
+                  disabled={isSubmitting}
+                />
+              </div>
 
               <div className="flex gap-3 pt-4">
                 <button
@@ -624,6 +650,10 @@ export function FacultyDirectory() {
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Password</label>
                 <input required type="password" value={bursarData.password} onChange={e => setBursarData({...bursarData, password: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="Min. 8 characters" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Confirm Password</label>
+                <input required type="password" value={confirmBursarPassword} onChange={e => setConfirmBursarPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="Confirm password" />
               </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={() => setShowBursarModal(false)} className="px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors">Cancel</button>

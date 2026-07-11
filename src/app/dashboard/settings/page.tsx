@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard, Camera } from "lucide-react";
-import { authApi, studentApi, schoolApi, paymentApi } from "@/lib/api";
+import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard, Camera, Banknote } from "lucide-react";
+import { authApi, studentApi, schoolApi, paymentApi, uploadToCloudinary } from "@/lib/api";
 import { useLanguage, Language } from "@/components/LanguageProvider";
 
-type SettingsSection = 'school' | 'notifications' | 'security' | 'appearance' | 'localization' | 'advanced' | 'billing' | null;
+type SettingsSection = 'school' | 'notifications' | 'security' | 'appearance' | 'localization' | 'advanced' | 'billing' | 'financeSetup' | null;
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>(null);
@@ -15,7 +15,12 @@ export default function SettingsPage() {
   const [schoolName, setSchoolName] = useState("");
   const [schoolAddress, setSchoolAddress] = useState("");
   const [schoolPhone, setSchoolPhone] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [schoolLogo, setSchoolLogo] = useState("");
+  const [schoolLogoFile, setSchoolLogoFile] = useState<File | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Security / change password state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -131,6 +136,9 @@ export default function SettingsPage() {
             if (school?.address) setSchoolAddress(school.address);
             if (school?.phone) setSchoolPhone(school.phone);
             if (school?.name) setSchoolName(school.name);
+            if (school?.bankAccountName) setBankAccountName(school.bankAccountName);
+            if (school?.bankName) setBankName(school.bankName);
+            if (school?.bankAccountNumber) setBankAccountNumber(school.bankAccountNumber);
           }).catch(() => {});
         }
       }
@@ -168,23 +176,38 @@ export default function SettingsPage() {
   };
 
   const handleSaveSchoolProfile = async () => {
+    setIsSavingProfile(true);
     try {
+      let finalLogoUrl = schoolLogo;
+      
+      if (schoolLogoFile) {
+        setToast({ message: "Uploading logo to cloud storage...", type: "success" });
+        finalLogoUrl = await uploadToCloudinary(schoolLogoFile);
+        setSchoolLogo(finalLogoUrl);
+        setSchoolLogoFile(null);
+      }
+
       const user = localStorage.getItem('leoned_user');
       if (user) {
         const parsed = JSON.parse(user);
         parsed.schoolName = schoolName;
-        parsed.logoUrl = schoolLogo;
+        parsed.logoUrl = finalLogoUrl;
         localStorage.setItem('leoned_user', JSON.stringify(parsed));
         
         if (parsed.schoolId || parsed.SchoolId) {
           const sId = parsed.schoolId || parsed.SchoolId;
-          await schoolApi.update(sId, { name: schoolName, address: schoolAddress, contactPhone: schoolPhone, logoUrl: schoolLogo });
-          localStorage.setItem(`leoned_logo_${sId}`, schoolLogo);
-          window.dispatchEvent(new CustomEvent('leoned_logo_updated', { detail: { logoUrl: schoolLogo } }));
+          await schoolApi.update(sId, { name: schoolName, address: schoolAddress, contactPhone: schoolPhone, logoUrl: finalLogoUrl, bankAccountName, bankName, bankAccountNumber });
+          localStorage.setItem(`leoned_logo_${sId}`, finalLogoUrl);
+          window.dispatchEvent(new CustomEvent('leoned_logo_updated', { detail: { logoUrl: finalLogoUrl } }));
         }
       }
-    } catch { /* ignore */ }
-    setToast({ message: "School profile updated successfully", type: "success" });
+      setToast({ message: "School profile updated successfully", type: "success" });
+    } catch (err) {
+      console.error(err);
+      setToast({ message: "Failed to update school profile", type: "error" });
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,6 +217,7 @@ export default function SettingsPage() {
         setToast({ message: "Image must be less than 2MB", type: "error" });
         return;
       }
+      setSchoolLogoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setSchoolLogo(reader.result as string);
@@ -347,6 +371,7 @@ export default function SettingsPage() {
   const allSections = [
     { id: 'school' as const, icon: Building2, title: 'School Profile', description: 'Update school name, address, logo, and contact information.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
     { id: 'billing' as const, icon: CreditCard, title: 'Billing & Plans', description: 'Manage your active subscription and payment methods.', color: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-900/20' },
+    { id: 'financeSetup' as const, href: '/dashboard/finance/setup', icon: Banknote, title: 'Finance Setup', description: 'Configure fee structures, custom fees, and bank account details.', color: 'bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-lg shadow-teal-900/20' },
     { id: 'notifications' as const, icon: Bell, title: 'Notifications', description: 'Configure email alerts, SMS reminders, and in-app notifications.', color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
     { id: 'security' as const, icon: Lock, title: 'Security', description: 'Manage passwords, two-factor authentication, and access logs.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
     { id: 'appearance' as const, icon: Palette, title: 'Appearance', description: 'Customize branding colors, report card templates, and themes.', color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
@@ -380,7 +405,13 @@ export default function SettingsPage() {
               return (
                 <button
                   key={section.id}
-                  onClick={() => setActiveSection(section.id)}
+                  onClick={() => {
+                    if ((section as any).href) {
+                      window.location.href = (section as any).href;
+                    } else {
+                      setActiveSection(section.id as SettingsSection);
+                    }
+                  }}
                   className="relative isolate overflow-hidden bg-white/80 dark:bg-white/5 backdrop-blur-md rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-white dark:border-white/10 hover:border-[#053d26]/10 dark:hover:border-white/20 text-left transition-all duration-300 ease-out group hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 cursor-pointer flex flex-col h-full"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-50 to-white dark:from-white/10 dark:to-transparent rounded-bl-full pointer-events-none transition-transform duration-500 group-hover:scale-110" />
@@ -467,10 +498,42 @@ export default function SettingsPage() {
                 className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
               />
             </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Account Name</label>
+              <input
+                value={bankAccountName}
+                onChange={e => setBankAccountName(e.target.value)}
+                placeholder="e.g. LeonEd School Main Account"
+                className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Bank Name</label>
+              <input
+                value={bankName}
+                onChange={e => setBankName(e.target.value)}
+                placeholder="e.g. Access Bank PLC"
+                className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Account Number</label>
+              <input
+                value={bankAccountNumber}
+                onChange={e => setBankAccountNumber(e.target.value)}
+                placeholder="e.g. 0123456789"
+                className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
+              />
+            </div>
           </div>
-          <div className="flex justify-end mt-8">
-            <button onClick={handleSaveSchoolProfile} className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors">
-              <Save className="h-4 w-4" /> Save Profile
+          <div className="flex justify-end pt-4 border-t border-gray-100">
+            <button 
+              onClick={handleSaveSchoolProfile} 
+              disabled={isSavingProfile}
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50"
+            >
+              {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {isSavingProfile ? "Saving..." : "Save Profile"}
             </button>
           </div>
         </div>

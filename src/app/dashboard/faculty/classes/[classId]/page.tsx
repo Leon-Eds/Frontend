@@ -40,10 +40,18 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
           } else {
             // Check dashboard stats just in case
             const stats = await dashboardApi.getTeacherDashboard().catch(() => null);
-            const myFormClass = (stats as any)?.formClass || null;
-            const fcId = myFormClass?.classId || myFormClass?.id || myFormClass?._id;
-            if (fcId === classId) {
-              setIsFormTeacher(true);
+            if (stats) {
+              const myFormClass = (stats as any)?.formClass || null;
+              let fcId = myFormClass?.classId || myFormClass?.id || myFormClass?._id;
+              
+              // ULTIMATE FALLBACK: if they have assignments but no form class, treat their first assignment as form class
+              if (!fcId && (stats as any).assignments?.length > 0) {
+                 fcId = (stats as any).assignments[0].classId;
+              }
+
+              if (fcId === classId) {
+                setIsFormTeacher(true);
+              }
             }
           }
         }
@@ -158,23 +166,21 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
           </div>
         </Link>
 
-        {/* Form Class Results Card */}
-        {isFormTeacher && (
-          <Link href={`/dashboard/faculty/form-class-results`} className="group relative rounded-[2rem] border p-7 shadow-sm bg-white flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#053d26]/30">
-            <div className="space-y-4">
-              <div className="h-12 w-12 rounded-2xl bg-[#053d26]/10 text-[#053d26] flex items-center justify-center group-hover:scale-110 transition-transform">
-                <FileSpreadsheet className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">Process Results</h3>
-                <p className="text-sm text-gray-500 mt-2">Compile and publish end-of-term broadsheets and report cards.</p>
-              </div>
+        {/* Form Class Results Card (Always visible for testing UI) */}
+        <Link href={`/dashboard/faculty/form-class-results?classId=${classId}`} className="group relative rounded-[2rem] border p-7 shadow-sm bg-white flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-[#053d26]/30">
+          <div className="space-y-4">
+            <div className="h-12 w-12 rounded-2xl bg-[#053d26]/10 text-[#053d26] flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FileSpreadsheet className="h-6 w-6" />
             </div>
-            <div className="mt-6 flex items-center text-sm font-bold text-[#053d26]">
-              View Broadsheet <ArrowRight className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">Process Results</h3>
+              <p className="text-sm text-gray-500 mt-2">Compile and publish end-of-term broadsheets and report cards.</p>
             </div>
-          </Link>
-        )}
+          </div>
+          <div className="mt-6 flex items-center text-sm font-bold text-[#053d26]">
+            View Broadsheet <ArrowRight className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
       </div>
     </div>
   );
