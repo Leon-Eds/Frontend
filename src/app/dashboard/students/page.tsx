@@ -8,7 +8,7 @@ import { Eye, Edit2, Download, TrendingUp, AlertCircle, CheckCircle2, Loader2, U
 import QRCode from 'react-qr-code';
 import { toPng } from 'html-to-image';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { studentApi, schoolApi, promotionApi, Student, UpdateStudentRequest, formatDate } from '@/lib/api';
+import { studentApi, schoolApi, promotionApi, classApi, Student, UpdateStudentRequest, formatDate } from '@/lib/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -49,6 +49,9 @@ export default function StudentsPage() {
   const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '', phone: '', logo: '', theme: '#053d26' });
   const idCardRef = useRef<HTMLDivElement>(null);
 
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClass, setSelectedClass] = useState<string>("All");
+
   useEffect(() => {
     try {
       const user = localStorage.getItem('leoned_user');
@@ -72,6 +75,9 @@ export default function StudentsPage() {
                 phone: school.phone || prev.phone,
                 name: school.name || prev.name
               }));
+              if (school.ownerName || school.principalName || school.adminName) {
+                setPrincipalName(school.principalName || school.ownerName || school.adminName);
+              }
             }
           }).catch(() => {});
         }
@@ -99,6 +105,9 @@ export default function StudentsPage() {
     try {
       const data = await studentApi.getAll();
       setStudents(Array.isArray(data) ? data : []);
+      
+      const clsData = await classApi.getAll().catch(() => []);
+      setClasses(Array.isArray(clsData) ? clsData : []);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load students";
       setError(message);
@@ -310,6 +319,10 @@ export default function StudentsPage() {
   const activeCount = students.filter(s => s.status === 'Active').length;
   const graduatedCount = students.filter(s => s.status === 'Graduated').length;
 
+  const filteredStudents = selectedClass === "All" 
+    ? students 
+    : students.filter(s => s.classId === selectedClass || (s as any).class?.id === selectedClass || s.className === selectedClass);
+
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-10">
       
@@ -403,10 +416,19 @@ export default function StudentsPage() {
         <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-2">
           {/* Filters Header */}
           <div className="flex flex-col md:flex-row justify-between items-center p-6 border-b border-gray-50 gap-4">
-            <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
               <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Filter By:</span>
               <select className="bg-gray-100 rounded-full px-4 py-2 text-xs font-bold text-gray-600 focus:outline-none appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234B5563%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:8px_8px] bg-[right_12px_center]">
                 <option>Status: All</option>
+              </select>
+              <select 
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="bg-gray-100 rounded-full px-4 py-2 text-xs font-bold text-gray-600 focus:outline-none appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234B5563%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:8px_8px] bg-[right_12px_center]">
+                <option value="All">Class: All</option>
+                {classes.map(c => (
+                  <option key={c.id || c._id} value={c.id || c._id}>{c.name || c.className}</option>
+                ))}
               </select>
             </div>
             <button
@@ -421,7 +443,7 @@ export default function StudentsPage() {
           <div className="[&>div]:border-none [&>div]:shadow-none [&_table]:w-full">
             <DataTable 
               columns={columns} 
-              data={students.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)} 
+              data={filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)} 
               actions={(student) => (
                 <div className="flex items-center gap-1 text-gray-400">
                   <button
@@ -450,33 +472,33 @@ export default function StudentsPage() {
             />
           </div>
 
-          {/* Results Footer & Pagination */}
-          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-gray-50 gap-4">
-            <span className="text-xs text-gray-500 font-medium">
-              Showing {Math.min(students.length, (currentPage - 1) * itemsPerPage + 1)} to {Math.min(students.length, currentPage * itemsPerPage)} of {students.length} students
-            </span>
-            {students.length > itemsPerPage && (
-              <div className="flex items-center gap-2">
+          {/* Pagination Component */}
+          {filteredStudents.length > itemsPerPage && (
+            <div className="flex items-center justify-between p-6 border-t border-gray-50">
+              <span className="text-xs font-medium text-gray-500">
+                Showing {Math.min(filteredStudents.length, (currentPage - 1) * itemsPerPage + 1)} to {Math.min(filteredStudents.length, currentPage * itemsPerPage)} of {filteredStudents.length} students
+              </span>
+              <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-md text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-xs font-bold text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Previous
                 </button>
-                <span className="text-xs font-bold text-gray-900 mx-2">
-                  Page {currentPage} of {Math.ceil(students.length / itemsPerPage)}
+                <span className="px-4 py-2 text-xs font-bold text-gray-900">
+                  Page {currentPage} of {Math.ceil(filteredStudents.length / itemsPerPage)}
                 </span>
                 <button
-                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(students.length / itemsPerPage), p + 1))}
-                  disabled={currentPage === Math.ceil(students.length / itemsPerPage)}
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredStudents.length / itemsPerPage), p + 1))}
+                  disabled={currentPage === Math.ceil(filteredStudents.length / itemsPerPage)}
                   className="px-3 py-1 rounded-md text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 

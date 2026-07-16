@@ -69,9 +69,7 @@ const studentNavigation = [
 ];
 
 const bursarNavigation = [
-  { name: "Fee Clearance", href: "/dashboard/finance", icon: DollarSign },
-  { name: "Payment Logs", href: "/dashboard/finance", icon: Banknote },
-  { name: "Revenue Reports", href: "/dashboard/reports", icon: FileText },
+  { name: "Fee Approvals", href: "/dashboard/bursar", icon: DollarSign },
 ];
 
 const superAdminNavigation = [
@@ -94,7 +92,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [demoRole, setDemoRole] = useState<string>("Admin");
   const [schoolName, setSchoolName] = useState<string>("LeonEd Africa");
   const [logoUrl, setLogoUrl] = useState<string>("/logo.png");
-  const [plan, setPlan] = useState<string>("Free");
+  const [plan, setPlan] = useState<string | null>(null);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
   const [pendingFeesCount, setPendingFeesCount] = useState<number>(0);
 
@@ -221,6 +219,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
     localStorage.removeItem("leoned_token");
     localStorage.removeItem("leoned_refresh_token");
     localStorage.removeItem("leoned_user");
+    
+    // Clear theme from DOM so login page defaults to platform colors
+    try {
+      document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal', 'font-sans', 'font-serif', 'font-mono');
+      document.documentElement.style.removeProperty('--theme-primary');
+      document.documentElement.style.removeProperty('--theme-secondary');
+      document.documentElement.style.removeProperty('--theme-accent');
+    } catch(e) {}
+    
     router.push("/login");
   };
 
@@ -247,7 +254,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">
                 {t("sidebar.super_admin")}
               </p>
-            ) : role !== "student" && role !== "parent" && role !== "teacher" && role !== "faculty" ? (
+            ) : role !== "student" && role !== "parent" && role !== "teacher" && role !== "faculty" && plan ? (
               <div className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                 plan.toLowerCase() === 'gold' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
                 plan.toLowerCase() === 'silver' ? 'bg-gray-300/20 text-gray-300 border border-gray-400/30 shadow-[0_0_8px_rgba(209,213,219,0.15)]' :

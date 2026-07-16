@@ -1,87 +1,50 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet } from "lucide-react";
-import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi } from "@/lib/api";
-import { useRouter } from "next/navigation";
+import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 
-export default function FormClassResults() {
+function FormClassResultsInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlClassId = searchParams.get('classId');
   const [results, setResults] = useState<any[]>([]);
   const [remarks, setRemarks] = useState<Record<string, string>>({});
   const [formClass, setFormClass] = useState<any>(null);
   const [currentTerm, setCurrentTerm] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [rawDebugData, setRawDebugData] = useState<any>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [detailedSubjects, setDetailedSubjects] = useState<any[]>([]);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-
   const currentResult = results[currentIndex];
-  let sId = "";
-  let studentName = "";
-  let profilePic = "";
-  let avg = 0;
-  let computedGrade = "";
-  let subjects = detailedSubjects;
+  let sId = currentResult?.studentId || currentResult?.student?.id || currentResult?.id || currentIndex.toString();
+  let subjects = currentResult?.subjects || currentResult?.subjectScores || [];
+
+
+  let studentName = `Student ${currentIndex + 1} of ${formClass?.className || formClass?.name || 'Unknown'}`;
+  let profilePic = "/placeholder-user.jpg";
+  let avg: string | number = 0;
+  let computedGrade = "F";
+  let adm: string = sId;
 
   if (currentResult) {
     sId = currentResult.studentId || currentResult.student?.id || currentResult.id || currentIndex.toString();
-    studentName = currentResult.studentName || currentResult.student?.fullName || `Student ${currentIndex + 1}`;
+    
+    const nameObj = currentResult.student || currentResult.user || currentResult;
+    const derivedName = nameObj.fullName || (nameObj.firstName ? `${nameObj.firstName} ${nameObj.lastName || ''}`.trim() : '') || currentResult.studentName;
+    studentName = derivedName || `Student ${currentIndex + 1} of ${formClass?.className || formClass?.name || 'Unknown'}`;
+    
+    adm = currentResult.admissionNumber || currentResult.student?.admissionNumber || currentResult.user?.admissionNumber || sId;
+    
     profilePic = currentResult.profilePictureUrl || currentResult.student?.profilePictureUrl || currentResult.student?.imageUrl || currentResult.student?.image || currentResult.imageUrl;
     avg = currentResult.totalScore || currentResult.averageScore || currentResult.average || 0;
-    computedGrade = currentResult.grade || (avg >= 75 ? "A+" : avg >= 70 ? "A" : avg >= 60 ? "B+" : avg >= 50 ? "B" : avg >= 40 ? "C" : "F");
+    const numAvg = Number(avg) || 0;
+    computedGrade = currentResult.grade || (numAvg >= 75 ? "A+" : numAvg >= 70 ? "A" : numAvg >= 60 ? "B+" : numAvg >= 50 ? "B" : numAvg >= 40 ? "C" : "F");
   }
-
-  useEffect(() => {
-    async function fetchDetails() {
-      if (!sId || !currentTerm) {
-        setDetailedSubjects([]);
-        setRawDebugData(null);
-        return;
-      }
-      try {
-        setIsLoadingDetails(true);
-        const res = await resultApi.getStudentResults(sId, currentTerm.id);
-        
-        // DEBUG: Save raw response to state
-        setRawDebugData(res);
-        
-        let parsedSubjects: any[] = [];
-        const resData = (res as any)?.data || res;
-
-        if (Array.isArray(resData)) {
-          parsedSubjects = resData;
-        } else if (resData && typeof resData === 'object') {
-          // If it's an object, subjects might be a property
-          parsedSubjects = resData.subjects || resData.subjectResults || resData.scores || resData.items || [];
-        }
-
-        // If we still have a weird nested structure (like an array of length 1 containing the real object)
-        if (parsedSubjects.length === 1 && parsedSubjects[0].subjectScores) {
-           parsedSubjects = parsedSubjects[0].subjectScores;
-        } else if (parsedSubjects.length === 1 && parsedSubjects[0].subjectResults) {
-           parsedSubjects = parsedSubjects[0].subjectResults;
-        } else if (parsedSubjects.length === 1 && parsedSubjects[0].subjects) {
-           parsedSubjects = parsedSubjects[0].subjects;
-        }
-
-        setDetailedSubjects(parsedSubjects);
-      } catch (err) {
-        console.error("Failed to load details", err);
-        setDetailedSubjects([]);
-        setRawDebugData({ error: String(err) });
-      } finally {
-        setIsLoadingDetails(false);
-      }
-    }
-    fetchDetails();
-  }, [sId, currentTerm]);
-
 
   useEffect(() => {
     const init = async () => {
@@ -106,8 +69,9 @@ export default function FormClassResults() {
               const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
               const myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
               if (myFormClasses.length > 0) {
-                const fc = myFormClasses[0];
-                myFormClass = { ...fc, classId: fc.id || fc.classId || fc._id, className: fc.name || fc.className || "Class" };
+                // If there's a classId in URL, try to match it, else use first
+                const targetFc = urlClassId ? myFormClasses.find((c: any) => c.id === urlClassId || c.classId === urlClassId || c._id === urlClassId) || myFormClasses[0] : myFormClasses[0];
+                myFormClass = { ...targetFc, classId: targetFc.id || targetFc.classId || targetFc._id, className: targetFc.name || targetFc.className || "Class" };
               }
             } catch (e) {}
             
@@ -116,6 +80,10 @@ export default function FormClassResults() {
               for (const cls of allClasses) {
                 const cId = cls.classId || cls.id || cls._id;
                 if (!cId) continue;
+                
+                // If urlClassId is present, we only check that one
+                if (urlClassId && cId !== urlClassId) continue;
+
                 try {
                   await attendanceApi.getClassAttendance(cId, today);
                   myFormClass = { ...cls, classId: cId, className: cls.className || cls.name };
@@ -170,143 +138,103 @@ export default function FormClassResults() {
           resultsArray = rData.scores || rData.data || rData.items || rData.students || [];
         }
 
-        // Fetch subjects to map names properly
-        let allSubjects: any[] = [];
-        try {
-          // Try fetching class details first (might 403 for teachers)
-          const clsDetails = await classApi.getById(targetClassId).catch(() => null);
-          if (clsDetails && clsDetails.subjects && clsDetails.subjects.length > 0) {
-            allSubjects = clsDetails.subjects;
-          } else {
-            // Fallback to teacher subjects
-            const subjs = await teacherPortalApi.getSubjects().catch(() => null);
-            if (subjs) {
-              allSubjects = Array.isArray(subjs) ? subjs : ((subjs as any)?.data || (subjs as any)?.items || []);
-            }
-          }
-          
-          // If still empty, try pulling from dashboard assignments
-          if (allSubjects.length === 0) {
-            const dash = await dashboardApi.getTeacherDashboard().catch(() => null);
-            if (dash && (dash as any).assignments) {
-               const uniqueSubjs = new Map();
-               (dash as any).assignments.forEach((a: any) => {
-                 if (a.subjectId) uniqueSubjs.set(a.subjectId, { id: a.subjectId, _id: a.subjectId, name: a.subjectName || 'Subject' });
-               });
-               allSubjects = Array.from(uniqueSubjs.values());
-            }
-          }
-        } catch (e) {
-          console.error("[DEBUG] Failed to load subjects", e);
-        }
-
-        console.log("[DEBUG] final allSubjects lookup table:", allSubjects);
-        console.log("[DEBUG] raw resultsArray before grouping:", resultsArray);
-        if (resultsArray.length > 0) {
-          setRawDebugData(resultsArray[0]);
-        }
+        // Fetch detailed results (with subjectScores) for each student
+        // resultApi.getStudentResults returns the full breakdown including subjectScores
+        const detailedResults: any[] = [];
         
-        // Group flat results by studentId (or use already grouped ones)
-        const grouped = new Map<string, any>();
-        
+        const uniqueStudentIds = new Set<string>();
         resultsArray.forEach(r => {
           const sId = r.student?.id || r.studentId;
-          if (!sId) return;
-          
-          if (!grouped.has(sId)) {
-            grouped.set(sId, {
-              studentId: sId,
-              student: r.student,
-              studentName: r.student?.fullName || r.studentName,
-              subjects: [],
-              totalScoreSum: 0,
-              subjectCount: 0,
-              ...r // Keep existing properties like subjectScores
-            });
-          }
-          
-          const studentData = grouped.get(sId);
-          
-          // If the result is already grouped, subjects are in subjectScores or similar
-          if (r.subjectScores || r.subjects) {
-            const subjs = r.subjectScores || r.subjects;
-            if (Array.isArray(subjs)) {
-              subjs.forEach(subj => {
-                if (!studentData.subjects.find((s: any) => s.subjectId === subj.subjectId)) {
-                  studentData.subjects.push({
-                    subjectId: subj.subjectId,
-                    subjectName: subj.subjectName || subj.subject?.name || "Subject",
-                    firstCA: subj.firstCA,
-                    secondCA: subj.secondCA,
-                    examScore: subj.examScore,
-                    totalScore: subj.totalScore,
-                    grade: subj.grade,
-                    remark: subj.remark
-                  });
-                  studentData.totalScoreSum += Number(subj.totalScore || 0);
-                  studentData.subjectCount += 1;
-                }
-              });
-            }
-          } else if (r.subjectId) {
-            // Flat structure
-            let resolvedSubjName = r.subject?.name || r.subjectName;
-            if (!resolvedSubjName && r.subjectId) {
-              const foundSubj = allSubjects.find((s: any) => s.id === r.subjectId || s._id === r.subjectId);
-              if (foundSubj) resolvedSubjName = foundSubj.name;
-            }
-            
-            if (!studentData.subjects.find((s: any) => s.subjectId === r.subjectId)) {
-              studentData.subjects.push({
-                subjectId: r.subjectId,
-                subjectName: resolvedSubjName,
-                firstCA: r.firstCA,
-                secondCA: r.secondCA,
-                examScore: r.examScore,
-                totalScore: r.totalScore,
-                grade: r.grade,
-                remark: r.remark
-              });
-              
-              studentData.totalScoreSum += Number(r.totalScore || 0);
-              studentData.subjectCount += 1;
-            }
-          }
+          if (sId) uniqueStudentIds.add(sId);
         });
 
-        let groupedResults = Array.from(grouped.values());
+
         
-        // Calculate average for each student
-        groupedResults = groupedResults.map(g => {
-          g.averageScore = g.subjectCount > 0 ? (g.totalScoreSum / g.subjectCount) : 0;
-          return g;
-        });
+        await Promise.all(
+          Array.from(uniqueStudentIds).map(async (studentId) => {
+            try {
+              const detailRes = await resultApi.getStudentResults(studentId, activeTerm.id);
+              const detailData = (detailRes as any)?.data || detailRes;
 
-        // Fetch students to populate profile pictures for grouped results
-        try {
-          const classStudentsRes = await teacherPortalApi.getClassStudents(targetClassId);
-          const safeClassStudents = Array.isArray(classStudentsRes) ? classStudentsRes : ((classStudentsRes as any)?.data || (classStudentsRes as any)?.items || []);
-          
-          groupedResults = groupedResults.map(r => {
-             const sId = r.studentId;
-             const sInfo = safeClassStudents.find((s: any) => s.id === sId || s.studentId === sId || s._id === sId || s.student?.id === sId);
-             if (sInfo) {
-               r.student = { ...(r.student || {}), ...sInfo, ...sInfo.user, ...sInfo.student };
-             }
-             return r;
-          });
-        } catch (e) {
-          console.error("Failed to fetch class students for pictures", e);
-        }
+              
+              // Find the matching summary from resultsArray for name/admission info
+              const summaryResult = resultsArray.find(r => (r.student?.id || r.studentId) === studentId);
+              
+              // Extract subjectScores from the detail response
+              let subjectScores: any[] = [];
+              if (detailData) {
+                if (Array.isArray(detailData)) {
+                  // If it's an array, check first item for subjectScores
+                  if (detailData.length > 0 && detailData[0].subjectScores) {
+                    subjectScores = detailData[0].subjectScores;
+                  } else {
+                    subjectScores = detailData;
+                  }
+                } else if (detailData.subjectScores) {
+                  subjectScores = detailData.subjectScores;
+                } else if (detailData.subjects) {
+                  subjectScores = detailData.subjects;
+                }
+              }
+              
+              // Filter scores to only this student's entries
+              // (the endpoint may return all students' scores for the class)
+              if (subjectScores.length > 0 && subjectScores[0].studentId) {
+                const filtered = subjectScores.filter((s: any) => s.studentId === studentId);
+                if (filtered.length > 0) {
+                  subjectScores = filtered;
+                }
+              }
+              
+              const mappedSubjects = subjectScores.map((s: any) => ({
+                  subjectId: s.subjectId,
+                  subjectName: s.subjectName || s.subject?.name || "Subject",
+                  firstCA: s.firstCA,
+                  secondCA: s.secondCA,
+                  examScore: s.exam || s.examScore,
+                  totalScore: s.total || s.totalScore,
+                  grade: s.grade,
+                  remark: s.remark
+                }));
+              
+              detailedResults.push({
+                ...summaryResult,
+                ...detailData,
+                studentId,
+                subjects: mappedSubjects
+              });
+            } catch (err) {
+
+              // Fall back to the summary result
+              const summaryResult = resultsArray.find(r => (r.student?.id || r.studentId) === studentId);
+              if (summaryResult) detailedResults.push({ ...summaryResult, subjects: [] });
+            }
+          })
+        );
+
+
 
         // Sort results alphabetically by student name
-        groupedResults.sort((a, b) => {
+        detailedResults.sort((a, b) => {
           const nameA = (a.student?.fullName || a.studentName || "").toLowerCase();
           const nameB = (b.student?.fullName || b.studentName || "").toLowerCase();
           return nameA.localeCompare(nameB);
         });
 
-        setResults(groupedResults);
+        // Pre-populate existing teacher remarks from backend
+        const existingRemarks: Record<string, string> = {};
+        detailedResults.forEach((r: any) => {
+          const sId = r.student?.id || r.studentId;
+          const remark = r.teacherComment || r.formTeacherRemark || r.teacherRemark || "";
+          if (sId && remark) {
+            existingRemarks[sId] = remark;
+          }
+        });
+        if (Object.keys(existingRemarks).length > 0) {
+          setRemarks(prev => ({ ...existingRemarks, ...prev }));
+        }
+
+        setResults(detailedResults);
       } catch (err: any) {
         setError(err.message || "Failed to load results.");
       } finally {
@@ -316,22 +244,20 @@ export default function FormClassResults() {
     init();
   }, [router]);
 
+
   const handleSubmitToAdmin = async () => {
     if (!formClass || !currentTerm) return;
     setIsSubmitting(true);
     setValidationErrors([]);
     try {
       const payload = {
-        students: results.map((res: any) => {
-          const sId = res.student?.id || res.studentId;
-          return {
-            studentId: sId,
-            formTeacherRemark: remarks[sId] || ""
-          };
-        })
+        remarks: results.map((res: any) => ({
+          studentId: res.student?.id || res.studentId,
+          comment: remarks[res.student?.id || res.studentId] || ""
+        }))
       };
       
-      await resultApi.submit(formClass.id, currentTerm.id, payload as any);
+      await resultApi.submit(formClass.classId || formClass.id, currentTerm.id, payload as any);
       toast.success("Results submitted to School Admin for final approval!");
       router.push("/dashboard/faculty/classes");
     } catch (err: any) {
@@ -435,75 +361,103 @@ export default function FormClassResults() {
 
       {results.length > 0 && currentResult ? (
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-          {/* Header */}
-          <div className="bg-gray-50 p-6 sm:px-8 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden shrink-0 flex items-center justify-center text-xl font-bold text-gray-500 shadow-sm border border-white">
-                {profilePic ? (
-                  <img src={profilePic} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  studentName[0].toUpperCase()
-                )}
-              </div>
-              <div>
-                <h2 className="text-xl font-black text-gray-900">{studentName}</h2>
-                <p className="text-sm text-gray-500 font-medium mt-1 text-[#b05e1c]">
-                  Student {currentIndex + 1} of {results.length}
-                </p>
-              </div>
+          {/* Report Card Header */}
+          <div className="bg-white p-6 sm:px-8 border-b border-gray-100 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-full bg-[#053d26]/10 flex items-center justify-center mb-4">
+              <Award className="h-8 w-8 text-[#053d26]" />
             </div>
-            
-            <div className="flex gap-4">
-              <div className="text-center">
-                <p className="text-xs uppercase font-bold text-gray-400 tracking-wider">Average</p>
-                <p className="text-xl font-black text-gray-900 mt-1">{avg ? Number(avg).toFixed(1) : "-"}</p>
+            <h2 className="text-2xl font-black text-[#053d26] uppercase tracking-widest mb-1">Student Report Card</h2>
+            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6">
+              {formClass?.className || formClass?.name || "LeonEd Academy"} • {currentTerm?.name || "Current Term"}
+            </p>
+
+
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 text-left border-y border-gray-200 py-4 mb-4">
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Name:</span>
+                  <span className="text-sm font-bold text-gray-900">{studentName}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Admission:</span>
+                  <span className="text-sm font-bold text-gray-900">{adm}</span>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-xs uppercase font-bold text-gray-400 tracking-wider">Grade</p>
-                <div className="mt-1">
-                  <span className={`px-2.5 py-1 rounded font-black text-xs ${
-                    computedGrade.includes('A') ? 'bg-green-100 text-green-700' :
-                    computedGrade.includes('B') ? 'bg-blue-100 text-blue-700' :
-                    computedGrade.includes('C') ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {computedGrade}
-                  </span>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Average:</span>
+                  <span className="text-sm font-black text-[#053d26]">{avg ? Number(avg).toFixed(1) : "-"}%</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Grade:</span>
+                  <span className="text-sm font-black text-[#b05e1c]">{computedGrade}</span>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Subject Breakdown Table */}
+          {subjects && subjects.length > 0 && (
+            <div className="px-6 py-4 sm:px-8">
+              <h3 className="text-xs font-extrabold text-[#053d26] uppercase tracking-widest mb-4">Academic Performance</h3>
+              <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="bg-[#053d26] text-white text-[10px] uppercase tracking-wider font-black">
+                      <th className="py-3 px-4 border-b border-[#042c1b]">Subject</th>
+                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">1st CA</th>
+                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">2nd CA</th>
+                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">Exam</th>
+                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">Total</th>
+                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">Grade</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {subjects.map((subj: any, i: number) => {
+                      const subjName = subj.subjectName || subj.subject?.name || subj.subject || "Unknown";
+                      const tScore = Number(subj.totalScore || subj.total || 0);
+                      const sGrade = subj.grade || (tScore >= 75 ? "A+" : tScore >= 70 ? "A" : tScore >= 60 ? "B+" : tScore >= 50 ? "B" : tScore >= 40 ? "C" : "F");
+                      
+                      return (
+                        <tr key={i} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-3 px-4 font-bold text-gray-900 text-xs">{subjName}</td>
+                          <td className="py-3 px-4 font-medium text-gray-600 text-xs text-center">{subj.firstCA || "-"}</td>
+                          <td className="py-3 px-4 font-medium text-gray-600 text-xs text-center">{subj.secondCA || "-"}</td>
+                          <td className="py-3 px-4 font-medium text-gray-600 text-xs text-center">{subj.examScore || subj.exam || "-"}</td>
+                          <td className="py-3 px-4 font-black text-[#053d26] text-xs text-center">{subj.totalScore || subj.total || "-"}</td>
+                          <td className="py-3 px-4 text-center">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                              sGrade.includes('A') ? 'bg-green-100 text-green-700' :
+                              sGrade.includes('B') ? 'bg-blue-100 text-blue-700' :
+                              sGrade.includes('C') ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {sGrade}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Form Teacher Remark */}
-          <div className="p-6 sm:px-8 bg-amber-50/30 border-b border-gray-100">
-            <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-600" />
+          <div className="p-6 sm:px-8 bg-gray-50 border-t border-gray-100">
+            <h3 className="text-xs font-extrabold text-[#053d26] uppercase tracking-widest mb-3 flex items-center gap-2">
+              <UserCheck className="w-3.5 h-3.5" />
               Form Teacher's Remark
             </h3>
             <textarea 
-              className="w-full min-h-[100px] p-4 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#053d26] resize-none"
+              className="w-full min-h-[80px] p-4 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#053d26] resize-none"
               placeholder="Enter your final remark for this student's report card..."
               value={remarks[sId] || ""}
               onChange={(e) => setRemarks(prev => ({ ...prev, [sId]: e.target.value }))}
             />
-          </div>
 
-          {/* Subject Breakdown */}
-          {subjects && subjects.length > 0 && (
-            <div className="p-6 sm:px-8">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">Subject Breakdown</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {subjects.map((subj: any, i: number) => (
-                  <div key={i} className="flex justify-between items-center p-3 rounded-lg border border-gray-100 bg-gray-50/50">
-                    <span className="font-medium text-sm text-gray-700 truncate mr-2" title={subj.subjectName || subj.subject}>
-                      {subj.subjectName || subj.subject || "Subject"}
-                    </span>
-                    <span className="font-bold text-sm text-gray-900">{subj.totalScore || subj.total || "-"}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          </div>
 
           {/* Pagination Controls */}
           <div className="p-6 sm:px-8 bg-white flex justify-between items-center">
@@ -531,5 +485,18 @@ export default function FormClassResults() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FormClassResults() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center py-20 min-h-[60vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-[#053d26] mb-4" />
+        <p className="text-gray-500 font-medium">Loading form class results...</p>
+      </div>
+    }>
+      <FormClassResultsInner />
+    </Suspense>
   );
 }

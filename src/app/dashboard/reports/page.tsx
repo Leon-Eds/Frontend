@@ -78,9 +78,13 @@ export default function ReportsHub() {
   }, []);
 
   const fetchReport = async (type: string, classId: string, termId: string) => {
-    // Attendance and Performance require classId and termId. Wait until they are loaded if the active report is one of them.
-    if (["attendance", "performance"].includes(type) && (!classId || !termId)) {
+    if (type === "performance" && (!classId || !termId)) {
       toast.error(`Please ensure a class and term are selected for the ${type} report.`);
+      setReportData([]);
+      return;
+    }
+    if (type === "attendance" && !classId) {
+      toast.error(`Please ensure a class is selected for the ${type} report.`);
       setReportData([]);
       return;
     }
@@ -91,7 +95,7 @@ export default function ReportsHub() {
       let res: any;
       switch (type) {
         case "enrollment": res = await reportApi.getEnrollment(termId); break;
-        case "attendance": res = await reportApi.getAttendance(classId, termId); break;
+        case "attendance": res = await reportApi.getAttendance(classId, startDate, endDate); break;
         case "performance": res = await reportApi.getPerformance(classId, termId); break;
         case "feepayment": res = await reportApi.getFeePayment(termId); break;
         case "revenue": res = await reportApi.getRevenue(startDate, endDate); break;
@@ -205,7 +209,7 @@ export default function ReportsHub() {
               ))}
             </select>
           )}
-          {['attendance', 'performance', 'enrollment', 'feepayment', 'studentstatus'].includes(activeReport) && terms.length > 0 && (
+          {['performance', 'enrollment', 'feepayment', 'studentstatus'].includes(activeReport) && terms.length > 0 && (
             <select
               value={selectedTermId}
               onChange={(e) => setSelectedTermId(e.target.value)}
@@ -218,7 +222,7 @@ export default function ReportsHub() {
               ))}
             </select>
           )}
-          {activeReport === 'revenue' && (
+          {['revenue', 'attendance'].includes(activeReport) && (
             <div className="flex items-center gap-2">
               <input
                 type="date"

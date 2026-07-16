@@ -8,13 +8,14 @@ import StudentAcademics from "@/components/student-portal/StudentAcademics";
 import StudentFinance from "@/components/student-portal/StudentFinance";
 import StudentAttendance from "@/components/student-portal/StudentAttendance";
 import StudentMessages from "@/components/student-portal/StudentMessages";
-import { studentApi, dashboardApi } from "@/lib/api";
+import { studentApi, dashboardApi, announcementApi } from "@/lib/api";
 
 export default function StudentPortal() {
   const [activeTab, setActiveTab] = useState('profile');
   const [studentInfo, setStudentInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
 
   useEffect(() => {
     const fetchInfo = async () => {
@@ -27,6 +28,12 @@ export default function StudentPortal() {
         // Fetch detailed profile from the student dashboard endpoint
         const detailsResponse = await dashboardApi.getStudentDashboard().catch(() => null);
         const details = (detailsResponse as any)?.data || (detailsResponse as any)?.student || (detailsResponse as any)?.user || detailsResponse;
+        
+        // Fetch announcements to check for new messages
+        const msgs = await announcementApi.getAll().catch(() => []);
+        if (msgs && msgs.length > 0) {
+          setHasNewMessages(true);
+        }
         
         let profilePic = user.profilePictureUrl || user.image || user.imageUrl || null;
         if (user.role === 'student' && !profilePic) {
@@ -130,7 +137,10 @@ export default function StudentPortal() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  if (tab.id === 'messages') setHasNewMessages(false);
+                }}
                 className={`flex items-center gap-2.5 px-6 py-3.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 relative group ${
                   isActive
                     ? 'text-[#053d26]'
@@ -140,7 +150,12 @@ export default function StudentPortal() {
                 {isActive && (
                   <div className="absolute inset-0 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] ring-1 ring-black/5 -z-10" />
                 )}
-                <tab.icon className={`w-4 h-4 transition-colors duration-300 ${isActive ? 'text-[#b05e1c]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                <div className="relative">
+                  <tab.icon className={`w-4 h-4 transition-colors duration-300 ${isActive ? 'text-[#b05e1c]' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                  {tab.id === 'messages' && hasNewMessages && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
+                  )}
+                </div>
                 {tab.label}
               </button>
             );

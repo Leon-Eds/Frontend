@@ -7,6 +7,19 @@ import { useLanguage, Language } from "@/components/LanguageProvider";
 
 type SettingsSection = 'school' | 'notifications' | 'security' | 'appearance' | 'localization' | 'advanced' | 'billing' | 'financeSetup' | null;
 
+const THEMES = [
+  { id: 'forest', label: 'Forest', colors: ['#053d26', '#047857', '#34d399'] },
+  { id: 'ocean', label: 'Ocean', colors: ['#1e3a8a', '#2563eb', '#60a5fa'] },
+  { id: 'sunset', label: 'Sunset', colors: ['#9a3412', '#ea580c', '#fb923c'] },
+  { id: 'royal', label: 'Royal', colors: ['#4c1d95', '#7c3aed', '#c084fc'] },
+];
+
+const FONTS = [
+  { id: 'sans', label: 'Modern (Sans)', class: 'font-sans', apiName: 'Inter' },
+  { id: 'serif', label: 'Classic (Serif)', class: 'font-serif', apiName: 'Merriweather' },
+  { id: 'mono', label: 'Technical (Mono)', class: 'font-mono', apiName: 'Roboto Mono' },
+];
+
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>(null);
   const [userRole, setUserRole] = useState<string>("Admin");
@@ -81,6 +94,8 @@ export default function SettingsPage() {
         let activeRole = parsedUser.role || "Admin";
         if (activeRole === "Teacher" || activeRole === "Faculty") {
           setUserRole("Faculty");
+        } else if (activeRole?.toLowerCase() === "bursar") {
+          setUserRole("Bursar");
         } else if (activeRole === "Student" || activeRole === "student" || activeRole === "parent" || activeRole === "guardian") {
           setUserRole("Student");
           window.location.href = "/dashboard/student-portal";
@@ -133,12 +148,26 @@ export default function SettingsPage() {
         const sId = parsedUser?.schoolId || parsedUser?.SchoolId || parsedUser?.id;
         if (sId) {
           schoolApi.getById(sId).then((school: any) => {
+            console.log("[DEBUG] Backend School Payload Received:", school);
             if (school?.address) setSchoolAddress(school.address);
             if (school?.phone) setSchoolPhone(school.phone);
             if (school?.name) setSchoolName(school.name);
             if (school?.bankAccountName) setBankAccountName(school.bankAccountName);
             if (school?.bankName) setBankName(school.bankName);
             if (school?.bankAccountNumber) setBankAccountNumber(school.bankAccountNumber);
+            
+            // Attempt to load theme and font if they are coming from the backend directly
+            if (school?.schoolTheme) {
+              const st = school.schoolTheme;
+              const matchedFont = FONTS.find(f => f.apiName === st.font || f.class.includes(st.font));
+              if (matchedFont) setFont(matchedFont.id);
+              
+              const matchedTheme = THEMES.find(t => t.colors[0] === st.primaryColor);
+              if (matchedTheme) setTheme(matchedTheme.id);
+            } else {
+              if (school?.theme) setTheme(school.theme);
+              if (school?.font) setFont(school.font);
+            }
           }).catch(() => {});
         }
       }
@@ -257,7 +286,20 @@ export default function SettingsPage() {
       document.documentElement.classList.add(`theme-${newTheme}`);
       
       if (sId) {
-        await schoolApi.update(sId, { theme: newTheme }).catch(() => {});
+        const selectedThemeObj = THEMES.find(t => t.id === newTheme) || THEMES[0];
+        const selectedFontObj = FONTS.find(f => f.id === font) || FONTS[0];
+        const payload = { 
+          schoolTheme: {
+            primaryColor: selectedThemeObj.colors[0],
+            secondaryColor: selectedThemeObj.colors[1],
+            accentColor: selectedThemeObj.colors[2],
+            font: selectedFontObj.apiName
+          }
+        };
+        console.log(`[DEBUG] Sending School Theme Update Payload:`, payload);
+        await schoolApi.update(sId, payload).catch((e) => {
+          console.error("[DEBUG] Theme update failed:", e);
+        });
       }
     } catch (_) {}
     setToast({ message: `Branding theme updated to ${newTheme.toUpperCase()}`, type: 'success' });
@@ -280,7 +322,20 @@ export default function SettingsPage() {
       document.documentElement.classList.add(`font-${newFont}`);
 
       if (sId) {
-        await schoolApi.update(sId, { font: newFont }).catch(() => {});
+        const selectedThemeObj = THEMES.find(t => t.id === theme) || THEMES[0];
+        const selectedFontObj = FONTS.find(f => f.id === newFont) || FONTS[0];
+        const payload = { 
+          schoolTheme: {
+            primaryColor: selectedThemeObj.colors[0],
+            secondaryColor: selectedThemeObj.colors[1],
+            accentColor: selectedThemeObj.colors[2],
+            font: selectedFontObj.apiName
+          }
+        };
+        console.log(`[DEBUG] Sending School Font Update Payload:`, payload);
+        await schoolApi.update(sId, payload).catch((e) => {
+          console.error("[DEBUG] Font update failed:", e);
+        });
       }
     } catch (_) {}
     setToast({ message: `Typography updated to ${newFont.toUpperCase()}`, type: 'success' });
@@ -380,7 +435,7 @@ export default function SettingsPage() {
 
   const sections = userRole === "Student"
     ? allSections.filter(s => ['notifications'].includes(s.id))
-    : userRole === "Faculty"
+    : (userRole === "Faculty" || userRole === "Bursar")
     ? allSections.filter(s => ['security', 'notifications'].includes(s.id))
     : allSections;
 
@@ -782,12 +837,7 @@ export default function SettingsPage() {
               <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Color Theme</h3>
               <p className="text-xs text-gray-500 mb-4">Choose a branding accent that reflects your school&apos;s identity</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {[
-                  { id: 'forest', label: 'Forest', colors: ['#053d26', '#047857', '#34d399'] },
-                  { id: 'ocean', label: 'Ocean', colors: ['#1e3a8a', '#2563eb', '#60a5fa'] },
-                  { id: 'sunset', label: 'Sunset', colors: ['#9a3412', '#ea580c', '#fb923c'] },
-                  { id: 'royal', label: 'Royal', colors: ['#4c1d95', '#7c3aed', '#c084fc'] },
-                ].map((t) => (
+                {THEMES.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => handleThemeChange(t.id)}
@@ -818,11 +868,7 @@ export default function SettingsPage() {
               <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Typography</h3>
               <p className="text-xs text-gray-500 mb-4">Choose a font style that reflects your school&apos;s identity</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {[
-                  { id: 'sans', label: 'Modern (Sans)', class: 'font-sans' },
-                  { id: 'serif', label: 'Classic (Serif)', class: 'font-serif' },
-                  { id: 'mono', label: 'Technical (Mono)', class: 'font-mono' },
-                ].map((f) => (
+                {FONTS.map((f) => (
                   <button
                     key={f.id}
                     onClick={() => handleFontChange(f.id)}

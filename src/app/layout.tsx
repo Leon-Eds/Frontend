@@ -32,7 +32,7 @@ export default function RootLayout({
         `}</style>
       </head>
       <body className="min-h-full flex flex-col font-sans">
-        <Script id="theme-initializer">
+        <Script id="theme-initializer" strategy="beforeInteractive">
           {`
             try {
               var dark = localStorage.getItem('leoned_dark_mode') === 'true';
@@ -43,7 +43,7 @@ export default function RootLayout({
               }
               // Only apply school themes on dashboard/portal pages, NOT on landing or login
               var path = window.location.pathname;
-              var isDashboard = path.startsWith('/dashboard') || path.startsWith('/super-admin');
+              var isDashboard = path.startsWith('/dashboard') || path.startsWith('/super-admin') || path.startsWith('/demo') || path.startsWith('/portal');
               if (isDashboard) {
                 var userStr = localStorage.getItem('leoned_user');
                 if (userStr) {

@@ -230,7 +230,7 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
                     status === 'Pending' ? 'bg-amber-100 text-amber-700' :
                     'bg-red-100 text-red-700'
                   }`}>
-                    {status}
+                    {status === 'NotRecorded' ? 'Not Recorded' : status}
                   </span>
                 </div>
               </div>

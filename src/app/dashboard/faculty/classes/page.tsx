@@ -19,7 +19,7 @@ interface ClassCardData {
 export default function MyClasses() {
   const [searchTerm, setSearchTerm] = useState("");
   const [classes, setClasses] = useState<ClassCardData[]>([]);
-  const [formClass, setFormClass] = useState<any>(null);
+  const [formClasses, setFormClasses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -37,12 +37,14 @@ export default function MyClasses() {
         const user = JSON.parse(userStr);
         
         let assignments: any[] = [];
-        let myFormClass: any = null;
+        let myFormClassesArr: any[] = [];
         
         try {
           const stats = await dashboardApi.getTeacherDashboard();
           assignments = (stats as any).assignments || [];
-          myFormClass = (stats as any).formClass || null;
+          if ((stats as any).formClass) {
+            myFormClassesArr = Array.isArray((stats as any).formClass) ? (stats as any).formClass : [(stats as any).formClass];
+          }
         } catch (e) {
           console.error("Failed to load teacher stats", e);
         }
@@ -54,14 +56,13 @@ export default function MyClasses() {
           // Fallback form class detection
           const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
           
-          if (!myFormClass && userId) {
+          if (myFormClassesArr.length === 0 && userId) {
             try {
               const formClassesRes = await attendanceApi.getMyFormClasses();
               const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
-              const myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
-              if (myFormClasses.length > 0) {
-                const fc = myFormClasses[0];
-                myFormClass = { ...fc, classId: fc.id || fc.classId || fc._id, className: fc.name || fc.className || "Class" };
+              const fetchedFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
+              if (fetchedFormClasses.length > 0) {
+                myFormClassesArr = fetchedFormClasses.map(fc => ({ ...fc, classId: fc.id || fc.classId || fc._id, className: fc.name || fc.className || "Class" }));
               }
             } catch (e) {
               console.error("Failed to fetch my form classes", e);
@@ -69,20 +70,18 @@ export default function MyClasses() {
             
             // Absolute fallback if the backend API returns empty due to User/Teacher ID linkage bug
             // Fallback: Probe the attendance endpoint. The backend restricts GET /attendance/class/{classId} to the form teacher!
-            if (!myFormClass && userId) {
+            if (myFormClassesArr.length === 0 && userId) {
               const today = new Date().toISOString().split('T')[0];
               for (const cls of allClasses) {
                 const cId = cls.classId || cls.id || cls._id;
                 if (!cId) continue;
                 try {
                   await attendanceApi.getClassAttendance(cId, today);
-                  myFormClass = { ...cls, classId: cId, className: cls.className || cls.name };
-                  break;
+                  myFormClassesArr.push({ ...cls, classId: cId, className: cls.className || cls.name });
                 } catch (e: any) {
                   const errorMsg = e instanceof Error ? e.message : String(e);
                   if (!errorMsg.includes('403')) {
-                    myFormClass = { ...cls, classId: cId, className: cls.className || cls.name };
-                    break;
+                    myFormClassesArr.push({ ...cls, classId: cId, className: cls.className || cls.name });
                   }
                 }
               }
@@ -91,21 +90,21 @@ export default function MyClasses() {
           
           // ULTIMATE FALLBACK: For testing purposes, if no form class could be determined but they have subject assignments,
           // let's just make their first assigned class their form class so they can access the Form Class UI.
-          if (!myFormClass && assignments.length > 0) {
+          if (myFormClassesArr.length === 0 && assignments.length > 0) {
             const firstAssign = assignments[0];
             const clsInfo = allClasses.find(c => (c.id || c._id || c.classId) === firstAssign.classId);
-            myFormClass = { 
+            myFormClassesArr.push({ 
               classId: firstAssign.classId, 
               className: firstAssign.className || clsInfo?.className || clsInfo?.name || "Class",
               name: firstAssign.className || clsInfo?.className || clsInfo?.name || "Class"
-            };
+            });
           }
 
         } catch (e) {
           console.error("Failed to load classes", e);
         }
         
-        setFormClass(myFormClass);
+        setFormClasses(myFormClassesArr);
         
         // Map assignments to class details
         const teacherClasses = assignments.map((asm, idx) => {
@@ -200,37 +199,41 @@ export default function MyClasses() {
       </div>
 
       {/* Form Class Section */}
-      {formClass && (
-        <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#053d26] to-[#032517] p-8 sm:p-10 text-white shadow-xl shadow-[#053d26]/20 border border-[#042c1b]">
-          <div className="absolute right-0 top-0 opacity-10 translate-x-12 -translate-y-12 pointer-events-none">
-            <ShieldCheck className="w-64 h-64" />
-          </div>
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="space-y-4 max-w-2xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-2xl">
-                  <Award className="h-6 w-6 text-green-300" />
-                </div>
-                <span className="text-green-300 font-bold uppercase tracking-widest text-xs">Form Teacher Assignment</span>
+      {formClasses.length > 0 && (
+        <div className="space-y-6">
+          {formClasses.map((fc, idx) => (
+            <div key={fc.classId || idx} className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#053d26] to-[#032517] p-8 sm:p-10 text-white shadow-xl shadow-[#053d26]/20 border border-[#042c1b]">
+              <div className="absolute right-0 top-0 opacity-10 translate-x-12 -translate-y-12 pointer-events-none">
+                <ShieldCheck className="w-64 h-64" />
               </div>
-              <h2 className="text-3xl sm:text-4xl font-black leading-none">
-                {formClass.name} {formClass.arm ? `(${formClass.arm})` : ''}
-              </h2>
-              <p className="text-green-100 text-sm leading-relaxed max-w-lg">
-                As the primary pastoral and administrative lead for this class, you are responsible for daily attendance, behavior monitoring, and general student welfare.
-              </p>
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                <div className="space-y-4 max-w-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-2xl">
+                      <Award className="h-6 w-6 text-green-300" />
+                    </div>
+                    <span className="text-green-300 font-bold uppercase tracking-widest text-xs">Form Teacher Assignment</span>
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-black leading-none">
+                    {fc.name || fc.className || "Class"} {fc.arm ? `(${fc.arm})` : ''}
+                  </h2>
+                  <p className="text-green-100 text-sm leading-relaxed max-w-lg">
+                    As the primary pastoral and administrative lead for this class, you are responsible for daily attendance, behavior monitoring, and general student welfare.
+                  </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 shrink-0">
+                  <Link 
+                    href={`/dashboard/faculty/classes/${fc.classId || fc.id || fc._id}`}
+                    className="group relative flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#053d26] rounded-2xl font-bold hover:bg-green-50 transition-all shadow-lg hover:shadow-white/20 hover:-translate-y-0.5"
+                  >
+                    <BookOpen className="h-5 w-5" />
+                    <span>Open Class Hub</span>
+                  </Link>
+                </div>
+              </div>
             </div>
-            
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 shrink-0">
-              <Link 
-                href={`/dashboard/faculty/classes/${formClass.classId}`}
-                className="group relative flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#053d26] rounded-2xl font-bold hover:bg-green-50 transition-all shadow-lg hover:shadow-white/20 hover:-translate-y-0.5"
-              >
-                <BookOpen className="h-5 w-5" />
-                <span>Open Class Hub</span>
-              </Link>
-            </div>
-          </div>
+          ))}
         </div>
       )}
 

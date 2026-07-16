@@ -7,6 +7,7 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { teacherApi, Teacher, CreateTeacherRequest, UpdateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi, teacherPortalApi, attendanceApi, bursarApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useAnnouncementsWebSocket } from "@/hooks/useAnnouncementsWebSocket";
+import TeacherMessages from '@/components/faculty/TeacherMessages';
 export function FacultyDirectory() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -217,19 +218,12 @@ export function FacultyDirectory() {
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="max-w-2xl">
-          <h1 className="text-4xl font-bold text-[#053d26] mb-3">Staff Directory</h1>
+          <h1 className="text-4xl font-bold text-[#053d26] mb-3">Teachers Directory</h1>
           <p className="text-gray-600 text-sm leading-relaxed">
             Manage your intellectual capital. Coordinate teacher assignments, track performance indicators, and maintain pedagogical standards across all departments.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => setShowBursarModal(true)}
-            className="flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-[#053d26] text-[#053d26] font-bold hover:bg-green-50 transition-colors shadow-sm shrink-0"
-          >
-            <Wallet className="h-5 w-5" />
-            Add Bursar
-          </button>
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm shrink-0"
@@ -1317,8 +1311,10 @@ export function FacultyHomepage() {
           </div>
         </div>
 
-        {/* Right 1 Column: Quick Hub */}
+        {/* Right 1 Column: Quick Hub & Messages */}
         <div className="space-y-6">
+          <TeacherMessages />
+
           <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest flex items-center gap-2 border-b border-gray-50 pb-5">
               Teacher Hub

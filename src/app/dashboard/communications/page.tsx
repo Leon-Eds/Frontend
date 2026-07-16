@@ -22,7 +22,7 @@ import {
   AlertCircle,
   Loader2
 } from "lucide-react";
-import { announcementApi } from "@/lib/api";
+import { announcementApi, studentApi, teacherApi, classApi } from "@/lib/api";
 import { useAnnouncementsWebSocket } from "@/hooks/useAnnouncementsWebSocket";
 
 interface Announcement {
@@ -34,6 +34,8 @@ interface Announcement {
   author: string;
   channels: string[];
   views: number;
+  audience: string;
+  targetUserId?: string;
 }
 
 interface DispatchLog {
@@ -75,7 +77,12 @@ export default function BroadcastHub() {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("General");
   const [targetGroup, setTargetGroup] = useState("All");
-  const [targetUserId, setTargetUserId] = useState("");
+  const [targetClassId, setTargetClassId] = useState("");
+
+  // Dynamic Data States
+  const [staffCount, setStaffCount] = useState(0);
+  const [studentCount, setStudentCount] = useState(0);
+  const [classesList, setClassesList] = useState<any[]>([]);
   
   // UI states
   const [isSending, setIsSending] = useState(false);
@@ -95,7 +102,9 @@ export default function BroadcastHub() {
         date: ann.createdAt || new Date().toISOString(),
         author: "School Administration",
         channels: ["megaphone"],
-        views: 0
+        views: 0,
+        audience: ann.audience || "All",
+        targetUserId: ann.targetUserId
       }));
       setAnnouncements(mapped);
     } catch (err) {
@@ -114,6 +123,23 @@ export default function BroadcastHub() {
 
     const storedLogs = localStorage.getItem("leoned_dispatch_logs");
     setDispatchLogs(storedLogs ? JSON.parse(storedLogs) : []);
+
+    // Fetch dynamic counts and classes
+    const fetchDynamicData = async () => {
+      try {
+        const [teachers, students, classes] = await Promise.all([
+          teacherApi.getAll().catch(() => []),
+          studentApi.getAll().catch(() => []),
+          classApi.getAll().catch(() => [])
+        ]);
+        setStaffCount(Array.isArray(teachers) ? teachers.length : 0);
+        setStudentCount(Array.isArray(students) ? students.length : 0);
+        setClassesList(Array.isArray(classes) ? classes : []);
+      } catch (err) {
+        console.error("Failed to fetch dynamic data for broadcast hub", err);
+      }
+    };
+    fetchDynamicData();
   }, []);
 
   const handleBroadcast = async (e: React.FormEvent) => {
@@ -129,12 +155,11 @@ export default function BroadcastHub() {
     try {
       const audience = targetGroup === "All" ? "All" 
         : targetGroup === "Students" ? "Students" 
-        : targetGroup === "Parents" ? "Parents" 
-        : targetGroup === "SpecificUser" ? "SpecificUser"
+        : targetGroup === "Class" ? "Class"
         : "Teachers";
       
-      if (targetGroup === "SpecificUser" && !targetUserId.trim()) {
-        setFormError("Target User ID is required when sending to a specific user.");
+      if (targetGroup === "Class" && !targetClassId) {
+        setFormError("Please select a specific class to broadcast to.");
         setIsSending(false);
         return;
       }
@@ -144,12 +169,17 @@ export default function BroadcastHub() {
         title,
         content,
         audience,
-        ...(targetGroup === "SpecificUser" ? { targetUserId: targetUserId.trim() } : {})
+        ...(targetGroup === "Class" ? { targetClassId } : {})
       });
 
       // 2. Save log local UI telemetry
       const newDate = new Date().toISOString();
-      const targetCount = targetGroup === "All" ? 48 : targetGroup === "SpecificUser" ? 1 : targetGroup === "Math" ? 5 : 12;
+      let targetCount = 0;
+      if (targetGroup === "All") targetCount = staffCount + studentCount;
+      else if (targetGroup === "Students") targetCount = studentCount;
+      else if (targetGroup === "Teachers") targetCount = staffCount;
+      else if (targetGroup === "Class") targetCount = 30; // Approx class size
+
       const newLog: DispatchLog = {
         id: `log-${Date.now()}`,
         subject: title,
@@ -186,7 +216,7 @@ export default function BroadcastHub() {
       setTitle("");
       setContent("");
       setCategory("General");
-      setTargetUserId("");
+      setTargetClassId("");
       fetchAnnouncements();
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : "Failed to execute broadcast");
@@ -284,25 +314,33 @@ export default function BroadcastHub() {
                     onChange={(e) => setTargetGroup(e.target.value)}
                     className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs font-bold text-gray-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                   >
-                    <option value="All">All School Staff (48)</option>
-                    <option value="Students">All Students</option>
-                    <option value="Parents">All Parents / Guardians</option>
-                    <option value="SpecificUser">Specific User</option>
-                    <option value="Math">Maths Department (5)</option>
-                    <option value="Science">Sciences Department (12)</option>
+                    <option value="All">Everyone ({staffCount + studentCount})</option>
+                    <option value="Teachers">All School Staff ({staffCount})</option>
+                    <option value="Students">All Students ({studentCount})</option>
+                    <option value="Class">Specific Class</option>
                   </select>
                 </div>
                 
-                {targetGroup === "SpecificUser" && (
+                {targetGroup === "Class" && (
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Target User ID (Admission Number / ID)</label>
-                    <input 
-                      type="text" 
-                      value={targetUserId}
-                      onChange={(e) => setTargetUserId(e.target.value)}
-                      placeholder="e.g. STUD-12345 or User UUID"
-                      className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                    />
+                    <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Select Specific Class</label>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                        <Users className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <select 
+                        value={targetClassId}
+                        onChange={(e) => setTargetClassId(e.target.value)}
+                        className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-10 pr-4 text-sm font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors appearance-none"
+                      >
+                        <option value="" disabled>Select a class...</option>
+                        {classesList.map(c => (
+                          <option key={c.id || c._id} value={c.id || c._id}>
+                            {c.name || c.className} {c.section ? `(${c.section})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 )}
 
@@ -462,6 +500,10 @@ export default function BroadcastHub() {
                       <span>•</span>
                       <span className="flex items-center gap-1">
                         Channels: {ann.channels.map(c => c === "megaphone" ? "📢 Bulletin" : c === "email" ? "📧 Email" : "📱 Push").join(", ")}
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1 text-[#053d26]">
+                        Target: {ann.audience === "SpecificUser" ? `Specific User (${ann.targetUserId})` : ann.audience}
                       </span>
                     </div>
                   </div>

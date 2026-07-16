@@ -56,6 +56,15 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
     localStorage.removeItem("leoned_token");
     localStorage.removeItem("leoned_refresh_token");
     localStorage.removeItem("leoned_user");
+    
+    // Clear theme from DOM so login page defaults to platform colors
+    try {
+      document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal', 'font-sans', 'font-serif', 'font-mono');
+      document.documentElement.style.removeProperty('--theme-primary');
+      document.documentElement.style.removeProperty('--theme-secondary');
+      document.documentElement.style.removeProperty('--theme-accent');
+    } catch(e) {}
+    
     router.push("/login");
   };
 

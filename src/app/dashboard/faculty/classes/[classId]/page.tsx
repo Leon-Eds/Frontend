@@ -4,7 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, CheckSquare, UserCheck, FileSpreadsheet, ChevronLeft, ArrowRight, ShieldCheck, Loader2, AlertCircle, Clock } from "lucide-react";
-import { classApi, dashboardApi } from "@/lib/api";
+import { teacherPortalApi, dashboardApi } from "@/lib/api";
 
 export default function ClassHub({ params }: { params: Promise<{ classId: string }> }) {
   const resolvedParams = use(params);
@@ -25,34 +25,39 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
       
       try {
         setIsLoading(true);
-        // Fetch class details
-        const clsRes = await classApi.getById(classId).catch(() => null);
-        const cls = (clsRes as any)?.data || clsRes;
-        if (cls) setClassDetails(cls);
-
+        
+        // Get teacher dashboard (it contains assignments with class info)
+        const stats = await dashboardApi.getTeacherDashboard().catch(() => null);
+        const dashData = (stats as any)?.data || stats;
+        
+        // Find class details from assignments
+        const assignments = dashData?.assignments || [];
+        const matchingAssignment = assignments.find((a: any) => a.classId === classId);
+        
+        if (matchingAssignment) {
+          setClassDetails({
+            id: matchingAssignment.classId,
+            name: matchingAssignment.className,
+            ...matchingAssignment,
+          });
+        }
+        
         // Determine if they are the form teacher
         const userStr = localStorage.getItem("leoned_user");
         if (userStr) {
           const user = JSON.parse(userStr);
           const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
-          if (cls && (cls.formTeacherId === userId)) {
-            setIsFormTeacher(true);
-          } else {
-            // Check dashboard stats just in case
-            const stats = await dashboardApi.getTeacherDashboard().catch(() => null);
-            if (stats) {
-              const myFormClass = (stats as any)?.formClass || null;
-              let fcId = myFormClass?.classId || myFormClass?.id || myFormClass?._id;
-              
-              // ULTIMATE FALLBACK: if they have assignments but no form class, treat their first assignment as form class
-              if (!fcId && (stats as any).assignments?.length > 0) {
-                 fcId = (stats as any).assignments[0].classId;
-              }
+          
+          const myFormClass = dashData?.formClass || null;
+          let fcId = myFormClass?.classId || myFormClass?.id || myFormClass?._id;
+          
+          // ULTIMATE FALLBACK: if they have assignments but no form class, treat their first assignment as form class
+          if (!fcId && assignments.length > 0) {
+            fcId = assignments[0].classId;
+          }
 
-              if (fcId === classId) {
-                setIsFormTeacher(true);
-              }
-            }
+          if (fcId === classId) {
+            setIsFormTeacher(true);
           }
         }
       } catch (err) {

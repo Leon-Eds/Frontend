@@ -20,12 +20,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [displayLogo, setDisplayLogo] = useState("/logo.png");
 
-  useEffect(() => {
-    const savedLogo = localStorage.getItem("leoned_persistent_school_logo");
-    if (savedLogo) {
-      setDisplayLogo(savedLogo);
-    }
-  }, []);
+
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -166,10 +161,10 @@ export default function LoginPage() {
       if (Object.keys(userObj).length > 0) {
         localStorage.setItem("leoned_user", JSON.stringify(userObj));
         if (userObj.logoUrl) {
-          localStorage.setItem("leoned_persistent_school_logo", userObj.logoUrl);
+          // Remove persistent logo saving to keep login generic
         }
         if (userObj.schoolId) {
-          if (userObj.schoolTheme) localStorage.setItem(`leoned_theme_${userObj.schoolId}`, userObj.schoolTheme);
+          if (userObj.schoolTheme && typeof userObj.schoolTheme === 'string') localStorage.setItem(`leoned_theme_${userObj.schoolId}`, userObj.schoolTheme);
           if (userObj.schoolFont) localStorage.setItem(`leoned_font_${userObj.schoolId}`, userObj.schoolFont);
         }
       } else {
@@ -178,6 +173,37 @@ export default function LoginPage() {
       
       // Store selected role for portal context across the app
       localStorage.setItem("leoned_demo_role", selectedRole);
+      
+      // Synchronously apply the theme BEFORE client-side navigation to prevent FOUC (delay)
+      try {
+        // ALWAYS reset to default first so a previous school's theme doesn't bleed over
+        document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal', 'font-sans', 'font-serif', 'font-mono');
+        document.documentElement.style.removeProperty('--theme-primary');
+        document.documentElement.style.removeProperty('--theme-secondary');
+        document.documentElement.style.removeProperty('--theme-accent');
+
+        const sId = userObj.schoolId || userObj.SchoolId;
+        if (sId) {
+          const themeStr = localStorage.getItem(`leoned_theme_${sId}`);
+          if (themeStr && themeStr !== '[object Object]') {
+            document.documentElement.classList.add(`theme-${themeStr}`);
+          }
+          const fontStr = localStorage.getItem(`leoned_font_${sId}`);
+          if (fontStr && fontStr !== '[object Object]') {
+            document.documentElement.classList.add(`font-${fontStr}`);
+          }
+        }
+        
+        // Handle object format returned directly by the API
+        if (userObj.schoolTheme && typeof userObj.schoolTheme === 'object') {
+          if (userObj.schoolTheme.primaryColor) document.documentElement.style.setProperty('--theme-primary', userObj.schoolTheme.primaryColor);
+          if (userObj.schoolTheme.secondaryColor) document.documentElement.style.setProperty('--theme-secondary', userObj.schoolTheme.secondaryColor);
+          if (userObj.schoolTheme.accentColor) document.documentElement.style.setProperty('--theme-accent', userObj.schoolTheme.accentColor);
+          if (userObj.schoolTheme.font) document.documentElement.classList.add(`font-${userObj.schoolTheme.font.toLowerCase()}`);
+        } else if (typeof userObj.schoolTheme === 'string') {
+          document.documentElement.classList.add(`theme-${userObj.schoolTheme}`);
+        }
+      } catch (e) {}
       
       // Redirect based on role — use selectedRole as primary since it's user intent
       const effectiveRole = returnedRole || selectedRoleLower;
@@ -304,7 +330,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder={selectedRole === "Student" ? "Admission Number or Email" : (t("login.email") === "Email Address" ? "Email or Registration Number" : t("login.email"))}
+                  placeholder={selectedRole === "Student" ? "Admission / Registration Number" : t("login.email")}
                   disabled={isLoading}
                 />
               </div>

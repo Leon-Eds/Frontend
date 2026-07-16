@@ -66,25 +66,21 @@ export default function StudentAttendance({ studentInfo }: { studentInfo: any })
         
         // If myAttendance returns empty records BUT no stats, fallback to getStudentAttendance
         let data = (res as any)?.data || res;
-        let records = Array.isArray(data) ? data : (data.records || data.items || data.attendance || Object.values(data).filter(v => typeof v === 'object' && (v as any).status) || []);
+        let records = Array.isArray(data) ? data : (data.records || data.items || data.attendance || data.attendanceRecords || data.dailyRecords || data.data || Object.values(data).filter(v => typeof v === 'object' && (v as any).status) || []);
         
-        if (records.length === 0 && studentId) {
-           const fallbackRes = await attendanceApi.getStudentAttendance(studentId, selectedTermId).catch(() => []);
-           data = (fallbackRes as any)?.data || fallbackRes;
-           records = Array.isArray(data) ? data : (data.records || data.items || data.attendance || Object.values(data).filter(v => typeof v === 'object' && (v as any).status) || []);
-        }
+        // Removed fallback to getStudentAttendance because the endpoint does not exist.
 
         console.log("[DEBUG] Raw attendance fetch result:", JSON.stringify(res, null, 2));
         console.log("[DEBUG] Extracted records:", records);
         
         // Compute stats
-        let present = data?.present ?? 0;
-        let absent = data?.absent ?? 0;
-        let late = data?.late ?? 0;
-        let percentage = data?.attendancePercentage ?? 0;
+        let present = data?.present ?? data?.stats?.present ?? data?.presentCount ?? data?.totalPresent ?? data?.Present ?? 0;
+        let absent = data?.absent ?? data?.stats?.absent ?? data?.absentCount ?? data?.totalAbsent ?? data?.Absent ?? 0;
+        let late = data?.late ?? data?.stats?.late ?? data?.lateCount ?? data?.totalLate ?? data?.Late ?? 0;
+        let percentage = data?.attendancePercentage ?? data?.stats?.percentage ?? data?.percentage ?? data?.overall ?? 0;
 
-        // If the API didn't provide stats but we have records, compute manually
-        if (records.length > 0 && data?.attendancePercentage === undefined) {
+        // If the API didn't provide stats but we have records, or provided percentage without counts, compute manually
+        if (records.length > 0 && (data?.attendancePercentage === undefined || (present === 0 && absent === 0 && late === 0))) {
           present = 0; absent = 0; late = 0;
           records.forEach((r: any) => {
             if (r.status === 'Present') present++;
@@ -92,7 +88,9 @@ export default function StudentAttendance({ studentInfo }: { studentInfo: any })
             else if (r.status === 'Late') late++;
           });
           const total = present + absent + late;
-          percentage = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+          if (data?.attendancePercentage === undefined && data?.percentage === undefined && data?.overall === undefined) {
+            percentage = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+          }
         }
         
         setAttendanceRecords(records);

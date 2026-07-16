@@ -84,43 +84,67 @@ function FacultyAttendanceInner() {
       }
       setLoading(true);
       try {
-        const classStudents = await teacherPortalApi.getClassStudents(selectedClassId);
-        setStudents(Array.isArray(classStudents) ? classStudents : ((classStudents as any)?.data || (classStudents as any)?.items || []));
+        // First, fetch the baseline roster of students for this class
+        const classStudentsRes = await teacherPortalApi.getClassStudents(selectedClassId).catch(() => []);
+        console.log("[ATTENDANCE DEBUG] Raw getClassStudents response:", JSON.stringify(classStudentsRes, null, 2));
+        const baselineStudents = Array.isArray(classStudentsRes) 
+          ? classStudentsRes 
+          : (classStudentsRes as any)?.data || (classStudentsRes as any)?.items || (classStudentsRes as any)?.students || [];
+        console.log("[ATTENDANCE DEBUG] Parsed baselineStudents:", JSON.stringify(baselineStudents, null, 2));
+
+        // Second, fetch today's attendance sheet
+        const existingData = await attendanceApi.getClassAttendance(selectedClassId, date).catch(() => []);
+        console.log("[ATTENDANCE DEBUG] Raw getClassAttendance response:", JSON.stringify(existingData, null, 2));
+        const existingRecords = (existingData as any)?.records || (existingData as any)?.items || (existingData as any)?.data || (Array.isArray(existingData) ? existingData : []);
+        const returnedDate = (existingData as any)?.date;
         
+        let loadedStudents: any[] = [];
         let savedAttendance: Record<string, string> = {};
-        try {
-          const existingData = await attendanceApi.getClassAttendance(selectedClassId, date).catch(() => null);
-          const existingRecords = (existingData as any)?.records || existingData || [];
-          const returnedDate = (existingData as any)?.date;
-          
-          if (Array.isArray(existingRecords)) {
-            // If the backend returned a date that doesn't match our selected date, ignore these records
-            // This prevents old attendance from showing up on days where no attendance was taken
-            const isWrongDate = returnedDate && returnedDate !== date && !returnedDate.startsWith(date);
-            
-            if (!isWrongDate) {
-              existingRecords.forEach(r => {
-                if (r.studentId && r.status) {
-                  // Additional fallback: if individual records have dates, ensure they match
-                  if (r.date && r.date !== date && !r.date.startsWith(date)) return;
-                  savedAttendance[r.studentId] = r.status;
-                }
-              });
+
+        const isWrongDate = returnedDate && returnedDate !== date && !returnedDate.startsWith(date);
+        
+        if (Array.isArray(existingRecords) && !isWrongDate) {
+          existingRecords.forEach(r => {
+            const sId = r.studentId || r.student?.id || r.student?._id || r.id || r._id;
+            if (sId && r.status) {
+              if (r.date && r.date !== date && !r.date.startsWith(date)) return;
+              savedAttendance[sId] = r.status;
             }
-          }
-        } catch (e) {
-          console.error("No existing attendance found", e);
+          });
         }
+        
+        if (Array.isArray(baselineStudents) && baselineStudents.length > 0) {
+          loadedStudents = baselineStudents.map(s => {
+            const resolvedId = s.student?.id || s.student?._id || s.studentId || s.id || s._id;
+            console.log("[ATTENDANCE DEBUG] Student mapping:", { rawKeys: Object.keys(s), resolvedId, fullName: s.fullName || s.name || s.student?.fullName });
+            return {
+              ...s,
+              studentId: resolvedId
+            };
+          });
+        } else if (Array.isArray(existingRecords)) {
+          loadedStudents = existingRecords.map((r: any) => {
+            const studentObj = r.student || r;
+            return {
+              ...studentObj,
+              studentId: r.studentId || studentObj.id || studentObj._id
+            };
+          });
+        }
+        
+        console.log("[ATTENDANCE DEBUG] Final loadedStudents:", loadedStudents.map(s => ({ studentId: s.studentId, name: s.fullName || s.name })));
+        setStudents(loadedStudents);
 
         const defaultAtt: Record<string, 'Present' | 'Absent' | 'Late'> = {};
-        const safeClassStudents = Array.isArray(classStudents) ? classStudents : ((classStudents as any)?.data || (classStudents as any)?.items || []);
-        safeClassStudents.forEach((s: any) => {
-          const sId = s.student?.id || s.studentId || s.id || s._id;
-          defaultAtt[sId] = (savedAttendance[sId] as any) || 'Present';
+        loadedStudents.forEach((s: any) => {
+          const resolvedId = s.studentId;
+          defaultAtt[resolvedId] = (savedAttendance[resolvedId] as any) || 'Present';
         });
+        console.log("[ATTENDANCE DEBUG] Default attendance map:", defaultAtt);
         setAttendance(defaultAtt);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to fetch attendance sheet", err);
+        toast.error("Failed to fetch attendance sheet");
       } finally {
         setLoading(false);
       }
@@ -140,17 +164,17 @@ function FacultyAttendanceInner() {
     setIsSaving(true);
     try {
       const records = Object.entries(attendance).map(([id, status]) => {
-        // Handle cases where the id might be a student object's studentId
         return {
           studentId: id,
           status
         };
       });
-      console.log("Saving attendance with payload:", { selectedClassId, date, records });
-      await attendanceApi.recordDailyAttendance(selectedClassId, date, records);
+      console.log("[ATTENDANCE SAVE] Saving attendance with payload:", JSON.stringify({ selectedClassId, date, records }, null, 2));
+      const saveResult = await attendanceApi.recordDailyAttendance(selectedClassId, date, records);
+      console.log("[ATTENDANCE SAVE] Save result from backend:", JSON.stringify(saveResult, null, 2));
       toast.success("Attendance saved successfully!");
     } catch (err) {
-      console.error("Failed to save attendance:", err);
+      console.error("[ATTENDANCE SAVE] Failed to save attendance:", err);
       toast.error(err instanceof Error ? err.message : "Failed to save attendance.");
     } finally {
       setIsSaving(false);
@@ -294,7 +318,7 @@ function FacultyAttendanceInner() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {students.map((student) => {
-                const sId = student.student?.id || student.studentId || student.id || student._id;
+                const sId = student.studentId;
                 return (
                 <tr key={sId} className="hover:bg-gray-50/50 transition-colors">
                   <td className="py-4 px-6 font-bold text-gray-900 text-sm">
