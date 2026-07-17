@@ -76,34 +76,16 @@ function FormClassResultsInner() {
             } catch (e) {}
             
             if (!myFormClass) {
-              const today = new Date().toISOString().split('T')[0];
-              for (const cls of allClasses) {
-                const cId = cls.classId || cls.id || cls._id;
-                if (!cId) continue;
-                
-                // If urlClassId is present, we only check that one
-                if (urlClassId && cId !== urlClassId) continue;
-
-                try {
-                  await attendanceApi.getClassAttendance(cId, today);
-                  myFormClass = { ...cls, classId: cId, className: cls.className || cls.name };
-                  break;
-                } catch (e: any) {
-                  const errorMsg = e instanceof Error ? e.message : String(e);
-                  if (!errorMsg.includes('403')) {
-                    myFormClass = { ...cls, classId: cId, className: cls.className || cls.name };
-                    break;
-                  }
-                }
+              // Try to find if user object has formClass
+              if (user?.teacher?.formClass) {
+                const targetFc = urlClassId && user.teacher.formClass.id === urlClassId ? user.teacher.formClass : user.teacher.formClass;
+                myFormClass = { ...targetFc, classId: targetFc.id || targetFc.classId || targetFc._id, className: targetFc.name || targetFc.className || "Class" };
               }
             }
           }
         } catch (e) {}
         
         let fc = myFormClass;
-        
-        // Just mock it if not found easily for the demo
-        if (!fc && allClasses.length > 0) fc = allClasses[0];
         
         if (!fc) {
           setError("You are not assigned as a Form Teacher to any class.");

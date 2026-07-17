@@ -1049,28 +1049,7 @@ export function FacultyHomepage() {
             }
           }
           
-          // Absolute fallback if the backend API returns empty due to User/Teacher ID linkage bug
-          if (myFormClasses.length === 0 && userId) {
-            // Fallback: Probe the attendance endpoint. The backend restricts GET /attendance/class/{classId} to the form teacher!
-            if (myFormClasses.length === 0) {
-              const today = new Date().toISOString().split('T')[0];
-              for (const cls of allClasses) {
-                const cId = cls.classId || cls.id || cls._id;
-                if (!cId) continue;
-                try {
-                  await attendanceApi.getClassAttendance(cId, today);
-                  myFormClasses.push({ ...cls, classId: cId, className: cls.className || cls.name });
-                } catch (e: any) {
-                  const errorMsg = e instanceof Error ? e.message : String(e);
-                  // If it's a 404, it just means no attendance record exists for today, BUT we were allowed to check!
-                  // A strict 403 Forbidden means we are NOT the form teacher.
-                  if (!errorMsg.includes('403')) {
-                     myFormClasses.push({ ...cls, classId: cId, className: cls.className || cls.name });
-                  }
-                }
-              }
-            }
-          }
+          // The probe fallback has been removed because it was erroneously granting form teacher access to non-form teachers
           
           setFormClasses(myFormClasses);
         } catch (e) {

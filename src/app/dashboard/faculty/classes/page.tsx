@@ -68,36 +68,10 @@ export default function MyClasses() {
               console.error("Failed to fetch my form classes", e);
             }
             
-            // Absolute fallback if the backend API returns empty due to User/Teacher ID linkage bug
-            // Fallback: Probe the attendance endpoint. The backend restricts GET /attendance/class/{classId} to the form teacher!
-            if (myFormClassesArr.length === 0 && userId) {
-              const today = new Date().toISOString().split('T')[0];
-              for (const cls of allClasses) {
-                const cId = cls.classId || cls.id || cls._id;
-                if (!cId) continue;
-                try {
-                  await attendanceApi.getClassAttendance(cId, today);
-                  myFormClassesArr.push({ ...cls, classId: cId, className: cls.className || cls.name });
-                } catch (e: any) {
-                  const errorMsg = e instanceof Error ? e.message : String(e);
-                  if (!errorMsg.includes('403')) {
-                    myFormClassesArr.push({ ...cls, classId: cId, className: cls.className || cls.name });
-                  }
-                }
-              }
-            }
+          // Absolute fallback: if dashboardStats had it, try that
+          if (myFormClassesArr.length === 0 && user?.teacher?.formClass) {
+            myFormClassesArr = [user.teacher.formClass];
           }
-          
-          // ULTIMATE FALLBACK: For testing purposes, if no form class could be determined but they have subject assignments,
-          // let's just make their first assigned class their form class so they can access the Form Class UI.
-          if (myFormClassesArr.length === 0 && assignments.length > 0) {
-            const firstAssign = assignments[0];
-            const clsInfo = allClasses.find(c => (c.id || c._id || c.classId) === firstAssign.classId);
-            myFormClassesArr.push({ 
-              classId: firstAssign.classId, 
-              className: firstAssign.className || clsInfo?.className || clsInfo?.name || "Class",
-              name: firstAssign.className || clsInfo?.className || clsInfo?.name || "Class"
-            });
           }
 
         } catch (e) {

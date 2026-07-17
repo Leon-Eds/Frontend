@@ -84,21 +84,31 @@ export default function FacultyResultEntry() {
         if (!storedUser) return;
         const user = JSON.parse(storedUser);
 
-        // Fetch teacher's assignments via dashboard API to bypass role blocks
-        const [dashboardStats, sessionData] = await Promise.all([
-          dashboardApi.getTeacherDashboard().catch(() => ({ assignments: [] })),
-          sessionApi.getAll().catch(() => [])
+        // Fetch teacher's assignments via teacher portal API
+        const [assignmentsRes, sessionData, dashboardStats] = await Promise.all([
+          teacherPortalApi.getAssignments().catch(() => []),
+          sessionApi.getAll().catch(() => []),
+          dashboardApi.getTeacherDashboard().catch(() => ({}))
         ]);
 
-        const assignments = (dashboardStats as any).assignments || [];
+        const unwrappedAssignments = Array.isArray(assignmentsRes) 
+          ? assignmentsRes 
+          : ((assignmentsRes as any)?.data || (assignmentsRes as any)?.items || []);
+        
+        const assignments = unwrappedAssignments;
         
         // Extract unique classes and subjects from assignments
         const uniqueClasses = new Map();
         const uniqueSubjects = new Map();
         
         assignments.forEach((a: any) => {
-          if (a.classId) uniqueClasses.set(a.classId, { id: a.classId, name: a.className || "Class" });
-          if (a.subjectId) uniqueSubjects.set(a.subjectId, { id: a.subjectId, name: a.subjectName || "Subject" });
+          const cId = a.classId || a.class?.id || a.class?._id;
+          const cName = a.className || a.class?.name || "Class";
+          const sId = a.subjectId || a.subject?.id || a.subject?._id;
+          const sName = a.subjectName || a.subject?.name || "Subject";
+          
+          if (cId) uniqueClasses.set(cId, { id: cId, name: cName });
+          if (sId) uniqueSubjects.set(sId, { id: sId, name: sName });
         });
 
         const classList = Array.from(uniqueClasses.values());
@@ -153,11 +163,15 @@ export default function FacultyResultEntry() {
       
       // If no scores exist yet for this class/subject/term, fetch the students and initialize empty score rows
       if (scores.length === 0) {
-        const classStudents = (await teacherPortalApi.getClassStudents(selectedClass)) as any[];
+        const classStudentsRes = await teacherPortalApi.getClassStudents(selectedClass).catch(() => []);
+        const classStudents = Array.isArray(classStudentsRes) 
+          ? classStudentsRes 
+          : (classStudentsRes as any)?.data || (classStudentsRes as any)?.items || (classStudentsRes as any)?.students || [];
+          
         scores = classStudents.map((s: any) => ({
-          studentId: s.id,
-          studentName: s.fullName,
-          admissionNumber: s.admissionNumber,
+          studentId: s.id || s._id || s.studentId,
+          studentName: s.fullName || s.name || s.studentName,
+          admissionNumber: s.admissionNumber || s.admissionNo || "",
           ca1: "",
           ca2: "",
           exam: "",
