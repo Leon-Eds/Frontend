@@ -749,6 +749,11 @@ export const dashboardApi = {
 };
 
 export const uploadToCloudinary = async (file: File): Promise<string> => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Only JPG and PNG images are allowed for upload.');
+  }
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', 'leoned_uploads');
