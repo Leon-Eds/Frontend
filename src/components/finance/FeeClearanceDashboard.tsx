@@ -928,36 +928,7 @@ export default function FeeClearanceDashboard() {
                 />
               </div>
 
-              {/* Receipt Image URL */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Receipt Image (Optional)</label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={receiptImageUrl}
-                    onChange={(e) => setReceiptImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
-                  />
-                  <button type="button" onClick={handleUploadClick} className="px-4 bg-gray-100 rounded-2xl text-xs font-bold hover:bg-gray-200 whitespace-nowrap">
-                    Upload
-                  </button>
-                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={async (e) => {
-                     const file = e.target.files?.[0];
-                     if (file) {
-                       const toastId = toast.loading(`Uploading ${file.name}...`);
-                       try {
-                         const url = await uploadToCloudinary(file);
-                         setReceiptImageUrl(url);
-                         toast.success(`Receipt uploaded successfully!`, { id: toastId });
-                       } catch (err) {
-                         console.error(err);
-                         toast.error(`Failed to upload receipt`, { id: toastId });
-                       }
-                     }
-                  }} />
-                </div>
-              </div>
+              {/* Removed Receipt Image Upload per request */}
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">

@@ -208,11 +208,11 @@ export default function SessionRollover() {
             Orchestrate the end-of-year transition with surgical precision. Manage academic sessions, terms, batch promotions, and initialize the upcoming session architecture.
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="bg-gray-100 p-1 rounded-xl flex items-center shrink-0">
+        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+          <div className="bg-gray-100 p-1 rounded-xl flex items-center overflow-x-auto max-w-full hide-scrollbar">
             <button
               onClick={() => setActiveTab('sessions')}
-              className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors ${
+              className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors whitespace-nowrap ${
                 activeTab === 'sessions' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -220,7 +220,7 @@ export default function SessionRollover() {
             </button>
             <button
               onClick={() => setActiveTab('promotions')}
-              className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors ${
+              className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors whitespace-nowrap ${
                 activeTab === 'promotions' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -230,7 +230,7 @@ export default function SessionRollover() {
           {activeTab === 'sessions' && (
             <button
               onClick={() => setShowCreateSession(true)}
-              className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm shrink-0"
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm shrink-0 whitespace-nowrap"
             >
               <Plus className="h-5 w-5" /> New Session
             </button>
@@ -289,114 +289,114 @@ export default function SessionRollover() {
                     <div className="mt-6 space-y-2">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Terms</p>
                       {currentSession.terms.map(term => (
-                        <div key={term.id} className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-100">
-                          <div>
-                            <span className="text-sm font-bold text-gray-900">{term.termNumber} Term</span>
-                            <p className="text-[10px] text-gray-500">
-                              {new Date(term.startDate).toLocaleDateString()} — {new Date(term.endDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {term.isCurrent ? (
-                              <span className="px-2.5 py-1 rounded-full bg-green-100 text-[#053d26] text-[10px] font-bold">Current</span>
-                            ) : (
-                              <button
-                                onClick={() => handleSetCurrentTerm(term.id)}
-                                className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition-colors"
-                              >
-                                Set Current
-                              </button>
-                            )}
-                            <button
-                              onClick={() => {
-                                setEditTermId(term.id);
-                                setEditTermNumber(term.termNumber);
-                                setEditTermStartDate(term.startDate.split('T')[0]);
-                                setEditTermEndDate(term.endDate.split('T')[0]);
-                                setEditTermError("");
-                              }}
-                              className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold hover:bg-blue-100 transition-colors"
-                            >
-                              Edit
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <button
-                    onClick={() => { setAddTermToSessionId(currentSession.id); }}
-                    className="mt-4 text-sm font-bold text-[#b05e1c] hover:text-[#965017] transition-colors"
-                  >
-                    + Add Term
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Session List / Upcoming */}
-            <div className="bg-[#053d26] rounded-[2rem] p-8 shadow-sm text-white relative overflow-hidden flex flex-col justify-between">
-              <div className="absolute right-0 top-0 opacity-10">
-                <Calendar className="w-64 h-64 -mt-16 -mr-16" />
-              </div>
-              <div className="relative z-10">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-green-200/80 mb-2">All Sessions</p>
-                <div className="text-2xl font-bold mb-6">{sessions.length} Total</div>
-              </div>
-
-              <div className="relative z-10 space-y-3 max-h-64 overflow-y-auto">
-                {sessions.length === 0 ? (
-                  <p className="text-green-200/70 text-sm">No sessions created yet. Click &quot;New Session&quot; to start.</p>
-                ) : (
-                  sessions.map(session => (
-                    <div key={session.id} className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10 flex items-center justify-between gap-4">
+                      <div key={term.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-all hover:bg-white hover:shadow-sm">
                       <div>
-                        <div className="font-bold text-sm">{session.name}</div>
-                        <p className="text-[10px] text-green-200/70">
-                          {session.terms?.length || 0} terms • {session.isCurrent ? 'Active' : 'Inactive'}
+                        <p className="font-bold text-sm text-gray-900">{Number(term.termNumber) === 1 ? "First" : Number(term.termNumber) === 2 ? "Second" : "Third"} Term</p>
+                        <p className="text-xs text-gray-500 font-medium">
+                          {term.startDate ? new Date(term.startDate).toLocaleDateString() : 'TBD'} - {term.endDate ? new Date(term.endDate).toLocaleDateString() : 'TBD'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {term.isCurrent ? (
+                          <span className="px-2.5 py-1 rounded-full bg-green-100 text-[#053d26] text-[10px] font-bold">Current</span>
+                        ) : (
+                          <button
+                            onClick={() => handleSetCurrentTerm(term.id)}
+                            className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition-colors"
+                          >
+                            Set Current
+                          </button>
+                        )}
                         <button
                           onClick={() => {
-                            setEditSessionId(session.id);
-                            setEditSessionName(session.name);
-                            setEditSessionStartDate(session.startDate ? session.startDate.split('T')[0] : "");
-                            setEditSessionEndDate(session.endDate ? session.endDate.split('T')[0] : "");
-                            setEditSessionError("");
+                            setEditTermId(term.id);
+                            setEditTermNumber(term.termNumber);
+                            setEditTermStartDate(term.startDate.split('T')[0]);
+                            setEditTermEndDate(term.endDate.split('T')[0]);
+                            setEditTermError("");
                           }}
-                          className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold transition-colors shrink-0"
+                          className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold hover:bg-blue-100 transition-colors"
                         >
                           Edit
                         </button>
-                        {!session.isCurrent && (
-                          <button
-                            onClick={() => handleSetCurrentSession(session.id)}
-                            className="px-3 py-1.5 rounded-full bg-white/20 text-white text-[10px] font-bold hover:bg-white/30 transition-colors shrink-0"
-                          >
-                            Activate
-                          </button>
-                        )}
-                        {session.isCurrent && (
-                          <span className="px-3 py-1.5 rounded-full bg-green-400/20 text-green-200 text-[10px] font-bold shrink-0">Active</span>
-                        )}
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => { setAddTermToSessionId(currentSession.id); }}
+                className="mt-4 text-sm font-bold text-[#b05e1c] hover:text-[#965017] transition-colors"
+              >
+                + Add Term
+              </button>
             </div>
+          )}
+        </div>
+
+        {/* Session List / Upcoming */}
+        <div className="bg-[#053d26] rounded-[2rem] p-8 shadow-sm text-white relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute right-0 top-0 opacity-10">
+            <Calendar className="w-64 h-64 -mt-16 -mr-16" />
+          </div>
+          <div className="relative z-10">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-green-200/80 mb-2">All Sessions</p>
+            <div className="text-2xl font-bold mb-6">{sessions.length} Total</div>
           </div>
 
-          {/* Setup Navigation Pointers (Eye-level) */}
-          <div className="mt-6 flex justify-between items-center bg-white rounded-3xl p-4 sm:p-6 border border-gray-100 shadow-sm">
-            <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-[#053d26] font-semibold text-sm transition-colors px-4 py-2 rounded-xl hover:bg-gray-50">
-              <ArrowLeft className="w-4 h-4" /> Previous Step: Dashboard
-            </Link>
-            <Link href="/dashboard/classes" className="flex items-center gap-2 px-6 py-3 bg-[#053d26] text-white rounded-2xl font-bold text-sm hover:bg-[#042f1d] transition-colors shadow-sm">
-              Next Step: Classes & Subjects <ArrowRight className="w-4 h-4" />
-            </Link>
+          <div className="relative z-10 space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            {sessions.length === 0 ? (
+              <p className="text-green-200/70 text-sm">No sessions created yet. Click &quot;New Session&quot; to start.</p>
+            ) : (
+              sessions.map(session => (
+                <div key={session.id} className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="font-bold text-sm">{session.name}</div>
+                    <p className="text-[10px] text-green-200/70">
+                      {session.terms?.length || 0} terms • {session.isCurrent ? 'Active' : 'Inactive'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setEditSessionId(session.id);
+                        setEditSessionName(session.name);
+                        setEditSessionStartDate(session.startDate ? session.startDate.split('T')[0] : "");
+                        setEditSessionEndDate(session.endDate ? session.endDate.split('T')[0] : "");
+                        setEditSessionError("");
+                      }}
+                      className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold transition-colors shrink-0"
+                    >
+                      Edit
+                    </button>
+                    {!session.isCurrent && (
+                      <button
+                        onClick={() => handleSetCurrentSession(session.id)}
+                        className="px-3 py-1.5 rounded-full bg-white/20 text-white text-[10px] font-bold hover:bg-white/30 transition-colors shrink-0"
+                      >
+                        Activate
+                      </button>
+                    )}
+                    {session.isCurrent && (
+                      <span className="px-3 py-1.5 rounded-full bg-green-400/20 text-green-200 text-[10px] font-bold shrink-0">Active</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
+        </div>
+      </div>
+
+      {/* Setup Navigation Pointers (Eye-level) */}
+      <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-between items-center bg-white rounded-3xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+        <Link href="/dashboard" className="flex items-center justify-center w-full sm:w-auto gap-2 text-gray-500 hover:text-[#053d26] font-semibold text-sm transition-colors px-4 py-2 rounded-xl hover:bg-gray-50 text-center">
+          <ArrowLeft className="w-4 h-4" /> Previous Step: Dashboard
+        </Link>
+        <Link href="/dashboard/classes" className="flex items-center justify-center w-full sm:w-auto gap-2 px-6 py-3 bg-[#053d26] text-white rounded-2xl font-bold text-sm hover:bg-[#042f1d] transition-colors shadow-sm text-center">
+          Next Step: Classes & Subjects <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
 
           {/* Rollover Action */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">

@@ -1,6 +1,4 @@
-const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-  ? '/backend-api'
-  : 'https://leoned.vercel.app/api';
+const API_BASE_URL = 'https://leoned.vercel.app/api';
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 
@@ -39,6 +37,13 @@ export function getAuthHeaders(): HeadersInit {
   if (sid) {
     headers['School-Id'] = sid;
     headers['SchoolId'] = sid;
+    headers['schoolid'] = sid;
+    headers['school-id'] = sid;
+  }
+
+  // Debug log to see if sid is actually found
+  if (typeof window !== 'undefined') {
+    if (!sid) console.warn("[API Auth] getAuthHeaders could NOT find sid! Headers:", headers);
   }
 
   return headers;
@@ -1005,10 +1010,10 @@ export const teacherApi = {
   },
 
   assign: async (id: string, data: AssignTeacherRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/assign-subjects`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/${id}/assign`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ teacherId: id, ...data }),
+      body: JSON.stringify(data),
     });
     return handleResponse(res);
   },
@@ -1025,7 +1030,16 @@ export const teacherApi = {
 // Classes
 export const classApi = {
   getAll: async () => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/class`, {
+    let sid = "";
+    if (typeof window !== 'undefined') {
+      try {
+        const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
+        sid = user.schoolId || user.SchoolId || user.school?.id || user.school?._id || "";
+      } catch {}
+    }
+    const url = sid ? `${API_BASE_URL}/class?schoolId=${sid}&SchoolId=${sid}` : `${API_BASE_URL}/class`;
+    
+    const res = await fetchWithTimeout(url, {
       headers: getAuthHeaders(),
     });
     const data = await handleResponse<SchoolClass[] | PaginatedResponse<SchoolClass>>(res);
