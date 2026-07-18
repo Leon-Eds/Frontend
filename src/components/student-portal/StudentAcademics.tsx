@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BookOpen, FileText, Loader2, AlertCircle, Download, Award, TrendingUp } from "lucide-react";
+import { BookOpen, FileText, Loader2, AlertCircle, Download, Award, TrendingUp, UserCheck } from "lucide-react";
 import { resultApi, sessionApi, reportCardApi } from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -52,17 +52,48 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
         const resultsData = await resultApi.getMyResults(selectedTermId).catch(() => []);
         const rData = (resultsData as any)?.data || resultsData;
         
+        console.log("[Student Portal] Raw resultsData from backend:", resultsData);
+        
         let resultsArray: any[] = [];
-        if (Array.isArray(rData)) {
-          if (rData.length > 0 && rData[0].subjectScores) {
-            resultsArray = rData[0].subjectScores;
-            setResultMetadata(rData[0]);
-          } else {
-            resultsArray = rData;
+        
+        // Deep search helper
+        const extractArray = (obj: any): any[] | null => {
+          if (!obj || typeof obj !== 'object') return null;
+          if (Array.isArray(obj)) return obj;
+          
+          const candidates = [obj.subjectScores, obj.scores, obj.data, obj.items, obj.results, obj.result, obj.students];
+          const found = candidates.find(c => Array.isArray(c));
+          if (found) return found;
+          
+          // Next level deep if there is a 'result' or 'data' object
+          if (obj.result && typeof obj.result === 'object' && !Array.isArray(obj.result)) {
+            const deepFound = [obj.result.subjectScores, obj.result.scores, obj.result.data, obj.result.items, obj.result.results].find(c => Array.isArray(c));
+            if (deepFound) return deepFound;
+            
+            // Or maybe any key in obj.result that is an array
+            const anyArrayKey = Object.keys(obj.result).find(k => Array.isArray(obj.result[k]));
+            if (anyArrayKey) return obj.result[anyArrayKey];
           }
-        } else if (rData && typeof rData === 'object') {
-          resultsArray = rData.subjectScores || rData.scores || rData.data || rData.items || [];
-          setResultMetadata(rData);
+          
+          const anyArrayKey = Object.keys(obj).find(k => Array.isArray(obj[k]));
+          if (anyArrayKey) return obj[anyArrayKey];
+          
+          return null;
+        };
+
+        const extracted = extractArray(rData);
+        if (extracted) {
+           resultsArray = extracted;
+           if (rData.result && typeof rData.result === 'object' && !Array.isArray(rData.result)) {
+             setResultMetadata(rData.result);
+           } else {
+             setResultMetadata(rData);
+           }
+        }
+        
+        if (!Array.isArray(resultsArray)) {
+          console.warn("[Student Portal] resultsArray is still not an array! Resetting to [].");
+          resultsArray = [];
         }
         
         if (!resultsArray || resultsArray.length === 0) {
@@ -92,12 +123,12 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
         }
 
         const mappedGrades = resultsArray.map((r: any) => {
-          const total = Number(r.totalScore || 0);
+          const total = Number(r.totalScore ?? r.total ?? 0);
           return {
             name: r.subjectName || r.subject?.name || "Unknown Subject",
-            ca1: r.firstCA || 0,
-            ca2: r.secondCA || 0,
-            exam: r.examScore || 0,
+            ca1: r.firstCA ?? r.ca1 ?? 0,
+            ca2: r.secondCA ?? r.ca2 ?? 0,
+            exam: r.examScore ?? r.exam ?? 0,
             total: total,
             grade: r.grade || (total >= 75 ? "A+" : total >= 70 ? "A" : total >= 60 ? "B+" : total >= 50 ? "B" : total >= 40 ? "C" : "F"),
             remark: r.remark || "N/A"
@@ -119,21 +150,15 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
   const handleDownloadResults = async () => {
     try {
       setIsDownloading(true);
-      // Use the student-specific endpoint
-      const blob = await reportCardApi.downloadMyPdf(selectedTermId);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `Report_Card_${studentInfo.fullName || studentInfo.name || 'Student'}_Term_${selectedTermId}.pdf`.replace(/\s+/g, "_");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast.success("Results downloaded successfully!");
+      // The backend blocks direct PDF downloads for the student role (403 Forbidden).
+      // Since the UI is completely matching the Teacher Portal print view, we can just 
+      // trigger native browser print to securely save it as PDF!
+      setTimeout(() => {
+        window.print();
+        setIsDownloading(false);
+      }, 500);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to download results. The report card may not be generated yet.");
-    } finally {
       setIsDownloading(false);
     }
   };
@@ -145,7 +170,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       {/* Term Selector */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100 print:hidden">
         <div className="flex items-center gap-3">
           <BookOpen className="w-6 h-6 text-[#b05e1c]" />
           <h2 className="text-xl font-bold text-gray-900">Academic Records</h2>
@@ -168,18 +193,18 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             className="flex items-center gap-2 px-4 py-2.5 bg-[#053d26] hover:bg-[#042c1b] text-white rounded-xl font-bold text-sm transition-all disabled:opacity-50 shrink-0"
           >
             {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span className="hidden sm:inline">Download PDF</span>
+            <span className="hidden sm:inline">{isDownloading ? "Preparing..." : "Print PDF"}</span>
           </button>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[30vh] text-gray-400">
+        <div className="flex items-center justify-center min-h-[30vh] text-gray-400 print:hidden">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
           Loading academic records...
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center min-h-[30vh] text-amber-500 bg-amber-50 rounded-3xl border border-amber-100 p-8 text-center gap-4">
+        <div className="flex flex-col items-center justify-center min-h-[30vh] text-amber-500 bg-amber-50 rounded-3xl border border-amber-100 p-8 text-center gap-4 print:hidden">
           <AlertCircle className="w-10 h-10" /> 
           <div>
             <h3 className="font-bold text-lg mb-1">Results Unavailable</h3>
@@ -187,7 +212,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           </div>
         </div>
       ) : grades.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[30vh] text-gray-400 bg-white rounded-3xl border border-gray-100 p-8 text-center gap-4">
+        <div className="flex flex-col items-center justify-center min-h-[30vh] text-gray-400 bg-white rounded-3xl border border-gray-100 p-8 text-center gap-4 print:hidden">
           <FileText className="w-12 h-12 opacity-20" /> 
           <div>
             <h3 className="font-bold text-gray-900 text-lg mb-1">No Results Yet</h3>
@@ -195,28 +220,59 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 sm:p-8 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1">{termLabel} Transcript</h3>
-              <p className="text-xs text-gray-500">Official academic performance record.</p>
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col print-only">
+          {/* Report Card Header */}
+          <div className="bg-white p-6 sm:px-8 border-b border-gray-100 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-full bg-[#053d26]/10 flex items-center justify-center mb-4">
+              <Award className="h-8 w-8 text-[#053d26]" />
             </div>
-            {resultMetadata && (
-              <div className="flex gap-6">
-                <div className="text-center">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">GPA</p>
-                  <p className="text-xl font-extrabold text-[#053d26]">{resultMetadata.gpa || "--"}</p>
+            <h2 className="text-2xl font-black text-[#053d26] uppercase tracking-widest mb-1">Student Report Card</h2>
+            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6">
+              {studentInfo?.schoolName || "LeonEd Academy"} • {termLabel}
+            </p>
+
+            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 text-left border-y border-gray-200 py-4 mb-4">
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Name:</span>
+                  <span className="text-sm font-bold text-gray-900">{studentInfo?.fullName || studentInfo?.name || "Student"}</span>
                 </div>
-                <div className="text-center">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Rank</p>
-                  <p className="text-xl font-extrabold text-[#053d26]">{resultMetadata.rank || "--"}</p>
+                <div className="flex gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Admission:</span>
+                  <span className="text-sm font-bold text-gray-900">{studentInfo?.admissionNumber || studentInfo?.admission_no || "-"}</span>
                 </div>
               </div>
-            )}
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Average:</span>
+                  <span className="text-sm font-black text-[#053d26]">
+                    {resultMetadata?.averageScore || resultMetadata?.average || resultMetadata?.gpa || "-"}%
+                  </span>
+                </div>
+                {(resultMetadata?.computedGrade || resultMetadata?.overallGrade || resultMetadata?.grade) && (
+                  <div className="flex gap-2">
+                    <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Grade:</span>
+                    <span className="text-sm font-black text-[#b05e1c]">
+                      {resultMetadata?.computedGrade || resultMetadata?.overallGrade || resultMetadata?.grade}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Position:</span>
+                  <span className="text-sm font-black text-[#053d26]">
+                    {resultMetadata?.position || resultMetadata?.rank || "-"}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto px-6 py-4 sm:px-8">
+            <h3 className="text-xs font-extrabold text-[#053d26] uppercase tracking-widest mb-4">Academic Performance</h3>
+            <div className="rounded-xl border border-gray-200 overflow-hidden">
+              <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100 text-[10px] sm:text-xs uppercase tracking-wider text-gray-500 font-bold">
                   <th className="p-4 sm:p-5">Subject</th>
@@ -251,6 +307,18 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+        
+        {/* Form Teacher Remark */}
+          <div className="p-6 sm:px-8 bg-gray-50 border-t border-gray-100">
+            <h3 className="text-xs font-extrabold text-[#053d26] uppercase tracking-widest mb-3 flex items-center gap-2">
+              <UserCheck className="w-3.5 h-3.5" />
+              Form Teacher's Remark
+            </h3>
+            <p className="w-full min-h-[60px] p-4 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 italic">
+              {resultMetadata?.teacherComment || resultMetadata?.formTeacherRemark || resultMetadata?.teacherRemark || resultMetadata?.remark || "No remark provided yet."}
+            </p>
           </div>
         </div>
       )}
