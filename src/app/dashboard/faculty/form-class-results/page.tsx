@@ -41,7 +41,16 @@ function FormClassResultsInner() {
     adm = currentResult.admissionNumber || currentResult.student?.admissionNumber || currentResult.user?.admissionNumber || sId;
     
     profilePic = currentResult.profilePictureUrl || currentResult.student?.profilePictureUrl || currentResult.student?.imageUrl || currentResult.student?.image || currentResult.imageUrl;
-    avg = currentResult.totalScore || currentResult.averageScore || currentResult.average || 0;
+    
+    let computedAvg = 0;
+    if (subjects && subjects.length > 0) {
+      const total = subjects.reduce((sum: number, subj: any) => {
+        return sum + Number(subj.totalScore || subj.total || 0);
+      }, 0);
+      computedAvg = total / subjects.length;
+    }
+    
+    avg = currentResult.averageScore || currentResult.average || (computedAvg > 0 ? computedAvg : currentResult.totalScore) || 0;
     const numAvg = Number(avg) || 0;
     computedGrade = currentResult.grade || (numAvg >= 75 ? "A+" : numAvg >= 70 ? "A" : numAvg >= 60 ? "B+" : numAvg >= 50 ? "B" : numAvg >= 40 ? "C" : "F");
   }

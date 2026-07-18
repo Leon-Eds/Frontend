@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { Search, Save, Send, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Clock, FileText, CheckCircle2, Loader2, Settings, X } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { scoreApi, classApi, subjectApi, sessionApi, dashboardApi, teacherPortalApi } from "@/lib/api";
 
 interface StudentScore {
@@ -59,16 +59,20 @@ function calculatePositions(students: StudentScore[]): StudentScore[] {
   }));
 }
 
-export default function FacultyResultEntry() {
+function ResultEntryContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlClassId = searchParams.get("classId");
+  const urlSubjectId = searchParams.get("subjectId");
+  
   const [students, setStudents] = useState<StudentScore[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [saveStatus, setSaveStatus] = useState("All changes saved");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedClass, setSelectedClass] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedClass, setSelectedClass] = useState(urlClassId || "");
+  const [selectedSubject, setSelectedSubject] = useState(urlSubjectId || "");
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
   const [currentTermId, setCurrentTermId] = useState("");
@@ -84,12 +88,28 @@ export default function FacultyResultEntry() {
         if (!storedUser) return;
         const user = JSON.parse(storedUser);
 
-        // Fetch teacher's assignments via teacher portal API
-        const [assignmentsRes, sessionData, dashboardStats] = await Promise.all([
-          teacherPortalApi.getAssignments().catch(() => []),
-          sessionApi.getAll().catch(() => []),
-          dashboardApi.getTeacherDashboard().catch(() => ({}))
-        ]);
+        let assignmentsRes: any = null;
+        let sessionData: any = null;
+        let dashboardStats: any = null;
+        let retries = 0;
+        
+        while (retries < 5) {
+          try {
+            [assignmentsRes, sessionData, dashboardStats] = await Promise.all([
+              teacherPortalApi.getAssignments(),
+              sessionApi.getAll().catch(() => []), // session can fail gracefully
+              dashboardApi.getTeacherDashboard().catch(() => ({}))
+            ]);
+            break; // Success
+          } catch (e) {
+            retries++;
+            if (retries >= 5) {
+              throw new Error("Unable to connect to server after multiple attempts.");
+            }
+            // Wait 2 seconds before retrying to allow backend to spin up
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        }
 
         const unwrappedAssignments = Array.isArray(assignmentsRes) 
           ? assignmentsRes 
@@ -138,8 +158,8 @@ export default function FacultyResultEntry() {
           }
         }
 
-        if (classList.length > 0) setSelectedClass(classList[0].id);
-        if (subjectList.length > 0) setSelectedSubject(subjectList[0].id);
+        if (classList.length > 0 && !urlClassId) setSelectedClass(classList[0].id);
+        if (subjectList.length > 0 && !urlSubjectId) setSelectedSubject(subjectList[0].id);
         
         // If we have nothing selected, we must end loading here.
         // Otherwise, fetchScoresheet will take over and end loading when it finishes.
@@ -162,7 +182,19 @@ export default function FacultyResultEntry() {
     setIsLoading(true);
     setError("");
     try {
-      const data = await scoreApi.getScoresheet(selectedClass, selectedSubject, currentTermId);
+      let data: any = null;
+      let scoresRetries = 0;
+      while (scoresRetries < 5) {
+        try {
+          data = await scoreApi.getScoresheet(selectedClass, selectedSubject, currentTermId);
+          break;
+        } catch (e) {
+          scoresRetries++;
+          if (scoresRetries >= 5) throw e;
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+
       let scores: any[] = [];
       if (Array.isArray(data)) {
         scores = data;
@@ -173,7 +205,22 @@ export default function FacultyResultEntry() {
       
       // If no scores exist yet for this class/subject/term, fetch the students and initialize empty score rows
       if (scores.length === 0) {
-        const classStudentsRes = await teacherPortalApi.getClassStudents(selectedClass).catch(() => []);
+        let classStudentsRes: any = null;
+        let studentsRetries = 0;
+        while (studentsRetries < 5) {
+          try {
+            classStudentsRes = await teacherPortalApi.getClassStudents(selectedClass);
+            break;
+          } catch (e) {
+            studentsRetries++;
+            if (studentsRetries >= 5) {
+              classStudentsRes = []; // Default to empty array if all retries fail
+              break;
+            }
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        }
+
         const classStudents = Array.isArray(classStudentsRes) 
           ? classStudentsRes 
           : (classStudentsRes as any)?.data || (classStudentsRes as any)?.items || (classStudentsRes as any)?.students || [];
@@ -575,5 +622,18 @@ export default function FacultyResultEntry() {
         </>
       )}
     </div>
+  );
+}
+
+export default function FacultyResultEntry() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-16 text-gray-400 font-semibold text-sm">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        Initializing ledger...
+      </div>
+    }>
+      <ResultEntryContent />
+    </Suspense>
   );
 }
