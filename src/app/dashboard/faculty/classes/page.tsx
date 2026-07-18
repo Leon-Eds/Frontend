@@ -62,7 +62,13 @@ export default function MyClasses() {
               const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
               const fetchedFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
               if (fetchedFormClasses.length > 0) {
-                myFormClassesArr = fetchedFormClasses.map(fc => ({ ...fc, classId: fc.id || fc.classId || fc._id, className: fc.name || fc.className || "Class" }));
+                myFormClassesArr = fetchedFormClasses.map((fc: any) => {
+                  if (typeof fc === 'string') {
+                    const cls = allClasses.find(c => c.classId === fc || c.id === fc || c._id === fc);
+                    return { id: fc, classId: fc, className: cls?.className || cls?.name || "Class", name: cls?.className || cls?.name || "Class" };
+                  }
+                  return { ...fc, classId: fc.id || fc.classId || fc._id, className: fc.name || fc.className || "Class" };
+                });
               }
             } catch (e) {
               console.error("Failed to fetch my form classes", e);
@@ -70,7 +76,14 @@ export default function MyClasses() {
             
           // Absolute fallback: if dashboardStats had it, try that
           if (myFormClassesArr.length === 0 && user?.teacher?.formClass) {
-            myFormClassesArr = [user.teacher.formClass];
+            const userFcs = Array.isArray(user.teacher.formClass) ? user.teacher.formClass : [user.teacher.formClass];
+            myFormClassesArr = userFcs.map((fc: any) => {
+              if (typeof fc === 'string') {
+                const cls = allClasses.find(c => c.classId === fc || c.id === fc || c._id === fc);
+                return { id: fc, classId: fc, className: cls?.className || cls?.name || "Class", name: cls?.className || cls?.name || "Class" };
+              }
+              return { ...fc, classId: fc.id || fc.classId || fc._id, className: fc.name || fc.className || "Class" };
+            });
           }
           }
 

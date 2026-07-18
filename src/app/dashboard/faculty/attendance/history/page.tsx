@@ -120,7 +120,13 @@ function AttendanceHistoryInner() {
             const unwrapped = Array.isArray(formClassResult)
               ? formClassResult
               : (formClassResult as any)?.data || (formClassResult as any)?.items || [];
-            myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
+            const rawClasses = Array.isArray(unwrapped) ? unwrapped : [];
+            myFormClasses = rawClasses.map(fc => {
+               if (typeof fc === 'string') {
+                 return { id: fc, classId: fc, name: "Class", className: "Class" };
+               }
+               return fc;
+            });
           } catch (_) {
             try {
               const allClasses = await teacherPortalApi.getClasses();

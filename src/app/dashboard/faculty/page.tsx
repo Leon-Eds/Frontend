@@ -1031,22 +1031,39 @@ export function FacultyHomepage() {
             const formClassesRes = await attendanceApi.getMyFormClasses();
             const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
             myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
-            
             // Map the objects correctly if they return classId instead of id
-            myFormClasses = myFormClasses.map(fc => ({
-              ...fc,
-              id: fc.id || fc.classId || fc._id,
-              name: fc.name || fc.className || "Class"
-            }));
+            myFormClasses = myFormClasses.map(fc => {
+              if (typeof fc === 'string') {
+                const cls = allClasses.find(c => c.classId === fc || c.id === fc || c._id === fc);
+                return { id: fc, classId: fc, name: cls?.name || cls?.className || "Class" };
+              }
+              return {
+                ...fc,
+                id: fc.id || fc.classId || fc._id,
+                name: fc.name || fc.className || "Class"
+              };
+            });
             
           } catch (e) {
             console.error("Failed to fetch my form classes from attendance API", e);
             // Fallback to localStats
             if (localStats?.formClasses && Array.isArray(localStats.formClasses)) {
                myFormClasses = localStats.formClasses;
-            } else if (localStats?.formClass && typeof localStats.formClass === 'object' && Object.keys(localStats.formClass).length > 0) {
-               myFormClasses = [localStats.formClass];
+            } else if (localStats?.formClass) {
+               myFormClasses = Array.isArray(localStats.formClass) ? localStats.formClass : [localStats.formClass];
             }
+            
+            myFormClasses = myFormClasses.map(fc => {
+              if (typeof fc === 'string') {
+                const cls = allClasses.find(c => c.classId === fc || c.id === fc || c._id === fc);
+                return { id: fc, classId: fc, name: cls?.name || cls?.className || "Class" };
+              }
+              return {
+                ...fc,
+                id: fc.id || fc.classId || fc._id,
+                name: fc.name || fc.className || "Class"
+              };
+            });
           }
           
           // The probe fallback has been removed because it was erroneously granting form teacher access to non-form teachers

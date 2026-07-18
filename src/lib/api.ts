@@ -1289,19 +1289,43 @@ export const schoolApi = {
 // Scores
 export const scoreApi = {
   enter: async (data: EnterScoreRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/score/class/${data.classId}/subject/${data.subjectId}/term/${data.termId}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/score/enter`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ scores: [{ studentId: data.studentId, firstCA: data.firstCA, secondCA: data.secondCA, exam: data.exam, remark: data.remark }] }),
+      body: JSON.stringify({
+        subjectId: data.subjectId,
+        classId: data.classId,
+        termId: data.termId,
+        academicSessionId: data.academicSessionId,
+        scores: [{
+          studentId: data.studentId,
+          firstCA: data.firstCA || 0,
+          secondCA: data.secondCA || 0,
+          exam: data.exam || 0,
+          remark: data.remark || ""
+        }]
+      }),
     });
     return handleResponse(res);
   },
 
   bulkEnter: async (data: BulkEnterScoresRequest) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/score/class/${data.classId}/subject/${data.subjectId}/term/${data.termId}`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/score/bulk-enter`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ scores: data.scores }),
+      body: JSON.stringify({
+        subjectId: data.subjectId,
+        classId: data.classId,
+        termId: data.termId,
+        academicSessionId: data.academicSessionId,
+        scores: data.scores.map(s => ({
+          studentId: s.studentId,
+          firstCA: s.firstCA || 0,
+          secondCA: s.secondCA || 0,
+          exam: s.exam || 0,
+          remark: s.remark || ""
+        }))
+      }),
     });
     const result = await handleResponse(res);
     recordActivity(`Recorded academic scores for class`, 'Grading', 'VERIFIED');

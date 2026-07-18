@@ -117,28 +117,38 @@ export default function FacultyResultEntry() {
         setClasses(classList);
         setSubjects(subjectList);
 
+        let foundTermId = "";
         const currentSession = (Array.isArray(sessionData) ? sessionData : []).find((s: any) => s.isCurrent);
         if (currentSession) {
           setCurrentSessionId(currentSession.id || "");
           setCurrentSessionName(currentSession.name || "");
           const currentTerm = currentSession.terms?.find((t: any) => t.isCurrent);
           if (currentTerm) {
-            setCurrentTermId(currentTerm.id);
+            foundTermId = currentTerm.id;
+            setCurrentTermId(foundTermId);
           }
         } else if (dashboardStats) {
           // Fallback to dashboardStats if sessionApi fails due to 403
           const stats = dashboardStats as any;
           if (stats.currentSessionId) setCurrentSessionId(stats.currentSessionId);
           if (stats.currentSession) setCurrentSessionName(stats.currentSession);
-          if (stats.currentTermId) setCurrentTermId(stats.currentTermId);
+          if (stats.currentTermId) {
+            foundTermId = stats.currentTermId;
+            setCurrentTermId(foundTermId);
+          }
         }
 
         if (classList.length > 0) setSelectedClass(classList[0].id);
         if (subjectList.length > 0) setSelectedSubject(subjectList[0].id);
+        
+        // If we have nothing selected, we must end loading here.
+        // Otherwise, fetchScoresheet will take over and end loading when it finishes.
+        if (classList.length === 0 || subjectList.length === 0 || !foundTermId) {
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error("[Result Entry] Failed to load initial data:", err);
         setError("Failed to load classes and subjects.");
-      } finally {
         setIsLoading(false);
       }
     };

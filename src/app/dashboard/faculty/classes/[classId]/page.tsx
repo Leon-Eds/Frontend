@@ -4,7 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, CheckSquare, UserCheck, FileSpreadsheet, ChevronLeft, ArrowRight, ShieldCheck, Loader2, AlertCircle, Clock } from "lucide-react";
-import { teacherPortalApi, dashboardApi } from "@/lib/api";
+import { teacherPortalApi, dashboardApi, attendanceApi } from "@/lib/api";
 
 export default function ClassHub({ params }: { params: Promise<{ classId: string }> }) {
   const resolvedParams = use(params);
@@ -18,6 +18,7 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
   const [isFormTeacher, setIsFormTeacher] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [debugInfo, setDebugInfo] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchClassHubData = async () => {
@@ -57,32 +58,78 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
           
           if (user?.teacher?.formClass) {
              const userFc = Array.isArray(user.teacher.formClass) ? user.teacher.formClass : [user.teacher.formClass];
-             userFc.forEach(fc => {
-               if (!myFormClasses.some(mfc => (mfc.id || mfc.classId || mfc._id) === (fc.id || fc.classId || fc._id))) {
+             userFc.forEach((fc: any) => {
+               if (!myFormClasses.find((m: any) => (m.classId || m.id || m._id) === (fc.classId || fc.id || fc._id || fc))) {
                  myFormClasses.push(fc);
                }
              });
           }
 
+          let fetchedFormClasses: any[] = [];
           try {
             const formClassesRes = await attendanceApi.getMyFormClasses();
             const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
-            const fetchedFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
+            fetchedFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
             fetchedFormClasses.forEach(fc => {
-               if (!myFormClasses.some(mfc => (mfc.id || mfc.classId || mfc._id) === (fc.id || fc.classId || fc._id))) {
+               const fcIdStr = typeof fc === 'string' ? fc : String(fc.id || fc.classId || fc._id);
+               if (!myFormClasses.some(mfc => {
+                 const mfcId = typeof mfc === 'string' ? mfc : String(mfc.id || mfc.classId || mfc._id);
+                 return mfcId === fcIdStr;
+               })) {
                  myFormClasses.push(fc);
                }
             });
+            
+            // Also fetch all classes and check formTeacherId directly!
+            const allClassesRes = await teacherPortalApi.getClasses();
+            const classList = Array.isArray(allClassesRes) ? allClassesRes : ((allClassesRes as any)?.data || (allClassesRes as any)?.items || []);
+            const myPortalClasses = classList.filter((c: any) => c.formTeacherId === userId || c.formTeacher?.id === userId || c.formTeacher?._id === userId);
+            
+            myPortalClasses.forEach((fc: any) => {
+               const fcIdStr = typeof fc === 'string' ? fc : String(fc.id || fc.classId || fc._id);
+               if (!myFormClasses.some(mfc => {
+                 const mfcId = typeof mfc === 'string' ? mfc : String(mfc.id || mfc.classId || mfc._id);
+                 return mfcId === fcIdStr;
+               })) {
+                 myFormClasses.push(fc);
+               }
+            });
+            
           } catch (e) {}
           
-          const isFormTeacherForThisClass = myFormClasses.some((fc: any) => (fc.classId || fc.id || fc._id) === classId);
+          let isFormTeacherForThisClass = myFormClasses.some((fc: any) => {
+            const fcIdStr = typeof fc === 'string' ? fc : String(fc.classId || fc.id || fc._id);
+            return fcIdStr === String(classId);
+          });
+          
+          // Absolute fallback using localStorage mirroring the Class List page logic exactly
+          if (!isFormTeacherForThisClass && user?.teacher?.formClass) {
+            const userFcs = Array.isArray(user.teacher.formClass) ? user.teacher.formClass : [user.teacher.formClass];
+            if (userFcs.some((fc: any) => {
+              const fcIdStr = typeof fc === 'string' ? fc : String(fc.classId || fc.id || fc._id);
+              return fcIdStr === String(classId);
+            })) {
+              isFormTeacherForThisClass = true;
+            }
+          }
+          
+          if (!isFormTeacherForThisClass && dashData?.formClass) {
+             const dFcs = Array.isArray(dashData.formClass) ? dashData.formClass : [dashData.formClass];
+             if (dFcs.some((fc: any) => {
+                const fcIdStr = typeof fc === 'string' ? fc : String(fc.classId || fc.id || fc._id);
+                return fcIdStr === String(classId);
+             })) {
+                isFormTeacherForThisClass = true;
+             }
+          }
+          
           if (isFormTeacherForThisClass) {
             setIsFormTeacher(true);
           }
         }
       } catch (err) {
         console.error("Failed to load class hub data", err);
-        setError("Could not load class details.");
+        setError("Failed to load class information");
       } finally {
         setIsLoading(false);
       }
@@ -117,6 +164,7 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
 
   return (
     <div className="space-y-10 max-w-7xl mx-auto animate-in fade-in duration-500 pb-10">
+      
       {/* Header */}
       <div className="flex items-center gap-4">
         <button 

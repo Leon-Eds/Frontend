@@ -126,10 +126,12 @@ export default function SettingsPage() {
       const savedKey = localStorage.getItem('leoned_api_key');
       if (savedKey) setApiKey(savedKey);
 
-      // Fetch students count for export payload
-      studentApi.getAll().then(students => {
-        setStudentsCount(students.length);
-      }).catch(() => {});
+      // Fetch students count for export payload (Admin only)
+      if (parsedUser?.role === 'SchoolAdmin' || !parsedUser?.role || parsedUser?.role === 'Admin') {
+        studentApi.getAll().then(students => {
+          setStudentsCount(students.length);
+        }).catch(() => {});
+      }
 
       // Check query params for active section
       const params = new URLSearchParams(window.location.search);

@@ -67,19 +67,46 @@ function FormClassResultsInner() {
             try {
               const formClassesRes = await attendanceApi.getMyFormClasses();
               const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
-              const myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
+              let myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
+              
+              if (myFormClasses.length === 0) {
+                 const myPortalClasses = allClasses.filter((c: any) => c.formTeacherId === userId || c.formTeacher?.id === userId || c.formTeacher?._id === userId);
+                 myFormClasses = myPortalClasses;
+              }
+              
               if (myFormClasses.length > 0) {
                 // If there's a classId in URL, try to match it, else use first
-                const targetFc = urlClassId ? myFormClasses.find((c: any) => c.id === urlClassId || c.classId === urlClassId || c._id === urlClassId) || myFormClasses[0] : myFormClasses[0];
-                myFormClass = { ...targetFc, classId: targetFc.id || targetFc.classId || targetFc._id, className: targetFc.name || targetFc.className || "Class" };
+                const targetFc = urlClassId 
+                  ? myFormClasses.find((c: any) => {
+                      const id = typeof c === 'string' ? c : String(c.id || c.classId || c._id);
+                      return id === String(urlClassId);
+                    }) || myFormClasses[0]
+                  : myFormClasses[0];
+                  
+                if (targetFc) {
+                  const id = typeof targetFc === 'string' ? targetFc : String(targetFc.id || targetFc.classId || targetFc._id);
+                  const name = typeof targetFc === 'string' ? "Class" : (targetFc.name || targetFc.className || "Class");
+                  myFormClass = { ...targetFc, classId: id, className: name };
+                }
               }
             } catch (e) {}
             
             if (!myFormClass) {
               // Try to find if user object has formClass
               if (user?.teacher?.formClass) {
-                const targetFc = urlClassId && user.teacher.formClass.id === urlClassId ? user.teacher.formClass : user.teacher.formClass;
-                myFormClass = { ...targetFc, classId: targetFc.id || targetFc.classId || targetFc._id, className: targetFc.name || targetFc.className || "Class" };
+                const userFcArr = Array.isArray(user.teacher.formClass) ? user.teacher.formClass : [user.teacher.formClass];
+                const matchingFc = urlClassId 
+                  ? userFcArr.find((fc: any) => {
+                      const id = typeof fc === 'string' ? fc : String(fc.id || fc.classId || fc._id);
+                      return id === String(urlClassId);
+                    })
+                  : userFcArr[0];
+                  
+                if (matchingFc) {
+                  const id = typeof matchingFc === 'string' ? matchingFc : String(matchingFc.id || matchingFc.classId || matchingFc._id);
+                  const name = typeof matchingFc === 'string' ? "Class" : (matchingFc.name || matchingFc.className || "Class");
+                  myFormClass = { ...matchingFc, classId: id, className: name };
+                }
               }
             }
           }
