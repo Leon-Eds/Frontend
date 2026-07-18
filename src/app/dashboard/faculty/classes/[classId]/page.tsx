@@ -48,10 +48,35 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
           const user = JSON.parse(userStr);
           const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
           
-          const myFormClass = dashData?.formClass || null;
-          let fcId = myFormClass?.classId || myFormClass?.id || myFormClass?._id;
+          let myFormClasses: any[] = [];
+          if (dashData?.formClasses) {
+            myFormClasses = Array.isArray(dashData.formClasses) ? dashData.formClasses : [dashData.formClasses];
+          } else if (dashData?.formClass) {
+            myFormClasses = Array.isArray(dashData.formClass) ? dashData.formClass : [dashData.formClass];
+          }
           
-          if (fcId === classId) {
+          if (user?.teacher?.formClass) {
+             const userFc = Array.isArray(user.teacher.formClass) ? user.teacher.formClass : [user.teacher.formClass];
+             userFc.forEach(fc => {
+               if (!myFormClasses.some(mfc => (mfc.id || mfc.classId || mfc._id) === (fc.id || fc.classId || fc._id))) {
+                 myFormClasses.push(fc);
+               }
+             });
+          }
+
+          try {
+            const formClassesRes = await attendanceApi.getMyFormClasses();
+            const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
+            const fetchedFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
+            fetchedFormClasses.forEach(fc => {
+               if (!myFormClasses.some(mfc => (mfc.id || mfc.classId || mfc._id) === (fc.id || fc.classId || fc._id))) {
+                 myFormClasses.push(fc);
+               }
+            });
+          } catch (e) {}
+          
+          const isFormTeacherForThisClass = myFormClasses.some((fc: any) => (fc.classId || fc.id || fc._id) === classId);
+          if (isFormTeacherForThisClass) {
             setIsFormTeacher(true);
           }
         }
