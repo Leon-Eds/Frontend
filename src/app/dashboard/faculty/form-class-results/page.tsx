@@ -31,6 +31,8 @@ function FormClassResultsInner() {
   let computedGrade = "F";
   let adm: string = sId;
   let pos: string = "--";
+  let totalStudentScore = 0;
+  let maxPossibleScore = 0;
 
   if (currentResult) {
     sId = currentResult.studentId || currentResult.student?.id || currentResult.id || currentIndex.toString();
@@ -50,6 +52,8 @@ function FormClassResultsInner() {
         return sum + Number(subj.totalScore || subj.total || 0);
       }, 0);
       computedAvg = total / subjects.length;
+      totalStudentScore = total;
+      maxPossibleScore = subjects.length * 100;
     }
     
     avg = currentResult.averageScore || currentResult.average || (computedAvg > 0 ? computedAvg : currentResult.totalScore) || 0;
@@ -459,6 +463,14 @@ function FormClassResultsInner() {
                   <span className="text-xs font-bold text-gray-400 uppercase w-20">Position:</span>
                   <span className="text-sm font-black text-[#053d26]">{pos}</span>
                 </div>
+                {subjects && subjects.length > 0 && (
+                  <div className="flex gap-2">
+                    <span className="text-xs font-bold text-gray-400 uppercase w-20">Total:</span>
+                    <span className="text-sm font-black text-[#b05e1c]">
+                      {totalStudentScore} / {maxPossibleScore}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

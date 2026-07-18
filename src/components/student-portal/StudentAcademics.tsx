@@ -56,27 +56,27 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
         
         let resultsArray: any[] = [];
         
-        // Deep search helper
-        const extractArray = (obj: any): any[] | null => {
-          if (!obj || typeof obj !== 'object') return null;
+        // Fully recursive array extraction helper to immune against backend structure changes
+        const extractArray = (obj: any, maxDepth = 5, currentDepth = 0): any[] | null => {
+          if (!obj || typeof obj !== 'object' || currentDepth > maxDepth) return null;
           if (Array.isArray(obj)) return obj;
           
-          const candidates = [obj.subjectScores, obj.scores, obj.data, obj.items, obj.results, obj.result, obj.students];
+          // First, explicitly check common known keys to prioritize them if multiple arrays exist
+          const candidates = [obj.subjectScores, obj.scores, obj.subjects, obj.data, obj.results, obj.grades];
           const found = candidates.find(c => Array.isArray(c));
           if (found) return found;
-          
-          // Next level deep if there is a 'result' or 'data' object
-          if (obj.result && typeof obj.result === 'object' && !Array.isArray(obj.result)) {
-            const deepFound = [obj.result.subjectScores, obj.result.scores, obj.result.data, obj.result.items, obj.result.results].find(c => Array.isArray(c));
-            if (deepFound) return deepFound;
-            
-            // Or maybe any key in obj.result that is an array
-            const anyArrayKey = Object.keys(obj.result).find(k => Array.isArray(obj.result[k]));
-            if (anyArrayKey) return obj.result[anyArrayKey];
-          }
-          
+
+          // Second, check any immediate keys that are arrays
           const anyArrayKey = Object.keys(obj).find(k => Array.isArray(obj[k]));
           if (anyArrayKey) return obj[anyArrayKey];
+
+          // Finally, recursively search down into child objects
+          for (const key of Object.keys(obj)) {
+            if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+              const deepFound = extractArray(obj[key], maxDepth, currentDepth + 1);
+              if (deepFound) return deepFound;
+            }
+          }
           
           return null;
         };
@@ -165,6 +165,9 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
 
   const selectedTerm = terms.find(t => (t.id || t._id) === selectedTermId);
   const termLabel = selectedTerm ? `Term ${selectedTerm.termNumber || selectedTerm.name} (${selectedTerm.sessionName})` : "Selected Term";
+
+  const totalStudentScore = grades.reduce((sum, g) => sum + (Number(g.total) || 0), 0);
+  const maxPossibleScore = grades.length * 100;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -265,6 +268,14 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                     {resultMetadata?.position || resultMetadata?.rank || "-"}
                   </span>
                 </div>
+                {grades.length > 0 && (
+                  <div className="flex gap-2">
+                    <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Total:</span>
+                    <span className="text-sm font-black text-[#b05e1c]">
+                      {totalStudentScore} / {maxPossibleScore}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
