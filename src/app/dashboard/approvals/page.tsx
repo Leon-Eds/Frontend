@@ -121,28 +121,20 @@ export default function ResultsApproval() {
       const resultPromises = classes.map(async (cls) => {
         try {
           const results = await resultApi.getClassResults(cls.id, currentTerm.id);
-          // results may be an array or an object with nested data
-          const resultList = Array.isArray(results) ? results : (results as Record<string, unknown>)?.results || (results as Record<string, unknown>)?.data || [];
-          const items = Array.isArray(resultList) ? resultList : [];
+          console.log(`[Approvals] Results for class ${cls.name}:`, results);
+          const rData = (results as any)?.data || results;
+          const rawStatusStr = String((results as any)?.status || (results as any)?.approvalStatus || rData?.status || rData?.approvalStatus || "Pending").trim().toLowerCase();
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          items.forEach((item: any) => {
-            // Map API fields to PendingSubmission shape
-            const rawStatus = (item.status || item.approvalStatus || "Pending") as string;
-            const status: PendingSubmission["status"] =
-              rawStatus === "Revision Requested" || rawStatus === "RevisionRequested" || rawStatus === "revision_requested"
-                ? "Revision Requested"
-                : "Pending";
-
+          if (rawStatusStr === "approved" || rawStatusStr === "published") {
             totalResults++;
-
-            // Only include items that are pending or need revision (not already approved/published)
-            if (rawStatus === "Approved" || rawStatus === "approved" || rawStatus === "Published" || rawStatus === "published") {
-              approvedResults++;
-              return;
-            }
-
-            const dateRaw = item.submittedAt || item.createdAt || item.date || "";
+            approvedResults++;
+          } else if (rawStatusStr === "submitted" || rawStatusStr === "revision requested" || rawStatusStr === "revision_requested") {
+            totalResults++;
+            
+            const status: PendingSubmission["status"] = 
+               (rawStatusStr === "revision requested" || rawStatusStr === "revision_requested") ? "Revision Requested" : "Pending";
+            
+            const dateRaw = rData?.submittedAt || rData?.updatedAt || rData?.createdAt || "";
             let formattedDate = "";
             if (dateRaw) {
               try {
@@ -154,18 +146,18 @@ export default function ResultsApproval() {
             }
 
             allSubmissions.push({
-              id: item.id || item._id || `${cls.id}-${item.subjectId || Math.random()}`,
-              subject: item.subjectName || item.subject || "Unknown Subject",
+              id: `${cls.id}-${currentTerm.id}`,
+              subject: "Overall Class Results",
               date: formattedDate,
-              teacher: item.teacherName || item.teacher || "Unknown Teacher",
-              className: cls.name || item.className || "Unknown Class",
+              teacher: rData?.formTeacherName || rData?.teacherName || "Form Teacher",
+              className: cls.name || "Unknown Class",
               status,
               classId: cls.id,
               termId: currentTerm.id,
-              adminComment: item.adminComment || item.comment || "Revision requested by administrator.",
-              teacherComment: item.teacherComment || item.remark || "",
+              adminComment: rData?.adminComment || rData?.comment || "Revision requested by administrator.",
+              teacherComment: rData?.teacherComment || rData?.remark || "",
             });
-          });
+          }
         } catch (err) {
           // If a single class fails (e.g. no results yet), just skip it
           console.warn(`[Approvals] Could not fetch results for class ${cls.name}:`, err);
@@ -227,8 +219,9 @@ export default function ResultsApproval() {
         console.error("Failed to send notification", e);
       }
 
-      setSubmissions(prev => prev.filter(item => item.id !== id));
-      setApprovedResultsCount(prev => prev + 1);
+      setSubmissions(prev => prev.filter(item => item.classId !== sub.classId));
+      setApprovedResultsCount(prev => prev + submissions.filter(item => item.classId === sub.classId).length);
+      toast.success("Results approved successfully!");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to approve results";
       toast.error(message);
@@ -252,7 +245,7 @@ export default function ResultsApproval() {
         adminComment: rejectComment || "Revision requested" 
       });
       setSubmissions(prev => prev.map(item => {
-        if (item.id === selectedSubmission.id) {
+        if (item.classId === selectedSubmission.classId) {
           return { ...item, status: "Revision Requested", adminComment: rejectComment || "Revision requested" };
         }
         return item;
@@ -392,6 +385,13 @@ export default function ResultsApproval() {
                   </button>
                 ) : (
                   <>
+                    <button 
+                      onClick={() => router.push(`/dashboard/approvals/class-results?classId=${sub.classId}`)}
+                      className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all flex items-center gap-2"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      View Results
+                    </button>
                     <button 
                       onClick={() => handleRequestRevision(sub.id)}
                       className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all"

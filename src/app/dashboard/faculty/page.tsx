@@ -1124,6 +1124,8 @@ export function FacultyHomepage() {
           const s = asm.subject || {};
           return {
             id: asm.id || asm._id,
+            classId: asm.classId || c.id || c.classId || c._id,
+            subjectId: asm.subjectId || s.id || s._id,
             subject: asm.subjectName || s.name || "Subject",
             className: asm.className || c.name || "Class",
             arm: c.arm || "",
@@ -1285,7 +1287,7 @@ export function FacultyHomepage() {
                       </div>
                       <div className="mt-8 relative z-10">
                         <Link 
-                          href={`/dashboard/faculty/result-entry?classId=${sub.id}&subjectId=${sub.id}`}
+                          href={`/dashboard/faculty/result-entry?classId=${sub.classId}&subjectId=${sub.subjectId}`}
                           className="flex items-center justify-between w-full text-sm font-bold text-[#053d26] hover:text-[#0a6c4a] transition-colors group/btn"
                         >
                           <span>Manage Grades</span>

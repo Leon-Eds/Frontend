@@ -54,9 +54,14 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
         
         let resultsArray: any[] = [];
         if (Array.isArray(rData)) {
-          resultsArray = rData;
+          if (rData.length > 0 && rData[0].subjectScores) {
+            resultsArray = rData[0].subjectScores;
+            setResultMetadata(rData[0]);
+          } else {
+            resultsArray = rData;
+          }
         } else if (rData && typeof rData === 'object') {
-          resultsArray = rData.scores || rData.data || rData.items || [];
+          resultsArray = rData.subjectScores || rData.scores || rData.data || rData.items || [];
           setResultMetadata(rData);
         }
         

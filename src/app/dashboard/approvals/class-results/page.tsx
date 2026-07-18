@@ -60,76 +60,26 @@ function FormClassResultsInner() {
   useEffect(() => {
     const init = async () => {
       try {
-        const storedUser = localStorage.getItem("leoned_user");
-        if (!storedUser) return router.push("/login");
-        
-        const user = JSON.parse(storedUser);
-        const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
-        
-        // Find form class
-        let myFormClass: any = null;
-        let allClasses: any[] = [];
-        
-        try {
-          const classesRes = await teacherPortalApi.getClasses();
-          allClasses = Array.isArray(classesRes) ? classesRes : ((classesRes as any)?.data || (classesRes as any)?.items || []);
-          
-          if (userId) {
-            try {
-              const formClassesRes = await attendanceApi.getMyFormClasses();
-              const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
-              let myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
-              
-              if (myFormClasses.length === 0) {
-                 const myPortalClasses = allClasses.filter((c: any) => c.formTeacherId === userId || c.formTeacher?.id === userId || c.formTeacher?._id === userId);
-                 myFormClasses = myPortalClasses;
-              }
-              
-              if (myFormClasses.length > 0) {
-                // If there's a classId in URL, try to match it, else use first
-                const targetFc = urlClassId 
-                  ? myFormClasses.find((c: any) => {
-                      const id = typeof c === 'string' ? c : String(c.id || c.classId || c._id);
-                      return id === String(urlClassId);
-                    }) || myFormClasses[0]
-                  : myFormClasses[0];
-                  
-                if (targetFc) {
-                  const id = typeof targetFc === 'string' ? targetFc : String(targetFc.id || targetFc.classId || targetFc._id);
-                  const name = typeof targetFc === 'string' ? "Class" : (targetFc.name || targetFc.className || "Class");
-                  myFormClass = { ...targetFc, classId: id, className: name };
-                }
-              }
-            } catch (e) {}
-            
-            if (!myFormClass) {
-              // Try to find if user object has formClass
-              if (user?.teacher?.formClass) {
-                const userFcArr = Array.isArray(user.teacher.formClass) ? user.teacher.formClass : [user.teacher.formClass];
-                const matchingFc = urlClassId 
-                  ? userFcArr.find((fc: any) => {
-                      const id = typeof fc === 'string' ? fc : String(fc.id || fc.classId || fc._id);
-                      return id === String(urlClassId);
-                    })
-                  : userFcArr[0];
-                  
-                if (matchingFc) {
-                  const id = typeof matchingFc === 'string' ? matchingFc : String(matchingFc.id || matchingFc.classId || matchingFc._id);
-                  const name = typeof matchingFc === 'string' ? "Class" : (matchingFc.name || matchingFc.className || "Class");
-                  myFormClass = { ...matchingFc, classId: id, className: name };
-                }
-              }
-            }
-          }
-        } catch (e) {}
-        
-        let fc = myFormClass;
-        
-        if (!fc) {
-          setError("You are not assigned as a Form Teacher to any class.");
+        if (!urlClassId) {
+          setError("No class ID provided in URL.");
           setIsLoading(false);
           return;
         }
+
+        let allClasses: any[] = [];
+        try {
+          const classesRes = await classApi.getAll();
+          allClasses = Array.isArray(classesRes) ? classesRes : ((classesRes as any)?.data || (classesRes as any)?.items || []);
+        } catch (e) {}
+
+        const targetFc = allClasses.find(c => String(c.id || c._id) === String(urlClassId));
+        if (!targetFc) {
+          setError("Class not found.");
+          setIsLoading(false);
+          return;
+        }
+
+        const fc = { ...targetFc, classId: String(targetFc.id || targetFc._id), className: targetFc.name || targetFc.className || "Class" };
         setFormClass(fc);
 
         const sessions = await sessionApi.getAll();
@@ -144,9 +94,6 @@ function FormClassResultsInner() {
         setCurrentTerm(activeTerm);
 
         const targetClassId = fc.classId || fc.id || fc._id;
-
-        // Compute first to ensure we have latest results
-        await resultApi.compute(targetClassId, activeTerm.id).catch(() => {});
         
         // Fetch results
         const classResults = await resultApi.getClassResults(targetClassId, activeTerm.id);
@@ -306,34 +253,6 @@ function FormClassResultsInner() {
   }, [router]);
 
 
-  const handleSubmitToAdmin = async () => {
-    if (!formClass || !currentTerm) return;
-    setIsSubmitting(true);
-    setValidationErrors([]);
-    try {
-      const payload = {
-        remarks: results.map((res: any) => ({
-          studentId: res.student?.id || res.studentId,
-          comment: remarks[res.student?.id || res.studentId] || ""
-        }))
-      };
-      
-      await resultApi.submit(formClass.classId || formClass.id, currentTerm.id, payload as any);
-      toast.success("Results submitted to School Admin for final approval!");
-      router.push("/dashboard/faculty/classes");
-    } catch (err: any) {
-      if (err.message && err.message.includes("checkAllSubjectsEntered")) {
-        setValidationErrors(["Submission blocked: Not all active students have scores recorded for every subject. Please check the score ledger."]);
-      } else if (err.message) {
-        setValidationErrors([err.message]);
-      } else {
-        toast.error("Failed to submit results.");
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -389,34 +308,11 @@ function FormClassResultsInner() {
                 Form Class Review
               </h1>
               <p className="text-sm text-gray-500 font-medium max-w-2xl">
-                Review the computed results for {formClass?.name || formClass?.className || "your class"}. Once verified, submit them to the School Admin for final approval.
+                Review the computed results for {formClass?.name || formClass?.className || "your class"}. 
               </p>
             </div>
           </div>
-
-        <button 
-          onClick={handleSubmitToAdmin}
-          disabled={isSubmitting || results.length === 0}
-          className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-sm shadow-md disabled:opacity-50"
-        >
-          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {isSubmitting ? "Submitting..." : "Submit to Admin"}
-        </button>
       </div>
-
-      {validationErrors.length > 0 && (
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-bold text-rose-900">Cannot Submit Results</h3>
-              <ul className="mt-1 text-sm text-rose-700 space-y-1 list-disc list-inside">
-                {validationErrors.map((err, i) => <li key={i}>{err}</li>)}
-        </ul>
-            </div>
-          </div>
-        </div>
-      )}
 
 
 
@@ -517,13 +413,9 @@ function FormClassResultsInner() {
               <UserCheck className="w-3.5 h-3.5" />
               Form Teacher's Remark
             </h3>
-            <textarea 
-              className="w-full min-h-[80px] p-4 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#053d26] resize-none"
-              placeholder="Enter your final remark for this student's report card..."
-              value={remarks[sId] || ""}
-              onChange={(e) => setRemarks(prev => ({ ...prev, [sId]: e.target.value }))}
-            />
-
+            <div className="w-full min-h-[80px] p-4 border border-gray-200 bg-white rounded-xl text-sm font-medium text-gray-700">
+              {remarks[sId] || <span className="text-gray-400 italic">No remark provided.</span>}
+            </div>
           </div>
 
           {/* Pagination Controls */}
