@@ -315,13 +315,14 @@ function FacultyAttendanceInner() {
                 <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
              </div>
           )}
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-[10px] font-black uppercase tracking-wider text-gray-400">
-                <th className="py-4 px-6">Student Name</th>
-                <th className="py-4 px-6 text-center">Status</th>
-              </tr>
-            </thead>
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left border-collapse min-w-max">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100 text-[10px] font-black uppercase tracking-wider text-gray-400">
+                  <th className="py-4 px-6">Student Name</th>
+                  <th className="py-4 px-6 text-center">Status</th>
+                </tr>
+              </thead>
             <tbody className="divide-y divide-gray-50">
               {students.map((student) => {
                 const sId = student.studentId;
@@ -392,6 +393,7 @@ function FacultyAttendanceInner() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

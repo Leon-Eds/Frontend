@@ -1738,6 +1738,13 @@ export const bursarApi = {
     }
     return handleResponse(res);
   },
+  delete: async (id: string): Promise<void> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/bursar/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
   getStudentFees: async (studentId: string, termId?: string) => {
     const qs = termId ? `?termId=${termId}` : '';
     const res = await fetchWithTimeout(`${API_BASE_URL}/bursar/fees/student/${studentId}${qs}`, {

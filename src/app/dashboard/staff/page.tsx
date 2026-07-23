@@ -29,6 +29,8 @@ export default function StaffDirectory() {
     role: '',
   });
 
+  const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, staffId: string | null}>({isOpen: false, staffId: null});
+
   const [activeStaff, setActiveStaff] = useState<Staff | null>(null);
 
   const fetchStaffs = useCallback(async () => {
@@ -134,16 +136,32 @@ export default function StaffDirectory() {
     }
   };
 
-  const handleDeleteStaff = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this staff member?")) return;
+  const handleDeleteStaff = (id: string) => {
+    setDeleteModal({ isOpen: true, staffId: id });
+  };
+
+  const confirmDeleteStaff = async () => {
+    if (!deleteModal.staffId) return;
     
+    setIsSubmitting(true);
     try {
-      await staffApi.delete(id);
+      const targetStaff = staff.find(s => s.id === deleteModal.staffId);
+      const isBursar = targetStaff?.role === 'Bursar' || targetStaff?.role === 'Bursar / Finance Officer';
+      
+      if (isBursar) {
+        await bursarApi.delete(deleteModal.staffId);
+      } else {
+        await staffApi.delete(deleteModal.staffId);
+      }
+      
       toast.success("Staff deleted successfully");
-      if (activeStaff?.id === id) setActiveStaff(null);
+      if (activeStaff?.id === deleteModal.staffId) setActiveStaff(null);
       await fetchStaffs();
+      setDeleteModal({ isOpen: false, staffId: null });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to delete staff");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -348,6 +366,40 @@ export default function StaffDirectory() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-6">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-black text-gray-900 mb-2">Delete Staff Member</h3>
+              <p className="text-sm text-gray-500 font-medium px-4 mb-8">
+                Are you sure you want to remove this staff member? This action cannot be undone and will revoke their access.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModal({ isOpen: false, staffId: null })}
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteStaff}
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Yes, delete"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

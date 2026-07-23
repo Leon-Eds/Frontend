@@ -276,6 +276,14 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                     </span>
                   </div>
                 )}
+                {(resultMetadata?.classSize || resultMetadata?.totalStudents) && (
+                  <div className="flex gap-2">
+                    <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Class Size:</span>
+                    <span className="text-sm font-black text-[#053d26]">
+                      {resultMetadata?.classSize || resultMetadata?.totalStudents} Students
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -109,96 +109,17 @@ function FormClassResultsInner() {
           resultsArray = rData.scores || rData.data || rData.items || rData.students || [];
         }
 
-        // Fetch detailed results (with subjectScores) for each student
-        // resultApi.getStudentResults returns the full breakdown including subjectScores
-        const detailedResults: any[] = [];
-        
-        const uniqueStudentIds = new Set<string>();
-        resultsArray.forEach(r => {
-          const sId = r.student?.id || r.studentId;
-          if (sId) uniqueStudentIds.add(sId);
-        });
+        // Initialize detailedResults base with summary data
+        const detailedResults = resultsArray.map(r => ({
+          ...r,
+          studentId: r.student?.id || r.studentId,
+          subjects: []
+        }));
 
-
-        
-        await Promise.all(
-          Array.from(uniqueStudentIds).map(async (studentId) => {
-            try {
-              const detailRes = await resultApi.getStudentResults(studentId, activeTerm.id);
-              const detailData = (detailRes as any)?.data || detailRes;
-
-              
-              // Find the matching summary from resultsArray for name/admission info
-              const summaryResult = resultsArray.find(r => (r.student?.id || r.studentId) === studentId);
-              
-              // Extract subjectScores from the detail response
-              let subjectScores: any[] = [];
-              if (detailData) {
-                if (Array.isArray(detailData)) {
-                  // If it's an array, check first item for subjectScores
-                  if (detailData.length > 0 && detailData[0].subjectScores) {
-                    subjectScores = detailData[0].subjectScores;
-                  } else {
-                    subjectScores = detailData;
-                  }
-                } else if (detailData.subjectScores) {
-                  subjectScores = detailData.subjectScores;
-                } else if (detailData.subjects) {
-                  subjectScores = detailData.subjects;
-                }
-              }
-              
-              // Filter scores to only this student's entries
-              // (the endpoint may return all students' scores for the class)
-              if (subjectScores.length > 0 && subjectScores[0].studentId) {
-                const filtered = subjectScores.filter((s: any) => s.studentId === studentId);
-                if (filtered.length > 0) {
-                  subjectScores = filtered;
-                }
-              }
-              
-              const mappedSubjects = subjectScores.map((s: any) => ({
-                  subjectId: s.subjectId,
-                  subjectName: s.subjectName || s.subject?.name || "Subject",
-                  firstCA: s.firstCA,
-                  secondCA: s.secondCA,
-                  examScore: s.exam || s.examScore,
-                  totalScore: s.total || s.totalScore,
-                  grade: s.grade,
-                  remark: s.remark
-                }));
-              
-              detailedResults.push({
-                ...summaryResult,
-                ...detailData,
-                studentId,
-                subjects: mappedSubjects
-              });
-            } catch (err) {
-
-              // Fall back to the summary result
-              const summaryResult = resultsArray.find(r => (r.student?.id || r.studentId) === studentId);
-              if (summaryResult) detailedResults.push({ ...summaryResult, subjects: [] });
-            }
-          })
-        );
-
-
-
-        // Compute positions dynamically based on average/total score
+        // Compute positions dynamically based on summary average/total score
         detailedResults.sort((a, b) => {
           let scoreA = Number(a.averageScore || a.average || a.totalScore || 0);
           let scoreB = Number(b.averageScore || b.average || b.totalScore || 0);
-          
-          if (a.subjects && a.subjects.length > 0) {
-            const sumA = a.subjects.reduce((sum: number, subj: any) => sum + Number(subj.totalScore || subj.total || 0), 0);
-            scoreA = a.averageScore || a.average || (sumA / a.subjects.length);
-          }
-          if (b.subjects && b.subjects.length > 0) {
-            const sumB = b.subjects.reduce((sum: number, subj: any) => sum + Number(subj.totalScore || subj.total || 0), 0);
-            scoreB = b.averageScore || b.average || (sumB / b.subjects.length);
-          }
-          
           return scoreB - scoreA;
         });
 
@@ -206,10 +127,6 @@ function FormClassResultsInner() {
         let currentScore = -1;
         detailedResults.forEach((r, index) => {
           let rScore = Number(r.averageScore || r.average || r.totalScore || 0);
-          if (r.subjects && r.subjects.length > 0) {
-            const sum = r.subjects.reduce((s: number, subj: any) => s + Number(subj.totalScore || subj.total || 0), 0);
-            rScore = r.averageScore || r.average || (sum / r.subjects.length);
-          }
           
           if (rScore !== currentScore) {
             currentRank = index + 1;
@@ -256,6 +173,58 @@ function FormClassResultsInner() {
     init();
   }, [router]);
 
+  // Lazy load subject details for the currently viewed student
+  useEffect(() => {
+    const fetchCurrentStudentDetails = async () => {
+      if (results.length === 0 || !currentTerm) return;
+      const current = results[currentIndex];
+      if (!current) return;
+      if (current.subjects && current.subjects.length > 0) return;
+      if (current.isLoadingSubjects) return;
+
+      const sId = current.student?.id || current.studentId || current.id;
+      if (!sId) return;
+
+      try {
+        setResults(prev => prev.map((r, i) => i === currentIndex ? { ...r, isLoadingSubjects: true } : r));
+        const detailRes = await resultApi.getStudentResults(sId, currentTerm.id);
+        const detailData = (detailRes as any)?.data || detailRes;
+        
+        let subjectScores: any[] = [];
+        if (detailData) {
+          if (Array.isArray(detailData)) {
+            if (detailData.length > 0 && detailData[0].subjectScores) subjectScores = detailData[0].subjectScores;
+            else subjectScores = detailData;
+          } else if (detailData.subjectScores) {
+            subjectScores = detailData.subjectScores;
+          } else if (detailData.subjects) {
+            subjectScores = detailData.subjects;
+          }
+        }
+        
+        if (subjectScores.length > 0 && subjectScores[0].studentId) {
+          const filtered = subjectScores.filter((s: any) => s.studentId === sId);
+          if (filtered.length > 0) subjectScores = filtered;
+        }
+        
+        const mappedSubjects = subjectScores.map((s: any) => ({
+          subjectId: s.subjectId,
+          subjectName: s.subjectName || s.subject?.name || "Subject",
+          firstCA: s.firstCA,
+          secondCA: s.secondCA,
+          examScore: s.exam || s.examScore,
+          totalScore: s.total || s.totalScore,
+          grade: s.grade,
+          remark: s.remark
+        }));
+        
+        setResults(prev => prev.map((r, i) => i === currentIndex ? { ...r, subjects: mappedSubjects, isLoadingSubjects: false } : r));
+      } catch (err) {
+        setResults(prev => prev.map((r, i) => i === currentIndex ? { ...r, isLoadingSubjects: false } : r));
+      }
+    };
+    fetchCurrentStudentDetails();
+  }, [currentIndex, results, currentTerm]);
 
   if (isLoading) {
     return (
@@ -359,14 +328,16 @@ function FormClassResultsInner() {
                   <span className="text-xs font-bold text-gray-400 uppercase w-20">Position:</span>
                   <span className="text-sm font-black text-[#053d26]">{pos}</span>
                 </div>
-                {subjects && subjects.length > 0 && (
-                  <div className="flex gap-2">
-                    <span className="text-xs font-bold text-gray-400 uppercase w-20">Total:</span>
-                    <span className="text-sm font-black text-[#b05e1c]">
-                      {totalStudentScore} / {maxPossibleScore}
-                    </span>
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Total:</span>
+                  <span className="text-sm font-black text-[#b05e1c]">
+                    {totalStudentScore} / {maxPossibleScore}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Class Size:</span>
+                  <span className="text-sm font-black text-[#053d26]">{results.length} Students</span>
+                </div>
               </div>
             </div>
           </div>
