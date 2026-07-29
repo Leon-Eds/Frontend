@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, ArrowLeft, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone, MoreVertical, Wallet } from 'lucide-react';
+import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, ArrowLeft, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone, MoreVertical, Wallet, ShieldAlert } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { teacherApi, Teacher, CreateTeacherRequest, UpdateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi, teacherPortalApi, attendanceApi, bursarApi } from '@/lib/api';
+import { teacherApi, Teacher, CreateTeacherRequest, UpdateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi, teacherPortalApi, attendanceApi, bursarApi, resultApi, sessionApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useAnnouncementsWebSocket } from "@/hooks/useAnnouncementsWebSocket";
 import TeacherMessages from '@/components/faculty/TeacherMessages';
@@ -956,6 +956,7 @@ export function FacultyHomepage() {
   useAnnouncementsWebSocket(fetchAnnouncementsOnly);
   const [teacherImage, setTeacherImage] = useState<string | null>(null);
   const [formClasses, setFormClasses] = useState<any[]>([]);
+  const [revisionClasses, setRevisionClasses] = useState<{classId: string, className: string, comment: string}[]>([]);
 
   useEffect(() => {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -1069,6 +1070,33 @@ export function FacultyHomepage() {
           // The probe fallback has been removed because it was erroneously granting form teacher access to non-form teachers
           
           setFormClasses(myFormClasses);
+
+          try {
+            const sessions = await sessionApi.getAll().catch(() => []);
+            const activeSession = sessions.find((s: any) => s.isCurrent);
+            const activeTerm = activeSession?.terms?.find((t: any) => t.isCurrent);
+            if (activeTerm && myFormClasses.length > 0) {
+              const revs: any[] = [];
+              for (const fc of myFormClasses) {
+                const cId = fc.classId || fc.id || fc._id;
+                const cRes = await resultApi.getClassResults(cId, activeTerm.id).catch(() => null);
+                if (cRes) {
+                  const rData = (cRes as any)?.data || cRes;
+                  const rawStatus = String((cRes as any)?.status || (cRes as any)?.approvalStatus || rData?.status || rData?.approvalStatus || "").trim().toLowerCase();
+                  if (rawStatus === "revision requested" || rawStatus === "revision_requested") {
+                    revs.push({
+                      classId: cId,
+                      className: fc.className || fc.name || "Class",
+                      comment: (cRes as any)?.adminComment || rData?.adminComment || (cRes as any)?.comment || rData?.comment || "Admin requested a revision."
+                    });
+                  }
+                }
+              }
+              setRevisionClasses(revs);
+            }
+          } catch (e) {
+            console.error("Failed to check for requested revisions", e);
+          }
         } catch (e) {
           console.error("Failed to fetch teacher classes", e);
         }
@@ -1194,6 +1222,45 @@ export function FacultyHomepage() {
           </div>
         </div>
       </div>
+
+      {revisionClasses.length > 0 && (
+        <div className="space-y-4">
+          {revisionClasses.map((rev, idx) => (
+            <div key={idx} className="bg-amber-50 border border-amber-200 rounded-3xl p-5 shadow-sm relative overflow-hidden group">
+              <div className="absolute right-0 top-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="flex gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-white border border-amber-100 flex items-center justify-center shrink-0 shadow-sm text-amber-600">
+                    <ShieldAlert className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-800">
+                        Action Required
+                      </span>
+                      <h3 className="text-base font-bold text-gray-900">Result Revision Requested</h3>
+                    </div>
+                    <p className="text-sm text-gray-600 font-medium mb-1">
+                      The School Admin has requested a revision for <span className="font-bold text-gray-900">{rev.className}</span> results.
+                    </p>
+                    <div className="bg-white/60 border border-amber-100/50 rounded-xl p-3 mt-2 text-sm text-amber-900 font-medium whitespace-pre-wrap">
+                      <span className="text-xs font-bold uppercase tracking-wider text-amber-600/80 block mb-1">Admin Comment:</span>
+                      {rev.comment}
+                    </div>
+                  </div>
+                </div>
+                <Link 
+                  href={`/dashboard/faculty/form-class-results?classId=${rev.classId}`}
+                  className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-colors shadow-sm text-sm"
+                >
+                  Review & Fix
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

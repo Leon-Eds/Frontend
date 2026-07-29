@@ -48,8 +48,8 @@ export default function RequestDemoPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.png" alt="LeonEd Africa" width={40} height={40} className="object-contain" />
-              <span className="text-xl font-bold text-gray-900">LeonEd Africa</span>
+              <Image src="/logo.png" alt="LeonEd" width={40} height={40} className="object-contain" />
+              <span className="text-xl font-bold text-gray-900">LeonEd</span>
             </Link>
 
             <div className="hidden md:flex items-center space-x-8">
@@ -79,7 +79,7 @@ export default function RequestDemoPage() {
                   Contact Sales
                 </h1>
                 <p className="text-gray-600 max-w-md mx-auto">
-                  See how LeonEd Africa can transform your school&apos;s academic management. Our team will walk you through the platform.
+                  See how LeonEd can transform your school&apos;s academic management. Our team will walk you through the platform.
                 </p>
               </div>
 

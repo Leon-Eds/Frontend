@@ -203,37 +203,52 @@ function ResultEntryContent() {
         scores = d.scores || d.data || d.items || [];
       }
       
-      // If no scores exist yet for this class/subject/term, fetch the students and initialize empty score rows
-      if (scores.length === 0) {
-        let classStudentsRes: any = null;
-        let studentsRetries = 0;
-        while (studentsRetries < 5) {
-          try {
-            classStudentsRes = await teacherPortalApi.getClassStudents(selectedClass);
+      // Always fetch class students to ensure newly added students are included
+      let classStudentsRes: any = null;
+      let studentsRetries = 0;
+      while (studentsRetries < 5) {
+        try {
+          classStudentsRes = await teacherPortalApi.getClassStudents(selectedClass);
+          break;
+        } catch (e) {
+          studentsRetries++;
+          if (studentsRetries >= 5) {
+            classStudentsRes = []; // Default to empty array if all retries fail
             break;
-          } catch (e) {
-            studentsRetries++;
-            if (studentsRetries >= 5) {
-              classStudentsRes = []; // Default to empty array if all retries fail
-              break;
-            }
-            await new Promise(r => setTimeout(r, 2000));
           }
+          await new Promise(r => setTimeout(r, 2000));
         }
+      }
 
-        const classStudents = Array.isArray(classStudentsRes) 
-          ? classStudentsRes 
-          : (classStudentsRes as any)?.data || (classStudentsRes as any)?.items || (classStudentsRes as any)?.students || [];
-          
-        scores = classStudents.map((s: any) => ({
-          studentId: s.id || s._id || s.studentId,
+      const classStudents = Array.isArray(classStudentsRes) 
+        ? classStudentsRes 
+        : (classStudentsRes as any)?.data || (classStudentsRes as any)?.items || (classStudentsRes as any)?.students || [];
+        
+      // Merge students with existing scores
+      scores = classStudents.map((s: any) => {
+        const studentId = s.id || s._id || s.studentId;
+        const existingScore = scores.find((score: any) => 
+          (score.studentId || score.student?.id || score.student?._id) === studentId
+        );
+        
+        if (existingScore) {
+          return {
+            ...existingScore,
+            studentId: studentId,
+            studentName: s.fullName || s.name || s.studentName,
+            admissionNumber: s.admissionNumber || s.admissionNo || "",
+          };
+        }
+        
+        return {
+          studentId: studentId,
           studentName: s.fullName || s.name || s.studentName,
           admissionNumber: s.admissionNumber || s.admissionNo || "",
           ca1: "",
           ca2: "",
           exam: "",
-        }));
-      }
+        };
+      });
 
       const mapped: StudentScore[] = scores.map((s: any, idx: number) => {
         const ca1 = s.firstCA ?? s.ca1 ?? "";

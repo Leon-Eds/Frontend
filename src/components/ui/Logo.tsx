@@ -9,7 +9,7 @@ export default function Logo({ size = 40, className = "" }: LogoProps) {
   return (
     <Image
       src="/logo.png"
-      alt="LeonEd Africa"
+      alt="LeonEd"
       width={size}
       height={size}
       className={`object-contain ${className}`}

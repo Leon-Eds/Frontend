@@ -43,7 +43,7 @@ export default function SystemSupport() {
             <HelpCircle className="h-8 w-8" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 tracking-tight">System Support</h1>
-          <p className="text-xl text-gray-500">24/7 technical assistance for the LeonEd Africa community.</p>
+          <p className="text-xl text-gray-500">24/7 technical assistance for the LeonEd community.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

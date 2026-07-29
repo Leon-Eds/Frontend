@@ -112,7 +112,7 @@ export default function FeeClearanceDashboard() {
       const sClass = detailStudent.class || detailStudent.className || "";
       let computedDue = 0;
       allFeeStructures.filter(s => s.type === 'base').forEach(base => {
-        if (base.applicableLevels.some((l: string) => sClass.replace(/\s+/g, '').toLowerCase().includes(l.replace(/\s+/g, '').toLowerCase()))) {
+        if (base.applicableLevels.some((l: string) => l === 'All' || sClass.replace(/\s+/g, '').toLowerCase() === l.replace(/\s+/g, '').toLowerCase())) {
           computedDue += base.amount;
         }
       });
@@ -360,7 +360,7 @@ export default function FeeClearanceDashboard() {
         // Compute Base Fees
         let computedDue = 0;
         feeStructures.filter(s => s.type === 'base').forEach(base => {
-          if (base.applicableLevels.some(l => sClass.replace(/\s+/g, '').toLowerCase().includes(l.replace(/\s+/g, '').toLowerCase()))) {
+          if (base.applicableLevels.some(l => l === 'All' || sClass.replace(/\s+/g, '').toLowerCase() === l.replace(/\s+/g, '').toLowerCase())) {
             computedDue += base.amount;
           }
         });
@@ -1129,7 +1129,7 @@ export default function FeeClearanceDashboard() {
                   className="text-xl font-black mb-0.5 uppercase"
                   style={{ color: currentUser?.themeColor || '#053d26' }}
                 >
-                  {currentUser?.schoolName || currentUser?.name || 'LEONED AFRICA'}
+                  {currentUser?.schoolName || currentUser?.name || 'LEONED'}
                 </h1>
                 <p className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">Official Fee Clearance Receipt</p>
               </div>
@@ -1185,7 +1185,7 @@ export default function FeeClearanceDashboard() {
           
           <div className="mt-8 pt-4 border-t border-gray-200 text-center">
             <p className="text-[10px] font-bold text-gray-400">This is a system-generated receipt and does not require a physical signature.</p>
-            <p className="text-[9px] font-bold text-gray-300 mt-1">© {new Date().getFullYear()} {currentUser?.schoolName || currentUser?.name || 'LeonEd Africa'}. Academic Architect System.</p>
+            <p className="text-[9px] font-bold text-gray-300 mt-1">© {new Date().getFullYear()} {currentUser?.schoolName || currentUser?.name || 'LeonEd'}. Academic Architect System.</p>
           </div>
         </div>
       )}

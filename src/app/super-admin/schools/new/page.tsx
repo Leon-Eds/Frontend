@@ -58,7 +58,7 @@ export default function RegisterNewSchool() {
           <CheckCircle2 className="h-10 w-10" />
         </div>
         <h2 className="text-3xl font-bold text-gray-900">Institution Registered</h2>
-        <p className="text-gray-500 max-w-md mx-auto">The school has been successfully onboarded to LeonEd Africa. Redirecting to registry...</p>
+        <p className="text-gray-500 max-w-md mx-auto">The school has been successfully onboarded to LeonEd. Redirecting to registry...</p>
         <Loader2 className="h-6 w-6 animate-spin text-[#053d26]" />
       </div>
     );
@@ -73,7 +73,7 @@ export default function RegisterNewSchool() {
 
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Register New Institution</h1>
-        <p className="text-gray-600">Onboard a new school to the LeonEd Africa ecosystem.</p>
+        <p className="text-gray-600">Onboard a new school to the LeonEd ecosystem.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">

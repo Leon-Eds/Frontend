@@ -63,7 +63,7 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
       const applicableStructures = structures.filter((s: any) => {
         if (s.type === 'base') {
           const match = s.applicableLevels.some((l: string) => 
-            l === 'All' || studentClass.replace(/\s+/g, '').toLowerCase().includes(l.replace(/\s+/g, '').toLowerCase())
+            l === 'All' || studentClass.replace(/\s+/g, '').toLowerCase() === l.replace(/\s+/g, '').toLowerCase()
           );
           if (match) return true;
         }

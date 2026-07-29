@@ -277,7 +277,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center justify-center mb-8">
           <Image
             src={displayLogo}
-            alt="LeonEd Africa"
+            alt="LeonEd"
             width={100}
             height={100}
             className="object-contain mb-2"

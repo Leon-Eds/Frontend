@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "LeonEd Africa | Academic Architect",
+  title: "LeonEd | Academic Architect",
   description: "The complete digital academic management platform for African schools. Manage student records, result processing, and secure portal access.",
 };
 

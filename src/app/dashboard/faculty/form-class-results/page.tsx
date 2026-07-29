@@ -21,6 +21,8 @@ function FormClassResultsInner() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [classStatus, setClassStatus] = useState<string>("Pending");
+  const [adminComment, setAdminComment] = useState<string | null>(null);
+  const [classSize, setClassSize] = useState<number>(0);
 
   const currentResult = results[currentIndex];
   let sId = currentResult?.studentId || currentResult?.student?.id || currentResult?.id || currentIndex.toString();
@@ -154,6 +156,15 @@ function FormClassResultsInner() {
         // Compute first to ensure we have latest results
         await resultApi.compute(targetClassId, activeTerm.id).catch(() => {});
         
+        // Fetch actual class size
+        try {
+          const cStudentsRes = await teacherPortalApi.getClassStudents(targetClassId);
+          const cStudents = Array.isArray(cStudentsRes) ? cStudentsRes : (cStudentsRes as any)?.data || (cStudentsRes as any)?.students || [];
+          setClassSize(cStudents.length);
+        } catch (err) {
+          console.error("Failed to fetch class students for size");
+        }
+        
         // Fetch results
         const classResults = await resultApi.getClassResults(targetClassId, activeTerm.id);
         const rData = (classResults as any)?.data || classResults;
@@ -176,6 +187,9 @@ function FormClassResultsInner() {
         if (rawStatusStr === "revision requested" || rawStatusStr === "revision_requested") {
           localStorage.removeItem(submissionKey);
           derivedStatus = "Revision Requested";
+          
+          const aComment = (classResults as any)?.adminComment || rData?.adminComment || (classResults as any)?.comment || rData?.comment || "Admin requested a revision but didn't provide a specific comment.";
+          setAdminComment(aComment);
         }
         setClassStatus(derivedStatus);
 
@@ -428,7 +442,21 @@ function FormClassResultsInner() {
               <h3 className="text-sm font-bold text-rose-900">Cannot Submit Results</h3>
               <ul className="mt-1 text-sm text-rose-700 space-y-1 list-disc list-inside">
                 {validationErrors.map((err, i) => <li key={i}>{err}</li>)}
-        </ul>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {classStatus === "Revision Requested" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-bold text-amber-900">Revision Requested by Admin</h3>
+              <p className="mt-1 text-sm text-amber-800 font-medium whitespace-pre-wrap">
+                {adminComment || "The School Admin has reviewed your submission and requested some changes before final approval. Please review the scores and submit again."}
+              </p>
             </div>
           </div>
         </div>
@@ -483,7 +511,7 @@ function FormClassResultsInner() {
                 </div>
                 <div className="flex gap-2">
                   <span className="text-xs font-bold text-gray-400 uppercase w-20">Class Size:</span>
-                  <span className="text-sm font-black text-[#053d26]">{results.length} Students</span>
+                  <span className="text-sm font-black text-[#053d26]">{classSize > 0 ? classSize : results.length} Students</span>
                 </div>
               </div>
             </div>

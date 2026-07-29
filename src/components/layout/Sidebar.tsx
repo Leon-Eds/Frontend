@@ -90,7 +90,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const { t } = useLanguage();
   const [role, setRole] = useState<string | null>(null);
   const [demoRole, setDemoRole] = useState<string>("Admin");
-  const [schoolName, setSchoolName] = useState<string>("LeonEd Africa");
+  const [schoolName, setSchoolName] = useState<string>("LeonEd");
   const [logoUrl, setLogoUrl] = useState<string>("/logo.png");
   const [plan, setPlan] = useState<string | null>(null);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
@@ -243,7 +243,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <div className="relative w-10 h-10 bg-white rounded-full overflow-hidden shrink-0 flex items-center justify-center border-2 border-white/10 shadow-sm">
             <Image
               src={logoUrl || "/logo.png"}
-              alt="LeonEd Africa"
+              alt="LeonEd"
               fill
               className="object-cover"
             />

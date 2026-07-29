@@ -67,7 +67,7 @@ export default function OpsLayout({ children }: { children: React.ReactNode }) {
         {/* Left: Brand */}
         <div className="flex items-center gap-2">
           <span className="font-extrabold tracking-wider text-base uppercase">
-            LeonEd Africa Ops
+            LeonEd Ops
           </span>
         </div>
 

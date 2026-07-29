@@ -382,7 +382,7 @@ export default function DashboardOverview() {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-3">Academic Session Required</h3>
             <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              You need an active academic session and term to use LeonEd Africa. Most features (including grade entries, fee tracking, and reports) rely on this timeline.
+              You need an active academic session and term to use LeonEd. Most features (including grade entries, fee tracking, and reports) rely on this timeline.
             </p>
             <Link 
               href="/dashboard/rollover" 

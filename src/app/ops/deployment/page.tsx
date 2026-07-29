@@ -176,7 +176,7 @@ export default function DeploymentPage() {
         </h1>
         <p className="text-sm text-gray-500 font-medium max-w-3xl leading-relaxed">
           Coordinate and execute the final transition to production. Monitor stability
-          metrics in real-time and manage versioning for the LeonEd Africa ecosystem.
+          metrics in real-time and manage versioning for the LeonEd ecosystem.
         </p>
       </div>
 

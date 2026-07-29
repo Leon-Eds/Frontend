@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
         <div className="flex flex-col items-center justify-center mb-8">
           <Image
             src="/logo.png"
-            alt="LeonEd Africa"
+            alt="LeonEd"
             width={180}
             height={60}
             className="h-12 w-auto object-contain"

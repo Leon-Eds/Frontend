@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import toast from 'react-hot-toast';
 import { Search, Save, Send, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Clock, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { scoreApi, classApi, subjectApi, sessionApi } from "@/lib/api";
+import { scoreApi, classApi, subjectApi, sessionApi, teacherPortalApi } from "@/lib/api";
 
 interface StudentScore {
   id: string;
@@ -81,7 +81,46 @@ export default function ScoreEntryLedger() {
     setError("");
     try {
       const data = await scoreApi.getScoresheet(selectedClass, selectedSubject, currentTermId);
-      const scores = Array.isArray(data) ? data : [];
+      let scores = Array.isArray(data) ? data : [];
+      
+      // Always fetch class students to ensure newly added students are included
+      let classStudentsRes: any = null;
+      try {
+        classStudentsRes = await teacherPortalApi.getClassStudents(selectedClass);
+      } catch (e) {
+        console.error("Failed to fetch class students", e);
+        classStudentsRes = [];
+      }
+
+      const classStudents = Array.isArray(classStudentsRes) 
+        ? classStudentsRes 
+        : (classStudentsRes as any)?.data || (classStudentsRes as any)?.items || (classStudentsRes as any)?.students || [];
+        
+      // Merge students with existing scores
+      scores = classStudents.map((s: any) => {
+        const studentId = s.id || s._id || s.studentId;
+        const existingScore = scores.find((score: any) => 
+          (score.studentId || score.student?.id || score.student?._id) === studentId
+        );
+        
+        if (existingScore) {
+          return {
+            ...existingScore,
+            studentId: studentId,
+            studentName: s.fullName || s.name || s.studentName,
+            admissionNumber: s.admissionNumber || s.admissionNo || "",
+          };
+        }
+        
+        return {
+          studentId: studentId,
+          studentName: s.fullName || s.name || s.studentName,
+          admissionNumber: s.admissionNumber || s.admissionNo || "",
+          ca1: "",
+          ca2: "",
+          exam: "",
+        };
+      });
       const mapped: StudentScore[] = scores.map((s: any, idx: number) => {
         const ca1 = s.firstCA ?? s.ca1 ?? "";
         const ca2 = s.secondCA ?? s.ca2 ?? "";

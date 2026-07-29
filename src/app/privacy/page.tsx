@@ -17,7 +17,7 @@ export default function PrivacyProtocol() {
             <Shield className="h-8 w-8" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Privacy Protocol</h1>
-          <p className="text-xl text-gray-500">How LeonEd Africa protects institutional and academic data integrity.</p>
+          <p className="text-xl text-gray-500">How LeonEd protects institutional and academic data integrity.</p>
         </div>
 
         <div className="bg-white rounded-[3rem] p-12 shadow-sm border border-gray-100 space-y-10">

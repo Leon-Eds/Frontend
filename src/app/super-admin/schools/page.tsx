@@ -262,7 +262,7 @@ export default function SchoolsManagement() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Institutional Registry</h1>
           <p className="text-gray-600">
-            Manage all schools onboarded on the LeonEd Africa platform.
+            Manage all schools onboarded on the LeonEd platform.
           </p>
         </div>
         <div className="flex items-center gap-3">
