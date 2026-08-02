@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote, X, Loader2, AlertCircle, Trash2, CheckCircle2, ArrowLeft, ArrowRight, Users, UserPlus, UserMinus, ArrowLeftRight, Check, BookOpenCheck } from 'lucide-react';
-import { classApi, subjectApi, sessionApi, studentApi, teacherApi, SchoolClass, Subject, AcademicSession, CreateClassRequest, CreateSubjectRequest, Student, Teacher } from '@/lib/api';
+import { classApi, subjectApi, sessionApi, studentApi, teacherApi, SchoolClass, Subject, AcademicSession, CreateClassRequest, CreateSubjectRequest, Student, Teacher, schemeOfWorkApi } from '@/lib/api';
 import Link from 'next/link';
 
 type ModalType = 'createClass' | 'subjectLibrary' | null;
@@ -35,6 +35,35 @@ export default function AcademicFlow() {
   // Form Teacher Assignment Modal
   const [showAssignFormTeacherModal, setShowAssignFormTeacherModal] = useState<SchoolClass | null>(null);
   const [formTeacherId, setFormTeacherId] = useState('');
+
+  // View Scheme of Work Modal
+  const [viewSowModal, setViewSowModal] = useState<{subjectId: string, subjectName: string, classId: string, className: string} | null>(null);
+  const [sowTopics, setSowTopics] = useState<any[]>([]);
+  const [sowLoading, setSowLoading] = useState(false);
+
+  useEffect(() => {
+    if (!viewSowModal) return;
+    const fetchSow = async () => {
+      setSowLoading(true);
+      setSowTopics([]);
+      try {
+        const termId = currentSession?.terms?.find(t => t.isCurrent)?.id || "";
+        if (!termId) return;
+        const res = await schemeOfWorkApi.getBySubject(viewSowModal.classId, viewSowModal.subjectId, termId);
+        const data = (res as any)?.data || res;
+        if (data && data.id) {
+          setSowTopics(data.topics || []);
+        } else if (Array.isArray(data) && data.length > 0) {
+          setSowTopics(data[0].topics || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch SoW", err);
+      } finally {
+        setSowLoading(false);
+      }
+    };
+    fetchSow();
+  }, [viewSowModal, currentSession]);
 
   // Create Class form
   const [className, setClassName] = useState('');
@@ -512,6 +541,12 @@ export default function AcademicFlow() {
                             </td>
                             <td className="py-5 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Core Curriculum</td>
                             <td className="py-5 px-8 text-right">
+                              <button
+                                onClick={() => setViewSowModal({subjectId: subId, subjectName: subName, classId: currentClass.id, className: currentClass.name})}
+                                className="text-xs font-bold text-[#053d26] hover:text-[#042c1b] transition-colors mr-4"
+                              >
+                                View Scheme
+                              </button>
                               <button
                                 onClick={() => {
                                   const newSelection = currentClass.subjects?.filter(s => {
@@ -1131,6 +1166,47 @@ export default function AcademicFlow() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Scheme Modal */}
+      {viewSowModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl sm:rounded-[2rem] w-full max-w-3xl p-6 sm:p-8 shadow-2xl relative max-h-[85vh] flex flex-col">
+            <button onClick={() => setViewSowModal(null)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">{viewSowModal.subjectName}</h2>
+            <p className="text-sm text-gray-500 mb-6">Scheme of Work for <strong>{viewSowModal.className}</strong></p>
+            
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              {sowLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 text-[#053d26] animate-spin" />
+                </div>
+              ) : sowTopics.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">No scheme of work published yet.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100 border border-gray-100 rounded-2xl bg-white overflow-hidden">
+                  {sowTopics.map((t: any, i: number) => (
+                    <div key={i} className="p-5 flex gap-6 hover:bg-gray-50/50 transition-colors">
+                      <div className="w-16 shrink-0">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Week</span>
+                        <span className="text-xl font-bold text-[#053d26]">{t.week}</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-base mb-1">{t.topic}</h4>
+                        <p className="text-gray-600 text-sm leading-relaxed">{t.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

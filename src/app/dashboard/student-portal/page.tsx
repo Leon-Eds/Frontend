@@ -41,12 +41,22 @@ export default function StudentPortal() {
           profilePic = sDash.studentImage || null;
         }
 
+        // Extract classId from all possible sources in user/details data
+        // NOTE: Backend's GET /dashboard/student does not currently return classId.
+        // Once the backend adds classId to that response, it will be picked up here.
+        const resolvedClassId = user.classId || user.student?.classId 
+          || (details as any)?.classId || (details as any)?.student?.classId 
+          || (details as any)?.class?.id || (details as any)?.class?._id
+          || user.student?.class?.id || user.student?.class?._id
+          || user.class?.id || user.class?._id || null;
+
         const mergedInfo = { 
           ...user, 
           ...(user.student || {}), 
           ...(details || {}), 
           ...((details as any)?.student || {}),
           _rawDetails: detailsResponse,
+          classId: resolvedClassId,
           profilePictureUrl: profilePic || (details as any)?.profilePictureUrl || (details as any)?.student?.profilePictureUrl || null,
           admissionNumber: user.admissionNumber || (details as any)?.admissionNumber || (user.email ? user.email.split('@')[0].toUpperCase() : ""),
           className: user.className || user.formClass || (details as any)?.className || "",

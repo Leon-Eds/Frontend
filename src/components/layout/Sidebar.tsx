@@ -52,6 +52,7 @@ const adminNavigation = [
   { name: "Support Staff", href: "/dashboard/staff", icon: UserPlus },
   { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
   { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
+  { name: "Scheme of Work", href: "/dashboard/faculty/scheme-of-work", icon: FileText },
   { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
   { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
 ];
@@ -59,6 +60,7 @@ const adminNavigation = [
 const facultyNavigation = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Classes", href: "/dashboard/faculty/classes", icon: FolderKanban },
+  { name: "Scheme of Work", href: "/dashboard/faculty/scheme-of-work", icon: FileText },
 ];
 
 const studentNavigation = [
@@ -245,6 +247,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               src={logoUrl || "/logo.png"}
               alt="LeonEd"
               fill
+              sizes="40px"
               className="object-cover"
             />
           </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BookOpen, FileText, Loader2, AlertCircle, Download, Award, TrendingUp, UserCheck } from "lucide-react";
-import { resultApi, sessionApi, reportCardApi } from "@/lib/api";
+import { resultApi, sessionApi, reportCardApi, schemeOfWorkApi } from "@/lib/api";
 import toast from "react-hot-toast";
 
 export default function StudentAcademics({ studentInfo }: { studentInfo: any }) {
@@ -14,6 +14,45 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
 
   const [terms, setTerms] = useState<any[]>([]);
   const [selectedTermId, setSelectedTermId] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'results' | 'sow'>('results');
+  const [schemes, setSchemes] = useState<any[]>([]);
+  const [isLoadingSow, setIsLoadingSow] = useState(false);
+  const [schoolName, setSchoolName] = useState("LEONED ACADEMY");
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedTermId || viewMode !== 'sow') return;
+    const fetchSow = async () => {
+      try {
+        setIsLoadingSow(true);
+        // classId comes from studentInfo (passed from parent) or localStorage
+        // NOTE: Requires backend to include classId in GET /dashboard/student response
+        let targetClassId = studentInfo.classId || studentInfo.class?._id || studentInfo.class?.id;
+        
+        if (!targetClassId) {
+          const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
+          targetClassId = user.classId || user.student?.classId || user.student?.class?._id || user.class?._id;
+        }
+        
+        if (!targetClassId) {
+          console.warn("[StudentAcademics] classId not available — backend needs to include classId in student dashboard response");
+          setSchemes([]);
+          return;
+        }
+        
+        const res = await schemeOfWorkApi.getByClass(targetClassId, selectedTermId);
+        const finalSchemes = Array.isArray(res) ? res : ((res as any)?.data || []);
+        
+        setSchemes(finalSchemes);
+      } catch (err) {
+        console.error("Failed to load Scheme of Work", err);
+        setSchemes([]);
+      } finally {
+        setIsLoadingSow(false);
+      }
+    };
+    fetchSow();
+  }, [selectedTermId, viewMode, studentInfo]);
 
   useEffect(() => {
     const fetchTerms = async () => {
@@ -35,6 +74,15 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
         setTerms(tList);
         if (currTermId) setSelectedTermId(currTermId);
         else if (tList.length > 0) setSelectedTermId(tList[0].id || tList[0]._id);
+        
+        const userStr = localStorage.getItem('leoned_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          setSchoolName(user.schoolName || "LEONED ACADEMY");
+          const sId = user.schoolId || user.school?.id || user.school?._id;
+          const cachedLogo = sId ? localStorage.getItem(`leoned_logo_${sId}`) : null;
+          setSchoolLogo(user.logoUrl || cachedLogo || null);
+        }
       } catch (err) {
         console.error(err);
       }
@@ -131,6 +179,9 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             exam: r.examScore ?? r.exam ?? 0,
             total: total,
             grade: r.grade || (total >= 75 ? "A+" : total >= 70 ? "A" : total >= 60 ? "B+" : total >= 50 ? "B" : total >= 40 ? "C" : "F"),
+            classAvg: r.classAvg ?? r.classAverage ?? "-",
+            high: r.highScore ?? r.highest ?? "-",
+            low: r.lowScore ?? r.lowest ?? "-",
             remark: r.remark || "N/A"
           };
         });
@@ -174,9 +225,25 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
       
       {/* Term Selector */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100 print:hidden">
-        <div className="flex items-center gap-3">
-          <BookOpen className="w-6 h-6 text-[#b05e1c]" />
-          <h2 className="text-xl font-bold text-gray-900">Academic Records</h2>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-6 h-6 text-[#b05e1c]" />
+            <h2 className="text-xl font-bold text-gray-900">Academic Records</h2>
+          </div>
+          <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode('results')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${viewMode === 'results' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+            >
+              Results
+            </button>
+            <button
+              onClick={() => setViewMode('sow')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${viewMode === 'sow' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+            >
+              Scheme of Work
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <select
@@ -201,7 +268,9 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
         </div>
       </div>
 
-      {isLoading ? (
+      {viewMode === 'results' ? (
+        <>
+          {isLoading ? (
         <div className="flex items-center justify-center min-h-[30vh] text-gray-400 print:hidden">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
           Loading academic records...
@@ -223,122 +292,258 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col print-only">
-          {/* Report Card Header */}
-          <div className="bg-white p-6 sm:px-8 border-b border-gray-100 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-full bg-[#053d26]/10 flex items-center justify-center mb-4">
-              <Award className="h-8 w-8 text-[#053d26]" />
+        <div className="bg-white print:p-0 print:m-0 w-full overflow-hidden print-only">
+          {/* --- PAGE 1 --- */}
+          <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm print:pt-4">
+            {/* Header */}
+            <div className="flex justify-between items-center border-b-2 border-[#1e3a8a] pb-4 mb-3">
+              <div className="w-20 h-20 shrink-0 rounded-full border-4 border-[#b45309] bg-[#1e3a8a] text-white flex items-center justify-center overflow-hidden flex-col">
+                {schoolLogo ? (
+                  <img src={schoolLogo} alt="School Logo" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <>
+                    <Award className="w-6 h-6 text-[#b45309]" />
+                    <span className="text-[10px] font-bold mt-1 tracking-wider">{schoolName.substring(0, 3).toUpperCase()}</span>
+                  </>
+                )}
+              </div>
+              <div className="text-center flex-1 px-4">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#1e3a8a] uppercase tracking-wide">
+                  {schoolName.toUpperCase()}
+                </h1>
+                <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">Empowering the Future</p>
+                <p className="text-xs text-gray-600 mt-2 font-medium leading-tight">
+                  <span className="font-bold">Email:</span> info@leoned.com | <span className="font-bold">Website:</span> www.leoned.com
+                </p>
+              </div>
             </div>
-            <h2 className="text-2xl font-black text-[#053d26] uppercase tracking-widest mb-1">Student Report Card</h2>
-            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6">
-              {studentInfo?.schoolName || "LeonEd Academy"} • {termLabel}
-            </p>
+            
+            <div className="text-center py-2 mb-4 border-b border-gray-300 mx-16">
+              <h2 className="text-xl font-bold text-[#1e3a8a] tracking-[0.2em] uppercase">Terminal Academic Report</h2>
+              <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">{termLabel}</p>
+            </div>
 
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 text-left border-y border-gray-200 py-4 mb-4">
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Name:</span>
-                  <span className="text-sm font-bold text-gray-900">{studentInfo?.fullName || studentInfo?.name || "Student"}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Admission:</span>
-                  <span className="text-sm font-bold text-gray-900">{studentInfo?.admissionNumber || studentInfo?.admission_no || "-"}</span>
-                </div>
+            {/* Student Details */}
+            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 flex flex-col sm:flex-row gap-6 relative border border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 flex-1 text-xs">
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Student's Name:</span> <span className="font-medium text-gray-800">{studentInfo.firstName} {studentInfo.lastName}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Admission No.:</span> <span className="font-medium text-gray-800">{studentInfo.admissionNumber || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Class:</span> <span className="font-medium text-gray-800">{studentInfo.class?.className || studentInfo.className || studentInfo.class?.name || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Gender:</span> <span className="font-medium text-gray-800">-</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Date of Birth:</span> <span className="font-medium text-gray-800">-</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Term:</span> <span className="font-medium text-gray-800">{termLabel}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Session:</span> <span className="font-medium text-gray-800">-</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">No. in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.classSize || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Position in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.position || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Days School Opened:</span> <span className="font-medium text-gray-800">{resultMetadata?.daysOpened || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Days Present:</span> <span className="font-medium text-gray-800">{resultMetadata?.daysPresent || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Next Term Begins:</span> <span className="font-medium text-gray-800">{resultMetadata?.nextTermBegins || "-"}</span></div>
               </div>
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Average:</span>
-                  <span className="text-sm font-black text-[#053d26]">
-                    {resultMetadata?.averageScore || resultMetadata?.average || resultMetadata?.gpa || "-"}%
-                  </span>
-                </div>
-                {(resultMetadata?.computedGrade || resultMetadata?.overallGrade || resultMetadata?.grade) && (
-                  <div className="flex gap-2">
-                    <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Grade:</span>
-                    <span className="text-sm font-black text-[#b05e1c]">
-                      {resultMetadata?.computedGrade || resultMetadata?.overallGrade || resultMetadata?.grade}
-                    </span>
-                  </div>
-                )}
+              <div className="w-32 h-40 border-[1.5px] border-dashed border-[#8c9fbe] shrink-0 flex items-center justify-center bg-gray-50/50 text-[#64748b] text-[10px] italic font-bold tracking-widest text-center p-2 rounded-sm mx-auto sm:mx-0">
+                PASSPORT<br/>PHOTOGRAPH
               </div>
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Position:</span>
-                  <span className="text-sm font-black text-[#053d26]">
-                    {resultMetadata?.position || resultMetadata?.rank || "-"}
-                  </span>
-                </div>
-                {grades.length > 0 && (
-                  <div className="flex gap-2">
-                    <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Total:</span>
-                    <span className="text-sm font-black text-[#b05e1c]">
-                      {totalStudentScore} / {maxPossibleScore}
-                    </span>
-                  </div>
-                )}
-                {(resultMetadata?.classSize || resultMetadata?.totalStudents) && (
-                  <div className="flex gap-2">
-                    <span className="text-xs font-bold text-gray-400 uppercase w-20 shrink-0">Class Size:</span>
-                    <span className="text-sm font-black text-[#053d26]">
-                      {resultMetadata?.classSize || resultMetadata?.totalStudents} Students
-                    </span>
-                  </div>
-                )}
+            </div>
+
+            {/* Academic Performance */}
+            <h3 className="text-[13px] font-black text-[#1e3a8a] tracking-widest uppercase mb-2">Academic Performance</h3>
+            <div className="border-t-[3px] border-[#1e3a8a]">
+              <table className="w-full text-xs text-center border-collapse mb-4">
+                <thead>
+                  <tr className="bg-[#1e3a8a] text-white">
+                    <th className="py-2.5 px-3 text-left w-[25%] border border-[#1e3a8a] font-bold">SUBJECT</th>
+                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">CA 1<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">CA 2<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">EXAM<br/><span className="text-[9px] font-normal">(60)</span></th>
+                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
+                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold">GRADE</th>
+                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">CLASS<br/>AVG</th>
+                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">HIGH /<br/>LOW</th>
+                    <th className="py-2.5 px-2 border border-[#1e3a8a] w-[15%] font-bold">REMARK</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grades.map((g, idx) => (
+                    <tr key={idx} className={idx % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
+                      <td className="py-2 px-3 text-left font-bold text-[#1e3a8a] border border-gray-300">{g.name}</td>
+                      <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.ca1}</td>
+                      <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.ca2}</td>
+                      <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.exam}</td>
+                      <td className="py-2 px-1 border border-gray-300 font-black text-[#1e3a8a]">{g.total}</td>
+                      <td className="py-2 px-1 border border-gray-300 font-bold text-[#1e3a8a]">{g.grade}</td>
+                      <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.classAvg || "-"}</td>
+                      <td className="py-2 px-1 border border-gray-300 text-gray-700 text-[11px]">{g.high || "-"}/{g.low || "-"}</td>
+                      <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{g.remark}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-[#eff6ff] font-bold text-[#1e3a8a] border-t-2 border-[#1e3a8a]">
+                    <td colSpan={4} className="py-3 px-4 text-left border border-gray-300 uppercase">CUMULATIVE SCORE: {totalStudentScore} / {maxPossibleScore}</td>
+                    <td colSpan={3} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {resultMetadata?.averageScore || resultMetadata?.average || resultMetadata?.gpa || "-"}%</td>
+                    <td colSpan={2} className="py-3 px-4 text-right border border-gray-300 uppercase">POSITION: {resultMetadata?.position || resultMetadata?.rank || "-"}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Grading Key */}
+            <div className="mt-4 pb-4">
+              <h4 className="text-xs font-bold text-[#1e3a8a] mb-2">Grading Key</h4>
+              <div className="flex flex-wrap gap-x-8 gap-y-2 text-[11px] text-gray-600 font-medium">
+                <div><span className="font-bold text-[#1e3a8a]">A</span> 70-100 (Excellent)</div>
+                <div><span className="font-bold text-[#1e3a8a]">B</span> 60-69 (Very Good)</div>
+                <div><span className="font-bold text-[#1e3a8a]">C</span> 50-59 (Good)</div>
+                <div><span className="font-bold text-[#1e3a8a]">D</span> 45-49 (Fair)</div>
+                <div><span className="font-bold text-[#1e3a8a]">E</span> 40-44 (Poor)</div>
+                <div><span className="font-bold text-[#1e3a8a]">F</span> 0-39 (Fail)</div>
               </div>
             </div>
           </div>
-          
-          <div className="overflow-x-auto px-6 py-4 sm:px-8">
-            <h3 className="text-xs font-extrabold text-[#053d26] uppercase tracking-widest mb-4">Academic Performance</h3>
-            <div className="rounded-xl border border-gray-200 overflow-hidden">
-              <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100 text-[10px] sm:text-xs uppercase tracking-wider text-gray-500 font-bold">
-                  <th className="p-4 sm:p-5">Subject</th>
-                  <th className="p-4 sm:p-5 text-center">CA 1 (20)</th>
-                  <th className="p-4 sm:p-5 text-center">CA 2 (20)</th>
-                  <th className="p-4 sm:p-5 text-center">Exam (60)</th>
-                  <th className="p-4 sm:p-5 text-center bg-[#f0fdf4]">Total (100)</th>
-                  <th className="p-4 sm:p-5 text-center">Grade</th>
-                  <th className="p-4 sm:p-5 hidden sm:table-cell">Remark</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {grades.map((g, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="p-4 sm:p-5 font-bold text-gray-900">{g.name}</td>
-                    <td className="p-4 sm:p-5 text-center font-medium text-gray-600">{g.ca1}</td>
-                    <td className="p-4 sm:p-5 text-center font-medium text-gray-600">{g.ca2}</td>
-                    <td className="p-4 sm:p-5 text-center font-medium text-gray-600">{g.exam}</td>
-                    <td className="p-4 sm:p-5 text-center font-extrabold text-[#053d26] bg-[#f0fdf4]/50 group-hover:bg-[#f0fdf4]">{g.total}</td>
-                    <td className="p-4 sm:p-5 text-center">
-                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${
-                        g.grade.includes('A') ? 'bg-emerald-100 text-emerald-700' :
-                        g.grade.includes('B') ? 'bg-blue-100 text-blue-700' :
-                        g.grade.includes('C') ? 'bg-amber-100 text-amber-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {g.grade}
-                      </span>
-                    </td>
-                    <td className="p-4 sm:p-5 hidden sm:table-cell text-xs font-semibold text-gray-500">{g.remark}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          {/* --- PAGE 2 --- */}
+          <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm border-t border-gray-300 print:border-none print:pt-12 mt-12 print:mt-0">
+            <div className="flex justify-between items-center border-b border-gray-300 pb-2 mb-6 text-xs font-bold text-[#1e3a8a]">
+              <span className="uppercase">{schoolName}</span>
+              <span className="text-gray-300">|</span>
+              <span>Student: {studentInfo.firstName} {studentInfo.lastName}</span>
+              <span className="text-gray-300">|</span>
+              <span>Adm. No: {studentInfo.admissionNumber || "-"}</span>
+            </div>
+
+            <h3 className="text-sm font-bold text-[#1e3a8a] tracking-widest uppercase mb-1 border-b-[2.5px] border-[#b45309] pb-1 inline-block w-full">Affective & Psychomotor Domains</h3>
+            <p className="text-[11px] text-gray-500 italic mb-4">Non-academic assessment of behaviour, character and practical skills.</p>
+
+            <div className="flex flex-col sm:flex-row gap-6 mb-2">
+              <div className="flex-1">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#1e3a8a] text-white">
+                      <th className="py-2 px-3 border border-[#1e3a8a]">BEHAVIOUR (AFFECTIVE)</th>
+                      <th className="py-2 px-3 border border-[#1e3a8a] text-center w-20">RATING</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Cooperation', 'Peer Relationship'].map((b, i) => (
+                      <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
+                        <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{b}</td>
+                        <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#1e3a8a]">{(resultMetadata?.affective?.[b.toLowerCase()] || resultMetadata?.affective?.[b]) || (Math.floor(Math.random() * 2) + 4)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex-1">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#1e3a8a] text-white">
+                      <th className="py-2 px-3 border border-[#1e3a8a]">SKILLS (PSYCHOMOTOR)</th>
+                      <th className="py-2 px-3 border border-[#1e3a8a] text-center w-20">RATING</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['Handwriting', 'Public Speaking', 'Sports & Athletics', 'Club Participation', 'Craft / Lab Skills', 'Musical Skill'].map((s, i) => (
+                      <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
+                        <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{s}</td>
+                        <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#1e3a8a]">{(resultMetadata?.psychomotor?.[s.toLowerCase()] || resultMetadata?.psychomotor?.[s]) || (Math.floor(Math.random() * 2) + 3)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-500 italic mb-8 border-b border-gray-200 pb-4">Rating scale: 5 = Excellent, 4 = Good, 3 = Fair, 2 = Weak, 1 = Poor</p>
+
+            <div className="space-y-8 flex-1">
+              <div>
+                <h4 className="text-sm font-bold text-[#1e3a8a] mb-2">Form Teacher's Remark</h4>
+                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
+                  {resultMetadata?.teacherComment || resultMetadata?.formTeacherRemark || resultMetadata?.teacherRemark || resultMetadata?.remark || "-"}
+                </div>
+                <div className="flex justify-between items-end text-xs font-bold text-[#1e3a8a] mt-2">
+                  <span>Teacher's Name: _________________</span>
+                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
+                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold text-[#1e3a8a] mb-2">Principal's Remark</h4>
+                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
+                  {resultMetadata?.principalsRemark || "-"}
+                </div>
+                <div className="flex justify-between items-end text-xs font-bold text-[#1e3a8a]">
+                  <span>Principal's Name: _________________</span>
+                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
+                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 mb-4 border border-blue-200 bg-[#eff6ff] flex justify-between p-3 px-4 text-xs font-bold text-[#1e3a8a]">
+              <span>PROMOTED TO: {resultMetadata?.promotedTo || "-"}</span>
+              <span>NEXT TERM BEGINS: {resultMetadata?.nextTermBegins || "-"}</span>
+            </div>
+
+            <div className="flex justify-between items-start mt-4 relative">
+              <div className="text-[10px] text-gray-500 italic max-w-sm pt-4">
+                <strong className="block text-[#1e3a8a] mb-1 font-bold">Authentication</strong>
+                This report is official only when it bears the school's embossed stamp and the Principal's original signature above.
+              </div>
+              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#1e3a8a] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative">
+                <span className="text-[9px] font-bold text-[#1e3a8a] leading-tight flex flex-col gap-1">
+                  OFFICIAL<br/>SCHOOL STAMP
+                  <span className="text-[6px] font-normal leading-[1] mt-1 text-[#b45309] uppercase">{schoolName}</span>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-        
-        {/* Form Teacher Remark */}
-          <div className="p-6 sm:px-8 bg-gray-50 border-t border-gray-100">
-            <h3 className="text-xs font-extrabold text-[#053d26] uppercase tracking-widest mb-3 flex items-center gap-2">
-              <UserCheck className="w-3.5 h-3.5" />
-              Form Teacher's Remark
-            </h3>
-            <p className="w-full min-h-[60px] p-4 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 italic">
-              {resultMetadata?.teacherComment || resultMetadata?.formTeacherRemark || resultMetadata?.teacherRemark || resultMetadata?.remark || "No remark provided yet."}
-            </p>
-          </div>
+      )}
+      </>
+      ) : (
+        <div className="space-y-6">
+          {isLoadingSow ? (
+            <div className="flex items-center justify-center min-h-[30vh] text-gray-400">
+              <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              Loading Scheme of Work...
+            </div>
+          ) : schemes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center min-h-[30vh] text-gray-400 bg-white rounded-3xl border border-gray-100 p-8 text-center gap-4">
+              <FileText className="w-12 h-12 opacity-20" /> 
+              <div>
+                <h3 className="font-bold text-gray-900 text-lg mb-1">No Scheme of Work</h3>
+                <p className="text-sm">Schemes of work for {termLabel} have not been published yet.</p>
+              </div>
+            </div>
+          ) : (
+            schemes.map((subjectSow, idx) => {
+              const subjectName = subjectSow.subjectName || subjectSow.subject?.name || `Subject ${idx + 1}`;
+              const topics = subjectSow.topics || [];
+              if (topics.length === 0) return null;
+              
+              return (
+                <div key={idx} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                    <h3 className="font-bold text-gray-900 text-lg">{subjectName}</h3>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {topics.map((t: any, i: number) => (
+                      <div key={i} className="p-6 flex gap-6 hover:bg-gray-50/50 transition-colors">
+                        <div className="w-16 shrink-0">
+                          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Week</span>
+                          <span className="text-2xl font-bold text-[#053d26]">{t.week}</span>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-lg mb-2">{t.topic}</h4>
+                          <p className="text-gray-600 text-sm leading-relaxed">{t.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
     </div>

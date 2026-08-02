@@ -1414,6 +1414,30 @@ export const resultApi = {
     });
     return handleResponse<{ data?: { count: number } }>(res);
   },
+
+  updateMetadata: async (resultId: string, data: any) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/metadata/${resultId}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  toggleEditing: async (classId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/toggle-editing/${classId}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  getEditingStatus: async (classId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/editing-status/${classId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
 };
 
 // Report Cards
@@ -1871,4 +1895,53 @@ export const promotionApi = {
     });
     return handleResponse(res);
   },
+};
+
+// Scheme of Work
+export const schemeOfWorkApi = {
+  create: async (data: { classId: string, subjectId: string, termId: string, topics: any[] }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/scheme-of-work`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await handleResponse(res);
+    recordActivity(`Uploaded Scheme of Work for Subject`, 'Academics', 'VERIFIED');
+    return result;
+  },
+  
+  update: async (id: string, data: { topics: any[] }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/scheme-of-work/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const result = await handleResponse(res);
+    recordActivity(`Updated Scheme of Work`, 'Academics', 'VERIFIED');
+    return result;
+  },
+  
+  delete: async (id: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/scheme-of-work/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const result = await handleResponse(res);
+    recordActivity(`Deleted Scheme of Work`, 'Academics', 'VERIFIED');
+    return result;
+  },
+  
+  getBySubject: async (classId: string, subjectId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/scheme-of-work/class/${classId}/subject/${subjectId}/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  
+  getByClass: async (classId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/scheme-of-work/class/${classId}/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  }
 };

@@ -78,6 +78,7 @@ function ResultEntryContent() {
   const [currentTermId, setCurrentTermId] = useState("");
   const [currentSessionId, setCurrentSessionId] = useState("");
   const [currentSessionName, setCurrentSessionName] = useState("");
+  const [isEditingLocked, setIsEditingLocked] = useState(false);
   const gradingConfig = { ca1: 20, ca2: 20, exam: 60 };
 
   // Fetch teacher assignments and current term on mount
@@ -195,6 +196,17 @@ function ResultEntryContent() {
         }
       }
 
+      // Fetch editing status
+      try {
+        const { resultApi } = await import("@/lib/api");
+        const statusRes = await resultApi.getEditingStatus(selectedClass);
+        const statusData = (statusRes as any)?.data || statusRes;
+        setIsEditingLocked(statusData?.isResultEditingActive === false);
+      } catch (e) {
+        console.warn("Failed to fetch editing status, defaulting to editable", e);
+        setIsEditingLocked(false);
+      }
+
       let scores: any[] = [];
       if (Array.isArray(data)) {
         scores = data;
@@ -297,6 +309,7 @@ function ResultEntryContent() {
   }, [fetchScoresheet]);
 
   const handleScoreChange = (id: string, field: "ca1" | "ca2" | "exam", value: string) => {
+    if (isEditingLocked) return;
     setSaveStatus("Unsaved changes...");
     setIsSaving(true);
 
@@ -474,7 +487,7 @@ function ResultEntryContent() {
         <div className="flex items-center gap-3 shrink-0">
           <button 
             onClick={handleSaveDraft}
-            disabled={isSaving || isLoading || students.length === 0}
+            disabled={isEditingLocked || isSaving || isLoading || students.length === 0}
             className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving && saveStatus === "Saving draft..." ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -482,7 +495,7 @@ function ResultEntryContent() {
           </button>
           <button 
             onClick={handleSubmitScores}
-            disabled={isSaving || isLoading || students.length === 0}
+            disabled={isEditingLocked || isSaving || isLoading || students.length === 0}
             className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving && saveStatus === "Submitting ledger..." ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -584,21 +597,22 @@ function ResultEntryContent() {
                       </td>
                       <td className="py-4 px-4 text-xs font-semibold text-gray-500">{s.admNo}</td>
                       <td className="py-4 px-4 text-center">
-                        <input type="number" min="0" max={20} value={s.ca1}
-                          onChange={(e) => handleScoreChange(s.id, "ca1", e.target.value)}
-                          className="w-14 text-center py-1.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent"
-                        />
+                        <input type="number" min="0" max={20} value={s.ca1} 
+                          disabled={isEditingLocked}
+                          onChange={(e) => handleScoreChange(s.id, "ca1", e.target.value)} 
+                          className="w-16 h-10 text-center rounded-xl border border-gray-200 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26] disabled:bg-gray-100" />
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <input type="number" min="0" max={20} value={s.ca2}
-                          onChange={(e) => handleScoreChange(s.id, "ca2", e.target.value)}
-                          className="w-14 text-center py-1.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent"
-                        />
+                        <input type="number" min="0" max={20} value={s.ca2} 
+                          disabled={isEditingLocked}
+                          onChange={(e) => handleScoreChange(s.id, "ca2", e.target.value)} 
+                          className="w-16 h-10 text-center rounded-xl border border-gray-200 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26] disabled:bg-gray-100" />
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <input type="number" min="0" max={60} value={s.exam}
-                          onChange={(e) => handleScoreChange(s.id, "exam", e.target.value)}
-                          className={`w-14 text-center py-1.5 rounded-lg border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent ${s.isMissingExam ? "border-red-300 bg-red-50 text-red-600" : "border-gray-200 text-gray-700"}`}
+                        <input type="number" min="0" max={60} value={s.exam} 
+                          disabled={isEditingLocked}
+                          onChange={(e) => handleScoreChange(s.id, "exam", e.target.value)} 
+                          className={`w-16 h-10 text-center rounded-xl border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#053d26] disabled:bg-gray-100 ${s.isMissingExam ? "border-red-300 bg-red-50 text-red-600" : "border-gray-200 text-gray-700"}`}
                         />
                       </td>
                       <td className="py-4 px-4 text-center font-extrabold text-gray-900 text-sm">{s.total || "--"}</td>

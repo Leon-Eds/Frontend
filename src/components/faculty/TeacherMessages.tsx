@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Megaphone, Calendar, Loader2, AlertCircle } from "lucide-react";
+import { Megaphone, Calendar, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import { announcementApi } from "@/lib/api";
+import toast from 'react-hot-toast';
 
 export default function TeacherMessages() {
   const [messages, setMessages] = useState<any[]>([]);
@@ -25,6 +26,18 @@ export default function TeacherMessages() {
     
     fetchMessages();
   }, []);
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this announcement?")) return;
+    try {
+      await announcementApi.delete(id);
+      setMessages(prev => prev.filter(msg => (msg.id || msg._id) !== id));
+      toast.success("Announcement deleted successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete announcement");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -60,12 +73,21 @@ export default function TeacherMessages() {
         ) : (
           <div className="space-y-4">
             {messages.map((msg, idx) => (
-              <div key={idx} className="p-6 rounded-3xl bg-gray-50 border border-gray-100 hover:shadow-md transition-shadow group">
+              <div key={idx} className="p-6 rounded-3xl bg-gray-50 border border-gray-100 hover:shadow-md transition-shadow group relative">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3 gap-2">
                   <h3 className="font-extrabold text-gray-900 text-lg tracking-tight group-hover:text-[#053d26] transition-colors">{msg.title || "Announcement"}</h3>
-                  <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-bold uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-gray-200 w-fit">
-                    <Calendar className="w-3.5 h-3.5" />
-                    {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString() : "Recent"}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-bold uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-gray-200 w-fit">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString() : "Recent"}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteAnnouncement(msg.id || msg._id)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                      title="Delete announcement"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
                 <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">{msg.content || msg.message}</p>

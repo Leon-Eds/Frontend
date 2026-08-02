@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet, Settings, X, Edit, Save } from "lucide-react";
 import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -23,6 +23,15 @@ function FormClassResultsInner() {
   const [classStatus, setClassStatus] = useState<string>("Pending");
   const [adminComment, setAdminComment] = useState<string | null>(null);
   const [classSize, setClassSize] = useState<number>(0);
+  const [schoolName, setSchoolName] = useState("LEONED ACADEMY");
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+  const [currentSessionName, setCurrentSessionName] = useState<string>("");
+  const [isResultEditingActive, setIsResultEditingActive] = useState(true);
+  const [isTogglingLock, setIsTogglingLock] = useState(false);
+  
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingMetadata, setEditingMetadata] = useState<any>(null);
+  const [isSavingMetadata, setIsSavingMetadata] = useState(false);
 
   const currentResult = results[currentIndex];
   let sId = currentResult?.studentId || currentResult?.student?.id || currentResult?.id || currentIndex.toString();
@@ -48,8 +57,6 @@ function FormClassResultsInner() {
     adm = currentResult.admissionNumber || currentResult.student?.admissionNumber || currentResult.user?.admissionNumber || sId;
     pos = currentResult.pos || currentResult.position || currentResult.rank || "--";
     
-    profilePic = currentResult.profilePictureUrl || currentResult.student?.profilePictureUrl || currentResult.student?.imageUrl || currentResult.student?.image || currentResult.imageUrl;
-    
     let computedAvg = 0;
     if (subjects && subjects.length > 0) {
       const total = subjects.reduce((sum: number, subj: any) => {
@@ -73,6 +80,11 @@ function FormClassResultsInner() {
         
         const user = JSON.parse(storedUser);
         const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
+        
+        setSchoolName(user.schoolName || "LEONED ACADEMY");
+        const sIdForLogo = user.schoolId || user.school?.id || user.school?._id;
+        const cachedLogo = sIdForLogo ? localStorage.getItem(`leoned_logo_${sIdForLogo}`) : null;
+        setSchoolLogo(user.logoUrl || cachedLogo || null);
         
         // Find form class
         let myFormClass: any = null;
@@ -144,6 +156,10 @@ function FormClassResultsInner() {
         const activeSession = sessions.find(s => s.isCurrent);
         const activeTerm = activeSession?.terms?.find(t => t.isCurrent);
         
+        if (activeSession?.name) {
+          setCurrentSessionName(activeSession.name);
+        }
+
         if (!activeTerm) {
           setError("No active academic term found.");
           setIsLoading(false);
@@ -163,6 +179,15 @@ function FormClassResultsInner() {
           setClassSize(cStudents.length);
         } catch (err) {
           console.error("Failed to fetch class students for size");
+        }
+        
+        // Fetch editing status
+        try {
+          const statusRes = await resultApi.getEditingStatus(targetClassId);
+          const statusData = (statusRes as any)?.data || statusRes;
+          setIsResultEditingActive(statusData?.isResultEditingActive !== false);
+        } catch (err) {
+          console.warn("Failed to fetch editing status");
         }
         
         // Fetch results
@@ -364,6 +389,59 @@ function FormClassResultsInner() {
     }
   };
 
+  const handleToggleEditing = async () => {
+    if (!formClass) return;
+    setIsTogglingLock(true);
+    try {
+      await resultApi.toggleEditing(formClass.classId || formClass.id);
+      setIsResultEditingActive(!isResultEditingActive);
+      toast.success(isResultEditingActive ? "Result entry locked for subject teachers." : "Result entry unlocked for subject teachers.");
+    } catch (err) {
+      toast.error("Failed to toggle editing status.");
+    } finally {
+      setIsTogglingLock(false);
+    }
+  };
+
+  const openEditModal = () => {
+    setEditingMetadata({
+      daysSchoolOpened: currentResult?.daysSchoolOpened || "",
+      daysPresent: currentResult?.daysPresent || "",
+      nextTermBegins: currentResult?.nextTermBegins || "",
+      promotedTo: currentResult?.promotedTo || "",
+      teacherComment: remarks[sId] || currentResult?.teacherComment || "",
+      principalsRemark: currentResult?.principalsRemark || "",
+      affectiveDomains: currentResult?.affectiveDomains || {
+        punctuality: 5, neatness: 5, politeness: 4, honesty: 5, cooperation: 4, peerRelationship: 5
+      },
+      psychomotorDomains: currentResult?.psychomotorDomains || {
+        handwriting: 4, publicSpeaking: 3, sports: 5, clubParticipation: 4, craftSkills: 4, musicalSkill: 3
+      },
+      gender: currentResult?.student?.gender || currentResult?.gender || "",
+      dateOfBirth: currentResult?.student?.dateOfBirth || currentResult?.dateOfBirth || "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const saveMetadata = async () => {
+    setIsSavingMetadata(true);
+    try {
+      const resId = currentResult.id || currentResult._id || currentResult.resultId;
+      if (!resId) throw new Error("Result ID not found. Ensure the result is fully computed.");
+      
+      await resultApi.updateMetadata(resId, editingMetadata);
+      
+      setRemarks(prev => ({ ...prev, [sId]: editingMetadata.teacherComment }));
+      setResults(prev => prev.map((r, i) => i === currentIndex ? { ...r, ...editingMetadata } : r));
+      setIsEditModalOpen(false);
+      toast.success("Metadata saved successfully!");
+    } catch(err: any) {
+      toast.error(err.message || "Failed to save metadata.");
+    } finally {
+      setIsSavingMetadata(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -424,14 +502,34 @@ function FormClassResultsInner() {
             </div>
           </div>
 
-        <button 
-          onClick={handleSubmitToAdmin}
-          disabled={isSubmitting || results.length === 0 || classStatus === "Submitted" || classStatus === "Approved"}
-          className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-sm shadow-md disabled:opacity-50"
-        >
-          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {isSubmitting ? "Submitting..." : (classStatus === "Submitted" || classStatus === "Approved") ? "Submitted" : "Submit to Admin"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={openEditModal}
+            disabled={!currentResult}
+            className="flex items-center gap-2 px-5 py-3 rounded-full font-bold transition-all text-sm shadow-sm bg-blue-100 text-blue-800 hover:bg-green-200 print:hidden"
+          >
+            <Edit className="h-4 w-4" />
+            Edit Metadata
+          </button>
+
+          <button 
+            onClick={handleToggleEditing}
+            disabled={isTogglingLock || !formClass}
+            className={`flex items-center gap-2 px-5 py-3 rounded-full font-bold transition-all text-sm shadow-sm disabled:opacity-50 ${isResultEditingActive ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-green-100 text-green-800 hover:bg-green-200'}`}
+          >
+            {isTogglingLock ? <Loader2 className="h-4 w-4 animate-spin" /> : (isResultEditingActive ? <ShieldAlert className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />)}
+            {isResultEditingActive ? "Lock Result Entry" : "Unlock Result Entry"}
+          </button>
+
+          <button 
+            onClick={handleSubmitToAdmin}
+            disabled={isSubmitting || results.length === 0 || classStatus === "Submitted" || classStatus === "Approved"}
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-sm shadow-md disabled:opacity-50"
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isSubmitting ? "Submitting..." : (classStatus === "Submitted" || classStatus === "Approved") ? "Submitted" : "Submit to Admin"}
+          </button>
+        </div>
       </div>
 
       {validationErrors.length > 0 && (
@@ -465,97 +563,164 @@ function FormClassResultsInner() {
 
 
       {results.length > 0 && currentResult ? (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-          {/* Report Card Header */}
-          <div className="bg-white p-6 sm:px-8 border-b border-gray-100 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-full bg-[#053d26]/10 flex items-center justify-center mb-4">
-              <Award className="h-8 w-8 text-[#053d26]" />
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col print-only print:shadow-none print:border-none print:rounded-none">
+          {/* --- PAGE 1 --- */}
+          <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm print:pt-4">
+            {/* Header */}
+            <div className="flex justify-between items-center border-b-2 border-[#053d26] pb-4 mb-3">
+              <div className="w-20 h-20 shrink-0 rounded-full border-4 border-[#b45309] bg-[#053d26] text-white flex items-center justify-center overflow-hidden flex-col">
+                {schoolLogo ? (
+                  <img src={schoolLogo} alt="School Logo" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <>
+                    <Award className="w-6 h-6 text-[#b45309]" />
+                    <span className="text-[10px] font-bold mt-1 tracking-wider">{schoolName.substring(0, 3).toUpperCase()}</span>
+                  </>
+                )}
+              </div>
+              <div className="text-center flex-1 px-4">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#053d26] uppercase tracking-wide">
+                  {schoolName.toUpperCase()}
+                </h1>
+              </div>
             </div>
-            <h2 className="text-2xl font-black text-[#053d26] uppercase tracking-widest mb-1">Student Report Card</h2>
-            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6">
-              {formClass?.className || formClass?.name || "LeonEd Academy"} • {currentTerm?.name || "Current Term"}
-            </p>
+            
+            <div className="text-center py-2 mb-4 border-b border-gray-300 mx-16">
+              <h2 className="text-xl font-bold text-[#053d26] tracking-[0.2em] uppercase">Terminal Academic Report</h2>
+              <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">{currentTerm?.name || "Current Term"}</p>
+            </div>
 
+            {/* Student Details */}
+            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs">
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span className="font-medium text-gray-800">{studentName}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{adm || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{formClass?.className || formClass?.name || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{currentResult?.gender || "-"}</span></div>
+                {currentResult?.dateOfBirth && !isNaN(new Date(currentResult.dateOfBirth).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Date of Birth:</span> <span className="font-medium text-gray-800">{new Date(currentResult.dateOfBirth).toLocaleDateString()}</span></div> : null}
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{currentTerm?.name || "Current Term"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Session:</span> <span className="font-medium text-gray-800">{currentSessionName || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">No. in Class:</span> <span className="font-medium text-gray-800">{classSize > 0 ? classSize : results.length}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{pos}</span></div>
+                {currentResult?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days School Opened:</span> <span className="font-medium text-gray-800">{currentResult.daysSchoolOpened}</span></div> : null}
+                {currentResult?.daysPresent ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{currentResult.daysPresent}</span></div> : null}
+                {currentResult?.nextTermBegins && !isNaN(new Date(currentResult.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Next Term Begins:</span> <span className="font-medium text-gray-800">{new Date(currentResult.nextTermBegins).toLocaleDateString()}</span></div> : null}
+              </div>
+            </div>
 
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 text-left border-y border-gray-200 py-4 mb-4">
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Name:</span>
-                  <span className="text-sm font-bold text-gray-900">{studentName}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Admission:</span>
-                  <span className="text-sm font-bold text-gray-900">{adm}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Average:</span>
-                  <span className="text-sm font-black text-[#053d26]">{avg ? Number(avg).toFixed(1) : "-"}%</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Grade:</span>
-                  <span className="text-sm font-black text-[#b05e1c]">{computedGrade}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Position:</span>
-                  <span className="text-sm font-black text-[#053d26]">{pos}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Total:</span>
-                  <span className="text-sm font-black text-[#b05e1c]">
-                    {totalStudentScore} / {maxPossibleScore}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Class Size:</span>
-                  <span className="text-sm font-black text-[#053d26]">{classSize > 0 ? classSize : results.length} Students</span>
-                </div>
+            {/* Academic Performance Table */}
+            <h3 className="text-[13px] font-black text-[#053d26] tracking-widest uppercase mb-2">Academic Performance</h3>
+            <div className="border-t-[3px] border-[#053d26]">
+              <table className="w-full text-xs text-center border-collapse mb-4">
+                <thead>
+                  <tr className="bg-[#053d26] text-white">
+                    <th className="py-2.5 px-3 text-left w-[25%] border border-[#053d26] font-bold">SUBJECT</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CA 1<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CA 2<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">EXAM<br/><span className="text-[9px] font-normal">(60)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">GRADE</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CLASS<br/>AVG</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">HIGH /<br/>LOW</th>
+                    <th className="py-2.5 px-2 border border-[#053d26] w-[15%] font-bold">REMARK</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjects.map((subj: any, i: number) => {
+                    const subjName = subj.subjectName || subj.subject?.name || subj.subject || "Unknown";
+                    const tScore = Number(subj.totalScore || subj.total || 0);
+                    const sGrade = subj.grade || (tScore >= 75 ? "A+" : tScore >= 70 ? "A" : tScore >= 60 ? "B+" : tScore >= 50 ? "B" : tScore >= 40 ? "C" : "F");
+                    return (
+                      <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
+                        <td className="py-2 px-3 text-left font-bold text-[#053d26] border border-gray-300">{subjName}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.firstCA || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.secondCA || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.examScore || subj.exam || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{subj.totalScore || subj.total || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{sGrade}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.classAvg || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700 text-[11px]">{subj.high || "-"}/{subj.low || "-"}</td>
+                        <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{subj.remark || "N/A"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-[#f0fdf4] font-bold text-[#053d26] border-t-2 border-[#053d26]">
+                    <td colSpan={4} className="py-3 px-4 text-left border border-gray-300 uppercase">CUMULATIVE SCORE: {totalStudentScore} / {maxPossibleScore}</td>
+                    <td colSpan={3} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {avg ? Number(avg).toFixed(1) : "-"}%</td>
+                    <td colSpan={2} className="py-3 px-4 text-right border border-gray-300 uppercase">POSITION: {pos}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Grading Key */}
+            <div className="mt-4 pb-4">
+              <h4 className="text-xs font-bold text-[#053d26] mb-2">Grading Key</h4>
+              <div className="flex flex-wrap gap-x-8 gap-y-2 text-[11px] text-gray-600 font-medium">
+                <div><span className="font-bold text-[#053d26]">A</span> 70-100 (Excellent)</div>
+                <div><span className="font-bold text-[#053d26]">B</span> 60-69 (Very Good)</div>
+                <div><span className="font-bold text-[#053d26]">C</span> 50-59 (Good)</div>
+                <div><span className="font-bold text-[#053d26]">D</span> 45-49 (Fair)</div>
+                <div><span className="font-bold text-[#053d26]">E</span> 40-44 (Poor)</div>
+                <div><span className="font-bold text-[#053d26]">F</span> 0-39 (Fail)</div>
               </div>
             </div>
           </div>
 
-          {/* Subject Breakdown Table */}
-          {subjects && subjects.length > 0 && (
-            <div className="px-6 py-4 sm:px-8">
-              <h3 className="text-xs font-extrabold text-[#053d26] uppercase tracking-widest mb-4">Academic Performance</h3>
-              <div className="overflow-x-auto rounded-xl border border-gray-200">
-                <table className="w-full text-left border-collapse min-w-[600px]">
+          {/* --- PAGE 2 --- */}
+          <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm border-t border-gray-300 print:border-none print:pt-12 mt-12 print:mt-0">
+            <div className="flex justify-between items-center border-b border-gray-300 pb-2 mb-6 text-xs font-bold text-[#053d26]">
+              <span className="uppercase">{schoolName}</span>
+              <span className="text-gray-300">|</span>
+              <span>Student: {studentName}</span>
+              <span className="text-gray-300">|</span>
+              <span>Adm. No: {adm || "-"}</span>
+            </div>
+
+            <h3 className="text-sm font-bold text-[#053d26] tracking-widest uppercase mb-1 border-b-[2.5px] border-[#b45309] pb-1 inline-block w-full">Affective & Psychomotor Domains</h3>
+            <p className="text-[11px] text-gray-500 italic mb-4">Non-academic assessment of behaviour, character and practical skills.</p>
+
+            <div className="flex flex-col sm:flex-row gap-6 mb-2">
+              <div className="flex-1">
+                <table className="w-full text-xs text-left border-collapse">
                   <thead>
-                    <tr className="bg-[#053d26] text-white text-[10px] uppercase tracking-wider font-black">
-                      <th className="py-3 px-4 border-b border-[#042c1b]">Subject</th>
-                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">1st CA</th>
-                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">2nd CA</th>
-                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">Exam</th>
-                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">Total</th>
-                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">Grade</th>
+                    <tr className="bg-[#053d26] text-white">
+                      <th className="py-2 px-3 border border-[#053d26]">BEHAVIOUR (AFFECTIVE)</th>
+                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">RATING</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {subjects.map((subj: any, i: number) => {
-                      const subjName = subj.subjectName || subj.subject?.name || subj.subject || "Unknown";
-                      const tScore = Number(subj.totalScore || subj.total || 0);
-                      const sGrade = subj.grade || (tScore >= 75 ? "A+" : tScore >= 70 ? "A" : tScore >= 60 ? "B+" : tScore >= 50 ? "B" : tScore >= 40 ? "C" : "F");
-                      
+                  <tbody>
+                    {['Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Cooperation', 'Peer Relationship'].map((b, i) => {
+                      const keys = ['punctuality', 'neatness', 'politeness', 'honesty', 'cooperation', 'peerRelationship'];
+                      const val = currentResult?.affectiveDomains?.[keys[i]] || "-";
                       return (
-                        <tr key={i} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-3 px-4 font-bold text-gray-900 text-xs">{subjName}</td>
-                          <td className="py-3 px-4 font-medium text-gray-600 text-xs text-center">{subj.firstCA || "-"}</td>
-                          <td className="py-3 px-4 font-medium text-gray-600 text-xs text-center">{subj.secondCA || "-"}</td>
-                          <td className="py-3 px-4 font-medium text-gray-600 text-xs text-center">{subj.examScore || subj.exam || "-"}</td>
-                          <td className="py-3 px-4 font-black text-[#053d26] text-xs text-center">{subj.totalScore || subj.total || "-"}</td>
-                          <td className="py-3 px-4 text-center">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
-                              sGrade.includes('A') ? 'bg-green-100 text-green-700' :
-                              sGrade.includes('B') ? 'bg-blue-100 text-blue-700' :
-                              sGrade.includes('C') ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {sGrade}
-                            </span>
-                          </td>
+                        <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
+                          <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{b}</td>
+                          <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{val}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex-1">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#053d26] text-white">
+                      <th className="py-2 px-3 border border-[#053d26]">SKILLS (PSYCHOMOTOR)</th>
+                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">RATING</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['Handwriting', 'Public Speaking', 'Sports & Athletics', 'Club Participation', 'Craft / Lab Skills', 'Musical Skill'].map((s, i) => {
+                      const keys = ['handwriting', 'publicSpeaking', 'sports', 'clubParticipation', 'craftSkills', 'musicalSkill'];
+                      const val = currentResult?.psychomotorDomains?.[keys[i]] || "-";
+                      return (
+                        <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
+                          <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{s}</td>
+                          <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{val}</td>
                         </tr>
                       );
                     })}
@@ -563,48 +728,238 @@ function FormClassResultsInner() {
                 </table>
               </div>
             </div>
-          )}
+            <p className="text-[10px] text-gray-500 italic mb-8 border-b border-gray-200 pb-4">Rating scale: 5 = Excellent, 4 = Good, 3 = Fair, 2 = Weak, 1 = Poor</p>
 
-          {/* Form Teacher Remark */}
-          <div className="p-6 sm:px-8 bg-gray-50 border-t border-gray-100">
-            <h3 className="text-xs font-extrabold text-[#053d26] uppercase tracking-widest mb-3 flex items-center gap-2">
-              <UserCheck className="w-3.5 h-3.5" />
-              Form Teacher's Remark
-            </h3>
-            <textarea 
-              className="w-full min-h-[80px] p-4 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#053d26] resize-none"
-              placeholder="Enter your final remark for this student's report card..."
-              value={remarks[sId] || ""}
-              onChange={(e) => setRemarks(prev => ({ ...prev, [sId]: e.target.value }))}
-            />
+            <div className="space-y-8 flex-1">
+              <div>
+                <h4 className="text-sm font-bold text-[#053d26] mb-2 flex items-center justify-between">
+                  Form Teacher's Remark
+                  <span className="text-[10px] font-normal text-gray-400 italic">Edit your remark below:</span>
+                </h4>
+                <div className="pl-4 border-l-4 border-[#b45309]">
+                  <textarea 
+                    className="w-full min-h-[60px] p-2 bg-white border border-gray-200 rounded text-sm text-gray-700 italic font-medium focus:outline-none focus:border-[#b45309] resize-y print:border-none print:resize-none"
+                    placeholder="Enter your final remark for this student's report card..."
+                    value={remarks[sId] || ""}
+                    onChange={(e) => setRemarks(prev => ({ ...prev, [sId]: e.target.value }))}
+                  />
+                </div>
+                <div className="flex justify-between items-end text-xs font-bold text-[#053d26] mt-2">
+                  <span>Teacher's Name: _________________</span>
+                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
+                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                </div>
+              </div>
 
+              <div>
+                <h4 className="text-sm font-bold text-[#053d26] mb-2">Principal's Remark</h4>
+                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px] whitespace-pre-wrap">
+                  {currentResult?.principalsRemark || "-"}
+                </div>
+                <div className="flex justify-between items-end text-xs font-bold text-[#053d26]">
+                  <span>Principal's Name: _________________</span>
+                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
+                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 mb-4 border border-green-200 bg-[#f0fdf4] flex justify-between p-3 px-4 text-xs font-bold text-[#053d26]">
+              <span>PROMOTED TO: {currentResult?.promotedTo || "-"}</span>
+              <span>NEXT TERM BEGINS: {currentResult?.nextTermBegins && !isNaN(new Date(currentResult.nextTermBegins).getTime()) ? new Date(currentResult.nextTermBegins).toLocaleDateString() : "-"}</span>
+            </div>
+
+            <div className="flex justify-between items-start mt-4 relative">
+              <div className="text-[10px] text-gray-500 italic max-w-sm pt-4">
+                <strong className="block text-[#053d26] mb-1 font-bold">Authentication</strong>
+                This report is official only when it bears the school's embossed stamp and the Principal's original signature above.
+              </div>
+              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#053d26] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative">
+                <span className="text-[9px] font-bold text-[#053d26] leading-tight flex flex-col gap-1">
+                  OFFICIAL<br/>SCHOOL STAMP
+                  <span className="text-[6px] font-normal leading-[1] mt-1 text-[#b45309] uppercase">{schoolName}</span>
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Pagination Controls */}
-          <div className="p-6 sm:px-8 bg-white flex justify-between items-center">
+          <div className="p-6 sm:px-8 bg-gray-50 border-t border-gray-200 flex justify-between items-center print:hidden">
             <button
               onClick={handlePrev}
               disabled={currentIndex === 0}
-              className="px-5 py-2.5 rounded-full border border-gray-200 font-bold text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-5 py-2.5 rounded-full border border-gray-300 font-bold text-sm text-gray-700 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Previous Student
             </button>
+            <div className="text-sm font-medium text-gray-500">
+              {currentIndex + 1} of {results.length}
+            </div>
             <button
               onClick={handleNext}
               disabled={currentIndex === results.length - 1}
-              className="px-5 py-2.5 rounded-full bg-[#053d26] text-white font-bold text-sm hover:bg-[#042c1b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-5 py-2.5 rounded-full bg-[#053d26] text-white font-bold text-sm hover:bg-[#172a6b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Next Student
             </button>
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100">
-          <FileSpreadsheet className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-          <p className="font-bold text-lg text-gray-900">No results found</p>
-          <p className="text-sm text-gray-500 mt-2">Make sure subject scores have been entered for this class.</p>
+        !isLoading && !error && (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+            <UserCheck className="h-12 w-12 text-gray-300 mb-4" />
+            <p className="font-medium">No results found for this class.</p>
+          </div>
+        )
+      )}
+
+      {/* Edit Metadata Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm print:hidden">
+          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h2 className="text-xl font-bold text-[#053d26]">Edit Report Card Metadata</h2>
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-2 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 space-y-8">
+              {/* Attendance & Progression */}
+              <section>
+                <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider border-b pb-2">Attendance & Progression</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Days School Opened</label>
+                    <input type="number" 
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
+                      value={editingMetadata?.daysSchoolOpened || ""}
+                      onChange={(e) => setEditingMetadata({...editingMetadata, daysSchoolOpened: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Days Present</label>
+                    <input type="number" 
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
+                      value={editingMetadata?.daysPresent || ""}
+                      onChange={(e) => setEditingMetadata({...editingMetadata, daysPresent: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Next Term Begins</label>
+                    <input type="date" 
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
+                      value={editingMetadata?.nextTermBegins ? new Date(editingMetadata.nextTermBegins).toISOString().split('T')[0] : ""}
+                      onChange={(e) => setEditingMetadata({...editingMetadata, nextTermBegins: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Promoted To (Optional)</label>
+                    <input type="text" 
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
+                      value={editingMetadata?.promotedTo || ""}
+                      onChange={(e) => setEditingMetadata({...editingMetadata, promotedTo: e.target.value})}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {/* Affective Domains */}
+              <section>
+                <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider border-b pb-2">Affective Domains (1-5)</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {['Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Cooperation', 'Peer Relationship'].map((label, idx) => {
+                    const keys = ['punctuality', 'neatness', 'politeness', 'honesty', 'cooperation', 'peerRelationship'];
+                    const key = keys[idx];
+                    return (
+                      <div key={key}>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">{label}</label>
+                        <input type="number" min="1" max="5"
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
+                          value={editingMetadata?.affectiveDomains?.[key] || ""}
+                          onChange={(e) => setEditingMetadata({
+                            ...editingMetadata, 
+                            affectiveDomains: { ...editingMetadata.affectiveDomains, [key]: Number(e.target.value) }
+                          })}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Psychomotor Domains */}
+              <section>
+                <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider border-b pb-2">Psychomotor Domains (1-5)</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {['Handwriting', 'Public Speaking', 'Sports', 'Club Participation', 'Craft Skills', 'Musical Skill'].map((label, idx) => {
+                    const keys = ['handwriting', 'publicSpeaking', 'sports', 'clubParticipation', 'craftSkills', 'musicalSkill'];
+                    const key = keys[idx];
+                    return (
+                      <div key={key}>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">{label}</label>
+                        <input type="number" min="1" max="5"
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
+                          value={editingMetadata?.psychomotorDomains?.[key] || ""}
+                          onChange={(e) => setEditingMetadata({
+                            ...editingMetadata, 
+                            psychomotorDomains: { ...editingMetadata.psychomotorDomains, [key]: Number(e.target.value) }
+                          })}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+              
+              {/* Remarks */}
+              <section>
+                <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider border-b pb-2">Remarks</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Form Teacher's Remark</label>
+                    <textarea 
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#053d26] min-h-[80px]"
+                      value={editingMetadata?.teacherComment || ""}
+                      onChange={(e) => setEditingMetadata({...editingMetadata, teacherComment: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Principal's Remark</label>
+                    <textarea 
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#053d26] min-h-[80px]"
+                      value={editingMetadata?.principalsRemark || ""}
+                      onChange={(e) => setEditingMetadata({...editingMetadata, principalsRemark: e.target.value})}
+                    />
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50 mt-auto">
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-5 py-2.5 rounded-full border border-gray-300 font-bold text-sm text-gray-700 hover:bg-white transition-colors"
+                disabled={isSavingMetadata}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={saveMetadata}
+                disabled={isSavingMetadata}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#053d26] text-white font-bold text-sm hover:bg-[#172a6b] transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isSavingMetadata ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {isSavingMetadata ? "Saving..." : "Save Metadata"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
+
     </div>
   );
 }
