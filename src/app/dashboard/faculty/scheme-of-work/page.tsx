@@ -113,24 +113,34 @@ export default function SchemeOfWorkPage() {
   }, []);
 
   const fetchScheme = useCallback(async () => {
-    if (!selectedClass || !selectedSubject || !currentTermId) return;
+    if (!selectedClass || !selectedSubject || !currentTermId) {
+      console.log("[SoW Teacher] fetchScheme skipped — missing:", { selectedClass, selectedSubject, currentTermId });
+      return;
+    }
+    console.log("[SoW Teacher] fetchScheme called with:", { classId: selectedClass, subjectId: selectedSubject, termId: currentTermId });
     setIsLoading(true);
     setTopics([]);
     setExistingId(null);
     try {
       const res = await schemeOfWorkApi.getBySubject(selectedClass, selectedSubject, currentTermId);
+      console.log("[SoW Teacher] getBySubject raw response:", res);
       const data = (res as any)?.data || res;
-      if (data && data.id) {
-        setExistingId(data.id);
+      console.log("[SoW Teacher] getBySubject parsed data:", data);
+      if (data && (data.id || data._id)) {
+        setExistingId(data.id || data._id);
         setTopics(data.topics || []);
+        console.log("[SoW Teacher] Loaded existing SoW id:", data.id || data._id, "topics:", data.topics?.length);
       } else if (Array.isArray(data) && data.length > 0) {
         // sometimes arrays are returned
-        setExistingId(data[0].id);
+        setExistingId(data[0].id || data[0]._id);
         setTopics(data[0].topics || []);
+        console.log("[SoW Teacher] Loaded from array, id:", data[0].id || data[0]._id, "topics:", data[0].topics?.length);
+      } else {
+        console.log("[SoW Teacher] No existing scheme found for this combination");
       }
     } catch (err) {
       // Usually means it doesn't exist yet, which is fine
-      console.log("No existing scheme found or error fetching");
+      console.warn("[SoW Teacher] Error fetching scheme:", err);
     } finally {
       setIsLoading(false);
     }
@@ -171,22 +181,26 @@ export default function SchemeOfWorkPage() {
       }
     }
 
+    console.log("[SoW Teacher] Saving SoW:", { classId: selectedClass, subjectId: selectedSubject, termId: currentTermId, existingId, topicCount: topics.length });
     setIsSaving(true);
     try {
       if (existingId) {
-        await schemeOfWorkApi.update(existingId, { topics });
+        const updateRes = await schemeOfWorkApi.update(existingId, { topics });
+        console.log("[SoW Teacher] Update response:", updateRes);
         toast.success("Scheme of work updated successfully");
       } else {
-        await schemeOfWorkApi.create({
+        const createRes = await schemeOfWorkApi.create({
           classId: selectedClass,
           subjectId: selectedSubject,
           termId: currentTermId,
           topics
         });
+        console.log("[SoW Teacher] Create response:", createRes);
         toast.success("Scheme of work created successfully");
         fetchScheme(); // to get the new ID
       }
     } catch (err: any) {
+      console.error("[SoW Teacher] Save failed:", err);
       toast.error(err.message || "Failed to save scheme of work");
     } finally {
       setIsSaving(false);

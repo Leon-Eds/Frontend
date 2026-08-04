@@ -26,6 +26,7 @@ function FormClassResultsInner() {
   const [schoolName, setSchoolName] = useState("LEONED ACADEMY");
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
   const [currentSessionName, setCurrentSessionName] = useState<string>("");
+  const [classAverages, setClassAverages] = useState<Record<string, string>>({});
   const [isResultEditingActive, setIsResultEditingActive] = useState(true);
   const [isTogglingLock, setIsTogglingLock] = useState(false);
   
@@ -289,6 +290,57 @@ function FormClassResultsInner() {
     init();
   }, [router]);
 
+  // Compute class averages asynchronously for all subjects
+  useEffect(() => {
+    const computeAverages = async () => {
+      if (!currentTerm || results.length === 0 || Object.keys(classAverages).length > 0) return;
+      try {
+        const resPromises = results.map(r => 
+          resultApi.getStudentResults(r.studentId, currentTerm.id).catch(() => null)
+        );
+        const allRes = await Promise.all(resPromises);
+        const allData = allRes.map(res => (res as any)?.data || res);
+
+        const totals: Record<string, { sum: number, count: number }> = {};
+        
+        allData.forEach((detailData: any) => {
+          let subjectScores: any[] = [];
+          if (detailData) {
+            if (Array.isArray(detailData)) {
+              if (detailData.length > 0 && detailData[0].subjectScores) subjectScores = detailData[0].subjectScores;
+              else subjectScores = detailData;
+            } else if (detailData.subjectScores) {
+              subjectScores = detailData.subjectScores;
+            } else if (detailData.subjects) {
+              subjectScores = detailData.subjects;
+            }
+          }
+          
+          subjectScores.forEach((s: any) => {
+            const sName = s.subjectName || s.subject?.name || s.name || "Subject";
+            const score = Number(s.total || s.totalScore || 0);
+            if (!isNaN(score)) {
+              if (!totals[sName]) totals[sName] = { sum: 0, count: 0 };
+              totals[sName].sum += score;
+              totals[sName].count += 1;
+            }
+          });
+        });
+        
+        const avgs: Record<string, string> = {};
+        Object.keys(totals).forEach(k => {
+          if (totals[k].count > 0) {
+            avgs[k] = (totals[k].sum / totals[k].count).toFixed(1);
+          }
+        });
+        setClassAverages(avgs);
+      } catch (e) {
+        console.error("Failed to compute class averages", e);
+      }
+    };
+    computeAverages();
+  }, [results, currentTerm]);
+
   // Lazy load subject details for the currently viewed student
   useEffect(() => {
     const fetchCurrentStudentDetails = async () => {
@@ -331,6 +383,7 @@ function FormClassResultsInner() {
           examScore: s.exam || s.examScore,
           totalScore: s.total || s.totalScore,
           grade: s.grade,
+          classAvg: s.classAverage || s.classAvg || classAverages[s.subjectName || s.subject?.name || "Subject"],
           remark: s.remark
         }));
 
@@ -506,28 +559,28 @@ function FormClassResultsInner() {
           <button 
             onClick={openEditModal}
             disabled={!currentResult}
-            className="flex items-center gap-2 px-5 py-3 rounded-full font-bold transition-all text-sm shadow-sm bg-blue-100 text-blue-800 hover:bg-green-200 print:hidden"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold transition-all text-xs shadow-sm bg-blue-100 text-blue-800 hover:bg-green-200 print:hidden"
           >
-            <Edit className="h-4 w-4" />
+            <Edit className="h-3.5 w-3.5" />
             Edit Metadata
           </button>
 
           <button 
             onClick={handleToggleEditing}
             disabled={isTogglingLock || !formClass}
-            className={`flex items-center gap-2 px-5 py-3 rounded-full font-bold transition-all text-sm shadow-sm disabled:opacity-50 ${isResultEditingActive ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-green-100 text-green-800 hover:bg-green-200'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold transition-all text-xs shadow-sm disabled:opacity-50 ${isResultEditingActive ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-green-100 text-green-800 hover:bg-green-200'}`}
           >
-            {isTogglingLock ? <Loader2 className="h-4 w-4 animate-spin" /> : (isResultEditingActive ? <ShieldAlert className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />)}
+            {isTogglingLock ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (isResultEditingActive ? <ShieldAlert className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />)}
             {isResultEditingActive ? "Lock Result Entry" : "Unlock Result Entry"}
           </button>
 
           <button 
             onClick={handleSubmitToAdmin}
             disabled={isSubmitting || results.length === 0 || classStatus === "Submitted" || classStatus === "Approved"}
-            className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-sm shadow-md disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#053d26] text-white font-semibold hover:bg-[#042c1b] transition-all text-xs shadow-md disabled:opacity-50"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {isSubmitting ? "Submitting..." : (classStatus === "Submitted" || classStatus === "Approved") ? "Submitted" : "Submit to Admin"}
+            {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            {isSubmitting ? "Submitting..." : (classStatus === "Submitted" || classStatus === "Approved") ? "Submitted" : "Submit"}
           </button>
         </div>
       </div>
@@ -563,7 +616,7 @@ function FormClassResultsInner() {
 
 
       {results.length > 0 && currentResult ? (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col print-only print:shadow-none print:border-none print:rounded-none">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col print-only print:shadow-none print:border-none print:rounded-none print:overflow-visible">
           {/* --- PAGE 1 --- */}
           <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm print:pt-4">
             {/* Header */}
@@ -621,8 +674,7 @@ function FormClassResultsInner() {
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold">GRADE</th>
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CLASS<br/>AVG</th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">HIGH /<br/>LOW</th>
-                    <th className="py-2.5 px-2 border border-[#053d26] w-[15%] font-bold">REMARK</th>
+                    <th className="py-2.5 px-2 border border-[#053d26] w-[20%] font-bold">REMARK</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -639,7 +691,6 @@ function FormClassResultsInner() {
                         <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{subj.totalScore || subj.total || "-"}</td>
                         <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{sGrade}</td>
                         <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.classAvg || "-"}</td>
-                        <td className="py-2 px-1 border border-gray-300 text-gray-700 text-[11px]">{subj.high || "-"}/{subj.low || "-"}</td>
                         <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{subj.remark || "N/A"}</td>
                       </tr>
                     );
@@ -648,7 +699,7 @@ function FormClassResultsInner() {
                 <tfoot>
                   <tr className="bg-[#f0fdf4] font-bold text-[#053d26] border-t-2 border-[#053d26]">
                     <td colSpan={4} className="py-3 px-4 text-left border border-gray-300 uppercase">CUMULATIVE SCORE: {totalStudentScore} / {maxPossibleScore}</td>
-                    <td colSpan={3} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {avg ? Number(avg).toFixed(1) : "-"}%</td>
+                    <td colSpan={2} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {avg ? Number(avg).toFixed(1) : "-"}%</td>
                     <td colSpan={2} className="py-3 px-4 text-right border border-gray-300 uppercase">POSITION: {pos}</td>
                   </tr>
                 </tfoot>
@@ -745,7 +796,7 @@ function FormClassResultsInner() {
                   />
                 </div>
                 <div className="flex justify-between items-end text-xs font-bold text-[#053d26] mt-2">
-                  <span>Teacher's Name: _________________</span>
+                  <span>Teacher's Name: {currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}` : "_________________")}</span>
                   <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
                   <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
                 </div>
@@ -757,7 +808,7 @@ function FormClassResultsInner() {
                   {currentResult?.principalsRemark || "-"}
                 </div>
                 <div className="flex justify-between items-end text-xs font-bold text-[#053d26]">
-                  <span>Principal's Name: _________________</span>
+                  <span>Principal's Name: {currentResult?.principalName || "_________________"}</span>
                   <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
                   <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
                 </div>

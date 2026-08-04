@@ -14,6 +14,10 @@ function FormClassResultsInner() {
   const [remarks, setRemarks] = useState<Record<string, string>>({});
   const [formClass, setFormClass] = useState<any>(null);
   const [currentTerm, setCurrentTerm] = useState<any>(null);
+  const [schoolName, setSchoolName] = useState("LEONED ACADEMY");
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+  const [currentSessionName, setCurrentSessionName] = useState<string>("");
+  const [classSize, setClassSize] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -96,6 +100,16 @@ function FormClassResultsInner() {
           return;
         }
         setCurrentTerm(activeTerm);
+        setCurrentSessionName(activeSession?.name || "Current Session");
+        
+        try {
+          const userStr = localStorage.getItem("leoned_user");
+          if (userStr) {
+            const user = JSON.parse(userStr);
+            if (user.schoolName) setSchoolName(user.schoolName);
+            if (user.schoolLogoUrl || user.schoolLogo) setSchoolLogo(user.schoolLogoUrl || user.schoolLogo);
+          }
+        } catch(e) {}
 
         const targetClassId = fc.classId || fc.id || fc._id;
         
@@ -290,97 +304,162 @@ function FormClassResultsInner() {
 
 
       {results.length > 0 && currentResult ? (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-          {/* Report Card Header */}
-          <div className="bg-white p-6 sm:px-8 border-b border-gray-100 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-full bg-[#053d26]/10 flex items-center justify-center mb-4">
-              <Award className="h-8 w-8 text-[#053d26]" />
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col print-only print:shadow-none print:border-none print:rounded-none print:overflow-visible">
+          {/* --- PAGE 1 --- */}
+          <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm print:pt-4">
+            {/* Header */}
+            <div className="flex justify-between items-center border-b-2 border-[#053d26] pb-4 mb-3">
+              <div className="w-20 h-20 shrink-0 rounded-full border-4 border-[#b45309] bg-[#053d26] text-white flex items-center justify-center overflow-hidden flex-col">
+                {schoolLogo ? (
+                  <img src={schoolLogo} alt="School Logo" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <>
+                    <Award className="w-6 h-6 text-[#b45309]" />
+                    <span className="text-[10px] font-bold mt-1 tracking-wider">{schoolName.substring(0, 3).toUpperCase()}</span>
+                  </>
+                )}
+              </div>
+              <div className="text-center flex-1 px-4">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#053d26] uppercase tracking-wide">
+                  {schoolName.toUpperCase()}
+                </h1>
+              </div>
             </div>
-            <h2 className="text-2xl font-black text-[#053d26] uppercase tracking-widest mb-1">Student Report Card</h2>
-            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6">
-              {formClass?.className || formClass?.name || "LeonEd Academy"} • {currentTerm?.name || "Current Term"}
-            </p>
+            
+            <div className="text-center py-2 mb-4 border-b border-gray-300 mx-16">
+              <h2 className="text-xl font-bold text-[#053d26] tracking-[0.2em] uppercase">Terminal Academic Report</h2>
+              <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">{currentTerm?.name || "Current Term"}</p>
+            </div>
 
+            {/* Student Details */}
+            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs">
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span className="font-medium text-gray-800">{studentName}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{adm || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{formClass?.className || formClass?.name || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{currentResult?.gender || "-"}</span></div>
+                {currentResult?.dateOfBirth && !isNaN(new Date(currentResult.dateOfBirth).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Date of Birth:</span> <span className="font-medium text-gray-800">{new Date(currentResult.dateOfBirth).toLocaleDateString()}</span></div> : null}
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{currentTerm?.name || "Current Term"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Session:</span> <span className="font-medium text-gray-800">{currentSessionName || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">No. in Class:</span> <span className="font-medium text-gray-800">{classSize > 0 ? classSize : results.length}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{pos}</span></div>
+                {currentResult?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days School Opened:</span> <span className="font-medium text-gray-800">{currentResult.daysSchoolOpened}</span></div> : null}
+                {currentResult?.daysPresent ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{currentResult.daysPresent}</span></div> : null}
+                {currentResult?.nextTermBegins && !isNaN(new Date(currentResult.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Next Term Begins:</span> <span className="font-medium text-gray-800">{new Date(currentResult.nextTermBegins).toLocaleDateString()}</span></div> : null}
+              </div>
+            </div>
 
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 text-left border-y border-gray-200 py-4 mb-4">
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Name:</span>
-                  <span className="text-sm font-bold text-gray-900">{studentName}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Admission:</span>
-                  <span className="text-sm font-bold text-gray-900">{adm}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Average:</span>
-                  <span className="text-sm font-black text-[#053d26]">{avg ? Number(avg).toFixed(1) : "-"}%</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Grade:</span>
-                  <span className="text-sm font-black text-[#b05e1c]">{computedGrade}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Position:</span>
-                  <span className="text-sm font-black text-[#053d26]">{pos}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Total:</span>
-                  <span className="text-sm font-black text-[#b05e1c]">
-                    {totalStudentScore} / {maxPossibleScore}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase w-20">Class Size:</span>
-                  <span className="text-sm font-black text-[#053d26]">{results.length} Students</span>
-                </div>
+            {/* Academic Performance Table */}
+            <h3 className="text-[13px] font-black text-[#053d26] tracking-widest uppercase mb-2">Academic Performance</h3>
+            <div className="border-t-[3px] border-[#053d26]">
+              <table className="w-full text-xs text-center border-collapse mb-4">
+                <thead>
+                  <tr className="bg-[#053d26] text-white">
+                    <th className="py-2.5 px-3 text-left w-[25%] border border-[#053d26] font-bold">SUBJECT</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CA 1<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CA 2<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">EXAM<br/><span className="text-[9px] font-normal">(60)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">GRADE</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CLASS<br/>AVG</th>
+                    <th className="py-2.5 px-2 border border-[#053d26] w-[20%] font-bold">REMARK</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjects.map((subj: any, i: number) => {
+                    const subjName = subj.subjectName || subj.subject?.name || subj.subject || "Unknown";
+                    const tScore = Number(subj.totalScore || subj.total || 0);
+                    const sGrade = subj.grade || (tScore >= 75 ? "A+" : tScore >= 70 ? "A" : tScore >= 60 ? "B+" : tScore >= 50 ? "B" : tScore >= 40 ? "C" : "F");
+                    return (
+                      <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
+                        <td className="py-2 px-3 text-left font-bold text-[#053d26] border border-gray-300">{subjName}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.firstCA || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.secondCA || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.examScore || subj.exam || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{subj.totalScore || subj.total || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{sGrade}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.classAvg || "-"}</td>
+                        <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{subj.remark || "N/A"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-[#f0fdf4] font-bold text-[#053d26] border-t-2 border-[#053d26]">
+                    <td colSpan={4} className="py-3 px-4 text-left border border-gray-300 uppercase">CUMULATIVE SCORE: {totalStudentScore} / {maxPossibleScore}</td>
+                    <td colSpan={2} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {avg ? Number(avg).toFixed(1) : "-"}%</td>
+                    <td colSpan={2} className="py-3 px-4 text-right border border-gray-300 uppercase">POSITION: {pos}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Grading Key */}
+            <div className="mt-4 pb-4">
+              <h4 className="text-xs font-bold text-[#053d26] mb-2">Grading Key</h4>
+              <div className="flex flex-wrap gap-x-8 gap-y-2 text-[11px] text-gray-600 font-medium">
+                <div><span className="font-bold text-[#053d26]">A</span> 70-100 (Excellent)</div>
+                <div><span className="font-bold text-[#053d26]">B</span> 60-69 (Very Good)</div>
+                <div><span className="font-bold text-[#053d26]">C</span> 50-59 (Good)</div>
+                <div><span className="font-bold text-[#053d26]">D</span> 45-49 (Fair)</div>
+                <div><span className="font-bold text-[#053d26]">E</span> 40-44 (Poor)</div>
+                <div><span className="font-bold text-[#053d26]">F</span> 0-39 (Fail)</div>
               </div>
             </div>
           </div>
 
-          {/* Subject Breakdown Table */}
-          {subjects && subjects.length > 0 && (
-            <div className="px-6 py-4 sm:px-8">
-              <h3 className="text-xs font-extrabold text-[#053d26] uppercase tracking-widest mb-4">Academic Performance</h3>
-              <div className="overflow-x-auto rounded-xl border border-gray-200">
-                <table className="w-full text-left border-collapse min-w-[600px]">
+          {/* --- PAGE 2 --- */}
+          <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm border-t border-gray-300 print:border-none print:pt-12 mt-12 print:mt-0">
+            <div className="flex justify-between items-center border-b border-gray-300 pb-2 mb-6 text-xs font-bold text-[#053d26]">
+              <span className="uppercase">{schoolName}</span>
+              <span className="text-gray-300">|</span>
+              <span>Student: {studentName}</span>
+              <span className="text-gray-300">|</span>
+              <span>Adm. No: {adm || "-"}</span>
+            </div>
+
+            <h3 className="text-sm font-bold text-[#053d26] tracking-widest uppercase mb-1 border-b-[2.5px] border-[#b45309] pb-1 inline-block w-full">Affective & Psychomotor Domains</h3>
+            <p className="text-[11px] text-gray-500 italic mb-4">Non-academic assessment of behaviour, character and practical skills.</p>
+
+            <div className="flex flex-col sm:flex-row gap-6 mb-2">
+              <div className="flex-1">
+                <table className="w-full text-xs text-left border-collapse">
                   <thead>
-                    <tr className="bg-[#053d26] text-white text-[10px] uppercase tracking-wider font-black">
-                      <th className="py-3 px-4 border-b border-[#042c1b]">Subject</th>
-                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">1st CA</th>
-                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">2nd CA</th>
-                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">Exam</th>
-                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">Total</th>
-                      <th className="py-3 px-4 border-b border-[#042c1b] text-center">Grade</th>
+                    <tr className="bg-[#053d26] text-white">
+                      <th className="py-2 px-3 border border-[#053d26]">BEHAVIOUR (AFFECTIVE)</th>
+                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">RATING</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {subjects.map((subj: any, i: number) => {
-                      const subjName = subj.subjectName || subj.subject?.name || subj.subject || "Unknown";
-                      const tScore = Number(subj.totalScore || subj.total || 0);
-                      const sGrade = subj.grade || (tScore >= 75 ? "A+" : tScore >= 70 ? "A" : tScore >= 60 ? "B+" : tScore >= 50 ? "B" : tScore >= 40 ? "C" : "F");
-                      
+                  <tbody>
+                    {['Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Cooperation', 'Peer Relationship'].map((b, i) => {
+                      const keys = ['punctuality', 'neatness', 'politeness', 'honesty', 'cooperation', 'peerRelationship'];
+                      const val = currentResult?.affectiveDomains?.[keys[i]] || "-";
                       return (
-                        <tr key={i} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-3 px-4 font-bold text-gray-900 text-xs">{subjName}</td>
-                          <td className="py-3 px-4 font-medium text-gray-600 text-xs text-center">{subj.firstCA || "-"}</td>
-                          <td className="py-3 px-4 font-medium text-gray-600 text-xs text-center">{subj.secondCA || "-"}</td>
-                          <td className="py-3 px-4 font-medium text-gray-600 text-xs text-center">{subj.examScore || subj.exam || "-"}</td>
-                          <td className="py-3 px-4 font-black text-[#053d26] text-xs text-center">{subj.totalScore || subj.total || "-"}</td>
-                          <td className="py-3 px-4 text-center">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
-                              sGrade.includes('A') ? 'bg-green-100 text-green-700' :
-                              sGrade.includes('B') ? 'bg-blue-100 text-blue-700' :
-                              sGrade.includes('C') ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {sGrade}
-                            </span>
-                          </td>
+                        <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
+                          <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{b}</td>
+                          <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{val}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex-1">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#053d26] text-white">
+                      <th className="py-2 px-3 border border-[#053d26]">SKILLS (PSYCHOMOTOR)</th>
+                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">RATING</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['Handwriting', 'Public Speaking', 'Sports & Athletics', 'Club Participation', 'Craft / Lab Skills', 'Musical Skill'].map((s, i) => {
+                      const keys = ['handwriting', 'publicSpeaking', 'sports', 'clubParticipation', 'craftSkills', 'musicalSkill'];
+                      const val = currentResult?.psychomotorDomains?.[keys[i]] || "-";
+                      return (
+                        <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
+                          <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{s}</td>
+                          <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{val}</td>
                         </tr>
                       );
                     })}
@@ -388,16 +467,58 @@ function FormClassResultsInner() {
                 </table>
               </div>
             </div>
-          )}
+            <p className="text-[10px] text-gray-500 italic mb-8 border-b border-gray-200 pb-4">Rating scale: 5 = Excellent, 4 = Good, 3 = Fair, 2 = Weak, 1 = Poor</p>
 
-          {/* Form Teacher Remark */}
-          <div className="p-6 sm:px-8 bg-gray-50 border-t border-gray-100">
-            <h3 className="text-xs font-extrabold text-[#053d26] uppercase tracking-widest mb-3 flex items-center gap-2">
-              <UserCheck className="w-3.5 h-3.5" />
-              Form Teacher's Remark
-            </h3>
-            <div className="w-full min-h-[80px] p-4 border border-gray-200 bg-white rounded-xl text-sm font-medium text-gray-700">
-              {remarks[sId] || <span className="text-gray-400 italic">No remark provided.</span>}
+            <div className="space-y-8 flex-1">
+              <div>
+                <h4 className="text-sm font-bold text-[#053d26] mb-2 flex items-center justify-between">
+                  Form Teacher's Remark
+                  <span className="text-[10px] font-normal text-gray-400 italic">Edit your remark below:</span>
+                </h4>
+                <div className="pl-4 border-l-4 border-[#b45309]">
+                  <textarea 
+                    className="w-full min-h-[60px] p-2 bg-white border border-gray-200 rounded text-sm text-gray-700 italic font-medium focus:outline-none focus:border-[#b45309] resize-y print:border-none print:resize-none"
+                    placeholder="Enter your final remark for this student's report card..."
+                    value={remarks[sId] || ""}
+                    onChange={(e) => setRemarks(prev => ({ ...prev, [sId]: e.target.value }))}
+                  />
+                </div>
+                <div className="flex justify-between items-end text-xs font-bold text-[#053d26] mt-2">
+                  <span>Teacher's Name: {currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}` : "_________________")}</span>
+                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
+                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold text-[#053d26] mb-2">Principal's Remark</h4>
+                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px] whitespace-pre-wrap">
+                  {currentResult?.principalsRemark || "-"}
+                </div>
+                <div className="flex justify-between items-end text-xs font-bold text-[#053d26]">
+                  <span>Principal's Name: {currentResult?.principalName || "_________________"}</span>
+                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
+                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 mb-4 border border-green-200 bg-[#f0fdf4] flex justify-between p-3 px-4 text-xs font-bold text-[#053d26]">
+              <span>PROMOTED TO: {currentResult?.promotedTo || "-"}</span>
+              <span>NEXT TERM BEGINS: {currentResult?.nextTermBegins && !isNaN(new Date(currentResult.nextTermBegins).getTime()) ? new Date(currentResult.nextTermBegins).toLocaleDateString() : "-"}</span>
+            </div>
+
+            <div className="flex justify-between items-start mt-4 relative">
+              <div className="text-[10px] text-gray-500 italic max-w-sm pt-4">
+                <strong className="block text-[#053d26] mb-1 font-bold">Authentication</strong>
+                This report is official only when it bears the school's embossed stamp and the Principal's original signature above.
+              </div>
+              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#053d26] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative">
+                <span className="text-[9px] font-bold text-[#053d26] leading-tight flex flex-col gap-1">
+                  OFFICIAL<br/>SCHOOL STAMP
+                  <span className="text-[6px] font-normal leading-[1] mt-1 text-[#b45309] uppercase">{schoolName}</span>
+                </span>
+              </div>
             </div>
           </div>
 

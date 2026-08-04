@@ -39,8 +39,8 @@ export default function DashboardLayout({
   const isOverview = pathname === "/dashboard" || pathname === "/super-admin";
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#f8f9fa] overflow-hidden">
-      <div className="flex flex-1 w-full overflow-hidden relative">
+    <div className="flex flex-col h-screen w-full bg-[#f8f9fa] overflow-hidden print:h-auto print:overflow-visible">
+      <div className="flex flex-1 w-full overflow-hidden relative print:overflow-visible">
         {/* Mobile overlay */}
         {sidebarOpen && !isStudent && (
           <div
@@ -60,16 +60,16 @@ export default function DashboardLayout({
           </div>
         )}
 
-        <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-          <div className={isOverview || isStudent ? "" : "md:hidden"}>
+        <div className="flex flex-col flex-1 overflow-hidden min-w-0 print:overflow-visible">
+          <div className={isOverview || isStudent ? "print:hidden" : "md:hidden print:hidden"}>
             <Header onMenuToggle={() => setSidebarOpen(true)} isStudent={isStudent} />
           </div>
-          <main className="flex-1 overflow-y-auto blueprint-bg flex flex-col">
+          <main className="flex-1 overflow-y-auto blueprint-bg flex flex-col print:overflow-visible">
             <div className="p-4 sm:p-6 lg:p-8 flex-1">
               {children}
             </div>
             {/* Footer */}
-            <footer className="border-t border-gray-200 dark:border-white/10 bg-white/60 dark:bg-black/20 backdrop-blur-sm px-4 sm:px-8 py-6 mt-auto shrink-0 transition-colors">
+            <footer className="border-t border-gray-200 dark:border-white/10 bg-white/60 dark:bg-black/20 backdrop-blur-sm px-4 sm:px-8 py-6 mt-auto shrink-0 transition-colors print:hidden">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4 max-w-7xl mx-auto">
                 <p className="text-xs text-gray-400 dark:text-[#9ca3af] font-medium uppercase tracking-wider">
                   © 2026 LeonEd. Academic Architect System.

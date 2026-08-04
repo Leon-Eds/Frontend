@@ -108,13 +108,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
         const user = JSON.parse(stored);
         if (user.role?.toLowerCase() === "admin") {
           const res = await resultApi.getPendingApprovalsCount();
-          if (res && typeof res.data?.count === "number") {
-            setPendingApprovalsCount(res.data.count);
+          const pCount = (res as any)?.count ?? (res as any)?.data?.count;
+          if (typeof pCount === "number") {
+            setPendingApprovalsCount(pCount);
           }
           
           const feesRes = await bursarApi.getPendingCount().catch(() => null);
-          if (feesRes && typeof (feesRes as any).data?.count === "number") {
-            setPendingFeesCount((feesRes as any).data.count);
+          const fCount = (feesRes as any)?.count ?? (feesRes as any)?.data?.count;
+          if (typeof fCount === "number") {
+            setPendingFeesCount(fCount);
           }
         }
       } catch (err) {
@@ -307,12 +309,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <item.icon className={`h-5 w-5 ${isActive ? "text-white" : "text-green-300"}`} />
               <span className="flex-1 text-left">{t("sidebar." + item.name.toLowerCase().replace(/['\s&]+/g, "_"))}</span>
               {item.href === "/dashboard/approvals" && pendingApprovalsCount > 0 && (
-                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${isActive ? "bg-white text-[#095838]" : "bg-red-500 text-white"}`}>
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)] ${isActive ? "bg-white text-[#095838] shadow-white/60" : "bg-red-500 text-white"}`}>
                   {pendingApprovalsCount}
                 </span>
               )}
               {item.href === "/dashboard/finance" && pendingFeesCount > 0 && (
-                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${isActive ? "bg-white text-[#095838]" : "bg-red-500 text-white"}`}>
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)] ${isActive ? "bg-white text-[#095838] shadow-white/60" : "bg-red-500 text-white"}`}>
                   {pendingFeesCount}
                 </span>
               )}

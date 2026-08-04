@@ -21,38 +21,74 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!selectedTermId || viewMode !== 'sow') return;
+    if (!selectedTermId || viewMode !== 'sow') {
+      console.log("[SoW Student] fetchSow skipped — viewMode:", viewMode, "termId:", selectedTermId);
+      return;
+    }
     const fetchSow = async () => {
       try {
         setIsLoadingSow(true);
-        // classId comes from studentInfo (passed from parent) or localStorage
-        // NOTE: Requires backend to include classId in GET /dashboard/student response
-        let targetClassId = studentInfo.classId || studentInfo.class?._id || studentInfo.class?.id;
         
-        if (!targetClassId) {
-          const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
-          targetClassId = user.classId || user.student?.classId || user.student?.class?._id || user.class?._id;
+        console.log("[SoW Student] === Scheme of Work Debug ===");
+        console.log("[SoW Student] studentInfo keys:", Object.keys(studentInfo));
+        console.log("[SoW Student] studentInfo.classId:", studentInfo.classId);
+        console.log("[SoW Student] studentInfo.class:", studentInfo.class);
+        console.log("[SoW Student] resultMetadata:", resultMetadata);
+        
+        // classId comes from studentInfo, resultMetadata, or localStorage
+        let targetClassId = studentInfo.classId || studentInfo.class?._id || studentInfo.class?.id;
+        console.log("[SoW Student] classId from studentInfo:", targetClassId);
+        
+        if (!targetClassId && resultMetadata) {
+          targetClassId = resultMetadata.classId || resultMetadata.class?.id || resultMetadata.class?._id;
+          console.log("[SoW Student] classId from resultMetadata:", targetClassId);
         }
         
         if (!targetClassId) {
-          console.warn("[StudentAcademics] classId not available — backend needs to include classId in student dashboard response");
+          const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
+          console.log("[SoW Student] localStorage user keys:", Object.keys(user));
+          console.log("[SoW Student] user.classId:", user.classId, "user.student?.classId:", user.student?.classId);
+          targetClassId = user.classId || user.student?.classId || user.student?.class?._id || user.class?._id;
+          console.log("[SoW Student] classId from localStorage:", targetClassId);
+        }
+        
+        if (!targetClassId) {
+          console.warn("[SoW Student] ❌ classId not available from ANY source. Cannot fetch SoW.");
           setSchemes([]);
           return;
         }
         
         const res = await schemeOfWorkApi.getByClass(targetClassId, selectedTermId);
-        const finalSchemes = Array.isArray(res) ? res : ((res as any)?.data || []);
+        if (res && typeof res === 'object' && !Array.isArray(res)) {
+          // This block removed debug loop
+        }
+        
+        // Handle all possible response shapes from the backend
+        let finalSchemes: any[] = [];
+        if (Array.isArray(res)) {
+          finalSchemes = res;
+        } else if (res && typeof res === 'object') {
+          // Check every possible property name the backend might use
+          const nested = (res as any)?.data || (res as any)?.schemes || (res as any)?.schemeOfWorks 
+            || (res as any)?.subjects || (res as any)?.items || (res as any)?.schemeOfWork;
+          if (Array.isArray(nested)) {
+            finalSchemes = nested;
+          } else if ((res as any)?.topics || (res as any)?.id || (res as any)?._id) {
+            // Single scheme object — wrap it in an array
+            finalSchemes = [res];
+          }
+        }
         
         setSchemes(finalSchemes);
       } catch (err) {
-        console.error("Failed to load Scheme of Work", err);
+        console.error("[SoW Student] ❌ Failed to load Scheme of Work:", err);
         setSchemes([]);
       } finally {
         setIsLoadingSow(false);
       }
     };
     fetchSow();
-  }, [selectedTermId, viewMode, studentInfo]);
+  }, [selectedTermId, viewMode, studentInfo, resultMetadata]);
 
   useEffect(() => {
     const fetchTerms = async () => {
@@ -292,12 +328,12 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           </div>
         </div>
       ) : (
-        <div className="bg-white print:p-0 print:m-0 w-full overflow-hidden print-only">
+        <div className="bg-white print:p-0 print:m-0 w-full overflow-hidden print:overflow-visible print-only">
           {/* --- PAGE 1 --- */}
           <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm print:pt-4">
             {/* Header */}
-            <div className="flex justify-between items-center border-b-2 border-[#1e3a8a] pb-4 mb-3">
-              <div className="w-20 h-20 shrink-0 rounded-full border-4 border-[#b45309] bg-[#1e3a8a] text-white flex items-center justify-center overflow-hidden flex-col">
+            <div className="flex justify-between items-center border-b-2 border-[#053d26] pb-4 mb-3">
+              <div className="w-20 h-20 shrink-0 rounded-full border-4 border-[#b45309] bg-[#053d26] text-white flex items-center justify-center overflow-hidden flex-col">
                 {schoolLogo ? (
                   <img src={schoolLogo} alt="School Logo" className="w-full h-full object-cover rounded-full" />
                 ) : (
@@ -308,7 +344,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 )}
               </div>
               <div className="text-center flex-1 px-4">
-                <h1 className="text-2xl sm:text-3xl font-black text-[#1e3a8a] uppercase tracking-wide">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#053d26] uppercase tracking-wide">
                   {schoolName.toUpperCase()}
                 </h1>
                 <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">Empowering the Future</p>
@@ -319,67 +355,62 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             </div>
             
             <div className="text-center py-2 mb-4 border-b border-gray-300 mx-16">
-              <h2 className="text-xl font-bold text-[#1e3a8a] tracking-[0.2em] uppercase">Terminal Academic Report</h2>
+              <h2 className="text-xl font-bold text-[#053d26] tracking-[0.2em] uppercase">Terminal Academic Report</h2>
               <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">{termLabel}</p>
             </div>
 
             {/* Student Details */}
-            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 flex flex-col sm:flex-row gap-6 relative border border-gray-100">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 flex-1 text-xs">
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Student's Name:</span> <span className="font-medium text-gray-800">{studentInfo.firstName} {studentInfo.lastName}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Admission No.:</span> <span className="font-medium text-gray-800">{studentInfo.admissionNumber || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Class:</span> <span className="font-medium text-gray-800">{studentInfo.class?.className || studentInfo.className || studentInfo.class?.name || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Gender:</span> <span className="font-medium text-gray-800">-</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Date of Birth:</span> <span className="font-medium text-gray-800">-</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Term:</span> <span className="font-medium text-gray-800">{termLabel}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Session:</span> <span className="font-medium text-gray-800">-</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">No. in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.classSize || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Position in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.position || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Days School Opened:</span> <span className="font-medium text-gray-800">{resultMetadata?.daysOpened || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Days Present:</span> <span className="font-medium text-gray-800">{resultMetadata?.daysPresent || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#1e3a8a]">Next Term Begins:</span> <span className="font-medium text-gray-800">{resultMetadata?.nextTermBegins || "-"}</span></div>
-              </div>
-              <div className="w-32 h-40 border-[1.5px] border-dashed border-[#8c9fbe] shrink-0 flex items-center justify-center bg-gray-50/50 text-[#64748b] text-[10px] italic font-bold tracking-widest text-center p-2 rounded-sm mx-auto sm:mx-0">
-                PASSPORT<br/>PHOTOGRAPH
+            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs">
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span className="font-medium text-gray-800">{studentInfo.fullName || `${studentInfo.firstName || ""} ${studentInfo.lastName || ""}`.trim() || studentInfo.name}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{studentInfo.admissionNumber || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{studentInfo.class?.className || studentInfo.className || studentInfo.class?.name || "-"}</span></div>
+                {studentInfo.gender || studentInfo.student?.gender ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{studentInfo.gender || studentInfo.student?.gender}</span></div> : null}
+                {(studentInfo.dateOfBirth || studentInfo.student?.dateOfBirth) && !isNaN(new Date(studentInfo.dateOfBirth || studentInfo.student?.dateOfBirth).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Date of Birth:</span> <span className="font-medium text-gray-800">{new Date(studentInfo.dateOfBirth || studentInfo.student?.dateOfBirth).toLocaleDateString()}</span></div> : null}
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{termLabel}</span></div>
+                {terms.find(t => String(t.id || t._id) === String(selectedTermId))?.sessionName ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Session:</span> <span className="font-medium text-gray-800">{terms.find(t => String(t.id || t._id) === String(selectedTermId))?.sessionName}</span></div> : null}
+                {resultMetadata?.classSize || studentInfo.class?.size || studentInfo.classSize ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">No. in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.classSize || studentInfo.class?.size || studentInfo.classSize}</span></div> : null}
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.position || "-"}</span></div>
+                {resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days School Opened:</span> <span className="font-medium text-gray-800">{resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened}</span></div> : null}
+                {resultMetadata?.daysPresent ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{resultMetadata.daysPresent}</span></div> : null}
+                {resultMetadata?.nextTermBegins && !isNaN(new Date(resultMetadata.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Next Term Begins:</span> <span className="font-medium text-gray-800">{new Date(resultMetadata.nextTermBegins).toLocaleDateString()}</span></div> : null}
               </div>
             </div>
 
             {/* Academic Performance */}
-            <h3 className="text-[13px] font-black text-[#1e3a8a] tracking-widest uppercase mb-2">Academic Performance</h3>
-            <div className="border-t-[3px] border-[#1e3a8a]">
+            <h3 className="text-[13px] font-black text-[#053d26] tracking-widest uppercase mb-2">Academic Performance</h3>
+            <div className="border-t-[3px] border-[#053d26]">
               <table className="w-full text-xs text-center border-collapse mb-4">
                 <thead>
-                  <tr className="bg-[#1e3a8a] text-white">
-                    <th className="py-2.5 px-3 text-left w-[25%] border border-[#1e3a8a] font-bold">SUBJECT</th>
-                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">CA 1<br/><span className="text-[9px] font-normal">(20)</span></th>
-                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">CA 2<br/><span className="text-[9px] font-normal">(20)</span></th>
-                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">EXAM<br/><span className="text-[9px] font-normal">(60)</span></th>
-                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
-                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold">GRADE</th>
-                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">CLASS<br/>AVG</th>
-                    <th className="py-2.5 px-1 border border-[#1e3a8a] font-bold leading-tight">HIGH /<br/>LOW</th>
-                    <th className="py-2.5 px-2 border border-[#1e3a8a] w-[15%] font-bold">REMARK</th>
+                  <tr className="bg-[#053d26] text-white">
+                    <th className="py-2.5 px-3 text-left w-[25%] border border-[#053d26] font-bold">SUBJECT</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CA 1<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CA 2<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">EXAM<br/><span className="text-[9px] font-normal">(60)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">GRADE</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CLASS<br/>AVG</th>
+                    <th className="py-2.5 px-2 border border-[#053d26] w-[20%] font-bold">REMARK</th>
                   </tr>
                 </thead>
                 <tbody>
                   {grades.map((g, idx) => (
                     <tr key={idx} className={idx % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
-                      <td className="py-2 px-3 text-left font-bold text-[#1e3a8a] border border-gray-300">{g.name}</td>
+                      <td className="py-2 px-3 text-left font-bold text-[#053d26] border border-gray-300">{g.name}</td>
                       <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.ca1}</td>
                       <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.ca2}</td>
                       <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.exam}</td>
-                      <td className="py-2 px-1 border border-gray-300 font-black text-[#1e3a8a]">{g.total}</td>
-                      <td className="py-2 px-1 border border-gray-300 font-bold text-[#1e3a8a]">{g.grade}</td>
+                      <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{g.total}</td>
+                      <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{g.grade}</td>
                       <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.classAvg || "-"}</td>
-                      <td className="py-2 px-1 border border-gray-300 text-gray-700 text-[11px]">{g.high || "-"}/{g.low || "-"}</td>
                       <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{g.remark}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-[#eff6ff] font-bold text-[#1e3a8a] border-t-2 border-[#1e3a8a]">
+                  <tr className="bg-[#f0fdf4] font-bold text-[#053d26] border-t-2 border-[#053d26]">
                     <td colSpan={4} className="py-3 px-4 text-left border border-gray-300 uppercase">CUMULATIVE SCORE: {totalStudentScore} / {maxPossibleScore}</td>
-                    <td colSpan={3} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {resultMetadata?.averageScore || resultMetadata?.average || resultMetadata?.gpa || "-"}%</td>
+                    <td colSpan={2} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {resultMetadata?.averageScore || resultMetadata?.average || resultMetadata?.gpa || "-"}%</td>
                     <td colSpan={2} className="py-3 px-4 text-right border border-gray-300 uppercase">POSITION: {resultMetadata?.position || resultMetadata?.rank || "-"}</td>
                   </tr>
                 </tfoot>
@@ -388,21 +419,21 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
 
             {/* Grading Key */}
             <div className="mt-4 pb-4">
-              <h4 className="text-xs font-bold text-[#1e3a8a] mb-2">Grading Key</h4>
+              <h4 className="text-xs font-bold text-[#053d26] mb-2">Grading Key</h4>
               <div className="flex flex-wrap gap-x-8 gap-y-2 text-[11px] text-gray-600 font-medium">
-                <div><span className="font-bold text-[#1e3a8a]">A</span> 70-100 (Excellent)</div>
-                <div><span className="font-bold text-[#1e3a8a]">B</span> 60-69 (Very Good)</div>
-                <div><span className="font-bold text-[#1e3a8a]">C</span> 50-59 (Good)</div>
-                <div><span className="font-bold text-[#1e3a8a]">D</span> 45-49 (Fair)</div>
-                <div><span className="font-bold text-[#1e3a8a]">E</span> 40-44 (Poor)</div>
-                <div><span className="font-bold text-[#1e3a8a]">F</span> 0-39 (Fail)</div>
+                <div><span className="font-bold text-[#053d26]">A</span> 70-100 (Excellent)</div>
+                <div><span className="font-bold text-[#053d26]">B</span> 60-69 (Very Good)</div>
+                <div><span className="font-bold text-[#053d26]">C</span> 50-59 (Good)</div>
+                <div><span className="font-bold text-[#053d26]">D</span> 45-49 (Fair)</div>
+                <div><span className="font-bold text-[#053d26]">E</span> 40-44 (Poor)</div>
+                <div><span className="font-bold text-[#053d26]">F</span> 0-39 (Fail)</div>
               </div>
             </div>
           </div>
 
           {/* --- PAGE 2 --- */}
           <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm border-t border-gray-300 print:border-none print:pt-12 mt-12 print:mt-0">
-            <div className="flex justify-between items-center border-b border-gray-300 pb-2 mb-6 text-xs font-bold text-[#1e3a8a]">
+            <div className="flex justify-between items-center border-b border-gray-300 pb-2 mb-6 text-xs font-bold text-[#053d26]">
               <span className="uppercase">{schoolName}</span>
               <span className="text-gray-300">|</span>
               <span>Student: {studentInfo.firstName} {studentInfo.lastName}</span>
@@ -410,23 +441,23 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
               <span>Adm. No: {studentInfo.admissionNumber || "-"}</span>
             </div>
 
-            <h3 className="text-sm font-bold text-[#1e3a8a] tracking-widest uppercase mb-1 border-b-[2.5px] border-[#b45309] pb-1 inline-block w-full">Affective & Psychomotor Domains</h3>
+            <h3 className="text-sm font-bold text-[#053d26] tracking-widest uppercase mb-1 border-b-[2.5px] border-[#b45309] pb-1 inline-block w-full">Affective & Psychomotor Domains</h3>
             <p className="text-[11px] text-gray-500 italic mb-4">Non-academic assessment of behaviour, character and practical skills.</p>
 
             <div className="flex flex-col sm:flex-row gap-6 mb-2">
               <div className="flex-1">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
-                    <tr className="bg-[#1e3a8a] text-white">
-                      <th className="py-2 px-3 border border-[#1e3a8a]">BEHAVIOUR (AFFECTIVE)</th>
-                      <th className="py-2 px-3 border border-[#1e3a8a] text-center w-20">RATING</th>
+                    <tr className="bg-[#053d26] text-white">
+                      <th className="py-2 px-3 border border-[#053d26]">BEHAVIOUR (AFFECTIVE)</th>
+                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">RATING</th>
                     </tr>
                   </thead>
                   <tbody>
                     {['Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Cooperation', 'Peer Relationship'].map((b, i) => (
                       <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
                         <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{b}</td>
-                        <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#1e3a8a]">{(resultMetadata?.affective?.[b.toLowerCase()] || resultMetadata?.affective?.[b]) || (Math.floor(Math.random() * 2) + 4)}</td>
+                        <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{(resultMetadata?.affective?.[b.toLowerCase()] || resultMetadata?.affective?.[b]) || (Math.floor(Math.random() * 2) + 4)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -435,16 +466,16 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
               <div className="flex-1">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
-                    <tr className="bg-[#1e3a8a] text-white">
-                      <th className="py-2 px-3 border border-[#1e3a8a]">SKILLS (PSYCHOMOTOR)</th>
-                      <th className="py-2 px-3 border border-[#1e3a8a] text-center w-20">RATING</th>
+                    <tr className="bg-[#053d26] text-white">
+                      <th className="py-2 px-3 border border-[#053d26]">SKILLS (PSYCHOMOTOR)</th>
+                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">RATING</th>
                     </tr>
                   </thead>
                   <tbody>
                     {['Handwriting', 'Public Speaking', 'Sports & Athletics', 'Club Participation', 'Craft / Lab Skills', 'Musical Skill'].map((s, i) => (
                       <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
                         <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{s}</td>
-                        <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#1e3a8a]">{(resultMetadata?.psychomotor?.[s.toLowerCase()] || resultMetadata?.psychomotor?.[s]) || (Math.floor(Math.random() * 2) + 3)}</td>
+                        <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{(resultMetadata?.psychomotor?.[s.toLowerCase()] || resultMetadata?.psychomotor?.[s]) || (Math.floor(Math.random() * 2) + 3)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -455,42 +486,42 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
 
             <div className="space-y-8 flex-1">
               <div>
-                <h4 className="text-sm font-bold text-[#1e3a8a] mb-2">Form Teacher's Remark</h4>
+                <h4 className="text-sm font-bold text-[#053d26] mb-2">Form Teacher's Remark</h4>
                 <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
                   {resultMetadata?.teacherComment || resultMetadata?.formTeacherRemark || resultMetadata?.teacherRemark || resultMetadata?.remark || "-"}
                 </div>
-                <div className="flex justify-between items-end text-xs font-bold text-[#1e3a8a] mt-2">
-                  <span>Teacher's Name: _________________</span>
+                <div className="flex justify-between items-end text-xs font-bold text-[#053d26] mt-2">
+                  <span>Teacher's Name: {resultMetadata?.formTeacherName || studentInfo.class?.teacher?.name || (studentInfo.class?.teacher?.firstName ? `${studentInfo.class.teacher.firstName} ${studentInfo.class.teacher.lastName || ""}` : "_________________")}</span>
                   <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
                   <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
                 </div>
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-[#1e3a8a] mb-2">Principal's Remark</h4>
+                <h4 className="text-sm font-bold text-[#053d26] mb-2">Principal's Remark</h4>
                 <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
                   {resultMetadata?.principalsRemark || "-"}
                 </div>
-                <div className="flex justify-between items-end text-xs font-bold text-[#1e3a8a]">
-                  <span>Principal's Name: _________________</span>
+                <div className="flex justify-between items-end text-xs font-bold text-[#053d26]">
+                  <span>Principal's Name: {resultMetadata?.principalName || "_________________"}</span>
                   <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
                   <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 mb-4 border border-blue-200 bg-[#eff6ff] flex justify-between p-3 px-4 text-xs font-bold text-[#1e3a8a]">
+            <div className="mt-8 mb-4 border border-blue-200 bg-[#f0fdf4] flex justify-between p-3 px-4 text-xs font-bold text-[#053d26]">
               <span>PROMOTED TO: {resultMetadata?.promotedTo || "-"}</span>
               <span>NEXT TERM BEGINS: {resultMetadata?.nextTermBegins || "-"}</span>
             </div>
 
             <div className="flex justify-between items-start mt-4 relative">
               <div className="text-[10px] text-gray-500 italic max-w-sm pt-4">
-                <strong className="block text-[#1e3a8a] mb-1 font-bold">Authentication</strong>
+                <strong className="block text-[#053d26] mb-1 font-bold">Authentication</strong>
                 This report is official only when it bears the school's embossed stamp and the Principal's original signature above.
               </div>
-              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#1e3a8a] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative">
-                <span className="text-[9px] font-bold text-[#1e3a8a] leading-tight flex flex-col gap-1">
+              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#053d26] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative">
+                <span className="text-[9px] font-bold text-[#053d26] leading-tight flex flex-col gap-1">
                   OFFICIAL<br/>SCHOOL STAMP
                   <span className="text-[6px] font-normal leading-[1] mt-1 text-[#b45309] uppercase">{schoolName}</span>
                 </span>
@@ -517,8 +548,8 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             </div>
           ) : (
             schemes.map((subjectSow, idx) => {
-              const subjectName = subjectSow.subjectName || subjectSow.subject?.name || `Subject ${idx + 1}`;
-              const topics = subjectSow.topics || [];
+              const subjectName = subjectSow.subjectName || subjectSow.subject?.name || subjectSow.name || `Subject ${idx + 1}`;
+              const topics = subjectSow.topics || subjectSow.schemeOfWork?.topics || subjectSow.scheme?.topics || [];
               if (topics.length === 0) return null;
               
               return (

@@ -1932,16 +1932,24 @@ export const schemeOfWorkApi = {
   },
   
   getBySubject: async (classId: string, subjectId: string, termId: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/scheme-of-work/class/${classId}/subject/${subjectId}/term/${termId}`, {
+    const url = `${API_BASE_URL}/scheme-of-work/class/${classId}/subject/${subjectId}/term/${termId}`;
+    console.log("[SoW API] getBySubject URL:", url);
+    const res = await fetchWithTimeout(url, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(res);
+    const data = await handleResponse(res);
+    console.log("[SoW API] getBySubject response:", data);
+    return data;
   },
   
   getByClass: async (classId: string, termId: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/scheme-of-work/class/${classId}/term/${termId}`, {
+    const url = `${API_BASE_URL}/scheme-of-work/class/${classId}/term/${termId}`;
+    console.log("[SoW API] getByClass URL:", url);
+    const res = await fetchWithTimeout(url, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(res);
+    const data = await handleResponse(res);
+    console.log("[SoW API] getByClass response:", data);
+    return data;
   }
 };
