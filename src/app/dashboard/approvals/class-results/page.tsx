@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet, Download } from "lucide-react";
 import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -20,6 +20,9 @@ function FormClassResultsInner() {
   const [classSize, setClassSize] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [schoolEmail, setSchoolEmail] = useState("info@leoned.com");
+  const [schoolAddress, setSchoolAddress] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -108,6 +111,10 @@ function FormClassResultsInner() {
             const user = JSON.parse(userStr);
             if (user.schoolName) setSchoolName(user.schoolName);
             if (user.schoolLogoUrl || user.schoolLogo) setSchoolLogo(user.schoolLogoUrl || user.schoolLogo);
+            if (user.school) {
+              if (user.school.contactEmail) setSchoolEmail(user.school.contactEmail);
+              if (user.school.address) setSchoolAddress(user.school.address);
+            }
           }
         } catch(e) {}
 
@@ -272,6 +279,34 @@ function FormClassResultsInner() {
     if (currentIndex > 0) setCurrentIndex(curr => curr - 1);
   };
 
+  const handleDownloadResult = async () => {
+    try {
+      setIsDownloading(true);
+      const element = document.getElementById("result-pdf-content");
+      if (!element) {
+        setIsDownloading(false);
+        return;
+      }
+      
+      const html2pdf = (await import("html2pdf.js")).default;
+      const currentStudentName = document.getElementById("result-student-name")?.innerText || "Student";
+      const opt = {
+        margin: 10,
+        filename: `${currentStudentName}_Result.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+      };
+      
+      await html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto animate-in fade-in duration-500">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -299,12 +334,23 @@ function FormClassResultsInner() {
               </p>
             </div>
           </div>
+          
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownloadResult}
+              disabled={isDownloading || !currentResult}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-all text-xs shadow-md disabled:opacity-50 print:hidden"
+            >
+              {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              Download PDF
+            </button>
+          </div>
       </div>
 
 
 
       {results.length > 0 && currentResult ? (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col print-only print:shadow-none print:border-none print:rounded-none print:overflow-visible">
+        <div id="result-pdf-content" className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col print-only print:shadow-none print:border-none print:rounded-none print:overflow-visible">
           {/* --- PAGE 1 --- */}
           <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm print:pt-4">
             {/* Header */}
@@ -319,10 +365,14 @@ function FormClassResultsInner() {
                   </>
                 )}
               </div>
-              <div className="text-center flex-1 px-4">
+              <div className="text-right">
                 <h1 className="text-2xl sm:text-3xl font-black text-[#053d26] uppercase tracking-wide">
                   {schoolName.toUpperCase()}
                 </h1>
+                <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || "Empowering the Future"}</p>
+                <p className="text-xs text-gray-600 mt-2 font-medium leading-tight">
+                  <span className="font-bold">Email:</span> {schoolEmail} | <span className="font-bold">Website:</span> www.leoned.com
+                </p>
               </div>
             </div>
             
@@ -334,7 +384,7 @@ function FormClassResultsInner() {
             {/* Student Details */}
             <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs">
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span className="font-medium text-gray-800">{studentName}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span id="result-student-name" className="font-medium text-gray-800">{studentName}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{adm || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{formClass?.className || formClass?.name || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{currentResult?.gender || "-"}</span></div>
@@ -483,22 +533,37 @@ function FormClassResultsInner() {
                     onChange={(e) => setRemarks(prev => ({ ...prev, [sId]: e.target.value }))}
                   />
                 </div>
-                <div className="flex justify-between items-end text-xs font-bold text-[#053d26] mt-2">
-                  <span>Teacher's Name: {currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}` : "_________________")}</span>
-                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
-                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                <div className="flex flex-col items-center">
+                  {currentResult?.formTeacherSignatureUrl ? (
+                    <img src={currentResult.formTeacherSignatureUrl} alt="Teacher Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                  ) : (
+                    <div className="h-10 mb-1"></div>
+                  )}
+                  <div className="w-48 border-t border-gray-400 mb-2"></div>
+                  <div className="text-center text-xs">
+                    <span className="font-bold">Form Teacher</span><br/>
+                    <span>Teacher's Name: {currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}` : "_________________")}</span>
+                  </div>
                 </div>
               </div>
 
-              <div>
+              {/* Principal's Section */}
+              <div className="flex flex-col gap-2">
                 <h4 className="text-sm font-bold text-[#053d26] mb-2">Principal's Remark</h4>
-                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px] whitespace-pre-wrap">
+                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
                   {currentResult?.principalsRemark || "-"}
                 </div>
-                <div className="flex justify-between items-end text-xs font-bold text-[#053d26]">
-                  <span>Principal's Name: {currentResult?.principalName || "_________________"}</span>
-                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
-                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                <div className="flex flex-col items-center">
+                  {currentResult?.principalSignatureUrl ? (
+                    <img src={currentResult.principalSignatureUrl} alt="Principal Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                  ) : (
+                    <div className="h-10 mb-1"></div>
+                  )}
+                  <div className="w-48 border-t border-gray-400 mb-2"></div>
+                  <div className="text-center text-xs">
+                    <span className="font-bold">Principal / Head of School</span><br/>
+                    <span>Principal's Name: {currentResult?.principalName || "_________________"}</span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -289,6 +289,15 @@ export default function StudentsPage() {
       className: 'w-1/6'
     },
     {
+      header: 'Password',
+      accessor: (student) => (
+        <div className="text-sm text-gray-600 font-mono tracking-wider">
+          {student.password || '—'}
+        </div>
+      ),
+      className: 'w-1/6'
+    },
+    {
       header: 'Enrolled',
       accessor: (student) => (
         <div className="text-sm text-gray-600">
@@ -536,7 +545,7 @@ export default function StudentsPage() {
                 ['Guardian', viewStudent.parentName || '—'],
                 ['Guardian Phone', viewStudent.parentPhone || '—'],
                 ['Guardian Email', viewStudent.parentEmail || '—'],
-                ['Guardian Password', viewStudent.password || '—'],
+                ['Portal Password', viewStudent.password || '—'],
                 ['Enrolled', formatDate(viewStudent.enrolledAt)],
               ].map(([label, val]) => (
                 <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50">

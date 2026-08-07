@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { dashboardApi, schoolApi, paymentApi, DashboardStats } from "@/lib/api";
 import DataTable from "@/components/dashboard/DataTable";
-import { 
-  School, 
-  Users, 
-  CreditCard, 
-  TrendingUp, 
-  Plus, 
-  Loader2, 
+import {
+  School,
+  Users,
+  CreditCard,
+  TrendingUp,
+  Plus,
+  Loader2,
   AlertCircle,
   Activity,
   ArrowRight,
@@ -58,14 +58,14 @@ export default function SuperAdminDashboard() {
     const token = localStorage.getItem("leoned_token");
 
     if (!token) {
-      router.push("/login");
+      router.push("/super-admin/login");
       return;
     }
 
     try {
       const parsedUser = JSON.parse(storedUser || "{}");
       if (parsedUser.role !== "SuperAdmin") {
-        router.push("/dashboard");
+        router.push("/super-admin/login");
         return;
       }
       setUser(parsedUser);
@@ -86,14 +86,14 @@ export default function SuperAdminDashboard() {
                 try {
                   const acts = JSON.parse(localStorage.getItem(key) || '[]');
                   allLocalActivities = [...allLocalActivities, ...acts];
-                } catch(e) {}
+                } catch (e) { }
               }
             }
           }
-          
+
           const sObj = (statsData as any)?.data || statsData || {};
           const apiActivities = sObj.recentActivities || [];
-          
+
           const combinedActivities = [...allLocalActivities, ...apiActivities].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
           setStats({
@@ -104,7 +104,7 @@ export default function SuperAdminDashboard() {
           // 1. Check if schools are nested in statsData (common for dashboards)
           // 2. Fallback to dedicated schoolsData endpoint
           let extractedSchools = [];
-          
+
           const s = (statsData as any)?.data || statsData;
           if (Array.isArray(s?.recentSchools)) {
             extractedSchools = s.recentSchools;
@@ -127,12 +127,12 @@ export default function SuperAdminDashboard() {
               extractedSchools = (schoolsData as any).items;
             }
           }
-          
+
           setSchools(extractedSchools);
           const fetchedPlans = (plansData as any)?.data || plansData || [];
           setPlans(fetchedPlans);
           setOverviewData((subscriptionData as any)?.data || subscriptionData || null);
-          
+
           // Enrich schools with detail data (for currentTeacherCount, currentStudentCount)
           if (extractedSchools.length > 0) {
             const enriched = await Promise.all(
@@ -159,7 +159,7 @@ export default function SuperAdminDashboard() {
       };
 
       fetchData();
-      
+
       // Real-time monitoring: Poll every 30 seconds
       const interval = setInterval(fetchData, 30000);
       return () => clearInterval(interval);
@@ -212,7 +212,7 @@ export default function SuperAdminDashboard() {
 
   const s = (stats as any)?.data || stats;
   const reportedTotalSchools = s?.totalSchools || schools.length || 0;
-  
+
   const extractCount = (obj: any, keywords: string[]): number => {
     if (!obj || typeof obj !== 'object') return 0;
     if (obj._count) {
@@ -259,8 +259,8 @@ export default function SuperAdminDashboard() {
     }
   });
 
-  const activeSubscriptions = overviewData?.totalSubscribers ?? computedActiveSubs; 
-  const totalRevenue = overviewData?.totalRevenue ?? computedTotalRev; 
+  const activeSubscriptions = overviewData?.totalSubscribers ?? computedActiveSubs;
+  const totalRevenue = overviewData?.totalRevenue ?? computedTotalRev;
   const platformGrowth = s?.platformGrowth || "Live";
 
   // Data Reconciliation: If count > 0 but list is empty, we flag it as "Syncing"
@@ -294,7 +294,7 @@ export default function SuperAdminDashboard() {
               Platform Overview
             </h1>
             <p className="text-sm text-gray-500 font-medium mt-3 flex items-center gap-2">
-              Welcome back, <span className="font-extrabold text-gray-800">{user?.name}</span> 
+              Welcome back, <span className="font-extrabold text-gray-800">{user?.name}</span>
               <span className="text-gray-300">•</span>
               <span className="inline-flex items-center gap-1.5 font-extrabold text-rose-700 bg-rose-50 border border-rose-100/50 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider shadow-sm">
                 <ShieldAlert className="h-3 w-3" />
@@ -303,7 +303,7 @@ export default function SuperAdminDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <Link 
+            <Link
               href="/super-admin/schools/new"
               className="group relative flex items-center gap-2 bg-gradient-to-br from-[#053d26] to-[#042c1b] text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.1em] overflow-hidden transition-all duration-300 shadow-[0_8px_30px_rgba(5,61,38,0.25)] hover:shadow-[0_12px_40px_rgba(5,61,38,0.4)] hover:-translate-y-0.5 active:translate-y-0"
             >
@@ -391,7 +391,7 @@ export default function SuperAdminDashboard() {
 
           <div className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-6 sm:p-8 shadow-[0_8px_40px_rgba(0,0,0,0.03)] border border-white/80 overflow-hidden relative">
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#053d26] via-[#b05e1c] to-purple-600" />
-            
+
             <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
               <table className="w-full text-left border-separate border-spacing-y-4 min-w-[800px]">
                 <thead>
@@ -454,11 +454,10 @@ export default function SuperAdminDashboard() {
 
                         {/* Service Plan */}
                         <td className="py-4 px-4 border-y border-gray-100/50 group-hover:border-[#053d26]/20 transition-colors bg-clip-padding">
-                          <span className={`inline-flex items-center px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
-                            school.subscriptionPlan === 'Premium' ? 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border-purple-200' :
-                            school.subscriptionPlan === 'Plus' ? 'bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 border-blue-200' :
-                            'bg-gray-50 text-gray-600 border-gray-200'
-                          }`}>
+                          <span className={`inline-flex items-center px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${school.subscriptionPlan === 'Premium' ? 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border-purple-200' :
+                              school.subscriptionPlan === 'Plus' ? 'bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 border-blue-200' :
+                                'bg-gray-50 text-gray-600 border-gray-200'
+                            }`}>
                             {school.subscriptionPlan || 'Free'}
                           </span>
                         </td>

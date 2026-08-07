@@ -184,6 +184,16 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
           </div>
 
           <div>
+            <Input
+              label="Student Portal Password"
+              placeholder="Set a password for the student (min 6 chars)"
+              type="text"
+              value={data.password || ''}
+              onChange={(e) => updateData({ password: e.target.value })}
+            />
+          </div>
+
+          <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
               Gender Identity
             </label>

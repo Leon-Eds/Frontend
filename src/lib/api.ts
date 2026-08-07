@@ -610,6 +610,8 @@ export interface UpdateSchoolRequest {
   bankAccountName?: string;
   bankName?: string;
   bankAccountNumber?: string;
+  principalName?: string;
+  principalSignatureUrl?: string;
 }
 
 export interface UpdateSchoolPlanRequest {
@@ -1739,6 +1741,22 @@ export const teacherPortalApi = {
   getClassStudents: async (classId: string) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/classes/${classId}/students`, {
       headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  updateSignature: async (signatureUrl: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/signature`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ signatureUrl }),
+    });
+    return handleResponse(res);
+  },
+  updateStudentDomains: async (studentId: string, data: any) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/form-class/students/${studentId}/domains`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
     });
     return handleResponse(res);
   },

@@ -18,6 +18,8 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
   const [schemes, setSchemes] = useState<any[]>([]);
   const [isLoadingSow, setIsLoadingSow] = useState(false);
   const [schoolName, setSchoolName] = useState("LEONED ACADEMY");
+  const [schoolEmail, setSchoolEmail] = useState("info@leoned.com");
+  const [schoolAddress, setSchoolAddress] = useState("");
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
 
   useEffect(() => {
@@ -118,9 +120,14 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           const sId = user.schoolId || user.school?.id || user.school?._id;
           const cachedLogo = sId ? localStorage.getItem(`leoned_logo_${sId}`) : null;
           setSchoolLogo(user.logoUrl || cachedLogo || null);
+          setSchoolName(user.schoolName || "LEONED ACADEMY");
+          if (user.school) {
+            if (user.school.contactEmail) setSchoolEmail(user.school.contactEmail);
+            if (user.school.address) setSchoolAddress(user.school.address);
+          }
         }
-      } catch (err) {
-        console.error(err);
+      } catch (e) {
+        console.error(e);
       }
     };
     fetchTerms();
@@ -237,15 +244,26 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
   const handleDownloadResults = async () => {
     try {
       setIsDownloading(true);
-      // The backend blocks direct PDF downloads for the student role (403 Forbidden).
-      // Since the UI is completely matching the Teacher Portal print view, we can just 
-      // trigger native browser print to securely save it as PDF!
-      setTimeout(() => {
-        window.print();
+      const element = document.getElementById("result-pdf-content");
+      if (!element) {
         setIsDownloading(false);
-      }, 500);
+        return;
+      }
+      
+      const html2pdf = (await import("html2pdf.js")).default;
+      const opt = {
+        margin: 10,
+        filename: `${studentInfo.firstName || "Student"}_Result.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+      };
+      
+      await html2pdf().set(opt).from(element).save();
     } catch (err) {
       console.error(err);
+      toast.error("Failed to generate PDF");
+    } finally {
       setIsDownloading(false);
     }
   };
@@ -328,7 +346,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           </div>
         </div>
       ) : (
-        <div className="bg-white print:p-0 print:m-0 w-full overflow-hidden print:overflow-visible print-only">
+        <div id="result-pdf-content" className="bg-white print:p-0 print:m-0 w-full overflow-hidden print:overflow-visible print-only">
           {/* --- PAGE 1 --- */}
           <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm print:pt-4">
             {/* Header */}
@@ -347,9 +365,9 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 <h1 className="text-2xl sm:text-3xl font-black text-[#053d26] uppercase tracking-wide">
                   {schoolName.toUpperCase()}
                 </h1>
-                <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">Empowering the Future</p>
+                <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || "Empowering the Future"}</p>
                 <p className="text-xs text-gray-600 mt-2 font-medium leading-tight">
-                  <span className="font-bold">Email:</span> info@leoned.com | <span className="font-bold">Website:</span> www.leoned.com
+                  <span className="font-bold">Email:</span> {schoolEmail} | <span className="font-bold">Website:</span> www.leoned.com
                 </p>
               </div>
             </div>
@@ -490,10 +508,17 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
                   {resultMetadata?.teacherComment || resultMetadata?.formTeacherRemark || resultMetadata?.teacherRemark || resultMetadata?.remark || "-"}
                 </div>
-                <div className="flex justify-between items-end text-xs font-bold text-[#053d26] mt-2">
-                  <span>Teacher's Name: {resultMetadata?.formTeacherName || studentInfo.class?.teacher?.name || (studentInfo.class?.teacher?.firstName ? `${studentInfo.class.teacher.firstName} ${studentInfo.class.teacher.lastName || ""}` : "_________________")}</span>
-                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
-                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                <div className="flex flex-col items-center">
+                  {resultMetadata?.formTeacherSignatureUrl ? (
+                    <img src={resultMetadata.formTeacherSignatureUrl} alt="Teacher Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                  ) : (
+                    <div className="h-10 mb-1"></div>
+                  )}
+                  <div className="w-48 border-t border-gray-400 mb-2"></div>
+                  <div className="text-center text-xs">
+                    <span className="font-bold">Form Teacher</span><br/>
+                    <span>Teacher's Name: {resultMetadata?.formTeacherName || studentInfo.class?.teacher?.name || (studentInfo.class?.teacher?.firstName ? `${studentInfo.class.teacher.firstName} ${studentInfo.class.teacher.lastName || ""}` : "_________________")}</span>
+                  </div>
                 </div>
               </div>
 
@@ -502,10 +527,17 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
                   {resultMetadata?.principalsRemark || "-"}
                 </div>
-                <div className="flex justify-between items-end text-xs font-bold text-[#053d26]">
-                  <span>Principal's Name: {resultMetadata?.principalName || "_________________"}</span>
-                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
-                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                <div className="flex flex-col items-center">
+                  {resultMetadata?.principalSignatureUrl ? (
+                    <img src={resultMetadata.principalSignatureUrl} alt="Principal Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                  ) : (
+                    <div className="h-10 mb-1"></div>
+                  )}
+                  <div className="w-48 border-t border-gray-400 mb-2"></div>
+                  <div className="text-center text-xs">
+                    <span className="font-bold">Principal / Head of School</span><br/>
+                    <span>Principal's Name: {resultMetadata?.principalName || "_________________"}</span>
+                  </div>
                 </div>
               </div>
             </div>

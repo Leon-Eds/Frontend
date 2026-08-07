@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet, Settings, X, Edit, Save } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet, Settings, X, Edit, Save, Download } from "lucide-react";
 import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -24,7 +24,10 @@ function FormClassResultsInner() {
   const [adminComment, setAdminComment] = useState<string | null>(null);
   const [classSize, setClassSize] = useState<number>(0);
   const [schoolName, setSchoolName] = useState("LEONED ACADEMY");
+  const [schoolEmail, setSchoolEmail] = useState("info@leoned.com");
+  const [schoolAddress, setSchoolAddress] = useState("");
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+
   const [currentSessionName, setCurrentSessionName] = useState<string>("");
   const [classAverages, setClassAverages] = useState<Record<string, string>>({});
   const [isResultEditingActive, setIsResultEditingActive] = useState(true);
@@ -83,6 +86,11 @@ function FormClassResultsInner() {
         const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
         
         setSchoolName(user.schoolName || "LEONED ACADEMY");
+        if (user.school) {
+          if (user.school.contactEmail) setSchoolEmail(user.school.contactEmail);
+          if (user.school.address) setSchoolAddress(user.school.address);
+        }
+        
         const sIdForLogo = user.schoolId || user.school?.id || user.school?._id;
         const cachedLogo = sIdForLogo ? localStorage.getItem(`leoned_logo_${sIdForLogo}`) : null;
         setSchoolLogo(user.logoUrl || cachedLogo || null);
@@ -479,15 +487,25 @@ function FormClassResultsInner() {
   const saveMetadata = async () => {
     setIsSavingMetadata(true);
     try {
-      const resId = currentResult.id || currentResult._id || currentResult.resultId;
-      if (!resId) throw new Error("Result ID not found. Ensure the result is fully computed.");
+      const studentId = currentResult?.student?.id || currentResult?.student?._id || currentResult?.studentId;
+      if (!studentId) throw new Error("Student ID not found.");
       
-      await resultApi.updateMetadata(resId, editingMetadata);
+      const payload = {
+        termId: currentTerm?.id,
+        affectiveDomains: editingMetadata.affectiveDomains,
+        psychomotorDomains: editingMetadata.psychomotorDomains,
+        formTeacherRemark: editingMetadata.teacherComment,
+        daysPresent: parseInt(editingMetadata.daysPresent) || 0,
+        daysSchoolOpened: parseInt(editingMetadata.daysOpened || editingMetadata.daysSchoolOpened) || 0,
+        promotedTo: editingMetadata.promotedTo
+      };
+      
+      await teacherPortalApi.updateStudentDomains(studentId, payload);
       
       setRemarks(prev => ({ ...prev, [sId]: editingMetadata.teacherComment }));
       setResults(prev => prev.map((r, i) => i === currentIndex ? { ...r, ...editingMetadata } : r));
       setIsEditModalOpen(false);
-      toast.success("Metadata saved successfully!");
+      toast.success("Result domains and remark saved successfully!");
     } catch(err: any) {
       toast.error(err.message || "Failed to save metadata.");
     } finally {
@@ -520,8 +538,11 @@ function FormClassResultsInner() {
   }
 
   const handleNext = () => {
-    if (currentIndex < results.length - 1) setCurrentIndex(curr => curr + 1);
+    if (currentIndex < results.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
   };
+
 
   const handlePrev = () => {
     if (currentIndex > 0) setCurrentIndex(curr => curr - 1);
@@ -582,6 +603,8 @@ function FormClassResultsInner() {
             {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             {isSubmitting ? "Submitting..." : (classStatus === "Submitted" || classStatus === "Approved") ? "Submitted" : "Submit"}
           </button>
+
+
         </div>
       </div>
 
@@ -616,7 +639,7 @@ function FormClassResultsInner() {
 
 
       {results.length > 0 && currentResult ? (
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col print-only print:shadow-none print:border-none print:rounded-none print:overflow-visible">
+        <div id="result-pdf-content" className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col print-only print:shadow-none print:border-none print:rounded-none print:overflow-visible">
           {/* --- PAGE 1 --- */}
           <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm print:pt-4">
             {/* Header */}
@@ -640,13 +663,17 @@ function FormClassResultsInner() {
             
             <div className="text-center py-2 mb-4 border-b border-gray-300 mx-16">
               <h2 className="text-xl font-bold text-[#053d26] tracking-[0.2em] uppercase">Terminal Academic Report</h2>
+              <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || "Empowering the Future"}</p>
+              <p className="text-xs text-gray-600 mt-2 font-medium leading-tight">
+                <span className="font-bold">Email:</span> {schoolEmail} | <span className="font-bold">Website:</span> www.leoned.com
+              </p>
               <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">{currentTerm?.name || "Current Term"}</p>
             </div>
 
             {/* Student Details */}
             <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs">
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span className="font-medium text-gray-800">{studentName}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span id="result-student-name" className="font-medium text-gray-800">{studentName}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{adm || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{formClass?.className || formClass?.name || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{currentResult?.gender || "-"}</span></div>
@@ -795,22 +822,37 @@ function FormClassResultsInner() {
                     onChange={(e) => setRemarks(prev => ({ ...prev, [sId]: e.target.value }))}
                   />
                 </div>
-                <div className="flex justify-between items-end text-xs font-bold text-[#053d26] mt-2">
-                  <span>Teacher's Name: {currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}` : "_________________")}</span>
-                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
-                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                <div className="flex flex-col items-center">
+                  {currentResult?.formTeacherSignatureUrl ? (
+                    <img src={currentResult.formTeacherSignatureUrl} alt="Teacher Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                  ) : (
+                    <div className="h-10 mb-1"></div>
+                  )}
+                  <div className="w-48 border-t border-gray-400 mb-2"></div>
+                  <div className="text-center text-xs">
+                    <span className="font-bold">Form Teacher</span><br/>
+                    <span>Teacher's Name: {currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}` : "_________________")}</span>
+                  </div>
                 </div>
               </div>
 
-              <div>
+              {/* Principal's Section */}
+              <div className="flex flex-col gap-2">
                 <h4 className="text-sm font-bold text-[#053d26] mb-2">Principal's Remark</h4>
-                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px] whitespace-pre-wrap">
+                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
                   {currentResult?.principalsRemark || "-"}
                 </div>
-                <div className="flex justify-between items-end text-xs font-bold text-[#053d26]">
-                  <span>Principal's Name: {currentResult?.principalName || "_________________"}</span>
-                  <span className="flex gap-2 items-end">Signature: <div className="border-b border-gray-400 w-32"></div></span>
-                  <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                <div className="flex flex-col items-center">
+                  {currentResult?.principalSignatureUrl ? (
+                    <img src={currentResult.principalSignatureUrl} alt="Principal Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                  ) : (
+                    <div className="h-10 mb-1"></div>
+                  )}
+                  <div className="w-48 border-t border-gray-400 mb-2"></div>
+                  <div className="text-center text-xs">
+                    <span className="font-bold">Principal / Head of School</span><br/>
+                    <span>Principal's Name: {currentResult?.principalName || "_________________"}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -903,7 +945,7 @@ function FormClassResultsInner() {
                     <label className="block text-xs font-bold text-gray-700 mb-1">Next Term Begins</label>
                     <input type="date" 
                       className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
-                      value={editingMetadata?.nextTermBegins ? new Date(editingMetadata.nextTermBegins).toISOString().split('T')[0] : ""}
+                      value={editingMetadata?.nextTermBegins && !isNaN(new Date(editingMetadata.nextTermBegins).getTime()) ? new Date(editingMetadata.nextTermBegins).toISOString().split('T')[0] : ""}
                       onChange={(e) => setEditingMetadata({...editingMetadata, nextTermBegins: e.target.value})}
                     />
                   </div>

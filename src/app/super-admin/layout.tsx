@@ -5,9 +5,9 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  
-  // Don't wrap onboarding in the dashboard layout
-  if (pathname === "/super-admin/onboard") {
+
+  // Don't wrap onboarding or login in the dashboard layout
+  if (pathname === "/super-admin/onboard" || pathname === "/super-admin/login") {
     return <>{children}</>;
   }
 

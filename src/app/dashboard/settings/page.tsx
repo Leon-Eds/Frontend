@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard, Camera, Banknote } from "lucide-react";
-import { authApi, studentApi, schoolApi, paymentApi, uploadToCloudinary } from "@/lib/api";
+import { authApi, studentApi, schoolApi, paymentApi, uploadToCloudinary, teacherPortalApi } from "@/lib/api";
 import { useLanguage, Language } from "@/components/LanguageProvider";
 
 type SettingsSection = 'school' | 'notifications' | 'security' | 'appearance' | 'localization' | 'advanced' | 'billing' | 'financeSetup' | null;
@@ -33,6 +33,9 @@ export default function SettingsPage() {
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [schoolLogo, setSchoolLogo] = useState("");
   const [schoolLogoFile, setSchoolLogoFile] = useState<File | null>(null);
+  const [signatureUrl, setSignatureUrl] = useState("");
+  const [signatureFile, setSignatureFile] = useState<File | null>(null);
+  const [principalName, setPrincipalName] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Security / change password state
@@ -83,15 +86,24 @@ export default function SettingsPage() {
     try {
       const user = localStorage.getItem('leoned_user');
       let parsedUser: any = null;
-      if (user) {
-        parsedUser = JSON.parse(user);
-        setSchoolName(parsedUser.schoolName || "");
-        if (parsedUser.logoUrl) setSchoolLogo(parsedUser.logoUrl);
-        if (parsedUser.subscriptionPlan) setActivePlan(parsedUser.subscriptionPlan);
+        if (user) {
+          parsedUser = JSON.parse(user);
+          setSchoolName(parsedUser.schoolName || "");
+          if (parsedUser.logoUrl) setSchoolLogo(parsedUser.logoUrl);
+          
+          let activeRole = parsedUser.role || "Admin";
+          if (activeRole === "Teacher" || activeRole === "Faculty") {
+            if (parsedUser.signatureUrl) setSignatureUrl(parsedUser.signatureUrl);
+          } else {
+            if (parsedUser.principalSignatureUrl) setSignatureUrl(parsedUser.principalSignatureUrl);
+            setPrincipalName(parsedUser.principalName || "");
+          }
+
+          if (parsedUser.subscriptionPlan) setActivePlan(parsedUser.subscriptionPlan);
         if (parsedUser.address || parsedUser.schoolAddress) setSchoolAddress(parsedUser.address || parsedUser.schoolAddress);
         if (parsedUser.phone || parsedUser.adminPhone) setSchoolPhone(parsedUser.phone || parsedUser.adminPhone);
         
-        let activeRole = parsedUser.role || "Admin";
+        
         if (activeRole === "Teacher" || activeRole === "Faculty") {
           setUserRole("Faculty");
         } else if (activeRole?.toLowerCase() === "bursar") {
@@ -206,10 +218,24 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setToast({ message: "Image must be less than 2MB", type: "error" });
+        return;
+      }
+      setSignatureFile(file);
+      const url = URL.createObjectURL(file);
+      setSignatureUrl(url);
+    }
+  };
+
   const handleSaveSchoolProfile = async () => {
     setIsSavingProfile(true);
     try {
       let finalLogoUrl = schoolLogo;
+      let finalSignatureUrl = signatureUrl;
       
       if (schoolLogoFile) {
         setToast({ message: "Uploading logo to cloud storage...", type: "success" });
@@ -217,25 +243,45 @@ export default function SettingsPage() {
         setSchoolLogo(finalLogoUrl);
         setSchoolLogoFile(null);
       }
+      
+      if (signatureFile) {
+        setToast({ message: "Uploading signature to cloud storage...", type: "success" });
+        finalSignatureUrl = await uploadToCloudinary(signatureFile);
+        setSignatureUrl(finalSignatureUrl);
+        setSignatureFile(null);
+      }
 
       const user = localStorage.getItem('leoned_user');
       if (user) {
         const parsed = JSON.parse(user);
-        parsed.schoolName = schoolName;
-        parsed.logoUrl = finalLogoUrl;
-        localStorage.setItem('leoned_user', JSON.stringify(parsed));
         
-        if (parsed.schoolId || parsed.SchoolId) {
-          const sId = parsed.schoolId || parsed.SchoolId;
-          await schoolApi.update(sId, { name: schoolName, address: schoolAddress, contactPhone: schoolPhone, logoUrl: finalLogoUrl, bankAccountName, bankName, bankAccountNumber });
-          localStorage.setItem(`leoned_logo_${sId}`, finalLogoUrl);
-          window.dispatchEvent(new CustomEvent('leoned_logo_updated', { detail: { logoUrl: finalLogoUrl } }));
+        if (userRole === "Admin" || userRole === "SuperAdmin") {
+          parsed.schoolName = schoolName;
+          parsed.logoUrl = finalLogoUrl;
+          parsed.principalName = principalName;
+          parsed.principalSignatureUrl = finalSignatureUrl;
+          localStorage.setItem('leoned_user', JSON.stringify(parsed));
+          
+          if (parsed.schoolId || parsed.SchoolId) {
+            const sId = parsed.schoolId || parsed.SchoolId;
+            await schoolApi.update(sId, { 
+              name: schoolName, address: schoolAddress, contactPhone: schoolPhone, logoUrl: finalLogoUrl, bankAccountName, bankName, bankAccountNumber,
+              principalName, principalSignatureUrl: finalSignatureUrl
+            });
+            localStorage.setItem(`leoned_logo_${sId}`, finalLogoUrl);
+            window.dispatchEvent(new CustomEvent('leoned_logo_updated', { detail: { logoUrl: finalLogoUrl } }));
+          }
+        } else {
+          // Teacher saving profile
+          parsed.signatureUrl = finalSignatureUrl;
+          localStorage.setItem('leoned_user', JSON.stringify(parsed));
+          await teacherPortalApi.updateSignature(finalSignatureUrl);
         }
       }
-      setToast({ message: "School profile updated successfully", type: "success" });
+      setToast({ message: "Profile updated successfully", type: "success" });
     } catch (err) {
       console.error(err);
-      setToast({ message: "Failed to update school profile", type: "error" });
+      setToast({ message: "Failed to update profile", type: "error" });
     } finally {
       setIsSavingProfile(false);
     }
@@ -526,6 +572,46 @@ export default function SettingsPage() {
                     />
                   </label>
                   <p className="text-xs text-gray-500 mt-2">Recommended: Square image, max 2MB.</p>
+                </div>
+              </div>
+            </div>
+            
+            {(userRole === "Admin" || userRole === "SuperAdmin") && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Principal's Name</label>
+                <input
+                  value={principalName}
+                  onChange={e => setPrincipalName(e.target.value)}
+                  placeholder="e.g. Dr. John Doe"
+                  className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
+                />
+              </div>
+            )}
+
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
+                {(userRole === "Admin" || userRole === "SuperAdmin") ? "Principal's Signature" : "My Signature"}
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-32 bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200 rounded-lg">
+                  {signatureUrl ? (
+                    <img src={signatureUrl} alt="Signature" className="h-full w-full object-contain" />
+                  ) : (
+                    <span className="text-xs text-gray-400">No Signature</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm cursor-pointer transition-colors">
+                    <Camera className="h-4 w-4" />
+                    Upload Signature
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={handleSignatureUpload}
+                    />
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">Will be used for stamping results (transparent PNG recommended).</p>
                 </div>
               </div>
             </div>
