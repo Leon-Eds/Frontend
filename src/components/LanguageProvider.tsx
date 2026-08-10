@@ -165,6 +165,7 @@ const translations: Record<Language, Record<string, string>> = {
     "sidebar.fee_clearance": "Fee clearance",
     "sidebar.fee_approvals": "Fee Approvals",
     "sidebar.admin_approval": "Admin approval",
+    "sidebar.approved_results": "Approved Results",
     "sidebar.scheme_of_work": "Scheme of Work",
     "sidebar.broadcast_hub": "Broadcast hub",
     "sidebar.my_classes": "My Classes",

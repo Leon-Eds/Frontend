@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet, Download } from "lucide-react";
-import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi } from "@/lib/api";
+import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi, schoolApi } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -15,7 +15,6 @@ function FormClassResultsInner() {
   const [formClass, setFormClass] = useState<any>(null);
   const [currentTerm, setCurrentTerm] = useState<any>(null);
   const [schoolName, setSchoolName] = useState("LEONED ACADEMY");
-  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
   const [currentSessionName, setCurrentSessionName] = useState<string>("");
   const [classSize, setClassSize] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,14 +22,18 @@ function FormClassResultsInner() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [schoolEmail, setSchoolEmail] = useState("info@leoned.com");
   const [schoolAddress, setSchoolAddress] = useState("");
-
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+  const [principalName, setPrincipalName] = useState("");
+  const [formTeacherName, setFormTeacherName] = useState("");
+  const [principalSignatureUrl, setPrincipalSignatureUrl] = useState<string | null>(null);
+  const [formTeacherSignatureUrl, setFormTeacherSignatureUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  
   const currentResult = results[currentIndex];
   let sId = currentResult?.studentId || currentResult?.student?.id || currentResult?.id || currentIndex.toString();
   let subjects = currentResult?.subjects || currentResult?.subjectScores || [];
-
 
   let studentName = `Student ${currentIndex + 1} of ${formClass?.className || formClass?.name || 'Unknown'}`;
   let profilePic = "/placeholder-user.jpg";
@@ -42,6 +45,18 @@ function FormClassResultsInner() {
   let maxPossibleScore = 0;
 
   if (currentResult) {
+    // DEBUG LOG: Inspect the result object to find where the image is stored
+    console.log("[DEBUG] class-results Student Data & Signatures:", JSON.stringify({
+      studentObj: currentResult.student,
+      userObj: currentResult.user,
+      currentResultKeys: Object.keys(currentResult),
+      extractedProfilePic: profilePic,
+      formTeacherSignatureUrl,
+      principalSignatureUrl,
+      currentResultTeacherSignature: currentResult.formTeacherSignatureUrl,
+      currentResultPrincipalSignature: currentResult.principalSignatureUrl
+    }, null, 2));
+
     sId = currentResult.studentId || currentResult.student?.id || currentResult.id || currentIndex.toString();
     
     const nameObj = currentResult.student || currentResult.user || currentResult;
@@ -51,7 +66,7 @@ function FormClassResultsInner() {
     adm = currentResult.admissionNumber || currentResult.student?.admissionNumber || currentResult.user?.admissionNumber || sId;
     pos = currentResult.pos || currentResult.position || currentResult.rank || "--";
     
-    profilePic = currentResult.profilePictureUrl || currentResult.student?.profilePictureUrl || currentResult.student?.imageUrl || currentResult.student?.image || currentResult.imageUrl;
+    profilePic = currentResult.profilePictureUrl || currentResult.student?.profilePictureUrl || currentResult.student?.imageUrl || currentResult.student?.image || currentResult.imageUrl || "/placeholder-user.jpg";
     
     let computedAvg = 0;
     if (subjects && subjects.length > 0) {
@@ -114,6 +129,35 @@ function FormClassResultsInner() {
             if (user.school) {
               if (user.school.contactEmail) setSchoolEmail(user.school.contactEmail);
               if (user.school.address) setSchoolAddress(user.school.address);
+              if (user.school.principalName || user.school.ownerName || user.school.adminName) {
+                setPrincipalName(user.school.principalName || user.school.ownerName || user.school.adminName);
+              }
+            } else if (user.principalName || user.ownerName) {
+              setPrincipalName(user.principalName || user.ownerName);
+            }
+
+            const sIdForLogo = user.schoolId || user.school?.id || user.school?._id;
+            const cachedLogo = sIdForLogo ? localStorage.getItem(`leoned_logo_${sIdForLogo}`) : null;
+            setSchoolLogo(user.logoUrl || cachedLogo || null);
+
+            if (user.signatureUrl) setFormTeacherSignatureUrl(user.signatureUrl);
+            else if (user.teacher?.signatureUrl) setFormTeacherSignatureUrl(user.teacher.signatureUrl);
+
+            console.log("[DEBUG] class-results User Object:", JSON.stringify({ userKeys: Object.keys(user), hasSignature: !!user.signatureUrl || !!user.teacher?.signatureUrl }, null, 2));
+
+            // Fetch school details from API for principal name if not found
+            const schoolId = user.schoolId || user.SchoolId || user.school?.id;
+            if (schoolId) {
+              try {
+                const schoolData = await schoolApi.getById(schoolId);
+                const sd = (schoolData as any);
+                console.log("[DEBUG] class-results School Metadata:", JSON.stringify({ schoolKeys: Object.keys(sd), principalSignature: sd?.principalSignatureUrl }, null, 2));
+                if (sd?.principalName) setPrincipalName(sd.principalName);
+                else if (sd?.ownerName) setPrincipalName(sd.ownerName);
+                if (sd?.address) setSchoolAddress(sd.address);
+                if (sd?.contactEmail) setSchoolEmail(sd.contactEmail);
+                if (sd?.principalSignatureUrl) setPrincipalSignatureUrl(sd.principalSignatureUrl);
+              } catch (e) {}
             }
           }
         } catch(e) {}
@@ -288,7 +332,7 @@ function FormClassResultsInner() {
         return;
       }
       
-      const html2pdf = (await import("html2pdf.js")).default;
+      const html2pdf = (await import("html2pdf.js" as any)).default || (await import("html2pdf.js" as any));
       const currentStudentName = document.getElementById("result-student-name")?.innerText || "Student";
       const opt = {
         margin: 10,
@@ -365,37 +409,40 @@ function FormClassResultsInner() {
                   </>
                 )}
               </div>
-              <div className="text-right">
+              <div className="text-center flex-1 px-4">
                 <h1 className="text-2xl sm:text-3xl font-black text-[#053d26] uppercase tracking-wide">
                   {schoolName.toUpperCase()}
                 </h1>
-                <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || "Empowering the Future"}</p>
-                <p className="text-xs text-gray-600 mt-2 font-medium leading-tight">
-                  <span className="font-bold">Email:</span> {schoolEmail} | <span className="font-bold">Website:</span> www.leoned.com
-                </p>
               </div>
             </div>
             
             <div className="text-center py-2 mb-4 border-b border-gray-300 mx-16">
               <h2 className="text-xl font-bold text-[#053d26] tracking-[0.2em] uppercase">Terminal Academic Report</h2>
-              <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">{currentTerm?.name || "Current Term"}</p>
+              <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || "Empowering the Future"}</p>
+              <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">
+                {currentTerm?.termNumber === 1 || currentTerm?.termNumber === "First" ? "First Term" : currentTerm?.termNumber === 2 || currentTerm?.termNumber === "Second" ? "Second Term" : currentTerm?.termNumber === 3 || currentTerm?.termNumber === "Third" ? "Third Term" : `${currentTerm?.termNumber || ""} Term`}
+              </p>
             </div>
 
             {/* Student Details */}
-            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs">
+            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100 flex flex-col sm:flex-row items-start justify-between gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs flex-1">
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span id="result-student-name" className="font-medium text-gray-800">{studentName}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{adm || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{formClass?.className || formClass?.name || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{currentResult?.gender || "-"}</span></div>
                 {currentResult?.dateOfBirth && !isNaN(new Date(currentResult.dateOfBirth).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Date of Birth:</span> <span className="font-medium text-gray-800">{new Date(currentResult.dateOfBirth).toLocaleDateString()}</span></div> : null}
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{currentTerm?.name || "Current Term"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{currentTerm?.termNumber === 1 || currentTerm?.termNumber === "First" ? "First Term" : currentTerm?.termNumber === 2 || currentTerm?.termNumber === "Second" ? "Second Term" : currentTerm?.termNumber === 3 || currentTerm?.termNumber === "Third" ? "Third Term" : `${currentTerm?.termNumber || ""} Term`}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Session:</span> <span className="font-medium text-gray-800">{currentSessionName || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">No. in Class:</span> <span className="font-medium text-gray-800">{classSize > 0 ? classSize : results.length}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{pos}</span></div>
                 {currentResult?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days School Opened:</span> <span className="font-medium text-gray-800">{currentResult.daysSchoolOpened}</span></div> : null}
                 {currentResult?.daysPresent ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{currentResult.daysPresent}</span></div> : null}
                 {currentResult?.nextTermBegins && !isNaN(new Date(currentResult.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Next Term Begins:</span> <span className="font-medium text-gray-800">{new Date(currentResult.nextTermBegins).toLocaleDateString()}</span></div> : null}
+              </div>
+              <div className="w-24 h-24 shrink-0 rounded-md border-4 border-white shadow-sm bg-gray-100 flex items-center justify-center overflow-hidden relative self-center sm:self-start">
+                <span className="text-gray-400 text-[10px] font-bold absolute z-0 text-center">NO<br/>PHOTO</span>
+                <img src={profilePic} alt="Student Passport" className="w-full h-full object-cover z-10 relative bg-white" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             </div>
 
@@ -412,6 +459,7 @@ function FormClassResultsInner() {
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold">GRADE</th>
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CLASS<br/>AVG</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">POS</th>
                     <th className="py-2.5 px-2 border border-[#053d26] w-[20%] font-bold">REMARK</th>
                   </tr>
                 </thead>
@@ -419,7 +467,25 @@ function FormClassResultsInner() {
                   {subjects.map((subj: any, i: number) => {
                     const subjName = subj.subjectName || subj.subject?.name || subj.subject || "Unknown";
                     const tScore = Number(subj.totalScore || subj.total || 0);
-                    const sGrade = subj.grade || (tScore >= 75 ? "A+" : tScore >= 70 ? "A" : tScore >= 60 ? "B+" : tScore >= 50 ? "B" : tScore >= 40 ? "C" : "F");
+                    let sGrade = subj.grade;
+                    if (!sGrade) {
+                      if (tScore >= 70) sGrade = "A";
+                      else if (tScore >= 60) sGrade = "B";
+                      else if (tScore >= 50) sGrade = "C";
+                      else if (tScore >= 45) sGrade = "D";
+                      else if (tScore >= 40) sGrade = "E";
+                      else sGrade = "F";
+                    }
+                    let remark = subj.remark;
+                    if (!remark || remark === "N/A" || remark === "-") {
+                      if (sGrade.includes("A")) remark = "Excellent";
+                      else if (sGrade.includes("B")) remark = "Very Good";
+                      else if (sGrade.includes("C")) remark = "Good";
+                      else if (sGrade.includes("D")) remark = "Fair";
+                      else if (sGrade.includes("E")) remark = "Poor";
+                      else remark = "Fail";
+                    }
+                    
                     return (
                       <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
                         <td className="py-2 px-3 text-left font-bold text-[#053d26] border border-gray-300">{subjName}</td>
@@ -429,7 +495,8 @@ function FormClassResultsInner() {
                         <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{subj.totalScore || subj.total || "-"}</td>
                         <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{sGrade}</td>
                         <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.classAvg || "-"}</td>
-                        <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{subj.remark || "N/A"}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.position || subj.pos || "-"}</td>
+                        <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{remark}</td>
                       </tr>
                     );
                   })}
@@ -534,15 +601,15 @@ function FormClassResultsInner() {
                   />
                 </div>
                 <div className="flex flex-col items-center">
-                  {currentResult?.formTeacherSignatureUrl ? (
-                    <img src={currentResult.formTeacherSignatureUrl} alt="Teacher Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                  {currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl ? (
+                    <img src={currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl || ""} alt="Teacher Signature" className="h-10 mb-1 object-contain" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
                     <span className="font-bold">Form Teacher</span><br/>
-                    <span>Teacher's Name: {currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}` : "_________________")}</span>
+                    <span>Teacher's Name: {currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}`.trim() : "_________________")}</span>
                   </div>
                 </div>
               </div>
@@ -554,15 +621,15 @@ function FormClassResultsInner() {
                   {currentResult?.principalsRemark || "-"}
                 </div>
                 <div className="flex flex-col items-center">
-                  {currentResult?.principalSignatureUrl ? (
-                    <img src={currentResult.principalSignatureUrl} alt="Principal Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                  {currentResult?.principalSignatureUrl || principalSignatureUrl ? (
+                    <img src={currentResult?.principalSignatureUrl || principalSignatureUrl || ""} alt="Principal Signature" className="h-10 mb-1 object-contain" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
                     <span className="font-bold">Principal / Head of School</span><br/>
-                    <span>Principal's Name: {currentResult?.principalName || "_________________"}</span>
+                    <span>Principal's Name: {currentResult?.principalName || principalName || "_________________"}</span>
                   </div>
                 </div>
               </div>

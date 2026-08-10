@@ -1403,6 +1403,20 @@ export const resultApi = {
     return handleResponse(res);
   },
 
+  getApprovedTermResults: async (termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/approved/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  getApprovedClassResults: async (classId: string, termId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/result/approved/class/${classId}/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
   getMyResults: async (termId: string) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/result/my/term/${termId}`, {
       headers: getAuthHeaders(),

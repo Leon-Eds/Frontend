@@ -12,7 +12,7 @@ interface PendingSubmission {
   date: string;
   teacher: string;
   className: string;
-  status: "Pending" | "Revision Requested";
+  status: "Pending" | "Revision Requested" | "Approved" | "Published";
   classId: string;
   termId: string;
   adminComment?: string;
@@ -125,14 +125,16 @@ export default function ResultsApproval() {
           const rData = (results as any)?.data || results;
           const rawStatusStr = String((results as any)?.status || (results as any)?.approvalStatus || rData?.status || rData?.approvalStatus || "Pending").trim().toLowerCase();
 
-          if (rawStatusStr === "approved" || rawStatusStr === "published") {
+          if (rawStatusStr === "approved" || rawStatusStr === "published" || rawStatusStr === "submitted" || rawStatusStr === "revision requested" || rawStatusStr === "revision_requested") {
             totalResults++;
-            approvedResults++;
-          } else if (rawStatusStr === "submitted" || rawStatusStr === "revision requested" || rawStatusStr === "revision_requested") {
-            totalResults++;
+            if (rawStatusStr === "approved" || rawStatusStr === "published") {
+              approvedResults++;
+            }
             
-            const status: PendingSubmission["status"] = 
-               (rawStatusStr === "revision requested" || rawStatusStr === "revision_requested") ? "Revision Requested" : "Pending";
+            let status: PendingSubmission["status"] = "Pending";
+            if (rawStatusStr === "revision requested" || rawStatusStr === "revision_requested") status = "Revision Requested";
+            else if (rawStatusStr === "approved") status = "Approved";
+            else if (rawStatusStr === "published") status = "Published";
             
             const dateRaw = rData?.submittedAt || rData?.updatedAt || rData?.createdAt || "";
             let formattedDate = "";
@@ -154,7 +156,7 @@ export default function ResultsApproval() {
               status,
               classId: cls.id,
               termId: currentTerm.id,
-              adminComment: rData?.adminComment || rData?.comment || "Revision requested by administrator.",
+              adminComment: rData?.adminComment || rData?.comment || "",
               teacherComment: rData?.teacherComment || rData?.remark || "",
             });
           }
@@ -361,7 +363,9 @@ export default function ResultsApproval() {
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                       sub.status === "Pending" 
                         ? "bg-yellow-100 text-yellow-800" 
-                        : "bg-orange-100 text-orange-800"
+                        : sub.status === "Revision Requested"
+                        ? "bg-orange-100 text-orange-800"
+                        : "bg-green-100 text-green-800"
                     }`}>
                       {sub.status}
                     </span>
@@ -381,6 +385,14 @@ export default function ResultsApproval() {
                     }}
                     className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all"
                   >
+                    View Details
+                  </button>
+                ) : sub.status === "Approved" || sub.status === "Published" ? (
+                  <button 
+                    onClick={() => router.push(`/dashboard/approvals/approved-results?classId=${sub.classId}`)}
+                    className="px-4 py-2.5 rounded-full bg-green-50 text-green-700 text-xs font-bold border border-green-200 hover:bg-green-100 transition-all flex items-center gap-2"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                     View Details
                   </button>
                 ) : (

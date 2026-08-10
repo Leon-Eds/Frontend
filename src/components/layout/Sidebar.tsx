@@ -31,7 +31,8 @@ import {
   Megaphone,
   UserCheck,
   Crown,
-  Sparkles
+  Sparkles,
+  CheckCircle2
 } from "lucide-react";
 
 const schoolNavigation = [
@@ -52,6 +53,7 @@ const adminNavigation = [
   { name: "Support Staff", href: "/dashboard/staff", icon: UserPlus },
   { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
   { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
+  { name: "Approved Results", href: "/dashboard/approvals/approved-results", icon: CheckCircle2 },
   { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
   { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
 ];

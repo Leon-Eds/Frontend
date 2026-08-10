@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet, Settings, X, Edit, Save, Download } from "lucide-react";
-import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi } from "@/lib/api";
+import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi, schoolApi } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -31,11 +31,17 @@ function FormClassResultsInner() {
   const [currentSessionName, setCurrentSessionName] = useState<string>("");
   const [classAverages, setClassAverages] = useState<Record<string, string>>({});
   const [isResultEditingActive, setIsResultEditingActive] = useState(true);
-  const [isTogglingLock, setIsTogglingLock] = useState(false);
-  
+
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [classStudents, setClassStudents] = useState<any[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMetadata, setEditingMetadata] = useState<any>(null);
   const [isSavingMetadata, setIsSavingMetadata] = useState(false);
+  const [principalName, setPrincipalName] = useState("");
+  const [formTeacherName, setFormTeacherName] = useState("");
+  const [principalSignatureUrl, setPrincipalSignatureUrl] = useState<string | null>(null);
+  const [formTeacherSignatureUrl, setFormTeacherSignatureUrl] = useState<string | null>(null);
+  const [isTogglingLock, setIsTogglingLock] = useState(false);
 
   const currentResult = results[currentIndex];
   let sId = currentResult?.studentId || currentResult?.student?.id || currentResult?.id || currentIndex.toString();
@@ -58,6 +64,23 @@ function FormClassResultsInner() {
     const derivedName = nameObj.fullName || (nameObj.firstName ? `${nameObj.firstName} ${nameObj.lastName || ''}`.trim() : '') || currentResult.studentName;
     studentName = derivedName || `Student ${currentIndex + 1} of ${formClass?.className || formClass?.name || 'Unknown'}`;
     
+    // Find the student in the classStudents array to get their passport
+    const matchedStudent = classStudents.find(s => s.id === sId || s._id === sId || s.studentId === sId);
+    
+    profilePic = matchedStudent?.profilePictureUrl || matchedStudent?.imageUrl || matchedStudent?.image || nameObj.profilePictureUrl || nameObj.profileImageUrl || nameObj.imageUrl || nameObj.image || currentResult.studentProfilePictureUrl || currentResult.profilePictureUrl || nameObj.avatar || "/placeholder-user.jpg";
+    
+    // DEBUG LOG: Inspect the result object to find where the image is stored
+    console.log("[DEBUG] Student Data & Signatures:", JSON.stringify({
+      studentObj: currentResult.student,
+      userObj: currentResult.user,
+      currentResultKeys: Object.keys(currentResult),
+      extractedProfilePic: profilePic,
+      formTeacherSignatureUrl,
+      principalSignatureUrl,
+      currentResultTeacherSignature: currentResult.formTeacherSignatureUrl,
+      currentResultPrincipalSignature: currentResult.principalSignatureUrl
+    }, null, 2));
+
     adm = currentResult.admissionNumber || currentResult.student?.admissionNumber || currentResult.user?.admissionNumber || sId;
     pos = currentResult.pos || currentResult.position || currentResult.rank || "--";
     
@@ -86,14 +109,34 @@ function FormClassResultsInner() {
         const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
         
         setSchoolName(user.schoolName || "LEONED ACADEMY");
-        if (user.school) {
-          if (user.school.contactEmail) setSchoolEmail(user.school.contactEmail);
-          if (user.school.address) setSchoolAddress(user.school.address);
-        }
+        // The logged-in user IS the form teacher
+        if (user.name) setFormTeacherName(user.name);
         
         const sIdForLogo = user.schoolId || user.school?.id || user.school?._id;
         const cachedLogo = sIdForLogo ? localStorage.getItem(`leoned_logo_${sIdForLogo}`) : null;
         setSchoolLogo(user.logoUrl || cachedLogo || null);
+        
+        if (user.signatureUrl) setFormTeacherSignatureUrl(user.signatureUrl);
+        else if (user.teacher?.signatureUrl) setFormTeacherSignatureUrl(user.teacher.signatureUrl);
+        
+        console.log("[DEBUG] User Object:", JSON.stringify({ userKeys: Object.keys(user), hasSignature: !!user.signatureUrl || !!user.teacher?.signatureUrl }, null, 2));
+        
+        // Fetch school details to get principal name, address, etc.
+        const schoolId = user.schoolId || user.SchoolId || user.school?.id || user.school?._id;
+        if (schoolId) {
+          try {
+            const schoolData = await schoolApi.getById(schoolId);
+            const sd = (schoolData as any);
+            console.log("[DEBUG] School Metadata:", JSON.stringify({ schoolKeys: Object.keys(sd), principalSignature: sd?.principalSignatureUrl }, null, 2));
+            if (sd?.principalName) setPrincipalName(sd.principalName);
+            else if (sd?.ownerName) setPrincipalName(sd.ownerName);
+            if (sd?.address) setSchoolAddress(sd.address);
+            if (sd?.contactEmail) setSchoolEmail(sd.contactEmail);
+            if (sd?.principalSignatureUrl) setPrincipalSignatureUrl(sd.principalSignatureUrl);
+          } catch (e) {
+            console.warn("Could not fetch school details for principal name");
+          }
+        }
         
         // Find form class
         let myFormClass: any = null;
@@ -186,6 +229,15 @@ function FormClassResultsInner() {
           const cStudentsRes = await teacherPortalApi.getClassStudents(targetClassId);
           const cStudents = Array.isArray(cStudentsRes) ? cStudentsRes : (cStudentsRes as any)?.data || (cStudentsRes as any)?.students || [];
           setClassSize(cStudents.length);
+          setClassStudents(cStudents);
+          
+          // DEBUG LOG: Inspect class students to find where the passport image is stored
+          if (cStudents.length > 0) {
+            console.log("[DEBUG] Class Students (Sample):", JSON.stringify({
+              firstStudent: cStudents[0],
+              keys: Object.keys(cStudents[0])
+            }, null, 2));
+          }
         } catch (err) {
           console.error("Failed to fetch class students for size");
         }
@@ -664,27 +716,30 @@ function FormClassResultsInner() {
             <div className="text-center py-2 mb-4 border-b border-gray-300 mx-16">
               <h2 className="text-xl font-bold text-[#053d26] tracking-[0.2em] uppercase">Terminal Academic Report</h2>
               <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || "Empowering the Future"}</p>
-              <p className="text-xs text-gray-600 mt-2 font-medium leading-tight">
-                <span className="font-bold">Email:</span> {schoolEmail} | <span className="font-bold">Website:</span> www.leoned.com
+              <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">
+                {currentTerm?.termNumber === 1 || currentTerm?.termNumber === "First" ? "First Term" : currentTerm?.termNumber === 2 || currentTerm?.termNumber === "Second" ? "Second Term" : currentTerm?.termNumber === 3 || currentTerm?.termNumber === "Third" ? "Third Term" : `${currentTerm?.termNumber || ""} Term`}
               </p>
-              <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">{currentTerm?.name || "Current Term"}</p>
             </div>
 
             {/* Student Details */}
-            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs">
+            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100 flex flex-col sm:flex-row items-start justify-between gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs flex-1">
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span id="result-student-name" className="font-medium text-gray-800">{studentName}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{adm || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{formClass?.className || formClass?.name || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{currentResult?.gender || "-"}</span></div>
                 {currentResult?.dateOfBirth && !isNaN(new Date(currentResult.dateOfBirth).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Date of Birth:</span> <span className="font-medium text-gray-800">{new Date(currentResult.dateOfBirth).toLocaleDateString()}</span></div> : null}
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{currentTerm?.name || "Current Term"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{currentTerm?.termNumber === 1 || currentTerm?.termNumber === "First" ? "First Term" : currentTerm?.termNumber === 2 || currentTerm?.termNumber === "Second" ? "Second Term" : currentTerm?.termNumber === 3 || currentTerm?.termNumber === "Third" ? "Third Term" : `${currentTerm?.termNumber || ""} Term`}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Session:</span> <span className="font-medium text-gray-800">{currentSessionName || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">No. in Class:</span> <span className="font-medium text-gray-800">{classSize > 0 ? classSize : results.length}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{pos}</span></div>
                 {currentResult?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days School Opened:</span> <span className="font-medium text-gray-800">{currentResult.daysSchoolOpened}</span></div> : null}
                 {currentResult?.daysPresent ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{currentResult.daysPresent}</span></div> : null}
                 {currentResult?.nextTermBegins && !isNaN(new Date(currentResult.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Next Term Begins:</span> <span className="font-medium text-gray-800">{new Date(currentResult.nextTermBegins).toLocaleDateString()}</span></div> : null}
+              </div>
+              <div className="w-24 h-24 shrink-0 rounded-md border-4 border-white shadow-sm bg-gray-100 flex items-center justify-center overflow-hidden relative self-center sm:self-start">
+                <span className="text-gray-400 text-[10px] font-bold absolute z-0 text-center">NO<br/>PHOTO</span>
+                <img src={profilePic} alt="Student Passport" className="w-full h-full object-cover z-10 relative bg-white" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             </div>
 
@@ -701,7 +756,8 @@ function FormClassResultsInner() {
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold">GRADE</th>
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CLASS<br/>AVG</th>
-                    <th className="py-2.5 px-2 border border-[#053d26] w-[20%] font-bold">REMARK</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">SUB.<br/>POS.</th>
+                    <th className="py-2.5 px-2 border border-[#053d26] w-[15%] font-bold">REMARK</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -709,6 +765,14 @@ function FormClassResultsInner() {
                     const subjName = subj.subjectName || subj.subject?.name || subj.subject || "Unknown";
                     const tScore = Number(subj.totalScore || subj.total || 0);
                     const sGrade = subj.grade || (tScore >= 75 ? "A+" : tScore >= 70 ? "A" : tScore >= 60 ? "B+" : tScore >= 50 ? "B" : tScore >= 40 ? "C" : "F");
+                    
+                    const remarkText = (sGrade === "A" || sGrade === "A+") ? "Excellent" :
+                                       (sGrade === "B" || sGrade === "B+") ? "Very Good" :
+                                       (sGrade === "C") ? "Good" :
+                                       (sGrade === "D") ? "Fair" :
+                                       (sGrade === "E") ? "Poor" :
+                                       (sGrade === "F") ? "Fail" : "-";
+                                       
                     return (
                       <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
                         <td className="py-2 px-3 text-left font-bold text-[#053d26] border border-gray-300">{subjName}</td>
@@ -718,7 +782,8 @@ function FormClassResultsInner() {
                         <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{subj.totalScore || subj.total || "-"}</td>
                         <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{sGrade}</td>
                         <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.classAvg || "-"}</td>
-                        <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{subj.remark || "N/A"}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700 text-xs">{subj.remark || "-"}</td>
+                        <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{remarkText}</td>
                       </tr>
                     );
                   })}
@@ -726,7 +791,7 @@ function FormClassResultsInner() {
                 <tfoot>
                   <tr className="bg-[#f0fdf4] font-bold text-[#053d26] border-t-2 border-[#053d26]">
                     <td colSpan={4} className="py-3 px-4 text-left border border-gray-300 uppercase">CUMULATIVE SCORE: {totalStudentScore} / {maxPossibleScore}</td>
-                    <td colSpan={2} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {avg ? Number(avg).toFixed(1) : "-"}%</td>
+                    <td colSpan={3} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {avg ? Number(avg).toFixed(1) : "-"}%</td>
                     <td colSpan={2} className="py-3 px-4 text-right border border-gray-300 uppercase">POSITION: {pos}</td>
                   </tr>
                 </tfoot>
@@ -823,15 +888,15 @@ function FormClassResultsInner() {
                   />
                 </div>
                 <div className="flex flex-col items-center">
-                  {currentResult?.formTeacherSignatureUrl ? (
-                    <img src={currentResult.formTeacherSignatureUrl} alt="Teacher Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                  {currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl ? (
+                    <img src={currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl || ""} alt="Teacher Signature" className="h-10 mb-1 object-contain" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
                     <span className="font-bold">Form Teacher</span><br/>
-                    <span>Teacher's Name: {currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}` : "_________________")}</span>
+                    <span>Teacher's Name: {currentResult?.formTeacherName || formTeacherName || formClass?.teacher?.name || "_________________"}</span>
                   </div>
                 </div>
               </div>
@@ -843,15 +908,15 @@ function FormClassResultsInner() {
                   {currentResult?.principalsRemark || "-"}
                 </div>
                 <div className="flex flex-col items-center">
-                  {currentResult?.principalSignatureUrl ? (
-                    <img src={currentResult.principalSignatureUrl} alt="Principal Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                  {currentResult?.principalSignatureUrl || principalSignatureUrl ? (
+                    <img src={currentResult?.principalSignatureUrl || principalSignatureUrl || ""} alt="Principal Signature" className="h-10 mb-1 object-contain" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
                     <span className="font-bold">Principal / Head of School</span><br/>
-                    <span>Principal's Name: {currentResult?.principalName || "_________________"}</span>
+                    <span>Principal's Name: {currentResult?.principalName || principalName || "_________________"}</span>
                   </div>
                 </div>
               </div>

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard, Camera, Banknote } from "lucide-react";
+import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard, Camera, Banknote, UserCircle } from "lucide-react";
 import { authApi, studentApi, schoolApi, paymentApi, uploadToCloudinary, teacherPortalApi } from "@/lib/api";
 import { useLanguage, Language } from "@/components/LanguageProvider";
 
-type SettingsSection = 'school' | 'notifications' | 'security' | 'appearance' | 'localization' | 'advanced' | 'billing' | 'financeSetup' | null;
+type SettingsSection = 'school' | 'profile' | 'notifications' | 'security' | 'appearance' | 'localization' | 'advanced' | 'billing' | 'financeSetup' | null;
 
 const THEMES = [
   { id: 'forest', label: 'Forest', colors: ['#053d26', '#047857', '#34d399'] },
@@ -473,6 +473,7 @@ export default function SettingsPage() {
 
   const allSections = [
     { id: 'school' as const, icon: Building2, title: 'School Profile', description: 'Update school name, address, logo, and contact information.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
+    { id: 'profile' as const, icon: UserCircle, title: 'My Profile', description: 'Update your personal details, avatar, and digital signature.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
     { id: 'billing' as const, icon: CreditCard, title: 'Billing & Plans', description: 'Manage your active subscription and payment methods.', color: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-900/20' },
     { id: 'financeSetup' as const, href: '/dashboard/finance/setup', icon: Banknote, title: 'Finance Setup', description: 'Configure fee structures, custom fees, and bank account details.', color: 'bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-lg shadow-teal-900/20' },
     { id: 'notifications' as const, icon: Bell, title: 'Notifications', description: 'Configure email alerts, SMS reminders, and in-app notifications.', color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
@@ -482,10 +483,10 @@ export default function SettingsPage() {
   ];
 
   const sections = userRole === "Student"
-    ? allSections.filter(s => ['notifications'].includes(s.id))
+    ? allSections.filter(s => ['profile', 'notifications'].includes(s.id))
     : (userRole === "Faculty" || userRole === "Bursar")
-    ? allSections.filter(s => ['security', 'notifications'].includes(s.id))
-    : allSections;
+    ? allSections.filter(s => ['profile', 'security', 'notifications'].includes(s.id))
+    : allSections.filter(s => s.id !== 'profile'); // Admin sees school instead of profile
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-10">
@@ -588,33 +589,35 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
-                {(userRole === "Admin" || userRole === "SuperAdmin") ? "Principal's Signature" : "My Signature"}
-              </label>
-              <div className="flex items-center gap-4">
-                <div className="h-16 w-32 bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200 rounded-lg">
-                  {signatureUrl ? (
-                    <img src={signatureUrl} alt="Signature" className="h-full w-full object-contain" />
-                  ) : (
-                    <span className="text-xs text-gray-400">No Signature</span>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm cursor-pointer transition-colors">
-                    <Camera className="h-4 w-4" />
-                    Upload Signature
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={handleSignatureUpload}
-                    />
-                  </label>
-                  <p className="text-xs text-gray-500 mt-2">Will be used for stamping results (transparent PNG recommended).</p>
+            {(userRole === "Admin" || userRole === "SuperAdmin") && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
+                  Principal's Signature
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-32 bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200 rounded-lg">
+                    {signatureUrl ? (
+                      <img src={signatureUrl} alt="Signature" className="h-full w-full object-contain" />
+                    ) : (
+                      <span className="text-xs text-gray-400">No Signature</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm cursor-pointer transition-colors">
+                      <Camera className="h-4 w-4" />
+                      Upload Signature
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={handleSignatureUpload}
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2">Will be used for stamping results (transparent PNG recommended).</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">School Name</label>
               <input
@@ -669,15 +672,60 @@ export default function SettingsPage() {
               />
             </div>
           </div>
-          <div className="flex justify-end pt-4 border-t border-gray-100">
-            <button 
-              onClick={handleSaveSchoolProfile} 
-              disabled={isSavingProfile}
-              className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50"
-            >
-              {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {isSavingProfile ? "Saving..." : "Save Profile"}
+          <div className="flex justify-end gap-3 mt-8">
+            <button onClick={() => setActiveSection(null)} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">Cancel</button>
+            <button onClick={handleSaveSchoolProfile} disabled={isSavingProfile} className="px-5 py-2.5 rounded-xl bg-[#053d26] hover:bg-[#042c1b] text-white font-bold flex items-center gap-2 transition-colors">
+              {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Save Changes
             </button>
+          </div>
+        </div>
+      )}
+
+      {activeSection === 'profile' && (
+        <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">My Profile</h2>
+            <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+            {userRole === "Faculty" && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
+                  My Digital Signature
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-32 bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200 rounded-lg">
+                    {signatureUrl ? (
+                      <img src={signatureUrl} alt="Signature" className="h-full w-full object-contain" />
+                    ) : (
+                      <span className="text-xs text-gray-400">No Signature</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm cursor-pointer transition-colors">
+                      <Camera className="h-4 w-4" />
+                      Upload Signature
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={handleSignatureUpload}
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2">Will be used for stamping results (transparent PNG recommended).</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-3 mt-8 md:col-span-2">
+              <button onClick={() => setActiveSection(null)} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">Cancel</button>
+              <button onClick={handleSaveSchoolProfile} disabled={isSavingProfile} className="px-5 py-2.5 rounded-xl bg-[#053d26] hover:bg-[#042c1b] text-white font-bold flex items-center gap-2 transition-colors">
+                {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Profile
+              </button>
+            </div>
           </div>
         </div>
       )}

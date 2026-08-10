@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BookOpen, FileText, Loader2, AlertCircle, Download, Award, TrendingUp, UserCheck } from "lucide-react";
-import { resultApi, sessionApi, reportCardApi, schemeOfWorkApi } from "@/lib/api";
+import { resultApi, sessionApi, reportCardApi, schemeOfWorkApi, schoolApi } from "@/lib/api";
 import toast from "react-hot-toast";
 
 export default function StudentAcademics({ studentInfo }: { studentInfo: any }) {
@@ -21,6 +21,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
   const [schoolEmail, setSchoolEmail] = useState("info@leoned.com");
   const [schoolAddress, setSchoolAddress] = useState("");
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+  const [principalName, setPrincipalName] = useState("");
 
   useEffect(() => {
     if (!selectedTermId || viewMode !== 'sow') {
@@ -124,6 +125,22 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           if (user.school) {
             if (user.school.contactEmail) setSchoolEmail(user.school.contactEmail);
             if (user.school.address) setSchoolAddress(user.school.address);
+            if (user.school.principalName || user.school.ownerName || user.school.adminName) {
+              setPrincipalName(user.school.principalName || user.school.ownerName || user.school.adminName);
+            }
+          } else if (user.principalName || user.ownerName) {
+            setPrincipalName(user.principalName || user.ownerName);
+          }
+          // If no principal name found yet, try fetching school details from API
+          const schoolId = sId || user.schoolId || user.SchoolId;
+          if (schoolId && !user.school?.principalName && !user.principalName) {
+            try {
+              const schoolData = await schoolApi.getById(schoolId);
+              const sd = schoolData as any;
+              if (sd?.principalName) setPrincipalName(sd.principalName);
+              else if (sd?.ownerName) setPrincipalName(sd.ownerName);
+              if (sd?.address) setSchoolAddress(sd.address);
+            } catch (e) {}
           }
         }
       } catch (e) {
@@ -215,17 +232,36 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
 
         const mappedGrades = resultsArray.map((r: any) => {
           const total = Number(r.totalScore ?? r.total ?? 0);
+          let grade = r.grade;
+          if (!grade) {
+            if (total >= 70) grade = "A";
+            else if (total >= 60) grade = "B";
+            else if (total >= 50) grade = "C";
+            else if (total >= 45) grade = "D";
+            else if (total >= 40) grade = "E";
+            else grade = "F";
+          }
+          let remark = r.remark;
+          if (!remark || remark === "N/A" || remark === "-") {
+            if (grade.includes("A")) remark = "Excellent";
+            else if (grade.includes("B")) remark = "Very Good";
+            else if (grade.includes("C")) remark = "Good";
+            else if (grade.includes("D")) remark = "Fair";
+            else if (grade.includes("E")) remark = "Poor";
+            else remark = "Fail";
+          }
           return {
             name: r.subjectName || r.subject?.name || "Unknown Subject",
             ca1: r.firstCA ?? r.ca1 ?? 0,
             ca2: r.secondCA ?? r.ca2 ?? 0,
             exam: r.examScore ?? r.exam ?? 0,
             total: total,
-            grade: r.grade || (total >= 75 ? "A+" : total >= 70 ? "A" : total >= 60 ? "B+" : total >= 50 ? "B" : total >= 40 ? "C" : "F"),
+            grade: grade,
             classAvg: r.classAvg ?? r.classAverage ?? "-",
+            pos: r.position ?? r.pos ?? "-",
             high: r.highScore ?? r.highest ?? "-",
             low: r.lowScore ?? r.lowest ?? "-",
-            remark: r.remark || "N/A"
+            remark: remark
           };
         });
         
@@ -250,7 +286,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
         return;
       }
       
-      const html2pdf = (await import("html2pdf.js")).default;
+      const html2pdf = (await import("html2pdf.js" as any)).default || (await import("html2pdf.js" as any));
       const opt = {
         margin: 10,
         filename: `${studentInfo.firstName || "Student"}_Result.pdf`,
@@ -269,7 +305,8 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
   };
 
   const selectedTerm = terms.find(t => (t.id || t._id) === selectedTermId);
-  const termLabel = selectedTerm ? `Term ${selectedTerm.termNumber || selectedTerm.name} (${selectedTerm.sessionName})` : "Selected Term";
+  const termName = selectedTerm?.termNumber === 1 || selectedTerm?.termNumber === "First" ? "First Term" : selectedTerm?.termNumber === 2 || selectedTerm?.termNumber === "Second" ? "Second Term" : selectedTerm?.termNumber === 3 || selectedTerm?.termNumber === "Third" ? "Third Term" : `${selectedTerm?.termNumber || ""} Term`;
+  const termLabel = selectedTerm ? `${termName} (${selectedTerm.sessionName})` : "Selected Term";
 
   const totalStudentScore = grades.reduce((sum, g) => sum + (Number(g.total) || 0), 0);
   const maxPossibleScore = grades.length * 100;
@@ -307,7 +344,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           >
             {terms.map((t, idx) => (
               <option key={idx} value={t.id || t._id}>
-                Term {t.termNumber || t.name} ({t.sessionName})
+                {t.termNumber === 1 || t.termNumber === "First" ? "First Term" : t.termNumber === 2 || t.termNumber === "Second" ? "Second Term" : t.termNumber === 3 || t.termNumber === "Third" ? "Third Term" : `${t.termNumber || t.name} Term`} ({t.sessionName})
               </option>
             ))}
           </select>
@@ -366,9 +403,6 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                   {schoolName.toUpperCase()}
                 </h1>
                 <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || "Empowering the Future"}</p>
-                <p className="text-xs text-gray-600 mt-2 font-medium leading-tight">
-                  <span className="font-bold">Email:</span> {schoolEmail} | <span className="font-bold">Website:</span> www.leoned.com
-                </p>
               </div>
             </div>
             
@@ -378,8 +412,8 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             </div>
 
             {/* Student Details */}
-            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs">
+            <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100 flex flex-col sm:flex-row items-start justify-between gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs flex-1">
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span className="font-medium text-gray-800">{studentInfo.fullName || `${studentInfo.firstName || ""} ${studentInfo.lastName || ""}`.trim() || studentInfo.name}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{studentInfo.admissionNumber || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{studentInfo.class?.className || studentInfo.className || studentInfo.class?.name || "-"}</span></div>
@@ -392,6 +426,10 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 {resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days School Opened:</span> <span className="font-medium text-gray-800">{resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened}</span></div> : null}
                 {resultMetadata?.daysPresent ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{resultMetadata.daysPresent}</span></div> : null}
                 {resultMetadata?.nextTermBegins && !isNaN(new Date(resultMetadata.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Next Term Begins:</span> <span className="font-medium text-gray-800">{new Date(resultMetadata.nextTermBegins).toLocaleDateString()}</span></div> : null}
+              </div>
+              <div className="w-24 h-24 shrink-0 rounded-md border-4 border-white shadow-sm bg-gray-100 flex items-center justify-center overflow-hidden relative self-center sm:self-start">
+                <span className="text-gray-400 text-[10px] font-bold absolute z-0 text-center opacity-30">NO<br/>PHOTO</span>
+                <img src={studentInfo?.profilePictureUrl || studentInfo?.imageUrl || studentInfo?.student?.profilePictureUrl || studentInfo?.avatar || '/placeholder-user.jpg'} alt="Student Passport" className="w-full h-full object-cover z-10 relative bg-white" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             </div>
 
@@ -408,6 +446,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold">GRADE</th>
                     <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CLASS<br/>AVG</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">POS</th>
                     <th className="py-2.5 px-2 border border-[#053d26] w-[20%] font-bold">REMARK</th>
                   </tr>
                 </thead>
@@ -421,6 +460,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                       <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{g.total}</td>
                       <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{g.grade}</td>
                       <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.classAvg || "-"}</td>
+                      <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.pos || "-"}</td>
                       <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{g.remark}</td>
                     </tr>
                   ))}
@@ -517,7 +557,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
                     <span className="font-bold">Form Teacher</span><br/>
-                    <span>Teacher's Name: {resultMetadata?.formTeacherName || studentInfo.class?.teacher?.name || (studentInfo.class?.teacher?.firstName ? `${studentInfo.class.teacher.firstName} ${studentInfo.class.teacher.lastName || ""}` : "_________________")}</span>
+                    <span>Teacher's Name: {resultMetadata?.formTeacherName || studentInfo?.class?.teacher?.name || (studentInfo?.class?.teacher?.firstName ? `${studentInfo?.class?.teacher?.firstName || ""} ${studentInfo?.class?.teacher?.lastName || ""}`.trim() : "_________________")}</span>
                   </div>
                 </div>
               </div>
@@ -536,7 +576,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
                     <span className="font-bold">Principal / Head of School</span><br/>
-                    <span>Principal's Name: {resultMetadata?.principalName || "_________________"}</span>
+                    <span>Principal's Name: {resultMetadata?.principalName || principalName || "_________________"}</span>
                   </div>
                 </div>
               </div>
