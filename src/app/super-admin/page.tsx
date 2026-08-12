@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 import { dashboardApi, schoolApi, paymentApi, DashboardStats } from "@/lib/api";
 import DataTable from "@/components/dashboard/DataTable";
 import {
@@ -498,7 +500,7 @@ export default function SuperAdminDashboard() {
                           </div>
                           <div className="space-y-1">
                             <p className="text-base font-black text-gray-900 tracking-tight">Synchronizing Registry</p>
-                            <p className="text-xs text-gray-500 font-medium">Fetching node statuses from LeonEd clusters...</p>
+                            <p className="text-xs text-gray-500 font-medium">Fetching node statuses from <LeonEdLogoText /> clusters...</p>
                           </div>
                         </div>
                       </td>

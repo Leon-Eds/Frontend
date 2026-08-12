@@ -488,6 +488,7 @@ function FormClassResultsInner() {
       localStorage.setItem(submissionKey, "submitted");
       
       setClassStatus("Submitted");
+      setAdminComment(null);
       toast.success("Results submitted to School Admin for final approval!");
     } catch (err: any) {
       if (err.message && err.message.includes("checkAllSubjectsEntered")) {

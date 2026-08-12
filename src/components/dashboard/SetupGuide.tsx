@@ -16,6 +16,7 @@ import {
   Rocket,
 } from 'lucide-react';
 import { sessionApi, classApi, subjectApi, teacherApi, studentApi, AcademicSession } from '@/lib/api';
+import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 
 interface SetupStep {
   id: string;
@@ -210,7 +211,7 @@ export default function SetupGuide() {
               <span className="text-xs font-bold uppercase tracking-widest text-green-200/80">Institutional Setup Hub</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-1">
-              {allDone ? 'System configuration complete' : 'Configure your LeonEd school dashboard'}
+              {allDone ? 'System configuration complete' : <>Configure your <LeonEdLogoText /> school dashboard</>}
             </h2>
             <p className="text-sm text-green-100">
               {allDone

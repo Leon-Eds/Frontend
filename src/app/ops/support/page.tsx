@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Building
 } from "lucide-react";
+import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 
 // Mock tickets data
 const initialTickets = [
@@ -122,7 +123,7 @@ export default function SupportPage() {
             Support & Documentation Center
           </h1>
           <p className="text-sm text-gray-500 font-medium max-w-2xl leading-relaxed">
-            Access the technical blueprint of LeonEd. Manage handover documentation,
+            Access the technical blueprint of <LeonEdLogoText />. Manage handover documentation,
             system manuals, and track post-launch tickets in real-time.
           </p>
         </div>
@@ -181,7 +182,7 @@ export default function SupportPage() {
                 Core Infrastructure Guide
               </h3>
               <p className="text-xs text-gray-500 font-medium mt-2 leading-relaxed">
-                Comprehensive walkthrough of the LeonEd server architecture, load
+                Comprehensive walkthrough of the <LeonEdLogoText /> server architecture, load
                 balancing configurations, and regional data replication protocols.
               </p>
             </div>

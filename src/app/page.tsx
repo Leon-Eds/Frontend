@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle2, ChevronRight, Zap, Globe } from "lucide-react";
 import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
+import { LeonEdLogoText, FormattedText } from "@/components/ui/LeonEdText";
 
 export default function LandingPage() {
   const { t } = useLanguage();
@@ -17,7 +18,7 @@ export default function LandingPage() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2">
               <Image src="/logo.png" alt="LeonEd" width={40} height={40} className="object-contain" />
-              <span className="text-xl font-bold text-gray-900">LeonEd</span>
+              <span className="text-xl font-bold text-gray-900"><LeonEdLogoText /></span>
             </Link>
 
             {/* Desktop Menu */}
@@ -187,7 +188,7 @@ export default function LandingPage() {
           </div>
 
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4">{t("why.category")}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4"><FormattedText text={t("why.category")} /></p>
             <h2 className="text-4xl lg:text-5xl font-bold text-[#053d26] leading-tight mb-6">
               {t("why.title")}
             </h2>
@@ -248,7 +249,7 @@ export default function LandingPage() {
           <div className="md:col-span-2 space-y-6">
             <div className="flex items-center gap-3">
               <Image src="/logo.png" alt="LeonEd" width={40} height={40} className="object-contain" />
-              <span className="text-xl font-bold">LeonEd</span>
+              <span className="text-xl font-bold"><LeonEdLogoText /></span>
             </div>
             <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
               {t("footer.desc")}
@@ -277,7 +278,7 @@ export default function LandingPage() {
         </div>
         
         <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
-          <p>{t("footer.rights")}</p>
+          <p><FormattedText text={t("footer.rights")} /></p>
           <div className="flex gap-4">
             <Globe className="h-4 w-4" />
           </div>

@@ -2,6 +2,7 @@
 
 import { Shield, Lock, Eye, FileText, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 
 export default function PrivacyProtocol() {
   return (
@@ -17,7 +18,7 @@ export default function PrivacyProtocol() {
             <Shield className="h-8 w-8" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Privacy Protocol</h1>
-          <p className="text-xl text-gray-500">How LeonEd protects institutional and academic data integrity.</p>
+          <p className="text-xl text-gray-500">How <LeonEdLogoText /> protects institutional and academic data integrity.</p>
         </div>
 
         <div className="bg-white rounded-[3rem] p-12 shadow-sm border border-gray-100 space-y-10">
@@ -27,7 +28,7 @@ export default function PrivacyProtocol() {
               <h2 className="text-xl font-bold">Data Encryption</h2>
             </div>
             <p className="text-gray-600 leading-relaxed">
-              All data transmitted within the LeonEd ecosystem is encrypted using industry-standard TLS 1.3. At rest, sensitive academic and financial records are protected using AES-256 encryption.
+              All data transmitted within the <LeonEdLogoText /> ecosystem is encrypted using industry-standard TLS 1.3. At rest, sensitive academic and financial records are protected using AES-256 encryption.
             </p>
           </section>
 

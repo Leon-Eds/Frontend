@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Lock, School, User, Mail, Phone, MapPin, Globe, ChevronRight, ChevronLeft, CheckCircle2, Building2, Loader2, Eye, EyeOff } from "lucide-react";
 import { authApi } from "@/lib/api";
 import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
+import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 
 export default function RegisterSchoolPage() {
   const router = useRouter();
@@ -183,7 +184,7 @@ export default function RegisterSchoolPage() {
           <div className="flex justify-between items-center h-20">
             <Link href="/" className="flex items-center gap-2">
               <Image src="/logo.png" alt="LeonEd" width={40} height={40} className="object-contain" />
-              <span className="text-xl font-bold text-gray-900">LeonEd</span>
+              <span className="text-xl font-bold text-gray-900"><LeonEdLogoText /></span>
             </Link>
 
             {/* Desktop Menu */}

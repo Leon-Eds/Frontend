@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { HelpCircle, Mail, MessageSquare, Phone, ArrowLeft, ExternalLink, Activity } from "lucide-react";
 import Link from "next/link";
+import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 
 export default function SystemSupport() {
   const [backUrl, setBackUrl] = useState("/");
@@ -43,7 +44,7 @@ export default function SystemSupport() {
             <HelpCircle className="h-8 w-8" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 tracking-tight">System Support</h1>
-          <p className="text-xl text-gray-500">24/7 technical assistance for the LeonEd community.</p>
+          <p className="text-xl text-gray-500">24/7 technical assistance for the <LeonEdLogoText /> community.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -63,7 +64,7 @@ export default function SystemSupport() {
               <MessageSquare className="h-6 w-6" />
             </div>
             <h2 className="text-xl font-bold text-gray-900">Live Concierge</h2>
-            <p className="text-sm text-gray-500 leading-relaxed">Connect with a LeonEd support specialist via WhatsApp or live chat.</p>
+            <p className="text-sm text-gray-500 leading-relaxed">Connect with a <LeonEdLogoText /> support specialist via WhatsApp or live chat.</p>
             <button className="text-sm font-bold text-green-600 hover:underline">
               Start Live Chat
             </button>

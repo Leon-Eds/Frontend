@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-export type Language = "en" | "ig" | "yo" | "ha" | "fr" | "es" | "de" | "pt" | "zh";
+export type Language = "en" | "fr" | "es" | "de" | "pt" | "zh";
 
 export interface LanguageInfo {
   code: Language;
@@ -13,9 +13,6 @@ export interface LanguageInfo {
 
 export const languages: LanguageInfo[] = [
   { code: "en", name: "English", nativeName: "English", flag: "🇬🇧" },
-  { code: "ig", name: "Igbo", nativeName: "Asụsụ Igbo", flag: "🇳🇬" },
-  { code: "yo", name: "Yoruba", nativeName: "Èdè Yorùbá", flag: "🇳🇬" },
-  { code: "ha", name: "Hausa", nativeName: "Harshen Hausa", flag: "🇳🇬" },
   { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },
   { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
   { code: "de", name: "German", nativeName: "Deutsch", flag: "🇩🇪" },
@@ -23,7 +20,7 @@ export const languages: LanguageInfo[] = [
   { code: "zh", name: "Chinese", nativeName: "中文", flag: "🇨🇳" },
 ];
 
-const translations: Record<Language, Record<string, string>> = {
+const translations: Record<string, Record<string, string>> = {
   en: {
     // Nav
     "nav.overview": "Term Overview",
@@ -194,7 +191,8 @@ const translations: Record<Language, Record<string, string>> = {
     "sidebar.enroll_new_student": "Enroll New Student",
     "sidebar.register_new_school": "Register New School",
     "sidebar.free_plan_msg": "You are on the Free Plan",
-    "sidebar.upgrade_plan": "Upgrade Plan"
+    "sidebar.upgrade_plan": "Upgrade Plan",
+    "sidebar.revisions": "Revisions"
   },
   ig: {
     // Nav

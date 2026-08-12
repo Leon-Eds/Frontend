@@ -16,7 +16,9 @@ import {
   UserPlus,
   GraduationCap
 } from "lucide-react";
-import { authApi, formatDate, schoolApi, teacherApi, studentApi } from "@/lib/api";
+import { dashboardApi, schoolApi } from "@/lib/api";
+import { LeonEdLogoText } from "@/components/ui/LeonEdText";
+import { formatDate, authApi, teacherApi, studentApi } from "@/lib/api";
 import toast from "react-hot-toast";
 
 export default function GlobalUsersManagement() {
@@ -382,7 +384,7 @@ export default function GlobalUsersManagement() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mb-3">Global User Directory</h1>
-          <p className="text-gray-500 text-lg max-w-2xl">Manage administrative access, faculty, and students across the entire LeonEd platform.</p>
+          <p className="text-gray-500 text-lg max-w-2xl">Manage administrative access, faculty, and students across the entire <LeonEdLogoText /> platform.</p>
         </div>
       </div>
 

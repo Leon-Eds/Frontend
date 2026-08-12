@@ -3,6 +3,7 @@
 import React, { forwardRef } from "react";
 import QRCode from "react-qr-code";
 import { UserPlus } from "lucide-react";
+import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 
 interface IdCardProps {
   student: any;
@@ -157,7 +158,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
             {schoolInfo.phone && <p className="text-[8px] text-gray-500">{schoolInfo.phone}</p>}
             
             <div className="mt-2 pt-1 border-t border-gray-200 w-1/2">
-              <p className="text-[7px] font-bold text-gray-400 tracking-widest uppercase">Powered by LeonEd</p>
+              <p className="text-[7px] font-bold text-gray-400 tracking-widest uppercase">Powered by <LeonEdLogoText /></p>
             </div>
           </div>
         </div>

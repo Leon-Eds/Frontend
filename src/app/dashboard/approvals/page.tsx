@@ -252,6 +252,20 @@ export default function ResultsApproval() {
         }
         return item;
       }));
+      // Notify teachers about the revision
+      try {
+        const { notificationsApi } = await import("@/lib/notifications");
+        notificationsApi.addNotification({
+          title: "Revision Requested",
+          message: `Results for ${selectedSubmission.className} need revision: ${rejectComment || "Please review and resubmit."}`,
+          type: "warning",
+          targetRole: ["Teacher", "Faculty"],
+          link: "/dashboard/faculty/revisions"
+        });
+      } catch (e) {
+        console.error("Failed to send revision notification", e);
+      }
+
       toast.success("Revision requested successfully");
       setIsRejectModalOpen(false);
       setSelectedSubmission(null);
@@ -262,10 +276,90 @@ export default function ResultsApproval() {
     }
   };
 
-  const filteredSubmissions = submissions.filter(sub => {
+  const pendingRecords = submissions.filter(sub => sub.status !== "Approved" && sub.status !== "Published");
+  const publishedRecords = submissions.filter(sub => sub.status === "Approved" || sub.status === "Published");
+
+  const filteredPendingRecords = pendingRecords.filter(sub => {
     if (activeFilter === "Pending") return sub.status === "Pending";
     return true;
   });
+
+  const renderSubmissionCard = (sub: PendingSubmission) => (
+    <div 
+      key={sub.id} 
+      className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-all hover:shadow-md"
+    >
+      <div className="flex items-start gap-4">
+        {/* Calendar Badge */}
+        <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col items-center justify-center shrink-0">
+          <span className="text-lg font-black text-gray-900 leading-none">{sub.date.split(" ")[0]}</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">{sub.date.split(" ")[1] || ""}</span>
+        </div>
+
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-bold text-gray-900 text-base">{sub.subject}</h3>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+              sub.status === "Pending" 
+                ? "bg-yellow-100 text-yellow-800" 
+                : sub.status === "Revision Requested"
+                ? "bg-orange-100 text-orange-800"
+                : "bg-green-100 text-green-800"
+            }`}>
+              {sub.status}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 font-semibold">
+            Teacher: <span className="text-gray-700">{sub.teacher}</span> • Class: <span className="text-gray-700">{sub.className}</span>
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+        {sub.status === "Revision Requested" ? (
+          <button 
+            onClick={() => {
+              setSelectedSubmission(sub);
+              setIsDetailsOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all"
+          >
+            View Details
+          </button>
+        ) : sub.status === "Approved" || sub.status === "Published" ? (
+          <button 
+            onClick={() => router.push(`/dashboard/approvals/approved-results?classId=${sub.classId}`)}
+            className="px-4 py-2.5 rounded-full bg-green-50 text-green-700 text-xs font-bold border border-green-200 hover:bg-green-100 transition-all flex items-center gap-2"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            View Details
+          </button>
+        ) : (
+          <>
+            <button 
+              onClick={() => router.push(`/dashboard/approvals/class-results?classId=${sub.classId}`)}
+              className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all flex items-center gap-2"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              View Results
+            </button>
+            <button 
+              onClick={() => handleRequestRevision(sub.id)}
+              className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all"
+            >
+              Request Revision
+            </button>
+            <button 
+              onClick={() => handleApprove(sub.id)}
+              className="px-5 py-2.5 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow"
+            >
+              Approve
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 
   if (isLoading) {
     return (
@@ -345,84 +439,9 @@ export default function ResultsApproval() {
         </div>
 
         <div className="space-y-4">
-          {filteredSubmissions.map((sub) => (
-            <div 
-              key={sub.id} 
-              className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-all hover:shadow-md"
-            >
-              <div className="flex items-start gap-4">
-                {/* Calendar Badge */}
-                <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col items-center justify-center shrink-0">
-                  <span className="text-lg font-black text-gray-900 leading-none">{sub.date.split(" ")[0]}</span>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">{sub.date.split(" ")[1]}</span>
-                </div>
+          {filteredPendingRecords.map(renderSubmissionCard)}
 
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-bold text-gray-900 text-base">{sub.subject}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      sub.status === "Pending" 
-                        ? "bg-yellow-100 text-yellow-800" 
-                        : sub.status === "Revision Requested"
-                        ? "bg-orange-100 text-orange-800"
-                        : "bg-green-100 text-green-800"
-                    }`}>
-                      {sub.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 font-semibold">
-                    Teacher: <span className="text-gray-700">{sub.teacher}</span> • Class: <span className="text-gray-700">{sub.className}</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                {sub.status === "Revision Requested" ? (
-                  <button 
-                    onClick={() => {
-                      setSelectedSubmission(sub);
-                      setIsDetailsOpen(true);
-                    }}
-                    className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all"
-                  >
-                    View Details
-                  </button>
-                ) : sub.status === "Approved" || sub.status === "Published" ? (
-                  <button 
-                    onClick={() => router.push(`/dashboard/approvals/approved-results?classId=${sub.classId}`)}
-                    className="px-4 py-2.5 rounded-full bg-green-50 text-green-700 text-xs font-bold border border-green-200 hover:bg-green-100 transition-all flex items-center gap-2"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    View Details
-                  </button>
-                ) : (
-                  <>
-                    <button 
-                      onClick={() => router.push(`/dashboard/approvals/class-results?classId=${sub.classId}`)}
-                      className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all flex items-center gap-2"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      View Results
-                    </button>
-                    <button 
-                      onClick={() => handleRequestRevision(sub.id)}
-                      className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all"
-                    >
-                      Request Revision
-                    </button>
-                    <button 
-                      onClick={() => handleApprove(sub.id)}
-                      className="px-5 py-2.5 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow"
-                    >
-                      Approve
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {filteredSubmissions.length === 0 && (
+          {filteredPendingRecords.length === 0 && (
             <div className="bg-white rounded-3xl p-12 text-center border border-gray-100">
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
               <h3 className="font-bold text-gray-900 text-lg mb-1">All Caught Up!</h3>
@@ -430,6 +449,15 @@ export default function ResultsApproval() {
             </div>
           )}
         </div>
+
+        {publishedRecords.length > 0 && (
+          <div className="pt-8 mt-8 border-t border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Published Results</h2>
+            <div className="space-y-4">
+              {publishedRecords.map(renderSubmissionCard)}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Revision Details Modal */}

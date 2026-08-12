@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { schoolApi, resultApi, authApi, bursarApi } from "@/lib/api";
+import { schoolApi, resultApi, authApi, bursarApi, sessionApi, attendanceApi, teacherPortalApi } from "@/lib/api";
 import { useLanguage } from "@/components/LanguageProvider";
+import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 import { 
   LayoutDashboard, 
   GraduationCap, 
@@ -32,7 +33,8 @@ import {
   UserCheck,
   Crown,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
 
 const schoolNavigation = [
@@ -53,7 +55,6 @@ const adminNavigation = [
   { name: "Support Staff", href: "/dashboard/staff", icon: UserPlus },
   { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
   { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
-  { name: "Approved Results", href: "/dashboard/approvals/approved-results", icon: CheckCircle2 },
   { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
   { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
 ];
@@ -61,6 +62,7 @@ const adminNavigation = [
 const facultyNavigation = [
   { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Classes", href: "/dashboard/faculty/classes", icon: FolderKanban },
+  { name: "Revisions", href: "/dashboard/faculty/revisions", icon: AlertCircle },
   { name: "Scheme of Work", href: "/dashboard/faculty/scheme-of-work", icon: FileText },
 ];
 
@@ -98,6 +100,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [plan, setPlan] = useState<string | null>(null);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
   const [pendingFeesCount, setPendingFeesCount] = useState<number>(0);
+  const [pendingRevisionsCount, setPendingRevisionsCount] = useState<number>(0);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -119,6 +122,49 @@ export default function Sidebar({ onClose }: SidebarProps) {
           if (typeof fCount === "number") {
             setPendingFeesCount(fCount);
           }
+        }
+
+        // Teachers: check for revision-requested classes
+        const normalizedRole = user.role?.toLowerCase();
+        if (normalizedRole === "teacher" || normalizedRole === "faculty") {
+          try {
+            const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
+            let myFormClasses: any[] = [];
+            try {
+              const fcRes = await attendanceApi.getMyFormClasses();
+              const unwrapped = Array.isArray(fcRes) ? fcRes : ((fcRes as any).data || (fcRes as any).items || (fcRes as any).classes || (fcRes as any).formClasses || []);
+              myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
+            } catch { }
+            if (myFormClasses.length === 0) {
+              try {
+                const cRes = await teacherPortalApi.getClasses();
+                const all = Array.isArray(cRes) ? cRes : ((cRes as any)?.data || (cRes as any)?.items || []);
+                myFormClasses = all.filter((c: any) => c.formTeacherId === userId || c.formTeacher?.id === userId);
+              } catch { }
+            }
+            if (myFormClasses.length === 0 && user?.teacher?.formClass) {
+              const fcs = Array.isArray(user.teacher.formClass) ? user.teacher.formClass : [user.teacher.formClass];
+              myFormClasses = fcs;
+            }
+            if (myFormClasses.length > 0) {
+              const sessions = await sessionApi.getAll().catch(() => []);
+              const activeSession = (Array.isArray(sessions) ? sessions : []).find((s: any) => s.isCurrent);
+              const activeTerm = activeSession?.terms?.find((t: any) => t.isCurrent);
+              if (activeTerm) {
+                let revCount = 0;
+                await Promise.all(myFormClasses.map(async (fc: any) => {
+                  const cId = typeof fc === 'string' ? fc : (fc.id || fc.classId || fc._id);
+                  try {
+                    const cr = await resultApi.getClassResults(cId, activeTerm.id);
+                    const rd = (cr as any)?.data || cr;
+                    const st = String((cr as any)?.status || rd?.status || rd?.approvalStatus || "").trim().toLowerCase();
+                    if (st === "revision requested" || st === "revision_requested") revCount++;
+                  } catch { }
+                }));
+                setPendingRevisionsCount(revCount);
+              }
+            }
+          } catch { }
         }
       } catch (err) {
         // Silently fail if endpoint fails or returns error
@@ -255,7 +301,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
             />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>{schoolName}</h1>
+            <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>
+              {schoolName === "LeonEd" ? <LeonEdLogoText /> : schoolName}
+            </h1>
             {role === "superadmin" ? (
               <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">
                 {t("sidebar.super_admin")}
@@ -317,6 +365,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
               {item.href === "/dashboard/finance" && pendingFeesCount > 0 && (
                 <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)] ${isActive ? "bg-white text-[#095838] shadow-white/60" : "bg-red-500 text-white"}`}>
                   {pendingFeesCount}
+                </span>
+              )}
+              {item.href === "/dashboard/faculty/revisions" && pendingRevisionsCount > 0 && (
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.6)] ${isActive ? "bg-white text-[#095838] shadow-white/60" : "bg-amber-500 text-white"}`}>
+                  {pendingRevisionsCount}
                 </span>
               )}
             </Link>

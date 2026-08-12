@@ -20,6 +20,7 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
+import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 import toast from "react-hot-toast";
 
 export default function SchoolsManagement() {
@@ -262,7 +263,7 @@ export default function SchoolsManagement() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Institutional Registry</h1>
           <p className="text-gray-600">
-            Manage all schools onboarded on the LeonEd platform.
+            Manage all schools onboarded on the <LeonEdLogoText /> platform.
           </p>
         </div>
         <div className="flex items-center gap-3">

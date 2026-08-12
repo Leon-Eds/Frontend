@@ -1046,9 +1046,11 @@ export default function SettingsPage() {
                 className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors font-medium"
               >
                 <option value="en">English (Standard)</option>
-                <option value="ig">Asụsụ Igbo</option>
-                <option value="yo">Èdè Yorùbá</option>
-                <option value="ha">Harshen Hausa</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+                <option value="de">Deutsch</option>
+                <option value="pt">Português</option>
+                <option value="zh">中文</option>
               </select>
             </div>
 

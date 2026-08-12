@@ -31,6 +31,12 @@ function FormClassResultsInner() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   
+  // New states for Request Revision flow
+  const [classStatus, setClassStatus] = useState<string>("Pending");
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectComment, setRejectComment] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  
   const currentResult = results[currentIndex];
   let sId = currentResult?.studentId || currentResult?.student?.id || currentResult?.id || currentIndex.toString();
   let subjects = currentResult?.subjects || currentResult?.subjectScores || [];
@@ -167,6 +173,13 @@ function FormClassResultsInner() {
         // Fetch results
         const classResults = await resultApi.getClassResults(targetClassId, activeTerm.id);
         const rData = (classResults as any)?.data || classResults;
+        
+        // Extract status
+        const rawStatusStr = String((classResults as any)?.status || (classResults as any)?.approvalStatus || rData?.status || rData?.approvalStatus || "Pending").trim().toLowerCase();
+        if (rawStatusStr === "approved" || rawStatusStr === "published") setClassStatus("Approved");
+        else if (rawStatusStr === "submitted") setClassStatus("Submitted");
+        else if (rawStatusStr === "revision requested" || rawStatusStr === "revision_requested") setClassStatus("Revision Requested");
+        else setClassStatus("Pending");
         let resultsArray: any[] = [];
         if (Array.isArray(rData)) {
           resultsArray = rData;
@@ -314,13 +327,45 @@ function FormClassResultsInner() {
       </div>
     );
   }
-
   const handleNext = () => {
     if (currentIndex < results.length - 1) setCurrentIndex(curr => curr + 1);
   };
 
   const handlePrev = () => {
     if (currentIndex > 0) setCurrentIndex(curr => curr - 1);
+  };
+
+  const handleApprove = async () => {
+    if (!formClass || !currentTerm) return;
+    setIsProcessing(true);
+    try {
+      await resultApi.approve(formClass.classId, currentTerm.id, { approve: true });
+      await resultApi.publish(formClass.classId, currentTerm.id).catch(() => {});
+      setClassStatus("Approved");
+      toast.success("Results approved successfully!");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to approve results");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const submitRevision = async () => {
+    if (!formClass || !currentTerm) return;
+    setIsProcessing(true);
+    try {
+      await resultApi.approve(formClass.classId, currentTerm.id, { 
+        approve: false, 
+        adminComment: rejectComment || "Revision requested" 
+      });
+      setClassStatus("Revision Requested");
+      setIsRejectModalOpen(false);
+      toast.success("Revision requested successfully");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to request revision");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleDownloadResult = async () => {
@@ -379,11 +424,34 @@ function FormClassResultsInner() {
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {(classStatus === "Pending" || classStatus === "Submitted") && (
+              <>
+                <button
+                  onClick={() => setIsRejectModalOpen(true)}
+                  disabled={isProcessing}
+                  className="px-4 py-2 rounded-full bg-white border border-rose-200 text-rose-600 font-bold hover:bg-rose-50 transition-all text-xs disabled:opacity-50"
+                >
+                  Request Revision
+                </button>
+                <button
+                  onClick={handleApprove}
+                  disabled={isProcessing}
+                  className="px-4 py-2 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-xs disabled:opacity-50 shadow-md"
+                >
+                  {isProcessing ? "Processing..." : "Approve Results"}
+                </button>
+              </>
+            )}
+            {classStatus === "Approved" && (
+              <span className="px-4 py-2 rounded-full bg-green-50 text-green-700 font-bold border border-green-200 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Approved
+              </span>
+            )}
             <button
               onClick={handleDownloadResult}
               disabled={isDownloading || !currentResult}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-all text-xs shadow-md disabled:opacity-50 print:hidden"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all text-xs shadow-md disabled:opacity-50 print:hidden"
             >
               {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
               Download PDF
@@ -677,6 +745,62 @@ function FormClassResultsInner() {
           <FileSpreadsheet className="h-12 w-12 mx-auto text-gray-300 mb-4" />
           <p className="font-bold text-lg text-gray-900">No results found</p>
           <p className="text-sm text-gray-500 mt-2">Make sure subject scores have been entered for this class.</p>
+        </div>
+      )}
+
+      {/* Revision Details Modal */}
+      {isRejectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-gray-100 space-y-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <h3 className="text-xl font-bold text-gray-900">Request Revision</h3>
+              <button 
+                onClick={() => setIsRejectModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-amber-50 rounded-2xl p-4 flex items-start gap-3 border border-amber-100">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-900 font-medium">
+                  This will send the results back to the form teacher. Please provide a clear reason or instructions on what needs to be fixed.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">
+                  Reason for Revision
+                </label>
+                <textarea
+                  value={rejectComment}
+                  onChange={(e) => setRejectComment(e.target.value)}
+                  placeholder="e.g., Please review John Doe's Math score..."
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] text-sm font-medium resize-none min-h-[120px]"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button 
+                onClick={() => setIsRejectModalOpen(false)}
+                className="flex-1 py-3 rounded-full border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                disabled={isProcessing}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={submitRevision}
+                disabled={isProcessing || !rejectComment.trim()}
+                className="flex-1 py-3 rounded-full bg-rose-600 text-white font-bold hover:bg-rose-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {isProcessing ? "Submitting..." : "Submit Request"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

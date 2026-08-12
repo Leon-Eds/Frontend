@@ -60,6 +60,9 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           setSchemes([]);
           return;
         }
+
+        
+
         
         const res = await schemeOfWorkApi.getByClass(targetClassId, selectedTermId);
         if (res && typeof res === 'object' && !Array.isArray(res)) {
@@ -160,6 +163,15 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
         const resultsData = await resultApi.getMyResults(selectedTermId).catch(() => []);
         const rData = (resultsData as any)?.data || resultsData;
         
+        let targetClassId = studentInfo.classId || studentInfo.class?._id || studentInfo.class?.id;
+        if (!targetClassId && rData) {
+          targetClassId = rData.classId || rData.class?.id || rData.class?._id || rData.result?.classId;
+        }
+        if (!targetClassId) {
+          const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
+          targetClassId = user.classId || user.student?.classId || user.student?.class?._id || user.class?._id;
+        }
+        
         console.log("[Student Portal] Raw resultsData from backend:", resultsData);
         
         let resultsArray: any[] = [];
@@ -241,15 +253,14 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             else if (total >= 40) grade = "E";
             else grade = "F";
           }
-          let remark = r.remark;
-          if (!remark || remark === "N/A" || remark === "-") {
-            if (grade.includes("A")) remark = "Excellent";
-            else if (grade.includes("B")) remark = "Very Good";
-            else if (grade.includes("C")) remark = "Good";
-            else if (grade.includes("D")) remark = "Fair";
-            else if (grade.includes("E")) remark = "Poor";
-            else remark = "Fail";
-          }
+          let remarkText = "";
+          if (grade.includes("A")) remarkText = "Excellent";
+          else if (grade.includes("B")) remarkText = "Very Good";
+          else if (grade.includes("C")) remarkText = "Good";
+          else if (grade.includes("D")) remarkText = "Fair";
+          else if (grade.includes("E")) remarkText = "Poor";
+          else remarkText = "Fail";
+
           return {
             name: r.subjectName || r.subject?.name || "Unknown Subject",
             ca1: r.firstCA ?? r.ca1 ?? 0,
@@ -258,10 +269,10 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             total: total,
             grade: grade,
             classAvg: r.classAvg ?? r.classAverage ?? "-",
-            pos: r.position ?? r.pos ?? "-",
+            pos: r.remark || r.position || r.pos || "-",
             high: r.highScore ?? r.highest ?? "-",
             low: r.lowScore ?? r.lowest ?? "-",
-            remark: remark
+            remark: remarkText
           };
         });
         
@@ -277,31 +288,8 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
     fetchResults();
   }, [selectedTermId]);
 
-  const handleDownloadResults = async () => {
-    try {
-      setIsDownloading(true);
-      const element = document.getElementById("result-pdf-content");
-      if (!element) {
-        setIsDownloading(false);
-        return;
-      }
-      
-      const html2pdf = (await import("html2pdf.js" as any)).default || (await import("html2pdf.js" as any));
-      const opt = {
-        margin: 10,
-        filename: `${studentInfo.firstName || "Student"}_Result.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
-      };
-      
-      await html2pdf().set(opt).from(element).save();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to generate PDF");
-    } finally {
-      setIsDownloading(false);
-    }
+  const handleDownloadResults = () => {
+    window.print();
   };
 
   const selectedTerm = terms.find(t => (t.id || t._id) === selectedTermId);
@@ -316,21 +304,21 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
       
       {/* Term Selector */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100 print:hidden">
-        <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full sm:w-auto">
           <div className="flex items-center gap-3">
             <BookOpen className="w-6 h-6 text-[#b05e1c]" />
             <h2 className="text-xl font-bold text-gray-900">Academic Records</h2>
           </div>
-          <div className="hidden sm:flex bg-gray-100 p-1 rounded-xl">
+          <div className="flex w-full sm:w-auto bg-gray-100 p-1 rounded-xl">
             <button
               onClick={() => setViewMode('results')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${viewMode === 'results' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${viewMode === 'results' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
             >
               Results
             </button>
             <button
               onClick={() => setViewMode('sow')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${viewMode === 'sow' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${viewMode === 'sow' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
             >
               Scheme of Work
             </button>
@@ -385,7 +373,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
       ) : (
         <div id="result-pdf-content" className="bg-white print:p-0 print:m-0 w-full overflow-hidden print:overflow-visible print-only">
           {/* --- PAGE 1 --- */}
-          <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm print:pt-4">
+          <div className="print:break-after-page print:min-h-0 p-6 sm:p-8 flex flex-col text-sm print:pt-4">
             {/* Header */}
             <div className="flex justify-between items-center border-b-2 border-[#053d26] pb-4 mb-3">
               <div className="w-20 h-20 shrink-0 rounded-full border-4 border-[#b45309] bg-[#053d26] text-white flex items-center justify-center overflow-hidden flex-col">
@@ -417,17 +405,16 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span className="font-medium text-gray-800">{studentInfo.fullName || `${studentInfo.firstName || ""} ${studentInfo.lastName || ""}`.trim() || studentInfo.name}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{studentInfo.admissionNumber || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{studentInfo.class?.className || studentInfo.className || studentInfo.class?.name || "-"}</span></div>
-                {studentInfo.gender || studentInfo.student?.gender ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{studentInfo.gender || studentInfo.student?.gender}</span></div> : null}
-                {(studentInfo.dateOfBirth || studentInfo.student?.dateOfBirth) && !isNaN(new Date(studentInfo.dateOfBirth || studentInfo.student?.dateOfBirth).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Date of Birth:</span> <span className="font-medium text-gray-800">{new Date(studentInfo.dateOfBirth || studentInfo.student?.dateOfBirth).toLocaleDateString()}</span></div> : null}
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{studentInfo.gender || studentInfo.student?.gender || resultMetadata?.gender || resultMetadata?.student?.gender || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{termLabel}</span></div>
-                {terms.find(t => String(t.id || t._id) === String(selectedTermId))?.sessionName ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Session:</span> <span className="font-medium text-gray-800">{terms.find(t => String(t.id || t._id) === String(selectedTermId))?.sessionName}</span></div> : null}
-                {resultMetadata?.classSize || studentInfo.class?.size || studentInfo.classSize ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">No. in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.classSize || studentInfo.class?.size || studentInfo.classSize}</span></div> : null}
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.position || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Session:</span> <span className="font-medium text-gray-800">{terms.find(t => String(t.id || t._id) === String(selectedTermId))?.sessionName || resultMetadata?.sessionName || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">No. in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.classSize || studentInfo.class?.size || studentInfo.classSize || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.position || resultMetadata?.pos || "-"}</span></div>
                 {resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days School Opened:</span> <span className="font-medium text-gray-800">{resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened}</span></div> : null}
                 {resultMetadata?.daysPresent ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{resultMetadata.daysPresent}</span></div> : null}
                 {resultMetadata?.nextTermBegins && !isNaN(new Date(resultMetadata.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Next Term Begins:</span> <span className="font-medium text-gray-800">{new Date(resultMetadata.nextTermBegins).toLocaleDateString()}</span></div> : null}
               </div>
-              <div className="w-24 h-24 shrink-0 rounded-md border-4 border-white shadow-sm bg-gray-100 flex items-center justify-center overflow-hidden relative self-center sm:self-start">
+              <div className="hidden sm:flex w-24 h-24 shrink-0 rounded-md border-4 border-white shadow-sm bg-gray-100 items-center justify-center overflow-hidden relative self-start">
                 <span className="text-gray-400 text-[10px] font-bold absolute z-0 text-center opacity-30">NO<br/>PHOTO</span>
                 <img src={studentInfo?.profilePictureUrl || studentInfo?.imageUrl || studentInfo?.student?.profilePictureUrl || studentInfo?.avatar || '/placeholder-user.jpg'} alt="Student Passport" className="w-full h-full object-cover z-10 relative bg-white" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
@@ -490,7 +477,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           </div>
 
           {/* --- PAGE 2 --- */}
-          <div className="print:break-after-page print:min-h-[297mm] p-6 sm:p-8 flex flex-col text-sm border-t border-gray-300 print:border-none print:pt-12 mt-12 print:mt-0">
+          <div className="print:break-after-page print:min-h-0 p-6 sm:p-8 flex flex-col text-sm border-t border-gray-300 print:border-none print:pt-12 mt-12 print:mt-0">
             <div className="flex justify-between items-center border-b border-gray-300 pb-2 mb-6 text-xs font-bold text-[#053d26]">
               <span className="uppercase">{schoolName}</span>
               <span className="text-gray-300">|</span>
@@ -542,32 +529,30 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             </div>
             <p className="text-[10px] text-gray-500 italic mb-8 border-b border-gray-200 pb-4">Rating scale: 5 = Excellent, 4 = Good, 3 = Fair, 2 = Weak, 1 = Poor</p>
 
-            <div className="space-y-8 flex-1">
-              <div>
-                <h4 className="text-sm font-bold text-[#053d26] mb-2">Form Teacher's Remark</h4>
-                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
-                  {resultMetadata?.teacherComment || resultMetadata?.formTeacherRemark || resultMetadata?.teacherRemark || resultMetadata?.remark || "-"}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 flex-1">
+              <div className="flex flex-col justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-[#053d26] mb-2">Form Teacher's Remark</h4>
+                  <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
+                    {resultMetadata?.teacherComment || resultMetadata?.formTeacherRemark || resultMetadata?.teacherRemark || resultMetadata?.remark || "-"}
+                  </div>
                 </div>
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center mt-4">
                   {resultMetadata?.formTeacherSignatureUrl ? (
-                    <img src={resultMetadata.formTeacherSignatureUrl} alt="Teacher Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                    <img src={resultMetadata?.formTeacherSignatureUrl} alt="Teacher Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
                     <span className="font-bold">Form Teacher</span><br/>
-                    <span>Teacher's Name: {resultMetadata?.formTeacherName || studentInfo?.class?.teacher?.name || (studentInfo?.class?.teacher?.firstName ? `${studentInfo?.class?.teacher?.firstName || ""} ${studentInfo?.class?.teacher?.lastName || ""}`.trim() : "_________________")}</span>
+                    <span>Teacher's Name: {resultMetadata?.formTeacherName || resultMetadata?.teacherName || studentInfo?.formTeacherName || studentInfo?.class?.formTeacherName || studentInfo?.class?.teacher?.name || (studentInfo?.class?.teacher?.firstName ? `${studentInfo?.class?.teacher?.firstName || ""} ${studentInfo?.class?.teacher?.lastName || ""}`.trim() : "_________________")}</span>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h4 className="text-sm font-bold text-[#053d26] mb-2">Principal's Remark</h4>
-                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
-                  {resultMetadata?.principalsRemark || "-"}
-                </div>
-                <div className="flex flex-col items-center">
+              <div className="flex flex-col justify-end">
+                <div className="flex flex-col items-center mt-4">
                   {resultMetadata?.principalSignatureUrl ? (
                     <img src={resultMetadata.principalSignatureUrl} alt="Principal Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
                   ) : (

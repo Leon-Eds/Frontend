@@ -79,6 +79,8 @@ function ResultEntryContent() {
   const [currentSessionId, setCurrentSessionId] = useState("");
   const [currentSessionName, setCurrentSessionName] = useState("");
   const [isEditingLocked, setIsEditingLocked] = useState(false);
+  const [classStatus, setClassStatus] = useState<string>("Pending");
+  const [adminComment, setAdminComment] = useState("");
   const gradingConfig = { ca1: 20, ca2: 20, exam: 60 };
 
   // Fetch teacher assignments and current term on mount
@@ -196,15 +198,40 @@ function ResultEntryContent() {
         }
       }
 
-      // Fetch editing status
+      // Fetch editing status and class results status
       try {
         const { resultApi } = await import("@/lib/api");
         const statusRes = await resultApi.getEditingStatus(selectedClass);
         const statusData = (statusRes as any)?.data || statusRes;
-        setIsEditingLocked(statusData?.isResultEditingActive === false);
+        
+        // Fetch class results to check submission status
+        const classResultsRes = await resultApi.getClassResults(selectedClass, currentTermId).catch(() => null);
+        const crData = (classResultsRes as any)?.data || classResultsRes;
+        
+        const rawStatusStr = String((classResultsRes as any)?.status || (classResultsRes as any)?.approvalStatus || crData?.status || crData?.approvalStatus || "Pending").trim().toLowerCase();
+        let derivedStatus = "Pending";
+        if (rawStatusStr === "approved" || rawStatusStr === "published") derivedStatus = "Approved";
+        else if (rawStatusStr === "submitted") derivedStatus = "Submitted";
+        else if (rawStatusStr === "revision requested" || rawStatusStr === "revision_requested") derivedStatus = "Revision Requested";
+        
+        setClassStatus(derivedStatus);
+        if (derivedStatus === "Revision Requested") {
+          const aComment = (classResultsRes as any)?.adminComment || crData?.adminComment || (classResultsRes as any)?.comment || crData?.comment || "Admin requested a revision but didn't provide a specific comment.";
+          setAdminComment(aComment);
+        } else {
+          setAdminComment("");
+        }
+
+        // If revision requested, editing is naturally unlocked, otherwise rely on backend flag
+        if (derivedStatus === "Revision Requested") {
+          setIsEditingLocked(false);
+        } else {
+          setIsEditingLocked(statusData?.isResultEditingActive === false);
+        }
       } catch (e) {
         console.warn("Failed to fetch editing status, defaulting to editable", e);
         setIsEditingLocked(false);
+        setClassStatus("Pending");
       }
 
       let scores: any[] = [];
@@ -546,6 +573,19 @@ function ResultEntryContent() {
         <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-semibold">
           <AlertCircle className="h-5 w-5 shrink-0" />
           {error}
+        </div>
+      )}
+
+      {/* Revision Requested Alert */}
+      {!isLoading && !error && classStatus === "Revision Requested" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 mt-4">
+          <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-bold text-amber-900">Revision Requested by Admin</h3>
+            <p className="mt-1 text-sm text-amber-800 font-medium whitespace-pre-wrap">
+              {adminComment || "The School Admin has reviewed the class results and requested some changes. Please review and edit the scores below, then submit again."}
+            </p>
+          </div>
         </div>
       )}
 
