@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BookOpen, FileText, Loader2, AlertCircle, Download, Award, TrendingUp, UserCheck } from "lucide-react";
+import { BookOpen, FileText, Loader2, AlertCircle, Download, Award, TrendingUp, UserCheck, CheckCircle2 } from "lucide-react";
 import { resultApi, sessionApi, reportCardApi, schemeOfWorkApi, schoolApi } from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -288,8 +288,27 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
     fetchResults();
   }, [selectedTermId]);
 
-  const handleDownloadResults = () => {
-    window.print();
+  const handleDownloadResults = async () => {
+    if (!selectedTermId) return;
+    const toastId = toast.loading('Downloading Report Card PDF...');
+    setIsDownloading(true);
+    try {
+      const blob = await reportCardApi.downloadMyPdf(selectedTermId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Report_Card.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Downloaded successfully!', { id: toastId });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Failed to download PDF', { id: toastId });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const selectedTerm = terms.find(t => (t.id || t._id) === selectedTermId);
@@ -622,7 +641,15 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                           <span className="text-2xl font-bold text-[#053d26]">{t.week}</span>
                         </div>
                         <div>
-                          <h4 className="font-bold text-gray-900 text-lg mb-2">{t.topic}</h4>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-bold text-gray-900 text-lg">{t.topic}</h4>
+                            {t.isCompleted && (
+                              <span className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-bold uppercase">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                Completed
+                              </span>
+                            )}
+                          </div>
                           <p className="text-gray-600 text-sm leading-relaxed">{t.description}</p>
                         </div>
                       </div>

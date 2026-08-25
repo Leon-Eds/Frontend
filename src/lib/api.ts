@@ -878,16 +878,16 @@ export const studentApi = {
     return handleResponse<Student[]>(res);
   },
 
-  downloadMyIdCard: async (): Promise<Blob> => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/student/idcard/download`, {
+  downloadMyIdCardPdf: async (): Promise<Blob> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/idcard/pdf`, {
       headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error(`Failed to download ID card (${res.status})`);
     return res.blob();
   },
 
-  downloadIdCard: async (id: string): Promise<Blob> => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}/idcard`, {
+  downloadIdCardPdf: async (id: string): Promise<Blob> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student/${id}/idcard/pdf`, {
       headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error(`Failed to download ID card (${res.status})`);
@@ -967,6 +967,16 @@ export const teacherApi = {
     });
     return handleResponse<Teacher>(res);
   },
+
+  sendClassBroadcast: async (data: { targetClassId: string; title: string; content: string; category: string }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/class-broadcast`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
 
   create: async (data: CreateTeacherRequest): Promise<Teacher> => {
     // Backend only accepts JSON for teacher creation — no image upload endpoint exists yet
@@ -1961,6 +1971,24 @@ export const schemeOfWorkApi = {
     const result = await handleResponse(res);
     recordActivity(`Deleted Scheme of Work`, 'Academics', 'VERIFIED');
     return result;
+  },
+
+  review: async (id: string, data: { status: "Approved" | "Rejected", rejectionReason?: string }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/scheme-of-work/${id}/review`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  updateProgress: async (id: string, data: { week: number, isCompleted: boolean }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/scheme-of-work/${id}/progress`, {
+      method: 'PATCH',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
   },
   
   getBySubject: async (classId: string, subjectId: string, termId: string) => {

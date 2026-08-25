@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard, Camera, Banknote, UserCircle } from "lucide-react";
+import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard, Camera, Banknote, UserCircle, PenTool } from "lucide-react";
 import { authApi, studentApi, schoolApi, paymentApi, uploadToCloudinary, teacherPortalApi } from "@/lib/api";
 import { useLanguage, Language } from "@/components/LanguageProvider";
+import SignaturePad from "@/components/shared/SignaturePad";
 
 type SettingsSection = 'school' | 'profile' | 'notifications' | 'security' | 'appearance' | 'localization' | 'advanced' | 'billing' | 'financeSetup' | null;
 
@@ -35,6 +36,7 @@ export default function SettingsPage() {
   const [schoolLogoFile, setSchoolLogoFile] = useState<File | null>(null);
   const [signatureUrl, setSignatureUrl] = useState("");
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [principalName, setPrincipalName] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
@@ -229,6 +231,23 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(file);
       setSignatureUrl(url);
     }
+  };
+
+  const handleSaveSignature = (dataUrl: string) => {
+    const arr = dataUrl.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    if (!mimeMatch) return;
+    const mime = mimeMatch[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    const file = new File([u8arr], "signature.png", { type: mime });
+    setSignatureFile(file);
+    setSignatureUrl(dataUrl);
+    setShowSignatureModal(false);
   };
 
   const handleSaveSchoolProfile = async () => {
@@ -603,17 +622,14 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <div className="flex-1">
-                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm cursor-pointer transition-colors">
-                      <Camera className="h-4 w-4" />
-                      Upload Signature
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={handleSignatureUpload}
-                      />
-                    </label>
-                    <p className="text-xs text-gray-500 mt-2">Will be used for stamping results (transparent PNG recommended).</p>
+                    <button 
+                      onClick={() => setShowSignatureModal(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm transition-colors"
+                    >
+                      <PenTool className="h-4 w-4" />
+                      Draw Signature
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2">Will be used for stamping results. Freehand drawing ensures transparent background.</p>
                   </div>
                 </div>
               </div>
@@ -703,17 +719,14 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <div className="flex-1">
-                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm cursor-pointer transition-colors">
-                      <Camera className="h-4 w-4" />
-                      Upload Signature
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={handleSignatureUpload}
-                      />
-                    </label>
-                    <p className="text-xs text-gray-500 mt-2">Will be used for stamping results (transparent PNG recommended).</p>
+                    <button 
+                      onClick={() => setShowSignatureModal(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm transition-colors"
+                    >
+                      <PenTool className="h-4 w-4" />
+                      Draw Signature
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2">Will be used for stamping results. Freehand drawing ensures transparent background.</p>
                   </div>
                 </div>
               </div>
@@ -1183,6 +1196,30 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+        </div>
+      )}
+
+      {/* Signature Modal */}
+      {showSignatureModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-lg p-6 sm:p-8 shadow-2xl relative">
+            <button 
+              onClick={() => setShowSignatureModal(false)}
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2 flex items-center gap-2">
+              <PenTool className="w-6 h-6" />
+              Draw Signature
+            </h2>
+            <p className="text-sm text-gray-500 mb-6">Use your mouse or touch screen to draw your signature below.</p>
+            
+            <SignaturePad 
+              onSave={handleSaveSignature} 
+              onCancel={() => setShowSignatureModal(false)} 
+            />
+          </div>
         </div>
       )}
 

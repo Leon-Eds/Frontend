@@ -10,6 +10,7 @@ interface Topic {
   week: number;
   topic: string;
   description: string;
+  isCompleted?: boolean;
 }
 
 export default function SchemeOfWorkPage() {
@@ -207,6 +208,25 @@ export default function SchemeOfWorkPage() {
     }
   };
 
+  const handleProgressUpdate = async (week: number, isCompleted: boolean, index: number) => {
+    if (!existingId) return;
+    try {
+      // Optimistic update
+      const newTopics = [...topics];
+      newTopics[index] = { ...newTopics[index], isCompleted };
+      setTopics(newTopics);
+      
+      await schemeOfWorkApi.updateProgress(existingId, { week, isCompleted });
+      toast.success(isCompleted ? `Week ${week} marked as completed!` : `Week ${week} marked as incomplete.`);
+    } catch (err: any) {
+      // Revert on error
+      const newTopics = [...topics];
+      newTopics[index] = { ...newTopics[index], isCompleted: !isCompleted };
+      setTopics(newTopics);
+      toast.error(err.message || "Failed to update progress");
+    }
+  };
+
   if (isLoading && classes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -317,13 +337,26 @@ export default function SchemeOfWorkPage() {
                 </div>
                 
                 <div className="flex-1 space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 group-hover:border-[#20c997]/30 transition-colors">
-                  <input 
-                    type="text" 
-                    placeholder="Topic Title (e.g. Introduction to Algebra)"
-                    value={t.topic} 
-                    onChange={(e) => handleChange(index, 'topic', e.target.value)}
-                    className="w-full bg-transparent border-0 font-bold text-gray-900 text-lg focus:ring-0 p-0 placeholder-gray-400"
-                  />
+                  <div className="flex justify-between items-start gap-4">
+                    <input 
+                      type="text" 
+                      placeholder="Topic Title (e.g. Introduction to Algebra)"
+                      value={t.topic} 
+                      onChange={(e) => handleChange(index, 'topic', e.target.value)}
+                      className="w-full bg-transparent border-0 font-bold text-gray-900 text-lg focus:ring-0 p-0 placeholder-gray-400"
+                    />
+                    {existingId && (
+                      <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm whitespace-nowrap">
+                        <input 
+                          type="checkbox" 
+                          checked={!!t.isCompleted} 
+                          onChange={(e) => handleProgressUpdate(t.week, e.target.checked, index)}
+                          className="w-4 h-4 rounded text-[#053d26] focus:ring-[#053d26] border-gray-300 cursor-pointer"
+                        />
+                        <span className="text-xs font-bold text-gray-700">Completed</span>
+                      </label>
+                    )}
+                  </div>
                   <textarea 
                     placeholder="Detailed description or objectives..."
                     value={t.description}

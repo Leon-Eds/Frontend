@@ -30,21 +30,16 @@ export default function IDCardPage() {
   }, []);
 
   const handleDownloadPDF = async () => {
-    const element = document.getElementById("id-card");
-    if (!element) return;
-    
     try {
-      // @ts-ignore
-      const html2pdf = (await import("html2pdf.js")).default;
-      const opt: any = {
-        margin: 0,
-        filename: `${student?.fullName?.replace(/\s+/g, '_')}_ID_Card.pdf`,
-        image: { type: 'jpeg', quality: 1 },
-        html2canvas: { scale: 4, useCORS: true },
-        jsPDF: { unit: 'in', format: [3.375, 2.125], orientation: 'landscape' } // CR-80 card format
-      };
-      
-      html2pdf().set(opt).from(element).save();
+      const blob = await studentApi.downloadMyIdCardPdf();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${student?.fullName?.replace(/\s+/g, '_')}_ID_Card.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("PDF generation failed", err);
     }

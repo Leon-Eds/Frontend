@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAlert, Award, FileSpreadsheet, Download } from "lucide-react";
-import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi, schoolApi } from "@/lib/api";
+import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi, schoolApi, reportCardApi } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -371,26 +371,23 @@ function FormClassResultsInner() {
   const handleDownloadResult = async () => {
     try {
       setIsDownloading(true);
-      const element = document.getElementById("result-pdf-content");
-      if (!element) {
-        setIsDownloading(false);
-        return;
-      }
-      
-      const html2pdf = (await import("html2pdf.js" as any)).default || (await import("html2pdf.js" as any));
-      const currentStudentName = document.getElementById("result-student-name")?.innerText || "Student";
-      const opt = {
-        margin: 10,
-        filename: `${currentStudentName}_Result.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
-      };
-      
-      await html2pdf().set(opt).from(element).save();
+      const currentStudent = results[currentIndex];
+      if (!currentStudent || !currentTerm) return;
+
+      const studentId = currentStudent.studentId || currentStudent.student?.id || currentStudent.id;
+      const blob = await reportCardApi.downloadPdf(studentId, currentTerm.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const currentStudentName = currentStudent.studentName || currentStudent.student?.fullName || "Student";
+      a.download = `${currentStudentName}_Result.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to generate PDF");
+      toast.error("Failed to download PDF");
     } finally {
       setIsDownloading(false);
     }

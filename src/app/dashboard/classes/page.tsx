@@ -40,6 +40,10 @@ export default function AcademicFlow() {
   const [viewSowModal, setViewSowModal] = useState<{subjectId: string, subjectName: string, classId: string, className: string} | null>(null);
   const [sowTopics, setSowTopics] = useState<any[]>([]);
   const [sowLoading, setSowLoading] = useState(false);
+  const [sowId, setSowId] = useState<string | null>(null);
+  const [sowStatus, setSowStatus] = useState<string>("Pending");
+  const [isReviewingSow, setIsReviewingSow] = useState(false);
+  const [sowRejectionReason, setSowRejectionReason] = useState("");
 
   useEffect(() => {
     if (!viewSowModal) return;
@@ -51,10 +55,18 @@ export default function AcademicFlow() {
         if (!termId) return;
         const res = await schemeOfWorkApi.getBySubject(viewSowModal.classId, viewSowModal.subjectId, termId);
         const data = (res as any)?.data || res;
-        if (data && data.id) {
-          setSowTopics(data.topics || []);
-        } else if (Array.isArray(data) && data.length > 0) {
-          setSowTopics(data[0].topics || []);
+        
+        let targetSow = null;
+        if (data && data.id) targetSow = data;
+        else if (Array.isArray(data) && data.length > 0) targetSow = data[0];
+        
+        if (targetSow) {
+          setSowTopics(targetSow.topics || []);
+          setSowId(targetSow.id || targetSow._id);
+          setSowStatus(targetSow.status || "Pending");
+        } else {
+          setSowId(null);
+          setSowStatus("Pending");
         }
       } catch (err) {
         console.error("Failed to fetch SoW", err);
@@ -1177,7 +1189,18 @@ export default function AcademicFlow() {
             <button onClick={() => setViewSowModal(null)} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors">
               <X className="h-5 w-5" />
             </button>
-            <h2 className="text-2xl font-bold text-[#053d26] mb-2">{viewSowModal.subjectName}</h2>
+            <div className="flex justify-between items-start mb-2 pr-8">
+              <h2 className="text-2xl font-bold text-[#053d26]">{viewSowModal.subjectName}</h2>
+              {sowId && (
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                  sowStatus === 'Approved' ? 'bg-green-100 text-green-700' :
+                  sowStatus === 'Rejected' ? 'bg-red-100 text-red-700' :
+                  'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {sowStatus}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-500 mb-6">Scheme of Work for <strong>{viewSowModal.className}</strong></p>
             
             <div className="flex-1 overflow-y-auto space-y-4 pr-2">
@@ -1198,8 +1221,16 @@ export default function AcademicFlow() {
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Week</span>
                         <span className="text-xl font-bold text-[#053d26]">{t.week}</span>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900 text-base mb-1">{t.topic}</h4>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-bold text-gray-900 text-base">{t.topic}</h4>
+                          {t.isCompleted && (
+                            <span className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Completed
+                            </span>
+                          )}
+                        </div>
                         <p className="text-gray-600 text-sm leading-relaxed">{t.description}</p>
                       </div>
                     </div>
@@ -1207,6 +1238,61 @@ export default function AcademicFlow() {
                 </div>
               )}
             </div>
+
+            {sowId && sowTopics.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+                {sowStatus !== 'Approved' && (
+                  <button 
+                    disabled={isReviewingSow}
+                    onClick={async () => {
+                      try {
+                        setIsReviewingSow(true);
+                        await schemeOfWorkApi.review(sowId, { status: "Approved" });
+                        setSowStatus("Approved");
+                        toast.success("Scheme of work approved!");
+                      } catch (err: any) {
+                        toast.error(err.message || "Failed to approve");
+                      } finally {
+                        setIsReviewingSow(false);
+                      }
+                    }}
+                    className="flex-1 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50"
+                  >
+                    {isReviewingSow ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Approve Scheme"}
+                  </button>
+                )}
+                
+                {sowStatus !== 'Rejected' && (
+                  <div className="flex-1 flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Rejection reason..." 
+                      value={sowRejectionReason}
+                      onChange={(e) => setSowRejectionReason(e.target.value)}
+                      className="flex-1 border border-gray-200 rounded-full px-4 outline-none focus:border-red-400 text-sm"
+                    />
+                    <button 
+                      disabled={isReviewingSow || !sowRejectionReason.trim()}
+                      onClick={async () => {
+                        try {
+                          setIsReviewingSow(true);
+                          await schemeOfWorkApi.review(sowId, { status: "Rejected", rejectionReason: sowRejectionReason });
+                          setSowStatus("Rejected");
+                          toast.success("Scheme of work rejected!");
+                        } catch (err: any) {
+                          toast.error(err.message || "Failed to reject");
+                        } finally {
+                          setIsReviewingSow(false);
+                        }
+                      }}
+                      className="px-6 py-3 rounded-full bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

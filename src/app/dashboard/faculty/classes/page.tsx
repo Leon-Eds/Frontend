@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BookOpen, Users, Clock, ArrowRight, CheckCircle2, AlertCircle, ChevronRight, Search, Plus, Award, UserCheck, ShieldCheck, Loader2, FileSpreadsheet } from "lucide-react";
+import { BookOpen, Users, Clock, ArrowRight, CheckCircle2, AlertCircle, ChevronRight, Search, Plus, Award, UserCheck, ShieldCheck, Loader2, FileSpreadsheet, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { teacherApi, classApi, dashboardApi, teacherPortalApi, attendanceApi } from "@/lib/api";
 
@@ -22,6 +22,14 @@ export default function MyClasses() {
   const [formClasses, setFormClasses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  // Broadcast State
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [broadcastClassId, setBroadcastClassId] = useState("");
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastContent, setBroadcastContent] = useState("");
+  const [broadcastCategory, setBroadcastCategory] = useState("ACADEMIC_NOTICE");
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   useEffect(() => {
     const fetchTeacherClasses = async () => {
@@ -201,8 +209,9 @@ export default function MyClasses() {
                     </div>
                     <span className="text-green-300 font-bold uppercase tracking-widest text-xs">Form Teacher Assignment</span>
                   </div>
-                  <h2 className="text-3xl sm:text-4xl font-black leading-none">
-                    {fc.name || fc.className || "Class"} {fc.arm ? `(${fc.arm})` : ''}
+                  <h2 className="text-3xl sm:text-4xl font-black leading-none flex flex-wrap items-center gap-4">
+                    <span>{fc.name || fc.className || "Class"} {fc.arm ? `(${fc.arm})` : ''}</span>
+                    <span className="text-lg font-bold bg-white/20 px-3 py-1 rounded-full whitespace-nowrap">{fc.studentsCount || fc.studentCount || 0} Students</span>
                   </h2>
                   <p className="text-green-100 text-sm leading-relaxed max-w-lg">
                     As the primary pastoral and administrative lead for this class, you are responsible for daily attendance, behavior monitoring, and general student welfare.
@@ -210,6 +219,16 @@ export default function MyClasses() {
                 </div>
                 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 shrink-0">
+                  <button 
+                    onClick={() => {
+                      setBroadcastClassId(fc.classId || fc.id || fc._id);
+                      setBroadcastModalOpen(true);
+                    }}
+                    className="group relative flex items-center justify-center gap-2 px-6 py-4 bg-transparent border-2 border-white/20 text-white rounded-2xl font-bold hover:bg-white/10 transition-all shadow-lg hover:-translate-y-0.5"
+                  >
+                    <Megaphone className="h-5 w-5" />
+                    <span>Broadcast</span>
+                  </button>
                   <Link 
                     href={`/dashboard/faculty/classes/${fc.classId || fc.id || fc._id}`}
                     className="group relative flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#053d26] rounded-2xl font-bold hover:bg-green-50 transition-all shadow-lg hover:shadow-white/20 hover:-translate-y-0.5"
@@ -293,6 +312,95 @@ export default function MyClasses() {
         )}
       </div>
 
+      {/* Broadcast Modal */}
+      {broadcastModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative">
+            <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <Megaphone className="h-6 w-6 text-[#053d26]" />
+              Class Broadcast
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">Send an announcement to all students in this class.</p>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!broadcastTitle.trim() || !broadcastContent.trim()) return;
+              setIsBroadcasting(true);
+              try {
+                await teacherApi.sendClassBroadcast({
+                  targetClassId: broadcastClassId,
+                  title: broadcastTitle,
+                  content: broadcastContent,
+                  category: broadcastCategory
+                });
+                setBroadcastModalOpen(false);
+                setBroadcastTitle("");
+                setBroadcastContent("");
+                setBroadcastCategory("ACADEMIC_NOTICE");
+              } catch (err: any) {
+                console.error("Failed to send broadcast", err);
+              } finally {
+                setIsBroadcasting(false);
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  required
+                  value={broadcastTitle}
+                  onChange={(e) => setBroadcastTitle(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#053d26] focus:border-[#053d26] outline-none"
+                  placeholder="E.g., Tomorrow's Assignment"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Category</label>
+                <select
+                  value={broadcastCategory}
+                  onChange={(e) => setBroadcastCategory(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#053d26] focus:border-[#053d26] outline-none bg-white"
+                >
+                  <option value="ACADEMIC_NOTICE">Academic Notice</option>
+                  <option value="GENERAL">General</option>
+                  <option value="REMINDERS">Reminder</option>
+                  <option value="EMERGENCY">Emergency</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Message Content</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={broadcastContent}
+                  onChange={(e) => setBroadcastContent(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#053d26] focus:border-[#053d26] outline-none resize-none"
+                  placeholder="Write your announcement here..."
+                ></textarea>
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setBroadcastModalOpen(false)}
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isBroadcasting}
+                  className="flex-1 py-3 bg-[#053d26] text-white font-bold rounded-xl hover:bg-[#042c1b] transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
+                >
+                  {isBroadcasting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Broadcast"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

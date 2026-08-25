@@ -38,22 +38,22 @@ export default function StudentProfile({ studentInfo }: { studentInfo: any }) {
   };
 
   const handleDownloadFromPreview = async () => {
-    if (!idCardRef.current) return;
-    const toastId = toast.loading('Generating PDF...');
-    const opt: any = {
-      margin:       0.5,
-      filename:     `ID-Card-${studentInfo.admissionNumber || studentInfo.fullName}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
-    };
-    const html2pdf = (await import('html2pdf.js')).default;
-    html2pdf().set(opt).from(idCardRef.current).save().then(() => {
+    const toastId = toast.loading('Downloading PDF...');
+    try {
+      const blob = await studentApi.downloadMyIdCardPdf();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ID-Card-${studentInfo.admissionNumber || studentInfo.fullName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
       toast.success('Downloaded successfully!', { id: toastId });
-    }).catch((err: any) => {
-      toast.error('Failed to generate PDF', { id: toastId });
+    } catch (err: any) {
+      toast.error('Failed to download PDF', { id: toastId });
       console.error(err);
-    });
+    }
   };
 
   const closePreview = () => {
