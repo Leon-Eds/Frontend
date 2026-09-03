@@ -15,11 +15,12 @@ interface IdCardProps {
     theme?: string;
   };
   principalName?: string;
+  idCardColor?: string;
 }
 
 const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
-  ({ student, schoolInfo, principalName = "Principal" }, ref) => {
-    const themeColor = schoolInfo.theme || "#053d26";
+  ({ student, schoolInfo, principalName = "Principal", idCardColor }, ref) => {
+    const themeColor = idCardColor || schoolInfo.theme || "#053d26";
     const accentColor = "#eab308"; // Gold/Yellow accent from design
 
     const issueDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, ' / ');
@@ -47,7 +48,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
 
           <div className="flex-1 flex flex-col items-center px-6 pt-12 relative z-10 w-full">
             {/* School Logo & Name */}
-            <div className="flex flex-col items-center mb-3">
+            <div className="flex flex-col items-center mb-2">
               {schoolInfo.logo ? (
                 <img src={schoolInfo.logo} alt="School Logo" className="h-10 object-contain mb-1" crossOrigin="anonymous" />
               ) : (
@@ -55,6 +56,9 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
                   {schoolInfo.name?.charAt(0) || "S"}
                 </div>
               )}
+              <h1 className="text-[10px] font-black text-gray-900 text-center uppercase leading-tight tracking-wider mt-1 w-full truncate px-2">
+                {schoolInfo.name || "LeonEd Institution"}
+              </h1>
             </div>
 
             {/* Photo */}

@@ -206,8 +206,8 @@ export default function FeeStructureSetup() {
       {/* Modal */}
       {isModalOpen && editingStructure && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] shadow-2xl">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
               <h3 className="font-bold text-lg text-gray-900">
                 {editingStructure.id ? "Edit Fee" : "Add New Fee"}
               </h3>
@@ -216,15 +216,11 @@ export default function FeeStructureSetup() {
               </button>
             </div>
             
-            <div className="p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div className={`p-4 rounded-xl border cursor-pointer transition-colors ${editingStructure.type === 'base' ? 'border-[#053d26] bg-[#053d26]/5' : 'border-gray-200 hover:border-[#053d26]/30'}`} onClick={() => setEditingStructure({ ...editingStructure, type: 'base' })}>
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 gap-4">
+                <div className={`p-4 rounded-xl border cursor-pointer transition-colors border-[#053d26] bg-[#053d26]/5`}>
                   <div className="font-bold text-gray-900 mb-1">Base Fee</div>
                   <div className="text-xs text-gray-500">Applies automatically to entire levels</div>
-                </div>
-                <div className={`p-4 rounded-xl border cursor-pointer transition-colors ${editingStructure.type === 'custom' ? 'border-amber-500 bg-amber-50' : 'border-gray-200 hover:border-amber-500/30'}`} onClick={() => setEditingStructure({ ...editingStructure, type: 'custom' })}>
-                  <div className="font-bold text-gray-900 mb-1">Custom Fee</div>
-                  <div className="text-xs text-gray-500">Assigned manually per student</div>
                 </div>
               </div>
 
@@ -245,6 +241,16 @@ export default function FeeStructureSetup() {
                   type="number" 
                   value={editingStructure.amount || ''} 
                   onChange={e => setEditingStructure({ ...editingStructure, amount: Number(e.target.value) })}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26] transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Account Name (Optional)</label>
+                <input 
+                  type="text" 
+                  value={editingStructure.accountName || ''} 
+                  onChange={e => setEditingStructure({ ...editingStructure, accountName: e.target.value })}
+                  placeholder="e.g. LeonEd School Main Account"
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26] transition-all"
                 />
               </div>
@@ -271,7 +277,6 @@ export default function FeeStructureSetup() {
                 />
               </div>
 
-              {editingStructure.type === 'base' && (
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Applicable Levels</label>
                   <div className="flex flex-wrap gap-2">
@@ -289,10 +294,9 @@ export default function FeeStructureSetup() {
                     })}
                   </div>
                 </div>
-              )}
             </div>
 
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0">
               <button 
                 onClick={() => setIsModalOpen(false)}
                 className="px-5 py-2.5 rounded-full font-bold text-gray-600 hover:bg-gray-200 transition-colors"

@@ -731,13 +731,16 @@ export default function StudentsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-gray-100 bg-gray-50 shrink-0 gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <h3 className="font-bold text-lg text-gray-800">ID Card Preview</h3>
-                <input 
-                  type="text" 
-                  value={principalName}
-                  onChange={(e) => setPrincipalName(e.target.value)}
-                  placeholder="Principal's Name"
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#053d26] w-full sm:w-48"
-                />
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Card Color</label>
+                  <input 
+                    type="color" 
+                    value={principalName || schoolInfo.theme || '#053d26'}
+                    onChange={(e) => setPrincipalName(e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                    title="Choose ID Card Theme Color"
+                  />
+                </div>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-auto">
                 <button onClick={() => window.print()} className="p-2 bg-white rounded-lg border border-gray-200 text-gray-600 hover:text-[#053d26] shadow-sm hover:bg-gray-50 transition-all" title="Print ID Card">
@@ -764,7 +767,7 @@ export default function StudentsPage() {
                   ref={idCardRef}
                   student={idCardStudent}
                   schoolInfo={schoolInfo}
-                  principalName={principalName}
+                  idCardColor={principalName || schoolInfo.theme}
                 />
               </div>
             </div>

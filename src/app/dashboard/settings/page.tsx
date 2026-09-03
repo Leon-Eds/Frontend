@@ -13,6 +13,10 @@ const THEMES = [
   { id: 'ocean', label: 'Ocean', colors: ['#1e3a8a', '#2563eb', '#60a5fa'] },
   { id: 'sunset', label: 'Sunset', colors: ['#9a3412', '#ea580c', '#fb923c'] },
   { id: 'royal', label: 'Royal', colors: ['#4c1d95', '#7c3aed', '#c084fc'] },
+  { id: 'crimson', label: 'Crimson', colors: ['#991b1b', '#b91c1c', '#f87171'] },
+  { id: 'slate', label: 'Slate', colors: ['#334155', '#475569', '#94a3b8'] },
+  { id: 'teal', label: 'Teal', colors: ['#115e59', '#0d9488', '#2dd4bf'] },
+  { id: 'maroon', label: 'Maroon', colors: ['#7f1d1d', '#991b1b', '#fca5a5'] },
 ];
 
 const FONTS = [

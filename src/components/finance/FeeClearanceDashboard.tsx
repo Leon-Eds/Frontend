@@ -33,6 +33,7 @@ export default function FeeClearanceDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Cleared" | "Unpaid" | "Pending Verification">("All");
 
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -539,9 +540,17 @@ export default function FeeClearanceDashboard() {
   };
 
   const filteredStudents = registry.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.refId.toLowerCase().includes(searchTerm.toLowerCase())
+    (statusFilter === "All" || s.status === statusFilter) &&
+    (s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    s.refId.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const stats = {
+    total: registry.length,
+    unpaid: registry.filter(s => s.status === 'Unpaid').length,
+    cleared: registry.filter(s => s.status === 'Cleared').length,
+    pending: registry.filter(s => s.status === 'Pending Verification').length,
+  };
 
   if (isLoading) {
     return (
@@ -620,11 +629,35 @@ export default function FeeClearanceDashboard() {
             <p className="text-xs text-gray-400 font-semibold mt-0.5">Showing {filteredStudents.length} of {registry.length} students</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-
-            <button className="px-3.5 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-600 transition-colors">
-              Filter by Program
+          <div className="flex flex-wrap items-center gap-2">
+            <button 
+              onClick={() => setStatusFilter("All")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${statusFilter === "All" ? "bg-gray-800 text-white" : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"}`}
+            >
+              All ({stats.total})
             </button>
+            <button 
+              onClick={() => setStatusFilter("Cleared")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${statusFilter === "Cleared" ? "bg-green-600 text-white" : "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"}`}
+            >
+              Cleared ({stats.cleared})
+            </button>
+            <button 
+              onClick={() => setStatusFilter("Unpaid")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${statusFilter === "Unpaid" ? "bg-red-600 text-white" : "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"}`}
+            >
+              Unpaid ({stats.unpaid})
+            </button>
+            <button 
+              onClick={() => setStatusFilter("Pending Verification")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${statusFilter === "Pending Verification" ? "bg-orange-500 text-white" : "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200"}`}
+            >
+              Pending ({stats.pending})
+            </button>
+
+            <div className="h-6 w-px bg-gray-200 mx-1"></div>
+
+
             <button className="px-3.5 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-600 transition-colors">
               {currentSessionName || "No Active Session"}{currentTermName ? ` — ${currentTermName} Term` : ""}
             </button>

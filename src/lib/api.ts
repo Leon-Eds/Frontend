@@ -452,12 +452,17 @@ export interface UpdateClassRequest {
 
 export interface SchoolClass {
   id: string;
+  schoolId: string;
   name: string;
   arm?: string;
+  capacity?: number;
   studentCount?: number;
-  subjects?: { id: string; name: string }[];
+  presentCount?: number;
+  subjects?: string[] | { id: string; name: string }[];
   formTeacherId?: string;
   formTeacherName?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AssignSubjectsToClassRequest {
@@ -1547,6 +1552,7 @@ export interface FeeStructure {
   amount: number;
   type: 'base' | 'custom';
   applicableLevels: string[]; // e.g. ["JSS 1", "JSS 2"]
+  accountName?: string;
   bankName?: string;
   accountNumber?: string;
 }

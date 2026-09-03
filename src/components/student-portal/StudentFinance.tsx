@@ -175,10 +175,11 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
       }];
   }
   
-  // Compute local fallback if backend returns 0
+  // Compute local fallback if backend returns 0 or if the local computed fee structures have been updated
   const computedTotal = feeBreakdown.reduce((sum, f) => sum + Number(f.amount || 0), 0);
   const backendTotal = Number(feesData?.totalAmount || feesData?.amountDue || 0);
-  const totalAmount = backendTotal > 0 ? backendTotal : computedTotal;
+  // Favor computedTotal so new fee structures uploaded by bursar reflect immediately on student's end
+  const totalAmount = computedTotal > 0 ? Math.max(computedTotal, backendTotal) : backendTotal;
   
   const backendPaid = Number(feesData?.amountPaid || feesData?.paidAmount || 0);
   const balance = totalAmount - backendPaid;

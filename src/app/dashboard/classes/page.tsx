@@ -721,7 +721,10 @@ export default function AcademicFlow() {
                         <h3 className="text-lg font-bold text-gray-900">{cls.name} {cls.arm ? `(${cls.arm})` : ''}</h3>
                         <div className="flex flex-col items-start gap-1">
                           <p className="text-xs text-gray-500">
-                            {cls.arm ? `Arm: ${cls.arm} • ` : ''}{cls.studentCount ?? 0} Students
+                            {cls.arm ? `Arm: ${cls.arm} • ` : ''}{cls.studentCount ?? 0} Enrolled
+                          </p>
+                          <p className="text-xs font-bold text-[#053d26] bg-green-50 px-2 py-1 rounded-full inline-block mt-1 border border-green-100">
+                            Present Today: {cls.presentCount ?? 0}
                           </p>
                           {(cls.formTeacherId || cls.formTeacherName) && (
                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-[#053d26] text-[10px] font-bold uppercase tracking-wide border border-green-100">
@@ -798,7 +801,7 @@ export default function AcademicFlow() {
                           <div>
                             <div className="font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{cls.name} {cls.arm ? `(${cls.arm})` : ''}</div>
                             <div className="text-xs text-gray-500">
-                              {cls.arm ? `${cls.arm} • ` : ''}{cls.studentCount ?? 0} students • {cls.subjects?.length ?? 0} subjects
+                              {cls.arm ? `${cls.arm} • ` : ''}{cls.studentCount ?? 0} students ({cls.presentCount ?? 0} present today) • {cls.subjects?.length ?? 0} subjects
                               {(cls.formTeacherId || cls.formTeacherName) && ` • 👨‍🏫 ${allTeachers.find(t => t.id === cls.formTeacherId)?.fullName || cls.formTeacherName || 'Assigned'}`}
                             </div>
                           </div>
