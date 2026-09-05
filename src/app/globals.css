@@ -100,6 +100,15 @@ input[type="reset"] {
 .bg-green-50, .bg-emerald-50 { background-color: var(--theme-badge-bg) !important; }
 .text-green-700, .text-emerald-700 { color: var(--theme-badge-text) !important; }
 
+/* Global Legibility Override: Force gray text to black in light mode */
+html:not(.dark) .text-gray-400,
+html:not(.dark) .text-gray-500,
+html:not(.dark) .text-gray-600,
+html:not(.dark) .text-gray-700,
+html:not(.dark) .text-gray-800 {
+  color: #000000 !important;
+}
+
 /* Dark Mode CSS Variables and Overrides */
 html.dark {
   color-scheme: dark;
