@@ -309,15 +309,7 @@ export default function StudentsPage() {
       ),
       className: 'w-1/6'
     },
-    {
-      header: 'Password',
-      accessor: (student) => (
-        <div className="text-sm text-gray-600 font-mono tracking-wider">
-          {student.password || '—'}
-        </div>
-      ),
-      className: 'w-1/6'
-    },
+
     {
       header: 'Enrolled',
       accessor: (student) => (
@@ -477,6 +469,13 @@ export default function StudentsPage() {
               actions={(student) => (
                 <div className="flex items-center gap-1 text-gray-400">
                   <button
+                    onClick={() => handlePreviewIdCard(student)}
+                    className="hover:text-blue-500 transition-colors p-1.5 rounded-lg hover:bg-gray-100"
+                    title="View ID Card"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                  </button>
+                  <button
                     onClick={() => setViewStudent(student)}
                     className="hover:text-[#053d26] transition-colors p-1.5 rounded-lg hover:bg-gray-100"
                     title="View details"
@@ -534,8 +533,8 @@ export default function StudentsPage() {
 
       {/* View Student Modal */}
       {viewStudent && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewStudent(null)}>
-          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={() => setViewStudent(null)}>
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold text-gray-900">Student Details</h2>
               <button onClick={() => setViewStudent(null)} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
@@ -566,7 +565,6 @@ export default function StudentsPage() {
                 ['Guardian', viewStudent.parentName || '—'],
                 ['Guardian Phone', viewStudent.parentPhone || '—'],
                 ['Guardian Email', viewStudent.parentEmail || '—'],
-                ['Portal Password', viewStudent.password || '—'],
                 ['Enrolled', formatDate(viewStudent.enrolledAt)],
               ].map(([label, val]) => (
                 <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50">
@@ -777,16 +775,6 @@ export default function StudentsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-gray-100 bg-gray-50 shrink-0 gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <h3 className="font-bold text-lg text-gray-800">ID Card Preview</h3>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Card Color</label>
-                  <input 
-                    type="color" 
-                    value={principalName || schoolInfo.theme || '#053d26'}
-                    onChange={(e) => setPrincipalName(e.target.value)}
-                    className="w-8 h-8 rounded cursor-pointer border-0 p-0"
-                    title="Choose ID Card Theme Color"
-                  />
-                </div>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-auto">
                 <button onClick={() => window.print()} className="p-2 bg-white rounded-lg border border-gray-200 text-gray-600 hover:text-[#053d26] shadow-sm hover:bg-gray-50 transition-all" title="Print ID Card">
@@ -813,7 +801,7 @@ export default function StudentsPage() {
                   ref={idCardRef}
                   student={idCardStudent}
                   schoolInfo={schoolInfo}
-                  idCardColor={principalName || schoolInfo.theme}
+                  idCardColor={schoolInfo.theme}
                 />
               </div>
             </div>

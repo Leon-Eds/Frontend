@@ -129,7 +129,7 @@ export default function SettingsPage() {
       const isDark = localStorage.getItem('leoned_dark_mode') === 'true';
       setDarkMode(isDark);
       const sId = parsedUser?.schoolId || parsedUser?.SchoolId || '';
-      const activeTheme = (sId ? localStorage.getItem(`leoned_theme_${sId}`) : null) || 'forest';
+      const activeTheme = (sId ? localStorage.getItem(`leoned_theme_${sId}`) : null) || '#053d26';
       setTheme(activeTheme);
       const activeFont = (sId ? localStorage.getItem(`leoned_font_${sId}`) : null) || 'sans';
       setFont(activeFont);
@@ -178,15 +178,15 @@ export default function SettingsPage() {
             
             // Attempt to load theme and font if they are coming from the backend directly
             if (school?.schoolTheme) {
-              const st = school.schoolTheme;
-              const matchedFont = FONTS.find(f => f.apiName === st.font || f.class.includes(st.font));
-              if (matchedFont) setFont(matchedFont.id);
-              
-              const matchedTheme = THEMES.find(t => t.colors[0] === st.primaryColor);
-              if (matchedTheme) setTheme(matchedTheme.id);
-            } else {
-              if (school?.theme) setTheme(school.theme);
-              if (school?.font) setFont(school.font);
+              if (school.schoolTheme.font) {
+                const matchedFont = FONTS.find(f => f.apiName === school.schoolTheme.font || f.class.includes(school.schoolTheme.font));
+                if (matchedFont) setFont(matchedFont.id);
+              }
+              if (school.schoolTheme.primaryColor) {
+                setTheme(school.schoolTheme.primaryColor);
+                document.documentElement.style.setProperty('--theme-primary', school.schoolTheme.primaryColor);
+                document.documentElement.style.setProperty('--theme-secondary', school.schoolTheme.primaryColor);
+              }
             }
           }).catch(() => {});
         }
@@ -339,6 +339,12 @@ export default function SettingsPage() {
     setToast({ message: `Dark mode ${checked ? 'enabled' : 'disabled'}`, type: 'success' });
   };
 
+  const handleThemeChangeLocal = (newTheme: string) => {
+    setTheme(newTheme);
+    document.documentElement.style.setProperty('--theme-primary', newTheme);
+    document.documentElement.style.setProperty('--theme-secondary', newTheme);
+  };
+
   const handleThemeChange = async (newTheme: string) => {
     setTheme(newTheme);
     try {
@@ -354,16 +360,18 @@ export default function SettingsPage() {
       }
 
       document.documentElement.classList.remove('theme-forest', 'theme-ocean', 'theme-sunset', 'theme-royal');
-      document.documentElement.classList.add(`theme-${newTheme}`);
+      
+      // Update custom theme variable globally
+      document.documentElement.style.setProperty('--theme-primary', newTheme);
+      document.documentElement.style.setProperty('--theme-secondary', newTheme);
       
       if (sId) {
-        const selectedThemeObj = THEMES.find(t => t.id === newTheme) || THEMES[0];
         const selectedFontObj = FONTS.find(f => f.id === font) || FONTS[0];
         const payload = { 
           schoolTheme: {
-            primaryColor: selectedThemeObj.colors[0],
-            secondaryColor: selectedThemeObj.colors[1],
-            accentColor: selectedThemeObj.colors[2],
+            primaryColor: newTheme,
+            secondaryColor: newTheme,
+            accentColor: newTheme,
             font: selectedFontObj.apiName
           }
         };
@@ -393,13 +401,12 @@ export default function SettingsPage() {
       document.documentElement.classList.add(`font-${newFont}`);
 
       if (sId) {
-        const selectedThemeObj = THEMES.find(t => t.id === theme) || THEMES[0];
         const selectedFontObj = FONTS.find(f => f.id === newFont) || FONTS[0];
         const payload = { 
           schoolTheme: {
-            primaryColor: selectedThemeObj.colors[0],
-            secondaryColor: selectedThemeObj.colors[1],
-            accentColor: selectedThemeObj.colors[2],
+            primaryColor: theme,
+            secondaryColor: theme,
+            accentColor: theme,
             font: selectedFontObj.apiName
           }
         };
@@ -989,30 +996,25 @@ export default function SettingsPage() {
             <div>
               <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Color Theme</h3>
               <p className="text-xs text-gray-500 mb-4">Choose a branding accent that reflects your school&apos;s identity</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {THEMES.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => handleThemeChange(t.id)}
-                    className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${
-                      theme === t.id
-                        ? 'border-[#053d26] bg-green-50/50 shadow-md scale-[1.02]'
-                        : 'border-gray-100 bg-gray-50 hover:border-gray-200 hover:shadow-sm'
-                    }`}
-                  >
-                    {theme === t.id && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#053d26] flex items-center justify-center">
-                        <Check className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                    <div className="flex gap-1.5">
-                      {t.colors.map((c, i) => (
-                        <div key={i} className="w-6 h-6 rounded-full shadow-sm border border-white/50" style={{ backgroundColor: c }} />
-                      ))}
-                    </div>
-                    <span className="text-xs font-bold text-gray-700">{t.label}</span>
-                  </button>
-                ))}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                <div className="flex items-center gap-4">
+                  <input
+                    type="color"
+                    value={theme}
+                    onChange={(e) => handleThemeChangeLocal(e.target.value)}
+                    className="w-16 h-16 rounded-xl cursor-pointer bg-white p-1 shadow-sm border border-gray-200"
+                  />
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">Custom Brand Color</div>
+                    <div className="text-xs text-gray-500 mt-1 uppercase font-mono">{theme}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleThemeChange(theme)}
+                  className="sm:ml-auto px-6 py-2.5 bg-[#053d26] text-white text-sm font-bold rounded-xl hover:bg-[#042c1b] transition-colors shadow-sm"
+                >
+                  Save Theme
+                </button>
               </div>
             </div>
 
