@@ -1218,7 +1218,7 @@ export default function FeeClearanceDashboard() {
           
           <div className="mt-8 pt-4 border-t border-gray-200 text-center">
             <p className="text-[10px] font-bold text-gray-400">This is a system-generated receipt and does not require a physical signature.</p>
-            <p className="text-[9px] font-bold text-gray-300 mt-1">© {new Date().getFullYear()} {currentUser?.schoolName || currentUser?.name || 'LeonEd'}. Academic Architect System.</p>
+            <p className="text-[9px] font-black text-gray-300 mt-1">© {new Date().getFullYear()} {currentUser?.schoolName || currentUser?.name || 'LeonEd'}. Academic Architect System.</p>
           </div>
         </div>
       )}

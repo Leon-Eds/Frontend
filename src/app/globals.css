@@ -18,6 +18,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-weight: 600;
+  -webkit-text-stroke: 0.2px currentColor;
 }
 
 /* Restore the pointer (hand/palm) cursor for all buttons across the app */
