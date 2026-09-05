@@ -447,12 +447,14 @@ export interface CreateClassRequest {
 export interface UpdateClassRequest {
   name?: string;
   arm?: string;
+  academicSessionId?: string;
   formTeacherId?: string;
 }
 
 export interface SchoolClass {
   id: string;
   schoolId: string;
+  academicSessionId?: string;
   name: string;
   arm?: string;
   capacity?: number;
@@ -1216,6 +1218,14 @@ export const sessionApi = {
     });
     return handleResponse(res);
   },
+
+  delete: async (id: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/academicsession/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
 };
 
 // Schools (for superadmin)
@@ -1867,29 +1877,40 @@ export const bursarApi = {
 
 // Reports API
 export const reportApi = {
-  getEnrollment: async (termId?: string) => {
-    const qs = termId ? `?termId=${termId}` : '';
+  getEnrollment: async (termId?: string, academicSessionId?: string, classId?: string, gender?: string) => {
+    const q = new URLSearchParams();
+    if (termId) q.append('termId', termId);
+    if (academicSessionId) q.append('academicSessionId', academicSessionId);
+    if (classId) q.append('classId', classId);
+    if (gender) q.append('gender', gender);
+    const qs = q.toString() ? `?${q.toString()}` : '';
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/enrollment${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
-  getAttendance: async (classId: string, startDate?: string, endDate?: string) => {
+  getAttendance: async (classId: string, startDate?: string, endDate?: string, termId?: string, academicSessionId?: string) => {
     const q = new URLSearchParams();
     if (startDate) q.append('startDate', startDate);
     if (endDate) q.append('endDate', endDate);
+    if (termId) q.append('termId', termId);
+    if (academicSessionId) q.append('academicSessionId', academicSessionId);
     const qs = q.toString() ? `?${q.toString()}` : '';
     const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/class/${classId}/stats${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
-  getPerformance: async (classId?: string, termId?: string) => {
+  getPerformance: async (classId?: string, termId?: string, academicSessionId?: string) => {
     const q = new URLSearchParams();
     if (classId) q.append('classId', classId);
     if (termId) q.append('termId', termId);
+    if (academicSessionId) q.append('academicSessionId', academicSessionId);
     const qs = q.toString() ? `?${q.toString()}` : '';
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/performance${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
-  getFeePayment: async (termId?: string) => {
-    const qs = termId ? `?termId=${termId}` : '';
+  getFeePayment: async (termId?: string, academicSessionId?: string) => {
+    const q = new URLSearchParams();
+    if (termId) q.append('termId', termId);
+    if (academicSessionId) q.append('academicSessionId', academicSessionId);
+    const qs = q.toString() ? `?${q.toString()}` : '';
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/feepayment${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
@@ -1901,8 +1922,12 @@ export const reportApi = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/revenue${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
-  getStudentStatus: async (termId?: string) => {
-    const qs = termId ? `?termId=${termId}` : '';
+  getStudentStatus: async (termId?: string, status?: string, academicSessionId?: string) => {
+    const q = new URLSearchParams();
+    if (termId) q.append('termId', termId);
+    if (status) q.append('status', status);
+    if (academicSessionId) q.append('academicSessionId', academicSessionId);
+    const qs = q.toString() ? `?${q.toString()}` : '';
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/studentstatus${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
@@ -1910,8 +1935,11 @@ export const reportApi = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/staff`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
-  getOutstandingFees: async (termId?: string) => {
-    const qs = termId ? `?termId=${termId}` : '';
+  getOutstandingFees: async (termId?: string, academicSessionId?: string) => {
+    const q = new URLSearchParams();
+    if (termId) q.append('termId', termId);
+    if (academicSessionId) q.append('academicSessionId', academicSessionId);
+    const qs = q.toString() ? `?${q.toString()}` : '';
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/outstandingfees${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
@@ -1919,7 +1947,7 @@ export const reportApi = {
 
 // Promotion API
 export const promotionApi = {
-  promote: async (data: { studentIds: string[], targetClassId: string, targetAcademicSessionId: string }) => {
+  promote: async (data: { mappings: { sourceClassId: string, targetClassId: string }[] }) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/promotion/promote`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -1927,7 +1955,7 @@ export const promotionApi = {
     });
     return handleResponse(res);
   },
-  graduate: async (data: { studentIds: string[] }) => {
+  graduate: async (data: { classId: string }) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/promotion/graduate`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -1940,6 +1968,12 @@ export const promotionApi = {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({ reason }),
+    });
+    return handleResponse(res);
+  },
+  getStudentHistory: async (studentId: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/promotion/student/${studentId}/history`, {
+      headers: getAuthHeaders(),
     });
     return handleResponse(res);
   },

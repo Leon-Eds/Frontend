@@ -41,6 +41,22 @@ export default function StudentsPage() {
 
   // View modal
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
+  const [studentHistory, setStudentHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    if (viewStudent?.id) {
+      setIsLoadingHistory(true);
+      import('@/lib/api').then(({ promotionApi }) => {
+        promotionApi.getStudentHistory(viewStudent.id)
+          .then(res => setStudentHistory(Array.isArray(res) ? res : []))
+          .catch(() => setStudentHistory([]))
+          .finally(() => setIsLoadingHistory(false));
+      });
+    } else {
+      setStudentHistory([]);
+    }
+  }, [viewStudent?.id]);
 
   // ID Card modal
   const [idCardStudent, setIdCardStudent] = useState<Student | null>(null);
@@ -146,7 +162,11 @@ export default function StudentsPage() {
       setEditStudent(null);
       fetchStudents();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Failed to save changes");
+      let msg = err instanceof Error ? err.message : "Failed to save changes";
+      if (msg.toLowerCase().includes("session") || msg.toLowerCase().includes("promot")) {
+        msg = `Cannot change class across sessions: ${msg}. Please use the Promotions flow to move a student to a new session.`;
+      }
+      setSaveError(msg);
     } finally {
       setIsSaving(false);
     }
@@ -554,6 +574,32 @@ export default function StudentsPage() {
                   <span className="text-sm font-bold text-gray-900">{val}</span>
                 </div>
               ))}
+            </div>
+
+            {/* Academic History */}
+            <div className="mt-6 border-t border-gray-100 pt-6">
+              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">Academic History</h4>
+              {isLoadingHistory ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-[#053d26]" />
+                </div>
+              ) : studentHistory.length > 0 ? (
+                <div className="space-y-3">
+                  {studentHistory.map((hist, idx) => (
+                    <div key={hist.id || idx} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <div>
+                        <div className="font-bold text-sm text-gray-900">{hist.className || 'Unknown Class'}</div>
+                        <div className="text-xs text-gray-500">{hist.sessionName || 'Unknown Session'}</div>
+                      </div>
+                      <div className="text-xs font-semibold text-[#053d26] bg-green-50 px-2 py-1 rounded-md">
+                        {new Date(hist.createdAt).getFullYear()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-sm text-gray-500">No historical records found.</div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-8">

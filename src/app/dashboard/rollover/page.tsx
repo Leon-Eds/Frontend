@@ -185,6 +185,17 @@ export default function SessionRollover() {
     }
   };
 
+  const handleDeleteSession = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this academic session? All associated classes, terms, and promotion history mapped to this session will be removed.")) return;
+    try {
+      await sessionApi.delete(id);
+      fetchSessions();
+      toast.success("Session deleted successfully");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete session");
+    }
+  };
+
   // Calculate session progress (based on date range)
   const getSessionProgress = (session: AcademicSession) => {
     if (!session.startDate || !session.endDate) return 0;
@@ -379,6 +390,15 @@ export default function SessionRollover() {
                     )}
                     {session.isCurrent && (
                       <span className="px-3 py-1.5 rounded-full bg-green-400/20 text-green-200 text-[10px] font-bold shrink-0">Active</span>
+                    )}
+                    {!session.isCurrent && (
+                      <button
+                        onClick={() => handleDeleteSession(session.id)}
+                        className="px-3 py-1.5 rounded-full bg-red-400/20 text-red-200 text-[10px] font-bold hover:bg-red-400/30 transition-colors shrink-0"
+                        title="Delete Session"
+                      >
+                        Delete
+                      </button>
                     )}
                   </div>
                 </div>

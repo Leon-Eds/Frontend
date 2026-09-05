@@ -28,6 +28,8 @@ export default function ReportsHub() {
 
   const [classes, setClasses] = useState<any[]>([]);
   const [terms, setTerms] = useState<any[]>([]);
+  const [allSessions, setAllSessions] = useState<any[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [selectedTermId, setSelectedTermId] = useState<string>("");
   const [startDate, setStartDate] = useState<string>(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
@@ -59,16 +61,11 @@ export default function ReportsHub() {
         }
 
         const validSessions = Array.isArray(sessionsData) ? sessionsData : [];
+        setAllSessions(validSessions);
         const activeSession = validSessions.find((s: any) => s.isCurrent) || validSessions[0];
-        if (activeSession && Array.isArray(activeSession.terms)) {
-          setTerms(activeSession.terms);
-          const activeTerm = activeSession.terms.find((t: any) => t.isCurrent);
-          if (activeTerm) setSelectedTermId(activeTerm.id || (activeTerm as any)._id || (activeTerm as any).termId);
-          else if (activeSession.terms.length > 0) {
-            setSelectedTermId(activeSession.terms[0].id || (activeSession.terms[0] as any)._id || (activeSession.terms[0] as any).termId);
-          }
-        } else {
-          setTerms([]);
+        if (activeSession) {
+          const sId = activeSession.id || (activeSession as any)._id || (activeSession as any).academicSessionId;
+          setSelectedSessionId(sId);
         }
       } catch (err) {
         console.error("Failed to load filters for reports", err);
@@ -76,6 +73,20 @@ export default function ReportsHub() {
     };
     loadFilters();
   }, []);
+
+  useEffect(() => {
+    if (!selectedSessionId || allSessions.length === 0) return;
+    const session = allSessions.find(s => (s.id || s._id) === selectedSessionId);
+    if (session && Array.isArray(session.terms)) {
+      setTerms(session.terms);
+      if (session.terms.length > 0) {
+        const activeTerm = session.terms.find((t: any) => t.isCurrent) || session.terms[0];
+        setSelectedTermId(activeTerm.id || activeTerm._id);
+      }
+    } else {
+      setTerms([]);
+    }
+  }, [selectedSessionId, allSessions]);
 
   const fetchReport = async (type: string, classId: string, termId: string) => {
     if (type === "performance" && (!classId || !termId)) {
@@ -94,14 +105,14 @@ export default function ReportsHub() {
     try {
       let res: any;
       switch (type) {
-        case "enrollment": res = await reportApi.getEnrollment(termId); break;
-        case "attendance": res = await reportApi.getAttendance(classId, startDate, endDate); break;
-        case "performance": res = await reportApi.getPerformance(classId, termId); break;
-        case "feepayment": res = await reportApi.getFeePayment(termId); break;
+        case "enrollment": res = await reportApi.getEnrollment(termId, selectedSessionId); break;
+        case "attendance": res = await reportApi.getAttendance(classId, startDate, endDate, termId, selectedSessionId); break;
+        case "performance": res = await reportApi.getPerformance(classId, termId, selectedSessionId); break;
+        case "feepayment": res = await reportApi.getFeePayment(termId, selectedSessionId); break;
         case "revenue": res = await reportApi.getRevenue(startDate, endDate); break;
-        case "studentstatus": res = await reportApi.getStudentStatus(termId); break;
+        case "studentstatus": res = await reportApi.getStudentStatus(termId, undefined, selectedSessionId); break;
         case "staff": res = await reportApi.getStaff(); break;
-        case "outstandingfees": res = await reportApi.getOutstandingFees(); break;
+        case "outstandingfees": res = await reportApi.getOutstandingFees(termId, selectedSessionId); break;
       }
       let fetchedData = res?.data || res || [];
       if (fetchedData && !Array.isArray(fetchedData)) {
@@ -196,6 +207,19 @@ export default function ReportsHub() {
           <p className="text-gray-600">Comprehensive analytics and printable reports for all school operations.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          {allSessions.length > 0 && (
+            <select
+              value={selectedSessionId}
+              onChange={(e) => setSelectedSessionId(e.target.value)}
+              className="px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] shadow-sm appearance-none min-w-[150px]"
+            >
+              {allSessions.map(s => (
+                <option key={s.id || s._id} value={s.id || s._id}>
+                  {s.name || s.sessionName || "Session"} {s.isCurrent ? '(Current)' : ''}
+                </option>
+              ))}
+            </select>
+          )}
           {['attendance', 'performance'].includes(activeReport) && classes.length > 0 && (
             <select
               value={selectedClassId}

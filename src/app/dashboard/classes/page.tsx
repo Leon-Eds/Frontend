@@ -12,6 +12,8 @@ export default function AcademicFlow() {
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [currentSession, setCurrentSession] = useState<AcademicSession | null>(null);
+  const [allSessions, setAllSessions] = useState<AcademicSession[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -108,6 +110,12 @@ export default function AcademicFlow() {
       const sessions = Array.isArray(sessionData) ? sessionData : [];
       const active = sessions.find(s => s.isCurrent);
       setCurrentSession(active || null);
+      setAllSessions(sessions);
+      if (active && !selectedSessionId) {
+        setSelectedSessionId(active.id);
+      } else if (sessions.length > 0 && !selectedSessionId) {
+        setSelectedSessionId(sessions[0].id);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load academic data";
       setError(message);
@@ -311,7 +319,8 @@ export default function AcademicFlow() {
     }
   };
 
-  const totalStudents = classes.reduce((acc, c) => acc + (c.studentCount || 0), 0);
+  const filteredClasses = selectedSessionId === "all" ? classes : classes.filter(c => c.academicSessionId === selectedSessionId);
+  const totalStudents = filteredClasses.reduce((acc, c) => acc + (c.studentCount || 0), 0);
   const currentClass = classes.find(c => c.id === selectedClassId);
   const classStudents = allStudents.filter(s => s.classId === selectedClassId);
   const unassignedStudents = allStudents.filter(s => !s.classId || s.classId === "");
@@ -603,13 +612,15 @@ export default function AcademicFlow() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3 shrink-0">
-              <button
-                onClick={() => { setActiveModal('createClass'); setFormError(''); }}
-                className="flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm text-sm"
-              >
-                <Plus className="h-5 w-5" />
-                Add New Class
-              </button>
+              {selectedSessionId === currentSession?.id && (
+                <button
+                  onClick={() => { setActiveModal('createClass'); setFormError(''); }}
+                  className="flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm text-sm"
+                >
+                  <Plus className="h-5 w-5" />
+                  Add New Class
+                </button>
+              )}
               <button
                 onClick={() => { setActiveModal('subjectLibrary'); setFormError(''); }}
                 className="flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full bg-white border border-gray-200 text-gray-900 font-bold hover:bg-gray-50 transition-colors shadow-sm text-sm"
@@ -624,7 +635,7 @@ export default function AcademicFlow() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             <div className="bg-white rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-4">Total Classes</p>
-              <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-2">{classes.length}</div>
+              <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-2">{filteredClasses.length}</div>
               <p className="text-xs text-gray-500 font-semibold">Registered Classes</p>
             </div>
             <div className="bg-white rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
@@ -659,7 +670,7 @@ export default function AcademicFlow() {
                 Retry
               </button>
             </div>
-          ) : classes.length === 0 ? (
+          ) : filteredClasses.length === 0 ? (
             <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-12 text-center">
               <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="h-8 w-8 text-gray-400" />
@@ -684,9 +695,21 @@ export default function AcademicFlow() {
             </div>
           ) : (
             <div>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900">All Classes</h2>
-                <div className="bg-gray-100 rounded-full p-1 flex text-xs font-bold">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-gray-900">Registered Classes</h2>
+                  <select
+                    value={selectedSessionId}
+                    onChange={(e) => setSelectedSessionId(e.target.value)}
+                    className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#053d26]/20"
+                  >
+                    <option value="all">All Sessions</option>
+                    {allSessions.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Current)' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="bg-gray-100 rounded-full p-1 flex text-xs font-bold shrink-0">
                   <button
                     onClick={() => setViewMode('grid')}
                     className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
@@ -704,7 +727,7 @@ export default function AcademicFlow() {
 
               {viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  {classes.map((cls) => (
+                  {filteredClasses.map((cls) => (
                     <div key={cls.id} className="bg-white rounded-2xl sm:rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col h-full">
                       <div className="flex justify-between items-start mb-6">
                         <div className="h-14 w-14 rounded-2xl bg-[#053d26] text-white flex items-center justify-center text-lg font-bold">
@@ -765,34 +788,38 @@ export default function AcademicFlow() {
                         >
                           View Class
                         </button>
-                        <button
-                          onClick={() => handleDeleteClass(cls.id)}
-                          className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
-                          title="Delete Class"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {selectedSessionId === currentSession?.id && (
+                          <button
+                            onClick={() => handleDeleteClass(cls.id)}
+                            className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                            title="Delete Class"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
 
                   {/* Add another class card */}
-                  <button
-                    onClick={() => { setActiveModal('createClass'); setFormError(''); }}
-                    className="bg-gray-50 rounded-2xl sm:rounded-[2rem] p-8 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center min-h-[240px] hover:border-gray-400 hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-sm text-[#b05e1c] mb-4">
-                      <Plus className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">Add New Class</h3>
-                    <p className="text-sm text-gray-500">Create a new class level</p>
-                  </button>
+                  {selectedSessionId === currentSession?.id && (
+                    <button
+                      onClick={() => { setActiveModal('createClass'); setFormError(''); }}
+                      className="bg-gray-50 rounded-2xl sm:rounded-[2rem] p-8 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center min-h-[240px] hover:border-gray-400 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-sm text-[#b05e1c] mb-4">
+                        <Plus className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">Add New Class</h3>
+                      <p className="text-sm text-gray-500">Create a new class level</p>
+                    </button>
+                  )}
                 </div>
               ) : (
                 /* List View */
                 <div className="bg-white rounded-2xl sm:rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
                   <div className="divide-y divide-gray-100">
-                    {classes.map(cls => (
+                    {filteredClasses.map(cls => (
                       <div key={cls.id} className="flex items-center justify-between p-4 sm:p-6 hover:bg-gray-50/50 transition-colors">
                         <div className="flex items-center gap-4 cursor-pointer animate-in fade-in" onClick={() => setSelectedClassId(cls.id)}>
                           <div className="h-12 w-12 rounded-2xl bg-[#053d26] text-white flex items-center justify-center text-sm font-bold shrink-0">
@@ -814,12 +841,14 @@ export default function AcademicFlow() {
                           >
                             View
                           </button>
-                          <button
-                            onClick={() => handleDeleteClass(cls.id)}
-                            className="text-gray-400 hover:text-red-500 transition-colors p-1.5"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {selectedSessionId === currentSession?.id && (
+                            <button
+                              onClick={() => handleDeleteClass(cls.id)}
+                              className="text-gray-400 hover:text-red-500 transition-colors p-1.5"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
