@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, User, Phone, Building2, ChevronLeft, CheckCircle2, Send } from "lucide-react";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 
@@ -48,6 +49,7 @@ export default function RequestDemoPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <Link href="/" className="flex items-center gap-2">
+              <Image src="/logo.png" alt="LeonEd" width={40} height={40} className="object-contain" />
               <span className="text-xl font-bold text-gray-900"><LeonEdLogoText /></span>
             </Link>
 

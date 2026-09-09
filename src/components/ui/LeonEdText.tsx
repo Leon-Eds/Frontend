@@ -2,11 +2,10 @@ import React from "react";
 
 export function LeonEdLogoText() {
   return (
-    <img 
-      src="/logo.png" 
-      alt="LeonEd Logo" 
-      className="inline-block h-6 w-auto align-middle mx-1 -mt-1" 
-    />
+    <span className="font-bold">
+      <span style={{ color: '#053d26' }}>Leon</span>
+      <span style={{ color: '#b45309' }}>Ed</span>
+    </span>
   );
 }
 
