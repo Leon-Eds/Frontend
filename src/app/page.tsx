@@ -17,7 +17,6 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.png" alt="LeonEd" width={40} height={40} className="object-contain" />
               <span className="text-xl font-bold text-gray-900"><LeonEdLogoText /></span>
             </Link>
 
@@ -247,10 +246,9 @@ export default function LandingPage() {
       <footer className="bg-[#032416] text-white py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="md:col-span-2 space-y-6">
-            <div className="flex items-center gap-3">
-              <Image src="/logo.png" alt="LeonEd" width={40} height={40} className="object-contain" />
+            <Link href="/" className="flex items-center gap-2 mb-6">
               <span className="text-xl font-bold"><LeonEdLogoText /></span>
-            </div>
+            </Link>
             <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
               {t("footer.desc")}
             </p>
