@@ -182,15 +182,6 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
                   <span className="text-gray-900 uppercase">{student.emergencyContactPhone || student.parentPhone || student.guardianPhone || 'N/A'}</span>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: themeColor }}>
-                  <Users className="w-3 h-3 text-white" />
-                </div>
-                <div className="flex flex-col text-[9px] font-bold">
-                  <span className="text-gray-500">RELATIONSHIP:</span>
-                  <span className="text-gray-900 uppercase">{student.emergencyContactRelation || student.parentRelationship || 'PARENT/GUARDIAN'}</span>
-                </div>
-              </div>
             </div>
 
             <div className="w-full border-t border-gray-200 mb-2"></div>
@@ -220,7 +211,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
             </div>
             
             <p className="text-[7px] text-white font-medium z-10 tracking-widest uppercase opacity-90 relative">
-              {schoolInfo.address || "www.leonedu.com"}
+              {schoolInfo.address || "STUDENT ID CARD"}
             </p>
           </div>
         </div>

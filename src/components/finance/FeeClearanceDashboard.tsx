@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import toast from 'react-hot-toast';
-import { Eye, Search, Filter, Download, MoreVertical, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Printer, AlertCircle, Loader2, RotateCw, Lock, UploadCloud, Plus, Mail, Check, FileText, X, Settings2, XCircle, CheckCircle, ExternalLink } from "lucide-react";
+import { Eye, Search, Filter, Download, MoreVertical, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Printer, AlertCircle, Loader2, RotateCw, Lock, UploadCloud, Plus, Mail, Check, FileText, X, Settings2, XCircle, CheckCircle, ExternalLink, History } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { studentApi, sessionApi, classApi, bursarApi, dashboardApi, uploadToCloudinary } from "@/lib/api";
@@ -82,6 +82,67 @@ export default function FeeClearanceDashboard() {
   
   // Print state
   const [receiptStudent, setReceiptStudent] = useState<any>(null);
+
+  // History state
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyStudent, setHistoryStudent] = useState<any>(null);
+  const [historyRecords, setHistoryRecords] = useState<any[]>([]);
+  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
+
+  const handleViewHistory = async (student: any) => {
+    setHistoryStudent(student);
+    setIsHistoryModalOpen(true);
+    setIsFetchingHistory(true);
+    setHistoryRecords([]);
+    try {
+      const sessionData = await sessionApi.getAll().catch(() => []);
+      
+      const allTerms: any[] = [];
+      if (Array.isArray(sessionData)) {
+        sessionData.forEach((session: any) => {
+          if (session.terms && Array.isArray(session.terms)) {
+            session.terms.forEach((term: any) => {
+               allTerms.push({
+                 termId: term.id,
+                 termNumber: term.termNumber,
+                 sessionName: session.name
+               });
+            });
+          }
+        });
+      }
+
+      const feePromises = allTerms.map(async (t) => {
+        try {
+          const res = await bursarApi.getStudentFees(student.id, t.termId);
+          let records: any[] = [];
+          if (Array.isArray(res)) records = res;
+          else if (res && Array.isArray((res as any).data)) records = (res as any).data;
+          else if (res && Array.isArray((res as any).items)) records = (res as any).items;
+          else if (res && typeof res === 'object') records = [(res as any).data || res];
+          
+          return records.map(r => ({
+             ...r,
+             term: r.term || { termNumber: t.termNumber, session: { name: t.sessionName } }
+          }));
+        } catch (e) {
+          return [];
+        }
+      });
+      
+      const results = await Promise.all(feePromises);
+      const flattenedRecords = results.flat().filter(Boolean);
+      
+      flattenedRecords.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
+      
+      setHistoryRecords(flattenedRecords);
+    } catch (err) {
+      console.error("Failed to fetch history:", err);
+      toast.error("Failed to fetch payment history");
+    } finally {
+      setIsFetchingHistory(false);
+    }
+  };
 
   const handleOpenDetails = (student: any) => {
     setDetailStudent(student);
@@ -709,6 +770,13 @@ export default function FeeClearanceDashboard() {
                   </td>
                   <td className="py-5 px-8">
                     <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => handleViewHistory(student)}
+                        className="p-2 rounded-xl text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Payment History"
+                      >
+                        <History className="w-5 h-5" />
+                      </button>
                       {student.status === "Cleared" && (
                         <>
                           <button 
@@ -1218,7 +1286,88 @@ export default function FeeClearanceDashboard() {
           
           <div className="mt-8 pt-4 border-t border-gray-200 text-center">
             <p className="text-[10px] font-bold text-gray-400">This is a system-generated receipt and does not require a physical signature.</p>
-            <p className="text-[9px] font-black text-gray-300 mt-1">© {new Date().getFullYear()} {currentUser?.schoolName || currentUser?.name || 'LeonEd'}. Academic Architect System.</p>
+            <p className="text-[9px] font-black text-gray-300 mt-1">© {new Date().getFullYear()} {currentUser?.schoolName || currentUser?.name || 'LeonEd'}. School Management System.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Payment History Modal */}
+      {isHistoryModalOpen && historyStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                  <History className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-gray-900">Payment History</h3>
+                  <p className="text-xs text-gray-500 font-medium">{historyStudent.name || historyStudent.fullName}</p>
+                </div>
+              </div>
+              <button onClick={() => setIsHistoryModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50/30">
+              {isFetchingHistory ? (
+                <div className="flex flex-col items-center justify-center h-40 text-gray-400 gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#053d26]" />
+                  <p className="text-sm font-medium">Fetching history records...</p>
+                </div>
+              ) : historyRecords.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-40 text-gray-400">
+                  <History className="w-12 h-12 mb-3 opacity-20" />
+                  <p className="text-sm font-bold">No past payment records found.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {historyRecords.map((record, idx) => (
+                    <div key={record.id || idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:border-[#053d26]/30">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                          record.status === 'Cleared' ? 'bg-green-50 text-green-600' :
+                          record.status === 'Pending Verification' ? 'bg-amber-50 text-amber-600' :
+                          'bg-red-50 text-red-600'
+                        }`}>
+                          {record.status === 'Cleared' ? <CheckCircle className="w-6 h-6" /> :
+                           record.status === 'Pending Verification' ? <Loader2 className="w-6 h-6" /> :
+                           <XCircle className="w-6 h-6" />}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                            {record.term?.termNumber || 'Unknown'} Term
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                              {record.session?.name || record.term?.session?.name || 'Unknown Session'}
+                            </span>
+                          </h4>
+                          <p className="text-sm text-gray-500 mt-1 flex items-center gap-4">
+                            <span>Amount Due: <strong className="text-gray-900">₦{(record.amountDue || 0).toLocaleString()}</strong></span>
+                            <span>Amount Paid: <strong className="text-gray-900">₦{(record.amountPaid || 0).toLocaleString()}</strong></span>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-lg ${
+                          record.status === 'Cleared' ? 'bg-green-100 text-green-700' :
+                          record.status === 'Pending Verification' ? 'bg-amber-100 text-amber-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {record.status}
+                        </span>
+                        {record.updatedAt && (
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            {new Date(record.updatedAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

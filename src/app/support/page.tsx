@@ -80,7 +80,7 @@ export default function SystemSupport() {
             <h3 className="text-2xl font-bold">All Systems Operational</h3>
             <p className="text-sm text-green-100/70">Monitoring API clusters and database clusters in real-time.</p>
           </div>
-          <button className="px-8 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-sm transition-all whitespace-nowrap">
+          <button onClick={() => alert("No past incidents on record.")} className="px-8 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-sm transition-all whitespace-nowrap">
             View Incident History
           </button>
         </div>

@@ -95,10 +95,42 @@ export default function SessionRollover() {
     setIsCreating(true);
     setCreateError("");
     try {
-      await sessionApi.create(newSession);
+      const createdSession = await sessionApi.create(newSession);
       setShowCreateSession(false);
       setNewSession({ name: '', startDate: '', endDate: '' });
       fetchSessions();
+      
+      toast(
+        (t) => (
+          <div className="flex flex-col gap-3 p-1">
+            <div>
+              <p className="font-bold text-gray-900">Session Created!</p>
+              <p className="text-sm text-gray-600">Would you like to activate this new session now?</p>
+            </div>
+            <div className="flex gap-2 mt-1">
+              <button 
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  const session = createdSession as any;
+                  if (session && session.id) {
+                    handleSetCurrentSession(session.id);
+                  }
+                }}
+                className="bg-[#053d26] text-white px-4 py-2 rounded-lg text-sm font-bold w-full"
+              >
+                Activate Now
+              </button>
+              <button 
+                onClick={() => toast.dismiss(t.id)}
+                className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-gray-200"
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        ),
+        { duration: 15000, position: 'top-center' }
+      );
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Failed to create session");
     } finally {

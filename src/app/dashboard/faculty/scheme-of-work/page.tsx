@@ -361,7 +361,8 @@ export default function SchemeOfWorkPage() {
                     placeholder="Detailed description or objectives..."
                     value={t.description}
                     onChange={(e) => handleChange(index, 'description', e.target.value)}
-                    className="w-full bg-transparent border-0 text-gray-600 text-sm focus:ring-0 p-0 resize-none placeholder-gray-400 min-h-[60px]"
+                    rows={4}
+                    className="w-full bg-transparent border-0 text-gray-600 text-sm focus:ring-0 p-0 placeholder-gray-400 min-h-[120px] resize-y"
                   />
                 </div>
 

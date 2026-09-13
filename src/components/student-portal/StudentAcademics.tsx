@@ -558,7 +558,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 </div>
                 <div className="flex flex-col items-center mt-4">
                   {resultMetadata?.formTeacherSignatureUrl ? (
-                    <img src={resultMetadata?.formTeacherSignatureUrl} alt="Teacher Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                    <img src={resultMetadata?.formTeacherSignatureUrl} alt="Teacher Signature" className="h-10 mb-1 object-contain mix-blend-multiply" crossOrigin="anonymous" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
@@ -573,7 +573,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
               <div className="flex flex-col justify-end">
                 <div className="flex flex-col items-center mt-4">
                   {resultMetadata?.principalSignatureUrl ? (
-                    <img src={resultMetadata.principalSignatureUrl} alt="Principal Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                    <img src={resultMetadata.principalSignatureUrl} alt="Principal Signature" className="h-10 mb-1 object-contain mix-blend-multiply" crossOrigin="anonymous" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}

@@ -75,6 +75,7 @@ const studentNavigation = [
 
 const bursarNavigation = [
   { name: "Fee Approvals", href: "/dashboard/bursar", icon: DollarSign },
+  { name: "Fee Structures", href: "/dashboard/finance/setup", icon: Settings },
 ];
 
 const superAdminNavigation = [
@@ -356,7 +357,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
               }`}
             >
               <item.icon className={`h-5 w-5 ${isActive ? "text-white" : "text-green-300"}`} />
-              <span className="flex-1 text-left">{t("sidebar." + item.name.toLowerCase().replace(/['\s&]+/g, "_"))}</span>
+              <span className="flex-1 text-left">
+                {(() => {
+                  const key = "sidebar." + item.name.toLowerCase().replace(/['\s&]+/g, "_");
+                  const translated = t(key);
+                  return translated === key ? item.name : translated;
+                })()}
+              </span>
               {item.href === "/dashboard/approvals" && pendingApprovalsCount > 0 && (
                 <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)] ${isActive ? "bg-white text-[#095838] shadow-white/60" : "bg-red-500 text-white"}`}>
                   {pendingApprovalsCount}

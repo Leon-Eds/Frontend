@@ -188,7 +188,7 @@ export default function FeeStructureSetup() {
                     <h3 className="font-bold text-gray-900">{fee.name}</h3>
                     <p className="text-amber-600 font-black text-lg mt-1">₦{fee.amount.toLocaleString()}</p>
                   </div>
-                  <div className="flex opacity-0 group-hover:opacity-100 transition-opacity gap-2">
+                  <div className="flex opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity gap-2">
                     <button onClick={() => openModal(fee)} className="p-1.5 text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-lg">
                       <Edit className="w-4 h-4" />
                     </button>

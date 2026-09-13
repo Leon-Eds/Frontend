@@ -62,29 +62,53 @@ export default function PromotionsManager({ currentSession, sessions }: { curren
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to run this promotion? This action is atomic.`)) return;
-
-    setIsProcessing(true);
-    let successCount = 0;
-
-    try {
-      if (toPromote.length > 0) {
-        const res = await promotionApi.promote({ mappings: toPromote });
-        successCount += (res as any)?.totalPromoted || 0;
-      }
-      
-      for (const classId of toGraduate) {
-        await promotionApi.graduate({ classId });
-      }
-      
-      toast.success(`Promotion successful!`);
-      // Clear mapped ones
-      setMappings({});
-    } catch (e: any) {
-      toast.error(e.message || "Failed to promote classes");
-    } finally {
-      setIsProcessing(false);
-    }
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-3 p-2">
+          <div>
+            <p className="font-bold text-gray-900 text-base">Confirm Promotion</p>
+            <p className="text-sm text-gray-600 mt-1">Are you sure you want to run this promotion? This action is atomic and instant.</p>
+          </div>
+          <div className="flex gap-3 mt-2">
+            <button 
+              onClick={async () => {
+                toast.dismiss(t.id);
+                setIsProcessing(true);
+                let successCount = 0;
+            
+                try {
+                  if (toPromote.length > 0) {
+                    const res = await promotionApi.promote({ mappings: toPromote });
+                    successCount += (res as any)?.totalPromoted || 0;
+                  }
+                  
+                  for (const classId of toGraduate) {
+                    await promotionApi.graduate({ classId });
+                  }
+                  
+                  toast.success(`Promotion successful!`);
+                  setMappings({});
+                } catch (e: any) {
+                  toast.error(e.message || "Failed to promote classes");
+                } finally {
+                  setIsProcessing(false);
+                }
+              }}
+              className="bg-[#053d26] text-white px-5 py-2 rounded-xl text-sm font-bold flex-1 hover:bg-[#042c1b] transition-colors"
+            >
+              Confirm
+            </button>
+            <button 
+              onClick={() => toast.dismiss(t.id)}
+              className="bg-gray-100 text-gray-700 px-5 py-2 rounded-xl text-sm font-bold flex-1 hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: 20000, position: 'top-center', style: { minWidth: '320px' } }
+    );
   };
 
   if (!currentSession) {

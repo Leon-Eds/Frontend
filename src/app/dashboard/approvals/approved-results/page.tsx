@@ -562,7 +562,7 @@ export default function ApprovedResults() {
                     </div>
                     <div className="flex flex-col items-center">
                       {(currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl) ? (
-                        <img src={currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl || ''} alt="Teacher Signature" className="h-10 mb-1 object-contain" />
+                        <img src={currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl || ''} alt="Teacher Signature" className="h-10 mb-1 object-contain mix-blend-multiply" />
                       ) : (
                         <div className="h-10 mb-1"></div>
                       )}
@@ -581,7 +581,7 @@ export default function ApprovedResults() {
                     </div>
                     <div className="flex flex-col items-center">
                       {(currentResult?.principalSignatureUrl || principalSignatureUrl) ? (
-                        <img src={currentResult?.principalSignatureUrl || principalSignatureUrl!} alt="Principal Signature" className="h-10 mb-1 object-contain" crossOrigin="anonymous" />
+                        <img src={currentResult?.principalSignatureUrl || principalSignatureUrl!} alt="Principal Signature" className="h-10 mb-1 object-contain mix-blend-multiply" crossOrigin="anonymous" />
                       ) : (
                         <div className="h-10 mb-1"></div>
                       )}

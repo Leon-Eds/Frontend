@@ -667,7 +667,7 @@ function FormClassResultsInner() {
                 </div>
                 <div className="flex flex-col items-center">
                   {currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl ? (
-                    <img src={currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl || ""} alt="Teacher Signature" className="h-10 mb-1 object-contain" />
+                    <img src={currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl || ""} alt="Teacher Signature" className="h-10 mb-1 object-contain mix-blend-multiply" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
@@ -687,7 +687,7 @@ function FormClassResultsInner() {
                 </div>
                 <div className="flex flex-col items-center">
                   {currentResult?.principalSignatureUrl || principalSignatureUrl ? (
-                    <img src={currentResult?.principalSignatureUrl || principalSignatureUrl || ""} alt="Principal Signature" className="h-10 mb-1 object-contain" />
+                    <img src={currentResult?.principalSignatureUrl || principalSignatureUrl || ""} alt="Principal Signature" className="h-10 mb-1 object-contain mix-blend-multiply" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
