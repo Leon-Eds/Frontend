@@ -292,19 +292,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Logo Area */}
       <div className="flex h-20 items-center justify-between px-6 border-b border-white/10">
         <Link href={role === "superadmin" ? "/super-admin" : "/dashboard"} className="flex items-center gap-3" onClick={handleNavClick}>
-          <div className="relative w-10 h-10 bg-white rounded-full overflow-hidden shrink-0 flex items-center justify-center border-2 border-white/10 shadow-sm">
+          <div className={`relative bg-white overflow-hidden shrink-0 flex items-center justify-center border-2 border-white/10 shadow-sm ${schoolName === "LeonEd" ? "w-32 h-10 rounded-lg" : "w-10 h-10 rounded-full"}`}>
             <Image
               src={logoUrl || "/logo.png"}
-              alt="LeonEd"
+              alt="School Logo"
               fill
-              sizes="40px"
-              className="object-cover"
+              sizes="150px"
+              className="object-contain p-1"
             />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>
-              {schoolName === "LeonEd" ? <LeonEdLogoText /> : schoolName}
-            </h1>
+            {schoolName !== "LeonEd" && (
+              <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>
+                {schoolName}
+              </h1>
+            )}
             {role === "superadmin" ? (
               <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">
                 {t("sidebar.super_admin")}

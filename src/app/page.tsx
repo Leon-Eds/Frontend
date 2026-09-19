@@ -17,8 +17,7 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.png" alt="LeonEd" width={40} height={40} className="object-contain" />
-              <span className="text-xl font-bold text-gray-900"><LeonEdLogoText /></span>
+              <Image src="/logo.png" alt="LeonEd" width={150} height={40} className="object-contain" />
             </Link>
 
             {/* Desktop Menu */}
@@ -248,8 +247,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="md:col-span-2 space-y-6">
             <Link href="/" className="flex items-center gap-2 mb-6">
-              <Image src="/logo.png" alt="LeonEd" width={40} height={40} className="object-contain" />
-              <span className="text-xl font-bold"><LeonEdLogoText /></span>
+              <Image src="/logo.png" alt="LeonEd" width={150} height={40} className="object-contain" />
             </Link>
             <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
               {t("footer.desc")}
