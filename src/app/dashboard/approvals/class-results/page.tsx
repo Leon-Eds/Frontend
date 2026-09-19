@@ -113,6 +113,12 @@ function FormClassResultsInner() {
 
         const fc = { ...targetFc, classId: String(targetFc.id || targetFc._id), className: targetFc.name || targetFc.className || "Class" };
         setFormClass(fc);
+        
+        const ftName = fc.formTeacherName || fc.formTeacher?.name || fc.formTeacher?.fullName || (fc.formTeacher?.firstName ? `${fc.formTeacher.firstName} ${fc.formTeacher.lastName || ''}`.trim() : '') || fc.teacher?.name || fc.teacher?.fullName || (fc.teacher?.firstName ? `${fc.teacher.firstName} ${fc.teacher.lastName || ''}`.trim() : '');
+        if (ftName) setFormTeacherName(ftName);
+
+        const ftSig = fc.formTeacherSignatureUrl || fc.formTeacher?.signatureUrl || fc.teacher?.signatureUrl;
+        if (ftSig) setFormTeacherSignatureUrl(ftSig);
 
         const sessions = await sessionApi.getAll();
         const activeSession = sessions.find(s => s.isCurrent);
@@ -145,11 +151,6 @@ function FormClassResultsInner() {
             const sIdForLogo = user.schoolId || user.school?.id || user.school?._id;
             const cachedLogo = sIdForLogo ? localStorage.getItem(`leoned_logo_${sIdForLogo}`) : null;
             setSchoolLogo(user.logoUrl || cachedLogo || null);
-
-            if (user.signatureUrl) setFormTeacherSignatureUrl(user.signatureUrl);
-            else if (user.teacher?.signatureUrl) setFormTeacherSignatureUrl(user.teacher.signatureUrl);
-
-            console.log("[DEBUG] class-results User Object:", JSON.stringify({ userKeys: Object.keys(user), hasSignature: !!user.signatureUrl || !!user.teacher?.signatureUrl }, null, 2));
 
             // Fetch school details from API for principal name if not found
             const schoolId = user.schoolId || user.SchoolId || user.school?.id;
@@ -232,13 +233,13 @@ function FormClassResultsInner() {
         const existingRemarks: Record<string, string> = {};
         detailedResults.forEach((r: any) => {
           const sId = r.student?.id || r.studentId;
-          const remark = r.teacherComment || r.formTeacherRemark || r.teacherRemark || "";
+          const remark = r.teacherComment || r.formTeacherRemark || r.teacherRemark || r.comment || "";
           if (sId && remark) {
             existingRemarks[sId] = remark;
           }
         });
         if (Object.keys(existingRemarks).length > 0) {
-          setRemarks(prev => ({ ...existingRemarks, ...prev }));
+          setRemarks(prev => ({ ...prev, ...existingRemarks }));
         }
 
         setResults(detailedResults);
@@ -655,15 +656,9 @@ function FormClassResultsInner() {
               <div>
                 <h4 className="text-sm font-bold text-[#053d26] mb-2 flex items-center justify-between">
                   Form Teacher's Remark
-                  <span className="text-[10px] font-normal text-gray-400 italic">Edit your remark below:</span>
                 </h4>
-                <div className="pl-4 border-l-4 border-[#b45309]">
-                  <textarea 
-                    className="w-full min-h-[60px] p-2 bg-white border border-gray-200 rounded text-sm text-gray-700 italic font-medium focus:outline-none focus:border-[#b45309] resize-y print:border-none print:resize-none"
-                    placeholder="Enter your final remark for this student's report card..."
-                    value={remarks[sId] || ""}
-                    onChange={(e) => setRemarks(prev => ({ ...prev, [sId]: e.target.value }))}
-                  />
+                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
+                  {remarks[sId] || currentResult?.teacherComment || currentResult?.formTeacherRemark || currentResult?.teacherRemark || currentResult?.comment || "-"}
                 </div>
                 <div className="flex flex-col items-center">
                   {currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl ? (

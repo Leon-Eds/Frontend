@@ -557,8 +557,8 @@ export default function ApprovedResults() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-6 mt-4">
                   <div className="flex flex-col gap-2">
                     <h4 className="text-sm font-bold text-[#053d26] mb-2">Form Teacher's Remark</h4>
-                    <div className="pl-4 border-l-4 border-[#053d26] text-sm text-gray-700 italic mb-4 min-h-[40px]">
-                      {currentResult?.formTeacherRemark || currentResult?.teacherRemark || "-"}
+                    <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
+                      {currentResult?.formTeacherRemark || currentResult?.teacherRemark || currentResult?.teacherComment || currentResult?.comment || "-"}
                     </div>
                     <div className="flex flex-col items-center">
                       {(currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl) ? (
