@@ -41,6 +41,8 @@ export default function SettingsPage() {
   const [signatureUrl, setSignatureUrl] = useState("");
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [schoolStampUrl, setSchoolStampUrl] = useState("");
+  const [schoolStampFile, setSchoolStampFile] = useState<File | null>(null);
   const [principalName, setPrincipalName] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
@@ -102,6 +104,7 @@ export default function SettingsPage() {
             if (parsedUser.signatureUrl) setSignatureUrl(parsedUser.signatureUrl);
           } else {
             if (parsedUser.principalSignatureUrl) setSignatureUrl(parsedUser.principalSignatureUrl);
+            if (parsedUser.schoolStampUrl) setSchoolStampUrl(parsedUser.schoolStampUrl);
             setPrincipalName(parsedUser.principalName || "");
           }
 
@@ -175,6 +178,7 @@ export default function SettingsPage() {
             if (school?.bankAccountName) setBankAccountName(school.bankAccountName);
             if (school?.bankName) setBankName(school.bankName);
             if (school?.bankAccountNumber) setBankAccountNumber(school.bankAccountNumber);
+            if (school?.schoolStampUrl) setSchoolStampUrl(school.schoolStampUrl);
             
             // Attempt to load theme and font if they are coming from the backend directly
             if (school?.schoolTheme) {
@@ -274,6 +278,14 @@ export default function SettingsPage() {
         setSignatureFile(null);
       }
 
+      let finalStampUrl = schoolStampUrl;
+      if (schoolStampFile) {
+        setToast({ message: "Uploading stamp to cloud storage...", type: "success" });
+        finalStampUrl = await uploadToCloudinary(schoolStampFile);
+        setSchoolStampUrl(finalStampUrl);
+        setSchoolStampFile(null);
+      }
+
       const user = localStorage.getItem('leoned_user');
       if (user) {
         const parsed = JSON.parse(user);
@@ -283,13 +295,14 @@ export default function SettingsPage() {
           parsed.logoUrl = finalLogoUrl;
           parsed.principalName = principalName;
           parsed.principalSignatureUrl = finalSignatureUrl;
+          parsed.schoolStampUrl = finalStampUrl;
           localStorage.setItem('leoned_user', JSON.stringify(parsed));
           
           if (parsed.schoolId || parsed.SchoolId) {
             const sId = parsed.schoolId || parsed.SchoolId;
             await schoolApi.update(sId, { 
               name: schoolName, address: schoolAddress, contactPhone: schoolPhone, logoUrl: finalLogoUrl, bankAccountName, bankName, bankAccountNumber,
-              principalName, principalSignatureUrl: finalSignatureUrl
+              principalName, principalSignatureUrl: finalSignatureUrl, schoolStampUrl: finalStampUrl
             });
             localStorage.setItem(`leoned_logo_${sId}`, finalLogoUrl);
             window.dispatchEvent(new CustomEvent('leoned_logo_updated', { detail: { logoUrl: finalLogoUrl } }));
@@ -321,6 +334,22 @@ export default function SettingsPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setSchoolLogo(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleStampUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setToast({ message: "Image must be less than 2MB", type: "error" });
+        return;
+      }
+      setSchoolStampFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSchoolStampUrl(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -641,6 +670,34 @@ export default function SettingsPage() {
                       Draw Signature
                     </button>
                     <p className="text-xs text-gray-500 mt-2">Will be used for stamping results. Freehand drawing ensures transparent background.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(userRole === "Admin" || userRole === "SuperAdmin") && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">School Stamp</label>
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200">
+                    {schoolStampUrl ? (
+                      <img src={schoolStampUrl} alt="School Stamp" className="h-full w-full object-cover mix-blend-multiply" />
+                    ) : (
+                      <span className="text-xs text-gray-400">No Stamp</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm cursor-pointer transition-colors">
+                      <Camera className="h-4 w-4" />
+                      Upload Stamp
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={handleStampUpload}
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2">Recommended: Circular stamp with transparent background, max 2MB.</p>
                   </div>
                 </div>
               </div>

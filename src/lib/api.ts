@@ -619,6 +619,7 @@ export interface UpdateSchoolRequest {
   bankAccountNumber?: string;
   principalName?: string;
   principalSignatureUrl?: string;
+  schoolStampUrl?: string;
 }
 
 export interface UpdateSchoolPlanRequest {

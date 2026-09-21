@@ -249,7 +249,7 @@ export default function LandingPage() {
             <Link href="/" className="flex items-center gap-2 mb-6">
               <Image src="/logo.png" alt="LeonEd" width={150} height={40} className="object-contain" />
             </Link>
-            <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+            <p className="text-sm text-slate-400 max-w-xs leading-relaxed">
               {t("footer.desc")}
             </p>
           </div>
@@ -257,25 +257,25 @@ export default function LandingPage() {
           <div>
             <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">{t("footer.solutions")}</h4>
             <ul className="space-y-4">
-              <li><Link href="#architecture" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item1")}</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item2")}</Link></li>
-              <li><Link href="/login" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item3")}</Link></li>
-              <li><Link href="mailto:support@leoned.com" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item4")}</Link></li>
+              <li><Link href="#architecture" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item1")}</Link></li>
+              <li><Link href="/register" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item2")}</Link></li>
+              <li><Link href="/login" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item3")}</Link></li>
+              <li><Link href="mailto:support@leoned.com" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item4")}</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">{t("footer.support")}</h4>
             <ul className="space-y-4">
-              <li><Link href="#why-leoned" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item1")}</Link></li>
-              <li><Link href="/demo" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item2")}</Link></li>
-              <li><Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item3")}</Link></li>
-              <li><Link href="/login" className="text-gray-400 hover:text-white transition-colors text-sm">{t("footer.support.item4")}</Link></li>
+              <li><Link href="#why-leoned" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.support.item1")}</Link></li>
+              <li><Link href="/demo" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.support.item2")}</Link></li>
+              <li><Link href="/register" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.support.item3")}</Link></li>
+              <li><Link href="/login" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.support.item4")}</Link></li>
             </ul>
           </div>
         </div>
         
-        <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
+        <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
           <p><FormattedText text={t("footer.rights")} /></p>
           <div className="flex gap-4">
             <Globe className="h-4 w-4" />
