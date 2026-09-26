@@ -44,7 +44,7 @@ const schoolNavigation = [
   { name: "Financials", href: "/dashboard/finance", icon: Banknote },
   { name: "Staff Directory", href: "/dashboard/faculty", icon: Users },
   { name: "Session Rollover", href: "/dashboard/rollover", icon: CalendarClock },
-  { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
+  // { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
 ];
 
 const adminNavigation = [
@@ -55,7 +55,7 @@ const adminNavigation = [
   { name: "Support Staff", href: "/dashboard/staff", icon: UserPlus },
   { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
   { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
-  { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
+  // { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
   { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
 ];
 

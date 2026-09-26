@@ -334,7 +334,7 @@ export default function SessionRollover() {
                       {currentSession.terms.map(term => (
                       <div key={term.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-all hover:bg-white hover:shadow-sm">
                       <div>
-                        <p className="font-bold text-sm text-gray-900">{Number(term.termNumber) === 1 ? "First" : Number(term.termNumber) === 2 ? "Second" : "Third"} Term</p>
+                        <p className="font-bold text-sm text-gray-900">{term.termNumber} Term</p>
                         <p className="text-xs text-gray-500 font-medium">
                           {term.startDate ? new Date(term.startDate).toLocaleDateString() : 'TBD'} - {term.endDate ? new Date(term.endDate).toLocaleDateString() : 'TBD'}
                         </p>
@@ -451,76 +451,23 @@ export default function SessionRollover() {
       </div>
 
           {/* Rollover Action */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            <div className="md:col-span-7 bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex gap-6">
-              <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center shrink-0 border border-red-100">
-                <AlertTriangle className="w-8 h-8" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Critical Action: Initialize Rollover</h3>
-                <p className="text-sm text-gray-600 leading-relaxed mb-8">
-                  Proceeding with the rollover will set a new session as current. Ensure all grades are finalized and fee status audits are complete before execution.
-                </p>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <button
-                    onClick={() => setShowRolloverConfirm(true)}
-                    disabled={sessions.length < 2}
-                    className="flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Initiate Rollover <Rocket className="w-4 h-4 ml-1" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      const data = JSON.stringify(sessions, null, 2);
-                      const blob = new Blob([data], { type: 'application/json' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `session_audit_${new Date().toISOString().split('T')[0]}.json`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="text-sm font-bold text-gray-600 hover:text-gray-900 underline underline-offset-4 decoration-gray-300 transition-colors"
-                  >
-                    Download Pre-Rollover Audit
-                  </button>
-                </div>
-              </div>
+          <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center shrink-0 border border-red-100">
+              <AlertTriangle className="w-8 h-8" />
             </div>
-
-            <div className="md:col-span-5 bg-gray-50 rounded-[2rem] p-8 border border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900 mb-6">Automated Tasks</h3>
-              
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#053d26] border border-gray-200 shadow-sm shrink-0">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-900 mb-0.5">Database Backup</h4>
-                    <p className="text-xs text-gray-500">Automatic backups are enabled</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#b05e1c] border border-gray-200 shadow-sm shrink-0">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-900 mb-0.5">Alumni Record Migration</h4>
-                    <p className="text-xs text-[#b05e1c]">Runs automatically on rollover</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-400 border border-gray-200 shadow-sm shrink-0">
-                    <Archive className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-900 mb-0.5">Archival Sequencing</h4>
-                    <p className="text-xs text-gray-500">Ready for initialization</p>
-                  </div>
-                </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Critical Action: Initialize Rollover</h3>
+              <p className="text-sm text-gray-600 leading-relaxed mb-8">
+                Proceeding with the rollover will set a new session as current. Ensure all grades are finalized and fee status audits are complete before execution.
+              </p>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <button
+                  onClick={() => setShowRolloverConfirm(true)}
+                  disabled={sessions.length < 2}
+                  className="flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Initiate Rollover <Rocket className="w-4 h-4 ml-1" />
+                </button>
               </div>
             </div>
           </div>

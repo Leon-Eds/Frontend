@@ -31,7 +31,7 @@ export default function RootLayout({
           }
         `}</style>
       </head>
-      <body className="min-h-full flex flex-col font-sans font-semibold text-gray-800 dark:text-gray-100">
+      <body suppressHydrationWarning className="min-h-full flex flex-col font-sans font-semibold text-gray-800 dark:text-gray-100">
         <Script id="theme-initializer" strategy="beforeInteractive">
           {`
             try {
