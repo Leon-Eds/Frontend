@@ -166,6 +166,9 @@ export default function RegisterSchoolPage() {
       const message = err instanceof Error ? err.message : "Registration failed. Please try again.";
       if (message.toLowerCase().includes('duplicate') || message.toLowerCase().includes('already exists') || message.toLowerCase().includes('409') || message.toLowerCase().includes('conflict')) {
         setApiError("Registration failed: A school or user with these details already exists. Please try a different email or school name.");
+      } else if (message.toLowerCase().includes('otp') || message.toLowerCase().includes('verification')) {
+        // Redirect to OTP verification page if backend returns verification required
+        router.push(`/verify-otp?email=${encodeURIComponent(formData.adminEmail)}`);
       } else {
         setApiError(message);
       }

@@ -718,6 +718,24 @@ export const authApi = {
     });
     return handleResponse(res);
   },
+
+  verifyOtp: async (data: { email: string; otp: string }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  resendOtp: async (data: { email: string }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/auth/resend-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
 };
 
 // Dashboard
