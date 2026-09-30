@@ -1700,7 +1700,7 @@ export const paymentPlanApi = {
 // Payments
 export const paymentApi = {
   subscribe: async (planId: string, callbackUrl?: string) => {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/payment/initialize`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/payment/subscribe`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ planId, callbackUrl }),
