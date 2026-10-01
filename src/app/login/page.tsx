@@ -220,7 +220,12 @@ export default function LoginPage() {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Login failed. Please check your credentials.";
-      setError(message);
+      if (message.toLowerCase().includes('otp') || message.toLowerCase().includes('verification')) {
+        // Redirect to OTP verification page if backend returns verification required
+        router.push(`/verify-otp?email=${encodeURIComponent(email.trim())}`);
+      } else {
+        setError(message);
+      }
     } finally {
       setIsLoading(false);
     }
