@@ -22,6 +22,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
   const [schoolAddress, setSchoolAddress] = useState("");
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
   const [principalName, setPrincipalName] = useState("");
+  const [schoolStampUrl, setSchoolStampUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedTermId || viewMode !== 'sow') {
@@ -143,6 +144,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
               if (sd?.principalName) setPrincipalName(sd.principalName);
               else if (sd?.ownerName) setPrincipalName(sd.ownerName);
               if (sd?.address) setSchoolAddress(sd.address);
+              if (sd?.schoolStampUrl) setSchoolStampUrl(sd.schoolStampUrl);
             } catch (e) {}
           }
         }
@@ -596,11 +598,15 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 <strong className="block text-[#053d26] mb-1 font-bold">Authentication</strong>
                 This report is official only when it bears the school's embossed stamp and the Principal's original signature above.
               </div>
-              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#053d26] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative">
-                <span className="text-[9px] font-bold text-[#053d26] leading-tight flex flex-col gap-1">
-                  OFFICIAL<br/>SCHOOL STAMP
-                  <span className="text-[6px] font-normal leading-[1] mt-1 text-[#b45309] uppercase">{schoolName}</span>
-                </span>
+              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#053d26] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative overflow-hidden">
+                {schoolStampUrl ? (
+                  <img src={schoolStampUrl} alt="School Stamp" className="w-full h-full object-contain mix-blend-multiply" crossOrigin="anonymous" />
+                ) : (
+                  <span className="text-[9px] font-bold text-[#053d26] leading-tight flex flex-col gap-1">
+                    OFFICIAL<br/>SCHOOL STAMP
+                    <span className="text-[6px] font-normal leading-[1] mt-1 text-[#b45309] uppercase">{schoolName}</span>
+                  </span>
+                )}
               </div>
             </div>
           </div>

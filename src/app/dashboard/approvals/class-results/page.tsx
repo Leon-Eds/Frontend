@@ -26,6 +26,7 @@ function FormClassResultsInner() {
   const [principalName, setPrincipalName] = useState("");
   const [formTeacherName, setFormTeacherName] = useState("");
   const [principalSignatureUrl, setPrincipalSignatureUrl] = useState<string | null>(null);
+  const [schoolStampUrl, setSchoolStampUrl] = useState<string | null>(null);
   const [formTeacherSignatureUrl, setFormTeacherSignatureUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -164,6 +165,7 @@ function FormClassResultsInner() {
                 if (sd?.address) setSchoolAddress(sd.address);
                 if (sd?.contactEmail) setSchoolEmail(sd.contactEmail);
                 if (sd?.principalSignatureUrl) setPrincipalSignatureUrl(sd.principalSignatureUrl);
+                if (sd?.schoolStampUrl) setSchoolStampUrl(sd.schoolStampUrl);
               } catch (e) {}
             }
           }
@@ -560,7 +562,7 @@ function FormClassResultsInner() {
                         <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.examScore || subj.exam || "-"}</td>
                         <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{subj.totalScore || subj.total || "-"}</td>
                         <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{sGrade}</td>
-                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.classAvg || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.classAverage || subj.classAvg || "-"}</td>
                         <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.position || subj.pos || "-"}</td>
                         <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{remark}</td>
                       </tr>
@@ -675,14 +677,10 @@ function FormClassResultsInner() {
               </div>
 
               {/* Principal's Section */}
-              <div className="flex flex-col gap-2">
-                <h4 className="text-sm font-bold text-[#053d26] mb-2">Principal's Remark</h4>
-                <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
-                  {currentResult?.principalsRemark || "-"}
-                </div>
+              <div className="flex flex-col gap-2 h-full justify-end">
                 <div className="flex flex-col items-center">
                   {currentResult?.principalSignatureUrl || principalSignatureUrl ? (
-                    <img src={currentResult?.principalSignatureUrl || principalSignatureUrl || ""} alt="Principal Signature" className="h-10 mb-1 object-contain mix-blend-multiply" />
+                    <img src={currentResult?.principalSignatureUrl || principalSignatureUrl || ""} alt="Principal Signature" className="h-10 mb-1 object-contain mix-blend-multiply" crossOrigin="anonymous" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
@@ -705,11 +703,15 @@ function FormClassResultsInner() {
                 <strong className="block text-[#053d26] mb-1 font-bold">Authentication</strong>
                 This report is official only when it bears the school's embossed stamp and the Principal's original signature above.
               </div>
-              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#053d26] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative">
-                <span className="text-[9px] font-bold text-[#053d26] leading-tight flex flex-col gap-1">
-                  OFFICIAL<br/>SCHOOL STAMP
-                  <span className="text-[6px] font-normal leading-[1] mt-1 text-[#b45309] uppercase">{schoolName}</span>
-                </span>
+              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#053d26] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative overflow-hidden">
+                {schoolStampUrl ? (
+                  <img src={schoolStampUrl} alt="School Stamp" className="w-full h-full object-contain mix-blend-multiply" crossOrigin="anonymous" />
+                ) : (
+                  <span className="text-[9px] font-bold text-[#053d26] leading-tight flex flex-col gap-1">
+                    OFFICIAL<br/>SCHOOL STAMP
+                    <span className="text-[6px] font-normal leading-[1] mt-1 text-[#b45309] uppercase">{schoolName}</span>
+                  </span>
+                )}
               </div>
             </div>
           </div>
