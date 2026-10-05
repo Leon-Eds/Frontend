@@ -2072,3 +2072,15 @@ export const schemeOfWorkApi = {
     return data;
   }
 };
+
+// Public API
+export const publicApi = {
+  submitContact: async (data: { name: string; email: string; phone?: string; schoolName: string; message?: string; website?: string | null }) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+};

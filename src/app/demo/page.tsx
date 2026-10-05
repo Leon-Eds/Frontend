@@ -3,17 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, User, Phone, Building2, ChevronLeft, CheckCircle2, Send } from "lucide-react";
+import { Mail, User, Phone, Building2, ChevronLeft, CheckCircle2, Send, Loader2 } from "lucide-react";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
+import { publicApi } from "@/lib/api";
 
 export default function RequestDemoPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     schoolName: "",
     message: "",
+    website: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -33,13 +36,25 @@ export default function RequestDemoPage() {
     return newErrors;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    setSubmitted(true);
+    
+    setLoading(true);
+    try {
+      await publicApi.submitContact({
+        ...formData,
+        website: formData.website || null,
+      });
+      setSubmitted(true);
+    } catch (error: any) {
+      setErrors({ submit: error.message || "Failed to submit request." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -167,6 +182,14 @@ export default function RequestDemoPage() {
                       placeholder="Tell us about your school's needs..."
                     />
                   </div>
+                  
+                  {/* Honeypot field for bot spam prevention */}
+                  <div style={{ display: 'none' }} aria-hidden="true">
+                    <label>Website</label>
+                    <input type="text" name="website" value={formData.website} onChange={handleChange} tabIndex={-1} autoComplete="off" />
+                  </div>
+                  
+                  {errors.submit && <p className="text-sm text-red-500 font-medium text-center">{errors.submit}</p>}
                 </div>
 
                 <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">
@@ -180,10 +203,11 @@ export default function RequestDemoPage() {
                   <button
                     type="button"
                     onClick={handleSubmit}
-                    className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20"
+                    disabled={loading}
+                    className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    <Send className="h-4 w-4" />
-                    Submit Request
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {loading ? "Submitting..." : "Submit Request"}
                   </button>
                 </div>
               </div>
