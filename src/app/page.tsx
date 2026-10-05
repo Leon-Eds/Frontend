@@ -170,6 +170,71 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Additional Features Section */}
+      <section id="additional-features" className="py-24 bg-white dark:bg-[#0a0a0a] px-4 sm:px-6 lg:px-8 transition-colors duration-300 border-t border-gray-100">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-[#053d26]">
+              Comprehensive School Management
+            </h2>
+            <p className="mt-4 text-gray-500 max-w-2xl mx-auto text-lg leading-relaxed">
+              Everything you need to run your school efficiently, all in one place.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                title: "Fee Management",
+                subtitle: "Transparent Fee Tracking",
+                desc: "Track payments, send automated reminders, and give parents a clear record of fee status — no more disputes or confusion over what's been paid."
+              },
+              {
+                title: "Attendance Tracking",
+                subtitle: "Real-Time Attendance",
+                desc: "Teachers mark attendance digitally in seconds. Parents and administrators see patterns instantly — no more paper registers or end-of-term surprises."
+              },
+              {
+                title: "Scheme of Work",
+                subtitle: "Organized Lesson Planning",
+                desc: "Teachers upload and track their scheme of work in one place, so school administrators can monitor curriculum progress across every class and subject."
+              },
+              {
+                title: "Curriculum Management",
+                subtitle: "One Curriculum, Every Classroom",
+                desc: "Standardize what's being taught across classes, subjects, and even multiple campuses — ensuring consistent academic quality school-wide."
+              },
+              {
+                title: "Parent Communication",
+                subtitle: "Direct, Organized Messaging",
+                desc: "Replace scattered WhatsApp groups with built-in messaging — announcements, reminders, and updates sent directly through the platform."
+              },
+              {
+                title: "Staff Management",
+                subtitle: "Simplified Staff Records",
+                desc: "Manage teacher and staff records, roles, and permissions from the same dashboard used for students — no separate systems needed."
+              },
+              {
+                title: "Analytics & Reporting",
+                subtitle: "Insights at a Glance",
+                desc: "School owners and administrators get dashboards showing attendance trends, academic performance, and fee collection — helping data-driven decisions, not guesswork."
+              },
+              {
+                title: "Mobile Accessibility",
+                subtitle: "Built for African Connectivity",
+                desc: "Designed to work smoothly on mobile devices and in lower-bandwidth environments — because not every school has fast, reliable internet."
+              }
+            ].map((feature, i) => (
+              <div key={i} className="bg-gray-50 dark:bg-[#111] p-6 rounded-[1.5rem] border border-gray-100 hover:shadow-sm transition-shadow">
+                <h4 className="font-bold text-lg text-gray-900 mb-1">{feature.title}</h4>
+                <p className="text-[10px] font-bold text-[#b05e1c] uppercase tracking-wider mb-3">{feature.subtitle}</p>
+                <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Why LeonEd Section */}
       <section id="why-leoned" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -258,19 +323,17 @@ export default function LandingPage() {
             <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">{t("footer.solutions")}</h4>
             <ul className="space-y-4">
               <li><Link href="#architecture" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item1")}</Link></li>
-              <li><Link href="/register" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item2")}</Link></li>
+              <li><Link href="#additional-features" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item2")}</Link></li>
               <li><Link href="/login" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item3")}</Link></li>
-              <li><Link href="mailto:support@leoned.com" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item4")}</Link></li>
+              <li><Link href="#architecture" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.solutions.item4")}</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-[#b05e1c] font-bold text-sm uppercase tracking-wider mb-6">{t("footer.support")}</h4>
             <ul className="space-y-4">
-              <li><Link href="#why-leoned" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.support.item1")}</Link></li>
-              <li><Link href="/demo" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.support.item2")}</Link></li>
-              <li><Link href="/register" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.support.item3")}</Link></li>
-              <li><Link href="/login" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.support.item4")}</Link></li>
+              <li><Link href="/support" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.support.item1")}</Link></li>
+              <li><Link href="/privacy" className="text-slate-400 hover:text-white transition-colors text-sm">{t("footer.support.item3")}</Link></li>
             </ul>
           </div>
         </div>

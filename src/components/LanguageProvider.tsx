@@ -42,7 +42,7 @@ const translations: Record<string, Record<string, string>> = {
     "hero.cta.register": "Register Your School",
     "hero.cta.demo": "Contact Us",
     "hero.trusted": "Trusted by 500+ institutions across the continent",
-    "hero.architect": "THE ACADEMIC ARCHITECT",
+    "hero.architect": "SCHOOL MANAGEMENT SYSTEM",
     "hero.automated_processing": "Automated Result Processing",
     // Features
     "features.title": "Built for Educational Excellence",
@@ -63,7 +63,7 @@ const translations: Record<string, Record<string, string>> = {
     "features.card5.stat_desc": "Efficiency increase reported by headmasters",
     // Why LeonEd
     "why.category": "Why LeonEd?",
-    "why.title": "The Academic Architect for Your School's Future.",
+    "why.title": "The School Management System for Your School's Future.",
     "why.desc": "We don't just provide software; we design digital ecosystems. Our platform is built with a deep understanding of the unique challenges faced by African educational institutions, from connectivity hurdles to administrative complexity.",
     "why.item1.title": "Tailored for Local Curriculums",
     "why.item1.desc": "Flexible result processing that adapts to national standards.",
@@ -74,7 +74,7 @@ const translations: Record<string, Record<string, string>> = {
     "cta.desc": "Join hundreds of schools already paving the way for digital excellence in Africa.",
     "cta.contact": "Contact Support",
     // Footer
-    "footer.desc": "The leading Academic Architect for digital transformation in African education. Empowering schools through intelligent automation and secure data management.",
+    "footer.desc": "The leading School Management System for digital transformation in African education. Empowering schools through intelligent automation and secure data management.",
     "footer.solutions": "Solutions",
     "footer.solutions.item1": "Digital Records",
     "footer.solutions.item2": "Result Processing",
@@ -129,11 +129,11 @@ const translations: Record<string, Record<string, string>> = {
     "register.complete": "Complete Registration",
     // Demo
     "demo.title": "Contact Sales",
-    "demo.subtitle": "Experience the academic architect in action",
+    "demo.subtitle": "Experience the school management system in action",
     "demo.submit": "Submit Request",
     "demo.success": "Request submitted successfully!",
     // Layout headers
-    "header.academic_architect": "Academic Architect",
+    "header.academic_architect": "School Management System",
     "header.search": "Search records...",
     "header.logout": "Logout",
     // Setup Guide
@@ -148,7 +148,7 @@ const translations: Record<string, Record<string, string>> = {
     "guide.step4": "Onboard Teachers",
     "guide.step4.desc": "Invite teachers and assign them to classes.",
     "sidebar.super_admin": "Super Admin",
-    "sidebar.academic_architect": "Academic Architect",
+    "sidebar.academic_architect": "School Management System",
     "sidebar.overview": "Overview",
     "sidebar.student_registry": "Student Registry",
     "sidebar.academic_flow": "Academic Flow",
