@@ -16,8 +16,8 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.png" alt="LeonEd" width={150} height={40} className="object-contain" />
+            <Link href="/" className="flex items-center justify-center bg-white/90 backdrop-blur-md rounded-full px-6 py-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/50 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
+              <Image src="/logo.png" alt="LeonEd" width={140} height={36} className="object-contain" />
             </Link>
 
             {/* Desktop Menu */}
