@@ -23,8 +23,8 @@ export const languages: LanguageInfo[] = [
 const translations: Record<string, Record<string, string>> = {
   en: {
     // Nav
-    "nav.overview": "Term Overview",
-    "nav.schedule": "Schedule",
+    "nav.overview": "System Architecture",
+    "nav.schedule": "Why Leoned?",
     "nav.login": "Login",
     "nav.register": "Register",
     "nav.dashboard": "Dashboard",
@@ -196,8 +196,8 @@ const translations: Record<string, Record<string, string>> = {
   },
   ig: {
     // Nav
-    "nav.overview": "Nchịkọta Oge",
-    "nav.schedule": "Usoro Oge",
+    "nav.overview": "Nhazi Usoro",
+    "nav.schedule": "Ihe kpatara Leoned?",
     "nav.login": "Banye",
     "nav.register": "Debanye aha",
     "nav.dashboard": "Mbadamba Nchịkọta",
@@ -323,8 +323,8 @@ const translations: Record<string, Record<string, string>> = {
   },
   yo: {
     // Nav
-    "nav.overview": "Akopọ Akoko",
-    "nav.schedule": "Iṣeto Akoko",
+    "nav.overview": "Ilana Eto",
+    "nav.schedule": "Kini idi ti Leoned?",
     "nav.login": "Wọle",
     "nav.register": "Forukọsilẹ",
     "nav.dashboard": "Oju-iwe Akoso",
@@ -450,8 +450,8 @@ const translations: Record<string, Record<string, string>> = {
   },
   ha: {
     // Nav
-    "nav.overview": "Bayanin Lokaci",
-    "nav.schedule": "Tsararren Lokaci",
+    "nav.overview": "Tsarin Na'ura",
+    "nav.schedule": "Me yasa Leoned?",
     "nav.login": "Shiga",
     "nav.register": "Rajišta",
     "nav.dashboard": "Dashboard",
@@ -576,8 +576,8 @@ const translations: Record<string, Record<string, string>> = {
     "guide.step4.desc": "Gayyaci malamai kuma sanya su zuwa azuzuwa."
   },
   fr: {
-    "nav.overview": "Aperçu du trimestre",
-    "nav.schedule": "Calendrier",
+    "nav.overview": "Architecture du système",
+    "nav.schedule": "Pourquoi Leoned ?",
     "nav.login": "Connexion",
     "nav.register": "S'enregistrer",
     "nav.dashboard": "Tableau de bord",
@@ -727,8 +727,8 @@ const translations: Record<string, Record<string, string>> = {
     "sidebar.upgrade_plan": "Mettre à Niveau"
   },
   es: {
-    "nav.overview": "Resumen del trimestre",
-    "nav.schedule": "Calendario",
+    "nav.overview": "Arquitectura del sistema",
+    "nav.schedule": "¿Por qué Leoned?",
     "nav.login": "Iniciar sesión",
     "nav.register": "Registrarse",
     "nav.dashboard": "Tablero de control",
@@ -843,8 +843,8 @@ const translations: Record<string, Record<string, string>> = {
     "guide.step4.desc": "Invite a profesores y asígnelos a las clases."
   },
   de: {
-    "nav.overview": "Terminübersicht",
-    "nav.schedule": "Stundenplan",
+    "nav.overview": "Systemarchitektur",
+    "nav.schedule": "Warum Leoned?",
     "nav.login": "Anmelden",
     "nav.register": "Registrieren",
     "nav.dashboard": "Dashboard",
@@ -959,8 +959,8 @@ const translations: Record<string, Record<string, string>> = {
     "guide.step4.desc": "Laden Sie Lehrer ein und weisen Sie sie Klassen zu."
   },
   pt: {
-    "nav.overview": "Visão geral do período",
-    "nav.schedule": "Cronograma",
+    "nav.overview": "Arquitetura do sistema",
+    "nav.schedule": "Por que Leoned?",
     "nav.login": "Entrar",
     "nav.register": "Registrar",
     "nav.dashboard": "Painel",
@@ -1075,8 +1075,8 @@ const translations: Record<string, Record<string, string>> = {
     "guide.step4.desc": "Convide professores e associe-os a classes."
   },
   zh: {
-    "nav.overview": "学期概览",
-    "nav.schedule": "日程表",
+    "nav.overview": "系统架构",
+    "nav.schedule": "为什么选择 Leoned？",
     "nav.login": "登录",
     "nav.register": "注册",
     "nav.dashboard": "仪表板",

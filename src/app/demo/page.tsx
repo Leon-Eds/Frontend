@@ -68,8 +68,8 @@ export default function RequestDemoPage() {
             </Link>
 
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/#architecture" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">Term Overview</Link>
-              <Link href="/#why-leoned" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">Schedule</Link>
+              <Link href="/#architecture" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">System Architecture</Link>
+              <Link href="/#why-leoned" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">Why Leoned?</Link>
             </div>
 
             <div className="flex items-center gap-6">

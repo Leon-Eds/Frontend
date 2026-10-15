@@ -79,6 +79,12 @@ export default function RootLayout({
           {children}
           <Toaster position="top-right" />
         </LanguageProvider>
+        {/* Chatway live chat widget */}
+        <Script
+          id="chatway"
+          src="https://cdn.chatway.app/widget.js?id=4KvSqOMlgaIk"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
