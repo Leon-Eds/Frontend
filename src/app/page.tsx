@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { CheckCircle2, ChevronRight, Zap, Globe } from "lucide-react";
+import { CheckCircle2, ChevronRight, Globe } from "lucide-react";
 import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
 import { LeonEdLogoText, FormattedText } from "@/components/ui/LeonEdText";
 
@@ -79,26 +79,16 @@ export default function LandingPage() {
             <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 dark:from-green-500/10 to-transparent rounded-[3rem] transform rotate-3" />
             <div className="relative bg-white dark:bg-[#1a1a1a] rounded-[3rem] p-4 shadow-2xl border border-gray-100 dark:border-white/10 transition-colors duration-300">
               <div className="aspect-[4/3] rounded-[2.5rem] bg-gray-100 dark:bg-[#0a0a0a] overflow-hidden relative">
-                {/* Hero Image */}
-                <Image
-                  src="/hero-classroom.png"
-                  alt="African students engaged in digital learning in a modern classroom"
-                  fill
-                  className="object-cover"
-                  priority
+                {/* Hero Video */}
+                <video
+                  src="/hero-video.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
-                {/* Floating element */}
-                <div className="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-black/90 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 shadow-lg border border-white/20 dark:border-white/10 transition-colors duration-300">
-                  <div className="h-10 w-10 rounded-xl bg-orange-100 text-[#b05e1c] flex items-center justify-center">
-                    <Zap className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{t("hero.automated_processing")}</p>
-                    <div className="h-1.5 w-32 bg-gray-200 rounded-full mt-2">
-                      <div className="h-full w-2/3 bg-[#053d26] rounded-full" />
-                    </div>
-                  </div>
-                </div>
+
               </div>
             </div>
           </div>
