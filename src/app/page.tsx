@@ -9,6 +9,11 @@ import { LeonEdLogoText, FormattedText } from "@/components/ui/LeonEdText";
 export default function LandingPage() {
   const { t } = useLanguage();
 
+  const heroTitle = t("hero.title");
+  const commaIndex = heroTitle.includes("，") ? heroTitle.indexOf("，") : heroTitle.indexOf(",");
+  const titlePart1 = commaIndex !== -1 ? heroTitle.slice(0, commaIndex + 1) : heroTitle;
+  const titlePart2 = commaIndex !== -1 ? heroTitle.slice(commaIndex + 1).trim() : "";
+
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-[#0a0a0a] transition-colors duration-300">
       {/* Navigation */}
@@ -43,53 +48,63 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8">
-            <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold text-[#053d26] bg-green-100">
-              {t("hero.architect")}
-            </div>
-            <h1 className="text-5xl lg:text-6xl font-bold text-[#053d26] leading-[1.1] tracking-tight">
-              {t("hero.title")}
-            </h1>
-            <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
-              {t("hero.subtitle")}
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/register" className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20">
-                {t("hero.cta.register")}
-              </Link>
-              <Link href="/demo" className="px-8 py-4 rounded-full bg-white text-gray-900 font-bold border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm">
-                {t("hero.cta.demo")}
-              </Link>
-            </div>
-            
-            <div className="pt-8 flex items-center gap-4">
-              <div className="flex -space-x-3">
-                <div className="h-10 w-10 rounded-full border-2 border-white bg-gray-200" />
-                <div className="h-10 w-10 rounded-full border-2 border-white bg-gray-300" />
-                <div className="h-10 w-10 rounded-full border-2 border-white bg-gray-400" />
-              </div>
-              <p className="text-sm text-gray-500">
-                {t("hero.trusted")}
-              </p>
-            </div>
+        <div className="max-w-5xl mx-auto">
+          <div className="inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-bold text-[#053d26] dark:text-green-300 bg-green-100 dark:bg-green-950/60 mb-6">
+            {t("hero.architect")}
           </div>
 
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 dark:from-green-500/10 to-transparent rounded-[3rem] transform rotate-3" />
-            <div className="relative bg-white dark:bg-[#1a1a1a] rounded-[3rem] p-4 shadow-2xl border border-gray-100 dark:border-white/10 transition-colors duration-300">
-              <div className="aspect-[4/3] rounded-[2.5rem] bg-gray-100 dark:bg-[#0a0a0a] overflow-hidden relative">
-                {/* Hero Video */}
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-8">
+            <span className="text-[#053d26] dark:text-white block">{titlePart1}</span>
+            {titlePart2 && <span className="text-[#b05e1c] block">{titlePart2}</span>}
+          </h1>
+
+          {/* Video Showcase Card - Positioned immediately under 'School Management, Simplified.' */}
+          <div className="w-full relative mb-12">
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 dark:from-green-500/10 to-transparent rounded-[3rem] transform rotate-1" />
+            <div className="relative bg-white dark:bg-[#1a1a1a] rounded-[2.5rem] sm:rounded-[3rem] p-3 sm:p-5 shadow-2xl border border-gray-100 dark:border-white/10 transition-colors duration-300">
+              <div className="rounded-[2rem] sm:rounded-[2.5rem] bg-[#8ea59b] overflow-hidden relative flex items-center justify-center">
                 <video
                   src="/hero-video.mp4"
                   autoPlay
                   loop
                   muted
                   playsInline
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="w-full h-auto max-h-[620px] object-contain rounded-[2rem] sm:rounded-[2.5rem]"
                 />
-
               </div>
+            </div>
+          </div>
+
+          {/* Subtitle, CTAs, and Social Proof */}
+          <div className="max-w-3xl space-y-8">
+            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+              {t("hero.subtitle")}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <Link
+                href="/register"
+                className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20"
+              >
+                {t("hero.cta.register")}
+              </Link>
+              <Link
+                href="/demo"
+                className="px-8 py-4 rounded-full bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white font-bold border border-gray-200 dark:border-white/10 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all shadow-sm"
+              >
+                {t("hero.cta.demo")}
+              </Link>
+            </div>
+
+            <div className="pt-2 flex items-center gap-4">
+              <div className="flex -space-x-3">
+                <div className="h-10 w-10 rounded-full border-2 border-white dark:border-[#0a0a0a] bg-gray-200" />
+                <div className="h-10 w-10 rounded-full border-2 border-white dark:border-[#0a0a0a] bg-gray-300" />
+                <div className="h-10 w-10 rounded-full border-2 border-white dark:border-[#0a0a0a] bg-gray-400" />
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t("hero.trusted")}
+              </p>
             </div>
           </div>
         </div>
@@ -226,49 +241,36 @@ export default function LandingPage() {
       </section>
 
       {/* Why LeonEd Section */}
-      <section id="why-leoned" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="rounded-[3rem] bg-[#053d26] aspect-[4/3] overflow-hidden relative shadow-2xl">
-            {/* Academic Architect Image */}
-            <Image
-              src="/academic-architect.png"
-              alt="School administrator managing digital education platform"
-              fill
-              className="object-cover"
-              p-index={0}
-            />
-            {/* Subtle overlay for text contrast if needed */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#053d26]/40 to-transparent" />
+      <section id="why-leoned" className="py-24 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4">
+            <FormattedText text={t("why.category")} />
+          </p>
+          <h2 className="text-4xl lg:text-5xl font-bold text-[#053d26] dark:text-white leading-tight mb-6">
+            {t("why.title")}
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+            {t("why.desc")}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="bg-white dark:bg-[#111] p-8 rounded-[2rem] border border-gray-100 dark:border-white/10 shadow-sm flex gap-4 items-start">
+            <div className="shrink-0 mt-1">
+              <CheckCircle2 className="h-6 w-6 text-[#053d26] dark:text-green-400" />
+            </div>
+            <div>
+              <h4 className="font-bold text-gray-900 dark:text-white text-lg mb-1">{t("why.item1.title")}</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{t("why.item1.desc")}</p>
+            </div>
           </div>
-
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#b05e1c] mb-4"><FormattedText text={t("why.category")} /></p>
-            <h2 className="text-4xl lg:text-5xl font-bold text-[#053d26] leading-tight mb-6">
-              {t("why.title")}
-            </h2>
-            <p className="text-gray-600 leading-relaxed mb-10 text-lg">
-              {t("why.desc")}
-            </p>
-
-            <div className="space-y-6">
-              <div className="flex gap-4">
-                <div className="shrink-0 mt-1">
-                  <CheckCircle2 className="h-6 w-6 text-[#053d26]" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 mb-1">{t("why.item1.title")}</h4>
-                  <p className="text-sm text-gray-500">{t("why.item1.desc")}</p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="shrink-0 mt-1">
-                  <CheckCircle2 className="h-6 w-6 text-[#053d26]" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 mb-1">{t("why.item2.title")}</h4>
-                  <p className="text-sm text-gray-500">{t("why.item2.desc")}</p>
-                </div>
-              </div>
+          <div className="bg-white dark:bg-[#111] p-8 rounded-[2rem] border border-gray-100 dark:border-white/10 shadow-sm flex gap-4 items-start">
+            <div className="shrink-0 mt-1">
+              <CheckCircle2 className="h-6 w-6 text-[#053d26] dark:text-green-400" />
+            </div>
+            <div>
+              <h4 className="font-bold text-gray-900 dark:text-white text-lg mb-1">{t("why.item2.title")}</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{t("why.item2.desc")}</p>
             </div>
           </div>
         </div>

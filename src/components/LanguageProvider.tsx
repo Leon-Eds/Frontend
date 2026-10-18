@@ -37,7 +37,7 @@ const translations: Record<string, Record<string, string>> = {
     "nav.settings": "Settings",
     "nav.logout": "Logout",
     // Hero
-    "hero.title": "School Management, Simplified",
+    "hero.title": "School Management, Simplified.",
     "hero.subtitle": "The complete digital management solution for student records, automated result processing, and secure portal access. Built for the future of African education.",
     "hero.cta.register": "Register Your School",
     "hero.cta.demo": "Contact Us",
