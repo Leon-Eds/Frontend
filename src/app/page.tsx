@@ -58,18 +58,18 @@ export default function LandingPage() {
             {titlePart2 && <span className="text-[#b05e1c] block">{titlePart2}</span>}
           </h1>
 
-          {/* Video Showcase Card - Positioned immediately under 'School Management, Simplified.' */}
+          {/* Device Mockup Image Showcase Card - At current position of video */}
           <div className="w-full relative mb-12">
             <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 dark:from-green-500/10 to-transparent rounded-[3rem] transform rotate-1" />
             <div className="relative bg-white dark:bg-[#1a1a1a] rounded-[2.5rem] sm:rounded-[3rem] p-3 sm:p-5 shadow-2xl border border-gray-100 dark:border-white/10 transition-colors duration-300">
-              <div className="rounded-[2rem] sm:rounded-[2.5rem] bg-[#8ea59b] overflow-hidden relative flex items-center justify-center">
-                <video
-                  src="/hero-video.mp4"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
+              <div className="rounded-[2rem] sm:rounded-[2.5rem] bg-[#cdd8d4] overflow-hidden relative flex items-center justify-center">
+                <Image
+                  src="/hero-devices.jpg"
+                  alt="LeonEd platform dashboard across laptop, tablet, and mobile"
+                  width={1024}
+                  height={719}
                   className="w-full h-auto max-h-[620px] object-contain rounded-[2rem] sm:rounded-[2.5rem]"
+                  priority
                 />
               </div>
             </div>
@@ -105,6 +105,23 @@ export default function LandingPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t("hero.trusted")}
               </p>
+            </div>
+          </div>
+
+          {/* Video Showcase Card - Positioned under 'Trusted by 500+ institutions' */}
+          <div className="mt-14 w-full relative">
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 dark:from-green-500/10 to-transparent rounded-[3rem] transform rotate-1" />
+            <div className="relative bg-white dark:bg-[#1a1a1a] rounded-[2.5rem] sm:rounded-[3rem] p-3 sm:p-5 shadow-2xl border border-gray-100 dark:border-white/10 transition-colors duration-300">
+              <div className="rounded-[2rem] sm:rounded-[2.5rem] bg-[#8ea59b] overflow-hidden relative flex items-center justify-center">
+                <video
+                  src="/hero-video.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-auto max-h-[620px] object-contain rounded-[2rem] sm:rounded-[2.5rem]"
+                />
+              </div>
             </div>
           </div>
         </div>
