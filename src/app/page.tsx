@@ -2,17 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { CheckCircle2, ChevronRight, Globe } from "lucide-react";
+import { CheckCircle2, ChevronRight, Zap, Globe } from "lucide-react";
 import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
 import { LeonEdLogoText, FormattedText } from "@/components/ui/LeonEdText";
 
 export default function LandingPage() {
   const { t } = useLanguage();
-
-  const heroTitle = t("hero.title");
-  const commaIndex = heroTitle.includes("，") ? heroTitle.indexOf("，") : heroTitle.indexOf(",");
-  const titlePart1 = commaIndex !== -1 ? heroTitle.slice(0, commaIndex + 1) : heroTitle;
-  const titlePart2 = commaIndex !== -1 ? heroTitle.slice(commaIndex + 1).trim() : "";
 
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-[#0a0a0a] transition-colors duration-300">
@@ -48,79 +43,63 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="max-w-5xl mx-auto">
-          <div className="inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-bold text-[#053d26] dark:text-green-300 bg-green-100 dark:bg-green-950/60 mb-6">
-            {t("hero.architect")}
-          </div>
-
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-8">
-            <span className="text-[#053d26] dark:text-white block">{titlePart1}</span>
-            {titlePart2 && <span className="text-[#b05e1c] block">{titlePart2}</span>}
-          </h1>
-
-          {/* Device Mockup Image Showcase Card - At current position of video */}
-          <div className="w-full relative mb-12">
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 dark:from-green-500/10 to-transparent rounded-[3rem] transform rotate-1" />
-            <div className="relative bg-white dark:bg-[#1a1a1a] rounded-[2.5rem] sm:rounded-[3rem] p-3 sm:p-5 shadow-2xl border border-gray-100 dark:border-white/10 transition-colors duration-300">
-              <div className="rounded-[2rem] sm:rounded-[2.5rem] bg-[#cdd8d4] overflow-hidden relative flex items-center justify-center">
-                <Image
-                  src="/hero-devices.jpg"
-                  alt="LeonEd platform dashboard across laptop, tablet, and mobile"
-                  width={1024}
-                  height={719}
-                  className="w-full h-auto max-h-[620px] object-contain rounded-[2rem] sm:rounded-[2.5rem]"
-                  priority
-                />
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-8">
+            <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold text-[#053d26] bg-green-100">
+              {t("hero.architect")}
             </div>
-          </div>
-
-          {/* Subtitle, CTAs, and Social Proof */}
-          <div className="max-w-3xl space-y-8">
-            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
+            <h1 className="text-5xl lg:text-6xl font-bold text-[#053d26] leading-[1.1] tracking-tight">
+              {t("hero.title")}
+            </h1>
+            <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
               {t("hero.subtitle")}
             </p>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <Link
-                href="/register"
-                className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20"
-              >
+            <div className="flex flex-wrap gap-4">
+              <Link href="/register" className="px-8 py-4 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20">
                 {t("hero.cta.register")}
               </Link>
-              <Link
-                href="/demo"
-                className="px-8 py-4 rounded-full bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white font-bold border border-gray-200 dark:border-white/10 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all shadow-sm"
-              >
+              <Link href="/demo" className="px-8 py-4 rounded-full bg-white text-gray-900 font-bold border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm">
                 {t("hero.cta.demo")}
               </Link>
             </div>
-
-            <div className="pt-2 flex items-center gap-4">
+            
+            <div className="pt-8 flex items-center gap-4">
               <div className="flex -space-x-3">
-                <div className="h-10 w-10 rounded-full border-2 border-white dark:border-[#0a0a0a] bg-gray-200" />
-                <div className="h-10 w-10 rounded-full border-2 border-white dark:border-[#0a0a0a] bg-gray-300" />
-                <div className="h-10 w-10 rounded-full border-2 border-white dark:border-[#0a0a0a] bg-gray-400" />
+                <div className="h-10 w-10 rounded-full border-2 border-white bg-gray-200" />
+                <div className="h-10 w-10 rounded-full border-2 border-white bg-gray-300" />
+                <div className="h-10 w-10 rounded-full border-2 border-white bg-gray-400" />
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-500">
                 {t("hero.trusted")}
               </p>
             </div>
           </div>
 
-          {/* Video Showcase Card - Positioned under 'Trusted by 500+ institutions' */}
-          <div className="mt-14 w-full relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 dark:from-green-500/10 to-transparent rounded-[3rem] transform rotate-1" />
-            <div className="relative bg-white dark:bg-[#1a1a1a] rounded-[2.5rem] sm:rounded-[3rem] p-3 sm:p-5 shadow-2xl border border-gray-100 dark:border-white/10 transition-colors duration-300">
-              <div className="rounded-[2rem] sm:rounded-[2.5rem] bg-[#8ea59b] overflow-hidden relative flex items-center justify-center">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#053d26]/10 dark:from-green-500/10 to-transparent rounded-[3rem] transform rotate-3" />
+            <div className="relative bg-white dark:bg-[#1a1a1a] rounded-[3rem] p-4 shadow-2xl border border-gray-100 dark:border-white/10 transition-colors duration-300">
+              <div className="aspect-[4/3] rounded-[2.5rem] bg-gray-100 dark:bg-[#0a0a0a] overflow-hidden relative">
+                {/* Hero Video */}
                 <video
                   src="/hero-video.mp4"
                   autoPlay
                   loop
                   muted
                   playsInline
-                  className="w-full h-auto max-h-[620px] object-contain rounded-[2rem] sm:rounded-[2.5rem]"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
+                {/* Floating element */}
+                <div className="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-black/90 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 shadow-lg border border-white/20 dark:border-white/10 transition-colors duration-300">
+                  <div className="h-10 w-10 rounded-xl bg-orange-100 text-[#b05e1c] flex items-center justify-center">
+                    <Zap className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm">{t("hero.automated_processing")}</p>
+                    <div className="h-1.5 w-32 bg-gray-200 dark:bg-gray-700 rounded-full mt-2">
+                      <div className="h-full w-2/3 bg-[#053d26] dark:bg-green-500 rounded-full" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
