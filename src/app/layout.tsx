@@ -82,7 +82,7 @@ export default function RootLayout({
         {/* Chatway live chat widget */}
         <Script
           id="chatway"
-          src="https://cdn.chatway.app/widget.js?id=4KvSqOMlgaIk"
+          src="https://cdn.chatway.app/widget.js?id=128CFgSWAnLV"
           strategy="afterInteractive"
         />
       </body>
