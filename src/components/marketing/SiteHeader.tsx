@@ -114,8 +114,8 @@ export function SiteHeader() {
           <div className="topbar-links">
             <span>
               <Ms name="mail" />{" "}
-              <a className="tb-link" href="mailto:support@leoned.africa">
-                support@leoned.africa
+              <a className="tb-link" href="mailto:admin@leoned.ng">
+                admin@leoned.ng
               </a>
             </span>
             <LangSelect />

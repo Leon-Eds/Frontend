@@ -746,3 +746,5 @@ body:has(.mkt) .chatway--trigger-container { left: 18px !important; right: auto 
   .mkt .nav-links, .mkt .nav-actions { display: none; }
   .mkt .nav-toggle { display: inline-flex; }
 }
+/* Keep the brand as "LeonEd" inside all-caps labels */
+.mkt .brand-case { text-transform: none; }

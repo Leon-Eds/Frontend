@@ -58,7 +58,7 @@ export const ig: Record<string, string> = {
 
   // Home: hero
   "mk.home.badge": "Usoro njikwa ụlọ akwụkwọ",
-  "mk.home.title": "Na-eme klaasị Afrịka ka ha bụrụ dijitalụ, <copper>otu ụlọ akwụkwọ</copper> n'otu oge.",
+  "mk.home.title": "Usoro njikwa ụlọ akwụkwọ, <copper>emere ka ọ dị mfe</copper>",
   "mk.home.lead": "Ngwọta dijitalụ zuru oke maka ndekọ ụmụ akwụkwọ, nhazi nsonaazụ na-akpaghị aka na ọnụ ụzọ echekwara. Otu usoro jikọtara ndị nwe ụlọ akwụkwọ, ndị nchịkwa, ndị nkuzi, ụmụ akwụkwọ na ndị nne na nna.",
   "mk.home.contact": "Kpọtụrụ anyị",
   "mk.home.trust": "Ihe karịrị ụlọ akwụkwọ 500 n'Afrịka tụkwasịrị anyị obi",
@@ -318,7 +318,7 @@ export const ig: Record<string, string> = {
   "mk.homeFaq.q6": "Ọ na-arụ ọrụ na ekwentị na ịntanetị dị nwayọ?",
   "mk.homeFaq.a6": "Ee. E mere LeonEd maka ekwentị na ebe ịntanetị dị nwayọ, ka ndị nne na nna na ndị ọrụ nwee ike ịbanye site n'ebe ọ bụla.",
   "mk.homeFaq.q7": "Kedu ka anyị ga-esi nweta enyemaka ma ọ bụrụ na ihe adịghị mma?",
-  "mk.homeFaq.a7": "Ndị otu anyị na-enye enyemaka nka na ụzụ 24/7. Zipu email na <mail>support@leoned.africa</mail> ma ọ bụ gaa na <help>Ebe Enyemaka</help>.",
+  "mk.homeFaq.a7": "Ndị otu anyị na-enye enyemaka nka na ụzụ 24/7. Zipu email na <mail>admin@leoned.ng</mail> ma ọ bụ gaa na <help>Ebe Enyemaka</help>.",
 
   // Features
   "mk.features.crumb": "Njirimara",
@@ -440,7 +440,7 @@ export const ig: Record<string, string> = {
   // About
   "mk.about.crumb": "Banyere anyị",
   "mk.about.eyebrow": "Banyere LeonEd",
-  "mk.about.title": "Na-eme klaasị Afrịka ka ha bụrụ dijitalụ, otu ụlọ akwụkwọ n'otu oge.",
+  "mk.about.title": "Usoro njikwa ụlọ akwụkwọ, emere ka ọ dị mfe",
   "mk.about.desc": "LeonEd bụ usoro njikwa ụlọ akwụkwọ e wuru iji kpọpụta ụlọ akwụkwọ Afrịka site n'akwụkwọ ịkpọ aha na mpempe akwụkwọ nsonaazụ e ji aka dee gaa n'otu ikpo okwu dijitalụ echekwara ma jikọọ ọnụ.",
   "mk.about.quote": "Ụlọ akwụkwọ na-arụ ọrụ nke ọma mgbe <copper>ndị nwe ya, ndị nkuzi, ụmụ akwụkwọ na ndị nne na nna</copper> niile hụrụ otu foto, n'otu oge.",
   "mk.about.p1": "N'ọtụtụ ụlọ akwụkwọ, ndekọ gbasasịrị n'akwụkwọ ịkpọ aha, spredshiit na kọbọd faịlụ. Ịgbakọ nsonaazụ n'aka na-ewe izu ụka ole na ole, ndị nne na nna na-amatakwa otu nwa ha si eme naanị na njedebe ọkara.",
@@ -502,7 +502,7 @@ export const ig: Record<string, string> = {
   "mk.security.l4d": "Ozugbo oge ahụ gwụrụ, a na-ewepụ ndekọ n'ụyọkọ isi anyị.",
   "mk.security.report": "Ị chọtara nsogbu nchekwa?",
   "mk.security.reportd": "Anyị na-anabata ikpughe n'ụzọ kwesịrị ekwesị. Biko kọọ adịghị ike ị chere na ọ dị na nzuzo, nyekwa anyị oge kwesịrị ekwesị iji dozie ya tupu ikesaa ya n'ihu ọha.",
-  "mk.security.reportLink": "Kọọ na support@leoned.africa →",
+  "mk.security.reportLink": "Kọọ na admin@leoned.ng →",
 
   // Contact
   "mk.contact.crumb": "Kpọtụrụ anyị",
@@ -537,7 +537,7 @@ export const ig: Record<string, string> = {
   "mk.form.note": "Site n'izipu, ị kwenyere na <a>Iwu nzuzo</a> anyị.",
   "mk.form.success": "Daalụ! Arịrịọ gị abatala.",
   "mk.form.successd": "Ndị otu anyị ga-akpọtụrụ gị n'oge na-adịghị anya.",
-  "mk.form.error": "Anyị enweghị ike izipu arịrịọ gị. Biko nwaa ọzọ n'oge na-adịghị anya, ma ọ bụ zipu email na support@leoned.africa.",
+  "mk.form.error": "Anyị enweghị ike izipu arịrịọ gị. Biko nwaa ọzọ n'oge na-adịghị anya, ma ọ bụ zipu email na admin@leoned.ng.",
 
   // FAQ page
   "mk.faq.crumb": "Ajụjụ a na-ajụkarị",
@@ -586,7 +586,7 @@ export const ig: Record<string, string> = {
   "mk.faq.security.q4": "LeonEd ọ na-ere data ụmụ akwụkwọ?",
   "mk.faq.security.a4": "Mba. A naghị ere data ụmụ akwụkwọ ma ọ bụ jiri ya mee mgbasa ozi. Lee <studentData>Iwu data ụmụ akwụkwọ</studentData> anyị.",
   "mk.faq.support.q1": "Kedu ka m ga-esi kpọtụrụ nkwado?",
-  "mk.faq.support.a1": "Zipu email na <mail>support@leoned.africa</mail> ma ọ bụ gaa na <help>Ebe Enyemaka</help>. Enyemaka nka na ụzụ dị 24/7.",
+  "mk.faq.support.a1": "Zipu email na <mail>admin@leoned.ng</mail> ma ọ bụ gaa na <help>Ebe Enyemaka</help>. Enyemaka nka na ụzụ dị 24/7.",
   "mk.faq.support.q2": "Kedu ka m ga-esi kọọ njehie ma ọ bụ rịọ njirimara?",
   "mk.faq.support.a2": "Zitere nkwado email nwere nkọwa ihe mere, ihe ị tụrụ anya ya, na foto ihuenyo ma ọ bụrụ na o kwere omume.",
   "mk.faq.support.q3": "Ebee ka m ga-ele ma LeonEd adaala?",
@@ -616,9 +616,9 @@ export const ig: Record<string, string> = {
   "mk.support.q1": "Ebee ka m ga-abanye?",
   "mk.support.a1": "Onye ọ bụla (ndị nwe, ndị nchịkwa, ndị nkuzi, ndị nne na nna na ụmụ akwụkwọ) na-abanye na <login>ibe nbanye LeonEd</login> site na nkọwa ụlọ akwụkwọ ha nyere ha.",
   "mk.support.q2": "Enweghị m ike ịbanye n'akaụntụ m. Gịnị ka m ga-eme?",
-  "mk.support.a2": "Ndị nne na nna, ndị nkuzi na ụmụ akwụkwọ kwesịrị ibu ụzọ kpọtụrụ onye nchịkwa ụlọ akwụkwọ ha, onye na-ejikwa nnweta ọnụ ụzọ. Ọ bụrụ na nsogbu ahụ aga n'ihu, zipu email na support@leoned.africa nwere aha ụlọ akwụkwọ gị na nkọwa nsogbu ahụ.",
+  "mk.support.a2": "Ndị nne na nna, ndị nkuzi na ụmụ akwụkwọ kwesịrị ibu ụzọ kpọtụrụ onye nchịkwa ụlọ akwụkwọ ha, onye na-ejikwa nnweta ọnụ ụzọ. Ọ bụrụ na nsogbu ahụ aga n'ihu, zipu email na admin@leoned.ng nwere aha ụlọ akwụkwọ gị na nkọwa nsogbu ahụ.",
   "mk.support.q3": "Kedu ka m ga-esi kọọ njehie ma ọ bụ rịọ njirimara?",
-  "mk.support.a3": "Zipu email na support@leoned.africa nwere nkọwa dị ka o kwere mee: ihe ị na-eme, ihe ị tụrụ anya ya, ihe mere, na foto ihuenyo ma ọ bụrụ na o kwere omume.",
+  "mk.support.a3": "Zipu email na admin@leoned.ng nwere nkọwa dị ka o kwere mee: ihe ị na-eme, ihe ị tụrụ anya ya, ihe mere, na foto ihuenyo ma ọ bụrụ na o kwere omume.",
   "mk.support.q4": "Kedu ka ụlọ akwụkwọ anyị ga-esi bupụ data ya?",
   "mk.support.a4": "Ụlọ akwụkwọ gị nwe data ya. Ọ bụrụ na ndenye aha gị kwụsịrị, ị nwere ụbọchị 30 iji bupụ ndekọ niile. Kpọtụrụ nkwado iji hazie mbupụ.",
   "mk.support.q5": "Kedu ka anyị ga-esi debanye ụlọ akwụkwọ ọhụrụ?",
@@ -662,7 +662,7 @@ export const ig: Record<string, string> = {
   "mk.legalhub.desc": "Ihe niile na-achịkwa otu LeonEd si eso ụlọ akwụkwọ gị arụ ọrụ, na otu anyị si echekwa ndị nọ n'ime ya.",
   "mk.legalhub.read": "Gụọ akwụkwọ",
   "mk.legalhub.questions": "Ajụjụ gbasara iwu anyị?",
-  "mk.legalhub.email": "Zipu email na support@leoned.africa →",
+  "mk.legalhub.email": "Zipu email na admin@leoned.ng →",
   "mk.legalhub.privacy": "Otu LeonEd si echekwa izi ezi nke data ụlọ ọrụ na agụmakwụkwọ.",
   "mk.legalhub.terms": "Usoro na-emetụta mgbe ụlọ akwụkwọ gị na ndị ọrụ ya na-eji LeonEd.",
   "mk.legalhub.student-data": "Nkwa anyị gbasara data ụmụ akwụkwọ na ụmụaka: anaghị ere ya, anaghị eji ya mee mgbasa ozi.",

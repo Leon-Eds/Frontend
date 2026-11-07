@@ -63,7 +63,7 @@ export function SecurityContent() {
             <div>
               <b style={{ fontSize: 19 }}>{t("mk.security.report")}</b>
               <p style={{ color: "var(--ink-2)", margin: "4px 0 6px" }}>{t("mk.security.reportd")}</p>
-              <a href="mailto:support@leoned.africa?subject=Security%20report">{t("mk.security.reportLink")}</a>
+              <a href="mailto:admin@leoned.ng?subject=Security%20report">{t("mk.security.reportLink")}</a>
             </div>
           </div>
         </div>

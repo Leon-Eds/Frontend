@@ -13,6 +13,21 @@ const defaultTags: Record<string, Renderer> = {
 
 const TAG = /<(\w+)>(.*?)<\/\1>/g;
 
+/** Wraps each "LeonEd" so all-caps labels (eyebrows etc.) keep the brand's casing. */
+function brandCase(text: string, key: string | number): React.ReactNode {
+  if (!text.includes("LeonEd")) return text;
+  return text.split("LeonEd").flatMap((part, i) =>
+    i === 0
+      ? [part]
+      : [
+          <span key={`${key}-${i}`} className="brand-case">
+            LeonEd
+          </span>,
+          part,
+        ]
+  );
+}
+
 /**
  * Turns a translated string with simple inline tags into React nodes,
  * e.g. "Every part of your school, <hl>working together</hl>".
@@ -23,12 +38,12 @@ export function rich(text: string, tags: Record<string, Renderer> = {}): React.R
   const out: React.ReactNode[] = [];
   let last = 0;
   for (const m of text.matchAll(TAG)) {
-    if (m.index > last) out.push(text.slice(last, m.index));
+    if (m.index > last) out.push(brandCase(text.slice(last, m.index), `t${last}`));
     const render = all[m[1]];
-    out.push(<React.Fragment key={m.index}>{render ? render(m[2]) : m[2]}</React.Fragment>);
+    out.push(<React.Fragment key={m.index}>{render ? render(brandCase(m[2], `i${m.index}`)) : m[2]}</React.Fragment>);
     last = m.index + m[0].length;
   }
-  if (last < text.length) out.push(text.slice(last));
+  if (last < text.length) out.push(brandCase(text.slice(last), `t${last}`));
   return out;
 }
 

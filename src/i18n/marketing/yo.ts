@@ -58,7 +58,7 @@ export const yo: Record<string, string> = {
 
   // Home: hero
   "mk.home.badge": "Ètò ìṣàkóso ilé-ìwé",
-  "mk.home.title": "A ń sọ àwọn kíláàsì Áfíríkà di dígítà, <copper>ilé-ìwé kan</copper> lẹ́ẹ̀kan.",
+  "mk.home.title": "Ètò ìṣàkóso ilé-ìwé, <copper>ní ìrọ̀rùn</copper>",
   "mk.home.lead": "Ojútùú dígítà pípé fún àkọsílẹ̀ akẹ́kọ̀ọ́, ìṣètò èsì aládàáṣe àti ìwọlé aláàbò sí ẹnu-ọ̀nà. Ètò kan tí ó so àwọn olùdásílẹ̀, alákòóso, olùkọ́, akẹ́kọ̀ọ́ àti òbí pọ̀.",
   "mk.home.contact": "Kàn sí wa",
   "mk.home.trust": "Ó ju ilé-ẹ̀kọ́ 500 lọ jákèjádò Áfíríkà tí ó gbẹ́kẹ̀lé wa",
@@ -318,7 +318,7 @@ export const yo: Record<string, string> = {
   "mk.homeFaq.q6": "Ṣé ó ń ṣiṣẹ́ lórí fóònù àti ìntánẹ́ẹ̀tì tí ó lọ́ra?",
   "mk.homeFaq.a6": "Bẹ́ẹ̀ ni. A ṣe LeonEd fún fóònù àti àyíká tí ìntánẹ́ẹ̀tì ti lọ́ra, kí òbí àti òṣìṣẹ́ lè wọlé láti ibikíbi.",
   "mk.homeFaq.q7": "Báwo ni a ṣe lè rí ìrànlọ́wọ́ bí nǹkan bá bàjẹ́?",
-  "mk.homeFaq.a7": "Ẹgbẹ́ wa ń pèsè ìrànlọ́wọ́ ìmọ̀ ẹ̀rọ 24/7. Fi ímeèlì ránṣẹ́ sí <mail>support@leoned.africa</mail> tàbí ṣàbẹ̀wò sí <help>Ibùdó Ìrànlọ́wọ́</help>.",
+  "mk.homeFaq.a7": "Ẹgbẹ́ wa ń pèsè ìrànlọ́wọ́ ìmọ̀ ẹ̀rọ 24/7. Fi ímeèlì ránṣẹ́ sí <mail>admin@leoned.ng</mail> tàbí ṣàbẹ̀wò sí <help>Ibùdó Ìrànlọ́wọ́</help>.",
 
   // Features
   "mk.features.crumb": "Àwọn ẹ̀yà",
@@ -440,7 +440,7 @@ export const yo: Record<string, string> = {
   // About
   "mk.about.crumb": "Nípa wa",
   "mk.about.eyebrow": "Nípa LeonEd",
-  "mk.about.title": "A ń sọ àwọn kíláàsì Áfíríkà di dígítà, ilé-ìwé kan lẹ́ẹ̀kan.",
+  "mk.about.title": "Ètò ìṣàkóso ilé-ìwé, ní ìrọ̀rùn",
   "mk.about.desc": "LeonEd jẹ́ ètò ìṣàkóso ilé-ìwé tí a kọ́ láti mú àwọn ilé-ìwé Áfíríkà kúrò nínú ìwé ìpe orúkọ àti ìwé èsì ọwọ́ lọ sí pẹpẹ dígítà kan tí ó ní ààbò tí ó sì so pọ̀.",
   "mk.about.quote": "Ilé-ìwé máa ń ṣiṣẹ́ dáadáa jùlọ nígbà tí <copper>olùdásílẹ̀, olùkọ́, akẹ́kọ̀ọ́ àti òbí</copper> rẹ̀ bá ń rí àwòrán kan náà, ní àkókò kan náà.",
   "mk.about.p1": "Ní ọ̀pọ̀ ilé-ìwé, àkọsílẹ̀ fọ́nká sínú ìwé ìpe orúkọ, spreadsheet àti àpótí fáìlì. Ìṣírò èsì pẹ̀lú ọwọ́ ń gba ọ̀sẹ̀ púpọ̀, òbí sì máa ń mọ bí ọmọ wọn ṣe ń ṣe ní òpin sáà nìkan.",
@@ -502,7 +502,7 @@ export const yo: Record<string, string> = {
   "mk.security.l4d": "Nígbà tí àkókò náà bá parí, a ó yọ àkọsílẹ̀ kúrò nínú ìkójọpọ̀ àkọ́kọ́ wa.",
   "mk.security.report": "Ṣé o rí ìṣòro ààbò kan?",
   "mk.security.reportd": "A gba ìfihàn tí ó ní ojúṣe. Jọ̀wọ́ fi ìròyìn àìlera tí o fura sí ránṣẹ́ ní ìkọ̀kọ̀, kí o sì fún wa ní àkókò tí ó tọ́ láti tún un ṣe kí o tó sọ ọ́ ní gbangba.",
-  "mk.security.reportLink": "Fi ìròyìn ránṣẹ́ sí support@leoned.africa →",
+  "mk.security.reportLink": "Fi ìròyìn ránṣẹ́ sí admin@leoned.ng →",
 
   // Contact
   "mk.contact.crumb": "Kàn sí wa",
@@ -537,7 +537,7 @@ export const yo: Record<string, string> = {
   "mk.form.note": "Nípa fífi ránṣẹ́, o gbà sí <a>Ìlànà àṣírí</a> wa.",
   "mk.form.success": "Ẹ ṣé! Ìbéèrè rẹ ti dé.",
   "mk.form.successd": "Ẹgbẹ́ wa yóò kàn sí ọ láìpẹ́.",
-  "mk.form.error": "A kò lè fi ìbéèrè rẹ ránṣẹ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan sí i láìpẹ́, tàbí fi ímeèlì ránṣẹ́ sí support@leoned.africa.",
+  "mk.form.error": "A kò lè fi ìbéèrè rẹ ránṣẹ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan sí i láìpẹ́, tàbí fi ímeèlì ránṣẹ́ sí admin@leoned.ng.",
 
   // FAQ page
   "mk.faq.crumb": "Àwọn ìbéèrè",
@@ -586,7 +586,7 @@ export const yo: Record<string, string> = {
   "mk.faq.security.q4": "Ṣé LeonEd ń ta dátà akẹ́kọ̀ọ́?",
   "mk.faq.security.a4": "Rárá. A kì í ta dátà akẹ́kọ̀ọ́ rárá, a kì í sì lò ó fún ìpolówó. Wo <studentData>Ìlànà dátà akẹ́kọ̀ọ́</studentData> wa.",
   "mk.faq.support.q1": "Báwo ni mo ṣe lè kàn sí ìtìlẹ́yìn?",
-  "mk.faq.support.a1": "Fi ímeèlì ránṣẹ́ sí <mail>support@leoned.africa</mail> tàbí ṣàbẹ̀wò sí <help>Ibùdó Ìrànlọ́wọ́</help>. Ìrànlọ́wọ́ ìmọ̀ ẹ̀rọ wà ní 24/7.",
+  "mk.faq.support.a1": "Fi ímeèlì ránṣẹ́ sí <mail>admin@leoned.ng</mail> tàbí ṣàbẹ̀wò sí <help>Ibùdó Ìrànlọ́wọ́</help>. Ìrànlọ́wọ́ ìmọ̀ ẹ̀rọ wà ní 24/7.",
   "mk.faq.support.q2": "Báwo ni mo ṣe lè ròyìn àṣìṣe tàbí béèrè fún ẹ̀yà tuntun?",
   "mk.faq.support.a2": "Fi ímeèlì ránṣẹ́ sí ìtìlẹ́yìn pẹ̀lú àlàyé ohun tí ó ṣẹlẹ̀, ohun tí o retí, àti àwòrán ojú-ìbojú bí ó bá ṣeé ṣe.",
   "mk.faq.support.q3": "Níbo ni mo ti lè mọ̀ bí LeonEd kò bá ṣiṣẹ́?",
@@ -616,9 +616,9 @@ export const yo: Record<string, string> = {
   "mk.support.q1": "Níbo ni mo ti lè wọlé?",
   "mk.support.a1": "Gbogbo ènìyàn (olùdásílẹ̀, alákòóso, olùkọ́, òbí àti akẹ́kọ̀ọ́) ń wọlé ní <login>ojú-ìwé ìwọlé LeonEd</login> pẹ̀lú àlàyé tí ilé-ìwé wọn fún wọn.",
   "mk.support.q2": "Mi ò lè wọ àkáǹtì mi. Kí ni kí n ṣe?",
-  "mk.support.a2": "Òbí, olùkọ́ àti akẹ́kọ̀ọ́ gbọ́dọ̀ kọ́kọ́ kàn sí alákòóso ilé-ìwé wọn, ẹni tí ó ń ṣàkóso ìwọlé ẹnu-ọ̀nà. Bí ìṣòro náà bá ń bá a lọ, fi ímeèlì ránṣẹ́ sí support@leoned.africa pẹ̀lú orúkọ ilé-ìwé rẹ àti àlàyé ìṣòro náà.",
+  "mk.support.a2": "Òbí, olùkọ́ àti akẹ́kọ̀ọ́ gbọ́dọ̀ kọ́kọ́ kàn sí alákòóso ilé-ìwé wọn, ẹni tí ó ń ṣàkóso ìwọlé ẹnu-ọ̀nà. Bí ìṣòro náà bá ń bá a lọ, fi ímeèlì ránṣẹ́ sí admin@leoned.ng pẹ̀lú orúkọ ilé-ìwé rẹ àti àlàyé ìṣòro náà.",
   "mk.support.q3": "Báwo ni mo ṣe lè ròyìn àṣìṣe tàbí béèrè fún ẹ̀yà tuntun?",
-  "mk.support.a3": "Fi ímeèlì ránṣẹ́ sí support@leoned.africa pẹ̀lú àlàyé tó pọ̀ bí o ti lè ṣe: ohun tí o ń ṣe, ohun tí o retí, ohun tí ó ṣẹlẹ̀, àti àwòrán ojú-ìbojú bí ó bá ṣeé ṣe.",
+  "mk.support.a3": "Fi ímeèlì ránṣẹ́ sí admin@leoned.ng pẹ̀lú àlàyé tó pọ̀ bí o ti lè ṣe: ohun tí o ń ṣe, ohun tí o retí, ohun tí ó ṣẹlẹ̀, àti àwòrán ojú-ìbojú bí ó bá ṣeé ṣe.",
   "mk.support.q4": "Báwo ni ilé-ìwé wa ṣe lè gbé dátà rẹ̀ jáde?",
   "mk.support.a4": "Ilé-ẹ̀kọ́ rẹ ló ni dátà rẹ̀. Bí ìforúkọsílẹ̀ rẹ bá parí, o ní ọjọ́ 30 láti gbé gbogbo àkọsílẹ̀ jáde. Kàn sí ìtìlẹ́yìn láti ṣètò ìgbéjáde.",
   "mk.support.q5": "Báwo ni a ṣe lè forúkọ ilé-ìwé tuntun sílẹ̀?",
@@ -662,7 +662,7 @@ export const yo: Record<string, string> = {
   "mk.legalhub.desc": "Gbogbo ohun tí ó ń darí bí LeonEd ṣe ń bá ilé-ìwé rẹ ṣiṣẹ́, àti bí a ṣe ń dáàbò bo àwọn ènìyàn inú rẹ̀.",
   "mk.legalhub.read": "Ka ìwé",
   "mk.legalhub.questions": "Ṣé o ní ìbéèrè nípa ìlànà wa?",
-  "mk.legalhub.email": "Fi ímeèlì ránṣẹ́ sí support@leoned.africa →",
+  "mk.legalhub.email": "Fi ímeèlì ránṣẹ́ sí admin@leoned.ng →",
   "mk.legalhub.privacy": "Bí LeonEd ṣe ń dáàbò bo ìwàtítọ́ dátà ilé-ẹ̀kọ́ àti ẹ̀kọ́.",
   "mk.legalhub.terms": "Àwọn òfin tí ó kan nígbà tí ilé-ìwé rẹ àti àwọn olùlò rẹ̀ bá ń lo LeonEd.",
   "mk.legalhub.student-data": "Ìlérí wa nípa dátà akẹ́kọ̀ọ́ àti ọmọdé: a kì í tà á, a kì í lò ó fún ìpolówó.",

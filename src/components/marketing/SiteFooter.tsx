@@ -61,8 +61,8 @@ export function SiteFooter() {
             <img src="/marketing/leoned-logo-light.png" alt="LeonEd" width={134} height={42} />
             <p>{t("mk.footer.desc")}</p>
             <p style={{ marginTop: 14 }}>
-              <a href="mailto:support@leoned.africa" style={{ display: "inline-flex", gap: 8, alignItems: "center", color: "#fff" }}>
-                <Ms name="mail" /> support@leoned.africa
+              <a href="mailto:admin@leoned.ng" style={{ display: "inline-flex", gap: 8, alignItems: "center", color: "#fff" }}>
+                <Ms name="mail" /> admin@leoned.ng
               </a>
             </p>
             <Link href="/register" className="btn btn-primary btn-sm" style={{ marginTop: 20 }}>

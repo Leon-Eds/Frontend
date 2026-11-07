@@ -98,7 +98,7 @@ export function LegalHub() {
             <Ms name="mail" />
             <div>
               <b>{t("mk.legalhub.questions")}</b>
-              <a href="mailto:support@leoned.africa">{t("mk.legalhub.email")}</a>
+              <a href="mailto:admin@leoned.ng">{t("mk.legalhub.email")}</a>
             </div>
           </div>
         </div>

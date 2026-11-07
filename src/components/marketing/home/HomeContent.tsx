@@ -16,7 +16,7 @@ function Hero() {
       <div className="container">
         <div className="hero-copy">
           <span className="hero-badge reveal">
-            <b>LEONED</b> {t("mk.home.badge")}
+            <b>LeonEd</b> {t("mk.home.badge")}
           </span>
           <h1 className="reveal d1">{r("mk.home.title")}</h1>
           <p className="hero-lead reveal d2">{t("mk.home.lead")}</p>
@@ -345,7 +345,7 @@ function HomeFaq() {
             items={items}
             tags={{
               privacy: copperLink("/privacy"),
-              mail: copperLink("mailto:support@leoned.africa"),
+              mail: copperLink("mailto:admin@leoned.ng"),
               help: copperLink("/support"),
             }}
           />

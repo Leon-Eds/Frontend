@@ -58,7 +58,7 @@ export const zh: Record<string, string> = {
 
   // Home: hero
   "mk.home.badge": "学校管理系统",
-  "mk.home.title": "让非洲课堂走向数字化，<copper>一所学校</copper>接一所学校。",
+  "mk.home.title": "学校管理系统，<copper>化繁为简</copper>",
   "mk.home.lead": "集学生档案、自动成绩处理和安全门户访问于一体的完整数字化管理方案。一个系统，连接学校所有者、管理人员、教师、学生和家长。",
   "mk.home.contact": "联系我们",
   "mk.home.trust": "深受非洲 500 多家教育机构信赖",
@@ -318,7 +318,7 @@ export const zh: Record<string, string> = {
   "mk.homeFaq.q6": "在手机和慢速网络下能用吗？",
   "mk.homeFaq.a6": "可以。LeonEd 专为手机和低带宽环境设计，家长和教职工随时随地都能登录。",
   "mk.homeFaq.q7": "出现问题时如何获得帮助？",
-  "mk.homeFaq.a7": "我们的团队提供全天候技术支持。请发送邮件至 <mail>support@leoned.africa</mail> 或访问<help>帮助中心</help>。",
+  "mk.homeFaq.a7": "我们的团队提供全天候技术支持。请发送邮件至 <mail>admin@leoned.ng</mail> 或访问<help>帮助中心</help>。",
 
   // Features
   "mk.features.crumb": "功能",
@@ -440,7 +440,7 @@ export const zh: Record<string, string> = {
   // About
   "mk.about.crumb": "关于我们",
   "mk.about.eyebrow": "关于 LeonEd",
-  "mk.about.title": "让非洲课堂走向数字化，一所学校接一所学校。",
+  "mk.about.title": "学校管理系统，化繁为简",
   "mk.about.desc": "LeonEd 是一套学校管理系统，帮助非洲学校从纸质点名册和手工成绩表转向一个安全、互联的数字平台。",
   "mk.about.quote": "当学校的<copper>所有者、教师、学生和家长</copper>在同一时间看到同样的信息时，学校才能运转得最好。",
   "mk.about.p1": "在太多学校里，档案散落在点名册、电子表格和文件柜中。手工计算成绩需要数周时间，家长直到学期末才知道孩子的学习情况。",
@@ -502,7 +502,7 @@ export const zh: Record<string, string> = {
   "mk.security.l4d": "导出期结束后，记录将从我们的主集群中删除。",
   "mk.security.report": "发现安全问题？",
   "mk.security.reportd": "我们欢迎负责任的披露。请私下报告疑似漏洞，并在公开前给我们合理的修复时间。",
-  "mk.security.reportLink": "报告至 support@leoned.africa →",
+  "mk.security.reportLink": "报告至 admin@leoned.ng →",
 
   // Contact
   "mk.contact.crumb": "联系我们",
@@ -537,7 +537,7 @@ export const zh: Record<string, string> = {
   "mk.form.note": "提交即表示您同意我们的<a>隐私政策</a>。",
   "mk.form.success": "谢谢！我们已收到您的申请。",
   "mk.form.successd": "我们的团队会尽快与您联系。",
-  "mk.form.error": "申请发送失败。请稍后重试，或发送邮件至 support@leoned.africa。",
+  "mk.form.error": "申请发送失败。请稍后重试，或发送邮件至 admin@leoned.ng。",
 
   // FAQ page
   "mk.faq.crumb": "常见问题",
@@ -586,7 +586,7 @@ export const zh: Record<string, string> = {
   "mk.faq.security.q4": "LeonEd 会出售学生数据吗？",
   "mk.faq.security.a4": "不会。学生数据绝不出售，也绝不用于广告。请参阅我们的<studentData>学生数据政策</studentData>。",
   "mk.faq.support.q1": "如何联系支持团队？",
-  "mk.faq.support.a1": "请发送邮件至 <mail>support@leoned.africa</mail> 或访问<help>帮助中心</help>。我们提供全天候技术支持。",
+  "mk.faq.support.a1": "请发送邮件至 <mail>admin@leoned.ng</mail> 或访问<help>帮助中心</help>。我们提供全天候技术支持。",
   "mk.faq.support.q2": "如何报告错误或提出功能建议？",
   "mk.faq.support.a2": "请发邮件给支持团队，说明发生了什么、您期望的结果，如有可能请附上截图。",
   "mk.faq.support.q3": "在哪里查看 LeonEd 是否宕机？",
@@ -616,9 +616,9 @@ export const zh: Record<string, string> = {
   "mk.support.q1": "在哪里登录？",
   "mk.support.a1": "所有人（所有者、管理人员、教师、家长和学生）都使用学校提供的账户信息，在 <login>LeonEd 登录页面</login>登录。",
   "mk.support.q2": "无法访问账户怎么办？",
-  "mk.support.a2": "家长、教师和学生应先联系负责门户访问的学校管理人员。如问题仍未解决，请发送邮件至 support@leoned.africa，注明学校名称并描述问题。",
+  "mk.support.a2": "家长、教师和学生应先联系负责门户访问的学校管理人员。如问题仍未解决，请发送邮件至 admin@leoned.ng，注明学校名称并描述问题。",
   "mk.support.q3": "如何报告错误或提出功能建议？",
-  "mk.support.a3": "请发送邮件至 support@leoned.africa，尽量提供详细信息：您当时在做什么、期望的结果、实际发生了什么，如有可能请附上截图。",
+  "mk.support.a3": "请发送邮件至 admin@leoned.ng，尽量提供详细信息：您当时在做什么、期望的结果、实际发生了什么，如有可能请附上截图。",
   "mk.support.q4": "学校如何导出数据？",
   "mk.support.a4": "数据归您的学校所有。订阅结束后，您有 30 天时间导出全部记录。请联系支持团队安排导出。",
   "mk.support.q5": "如何注册新学校？",
@@ -662,7 +662,7 @@ export const zh: Record<string, string> = {
   "mk.legalhub.desc": "规范 LeonEd 如何与您的学校合作、以及我们如何保护学校中每个人的全部文件。",
   "mk.legalhub.read": "阅读文件",
   "mk.legalhub.questions": "对我们的政策有疑问？",
-  "mk.legalhub.email": "发送邮件至 support@leoned.africa →",
+  "mk.legalhub.email": "发送邮件至 admin@leoned.ng →",
   "mk.legalhub.privacy": "LeonEd 如何保护机构和学业数据的完整性。",
   "mk.legalhub.terms": "您的学校及其用户访问 LeonEd 时适用的条款。",
   "mk.legalhub.student-data": "我们对学生和儿童数据的承诺：绝不出售，绝不用于广告。",

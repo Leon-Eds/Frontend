@@ -35,7 +35,7 @@ export const securityContact = {
   "mk.security.l4d": "Once the window closes, records are removed from our primary clusters.",
   "mk.security.report": "Found a security issue?",
   "mk.security.reportd": "We welcome responsible disclosure. Please report suspected vulnerabilities privately and give us reasonable time to fix them before sharing publicly.",
-  "mk.security.reportLink": "Report to support@leoned.africa →",
+  "mk.security.reportLink": "Report to admin@leoned.ng →",
 
   // Contact
   "mk.contact.crumb": "Contact",
@@ -70,5 +70,5 @@ export const securityContact = {
   "mk.form.note": "By submitting, you agree to our <a>Privacy Policy</a>.",
   "mk.form.success": "Thank you! Your request is in.",
   "mk.form.successd": "Our team will reach out to you shortly.",
-  "mk.form.error": "We couldn't send your request. Please try again in a moment, or email support@leoned.africa.",
+  "mk.form.error": "We couldn't send your request. Please try again in a moment, or email admin@leoned.ng.",
 };

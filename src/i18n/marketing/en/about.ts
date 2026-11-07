@@ -1,7 +1,7 @@
 export const about = {
   "mk.about.crumb": "About",
   "mk.about.eyebrow": "About LeonEd",
-  "mk.about.title": "Digitizing African classrooms, one school at a time.",
+  "mk.about.title": "School Management System, Simplified",
   "mk.about.desc": "LeonEd is a school management system built to move African schools from paper registers and manual result sheets to one secure, connected digital platform.",
   "mk.about.quote": "A school works best when its <copper>owners, teachers, students and parents</copper> all see the same picture, at the same time.",
   "mk.about.p1": "In too many schools, records are scattered across registers, spreadsheets and filing cabinets. Results take weeks to compute by hand, and parents only find out how their child is doing at the end of term.",

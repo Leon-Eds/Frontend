@@ -82,7 +82,7 @@ function ContactForm() {
 export function ContactContent() {
   const { t } = useMk();
   const cards: [string, string, string, string][] = [
-    ["mail", "email", "mailto:support@leoned.africa", ""],
+    ["mail", "email", "mailto:admin@leoned.ng", ""],
     ["support_agent", "existing", "/support", "existingLink"],
     ["app_registration", "start", "/register", "startLink"],
     ["login", "user", "/login", "userLink"],
@@ -102,7 +102,7 @@ export function ContactContent() {
                   <h4>{t(`mk.contact.${key}`)}</h4>
                   <p>{t(`mk.contact.${key}d`)}</p>
                   {href.startsWith("mailto:") ? (
-                    <a className="link" href={href}>support@leoned.africa</a>
+                    <a className="link" href={href}>admin@leoned.ng</a>
                   ) : (
                     <Link className="link" href={href}>{t(`mk.contact.${link}`)}</Link>
                   )}

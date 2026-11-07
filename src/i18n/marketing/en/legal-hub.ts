@@ -5,7 +5,7 @@ export const legalHub = {
   "mk.legalhub.desc": "Everything that governs how LeonEd works with your school, and how we protect the people in it.",
   "mk.legalhub.read": "Read document",
   "mk.legalhub.questions": "Questions about our policies?",
-  "mk.legalhub.email": "Email support@leoned.africa →",
+  "mk.legalhub.email": "Email admin@leoned.ng →",
   "mk.legalhub.privacy": "How LeonEd protects the integrity of institutional and academic data.",
   "mk.legalhub.terms": "The terms that apply when your school and its users access LeonEd.",
   "mk.legalhub.student-data": "Our commitments on student and children's data: never sold, never used for ads.",

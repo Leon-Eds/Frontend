@@ -21,10 +21,12 @@ export function SectionHead({
   center?: boolean;
   style?: React.CSSProperties;
 }) {
-  const { t, r } = useMk();
+  const { r } = useMk();
   return (
     <div className={center ? "section-head center" : "section-head"} style={style}>
-      <span className="eyebrow reveal">{t(eyebrow)}</span>
+      <span className="eyebrow reveal">
+        <span>{r(eyebrow)}</span>
+      </span>
       <h2 className="reveal d1">{r(title)}</h2>
       {desc && <p className="reveal d2">{r(desc)}</p>}
     </div>
@@ -63,7 +65,9 @@ export function PageHero({
           )}
           <span>{t(crumb)}</span>
         </div>
-        <span className="eyebrow">{t(eyebrow)}</span>
+        <span className="eyebrow">
+          <span>{r(eyebrow)}</span>
+        </span>
         <h1>{r(title)}</h1>
         {desc && <p>{r(desc)}</p>}
         {children}
@@ -79,7 +83,9 @@ export function CtaBand() {
       <div className="container">
         <div className="demo-box">
           <div className="demo-copy reveal">
-            <span className="eyebrow">{t("mk.cta.eyebrow")}</span>
+            <span className="eyebrow">
+              <span>{r("mk.cta.eyebrow")}</span>
+            </span>
             <h2>{t("mk.cta.title")}</h2>
             <p>{t("mk.cta.desc")}</p>
             <ul className="demo-perks">

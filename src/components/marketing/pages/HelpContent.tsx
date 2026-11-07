@@ -13,7 +13,7 @@ const answerLinks = {
   login: copperLink("/login"),
   security: copperLink("/security"),
   studentData: copperLink("/student-data"),
-  mail: copperLink("mailto:support@leoned.africa"),
+  mail: copperLink("mailto:admin@leoned.ng"),
   help: copperLink("/support"),
 };
 
@@ -130,7 +130,7 @@ export function SupportContent() {
 
   const openChat = () => {
     if (window.$chatway?.openChatwayWidget) window.$chatway.openChatwayWidget();
-    else window.location.href = "mailto:support@leoned.africa";
+    else window.location.href = "mailto:admin@leoned.ng";
   };
 
   const statusLabel = { checking: "mk.support.statusChecking", ok: "mk.support.statusOk", down: "mk.support.statusDown" }[status];
@@ -147,8 +147,8 @@ export function SupportContent() {
               <div className="mi hex"><Ms name="mail" /></div>
               <h3>{t("mk.support.email")}</h3>
               <p>{t("mk.support.emaild")}</p>
-              <a href="mailto:support@leoned.africa" className="btn btn-green btn-sm">
-                <Ms name="send" /> support@leoned.africa
+              <a href="mailto:admin@leoned.ng" className="btn btn-green btn-sm">
+                <Ms name="send" /> admin@leoned.ng
               </a>
             </div>
             <div className="scard reveal d1">

@@ -19,7 +19,7 @@ const R = 40; // node orbit radius, in % of the hub box
 
 /** Animated diagram: every role orbits the LeonEd core with data pulses on the spokes. */
 export function Hub() {
-  const { t } = useMk();
+  const { t, r } = useMk();
   const [lit, setLit] = useState(0);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export function Hub() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/marketing/leoned-icon.png" alt="" />
       </div>
-      <span className="hub-core-label">{t("mk.hub.core")}</span>
+      <span className="hub-core-label">{r("mk.hub.core")}</span>
       {NODES.map(([icon, key], i) => (
         <div
           key={key}

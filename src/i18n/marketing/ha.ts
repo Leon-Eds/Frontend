@@ -58,7 +58,7 @@ export const ha: Record<string, string> = {
 
   // Home: hero
   "mk.home.badge": "Tsarin gudanar da makaranta",
-  "mk.home.title": "Muna mayar da azuzuwan Afirka na dijital, <copper>makaranta ɗaya</copper> a lokaci guda.",
+  "mk.home.title": "Tsarin gudanar da makaranta, <copper>cikin sauƙi</copper>",
   "mk.home.lead": "Cikakkiyar mafita ta dijital don bayanan ɗalibai, sarrafa sakamako ta atomatik da shiga ƙofofi cikin tsaro. Tsari ɗaya da ke haɗa masu makaranta, masu gudanarwa, malamai, ɗalibai da iyaye.",
   "mk.home.contact": "Tuntuɓe mu",
   "mk.home.trust": "Fiye da makarantu 500 a faɗin nahiyar sun amince da mu",
@@ -318,7 +318,7 @@ export const ha: Record<string, string> = {
   "mk.homeFaq.q6": "Yana aiki a waya da intanet mai jinkiri?",
   "mk.homeFaq.a6": "Ee. An tsara LeonEd don waya da wurare masu rauni na intanet, ta yadda iyaye da ma'aikata za su iya shiga daga ko'ina.",
   "mk.homeFaq.q7": "Ta yaya za mu sami taimako idan wani abu ya lalace?",
-  "mk.homeFaq.a7": "Ƙungiyarmu tana ba da tallafin fasaha 24/7. Aika imel zuwa <mail>support@leoned.africa</mail> ko ziyarci <help>Cibiyar Taimako</help>.",
+  "mk.homeFaq.a7": "Ƙungiyarmu tana ba da tallafin fasaha 24/7. Aika imel zuwa <mail>admin@leoned.ng</mail> ko ziyarci <help>Cibiyar Taimako</help>.",
 
   // Features
   "mk.features.crumb": "Siffofi",
@@ -440,7 +440,7 @@ export const ha: Record<string, string> = {
   // About
   "mk.about.crumb": "Game da mu",
   "mk.about.eyebrow": "Game da LeonEd",
-  "mk.about.title": "Muna mayar da azuzuwan Afirka na dijital, makaranta ɗaya a lokaci guda.",
+  "mk.about.title": "Tsarin gudanar da makaranta, cikin sauƙi",
   "mk.about.desc": "LeonEd tsarin gudanar da makaranta ne da aka gina don ɗauke makarantun Afirka daga rajistan takarda da takardun sakamako na hannu zuwa dandali ɗaya na dijital mai tsaro da haɗin kai.",
   "mk.about.quote": "Makaranta tana aiki mafi kyau idan <copper>masu ita, malamai, ɗalibai da iyaye</copper> duka suna ganin hoto ɗaya, a lokaci ɗaya.",
   "mk.about.p1": "A makarantu da yawa, bayanai sun warwatse a rajista, spreadsheet da akwatunan fayil. Lissafa sakamako da hannu yana ɗaukar makonni, kuma iyaye suna sanin yadda ɗansu yake ne kawai a ƙarshen zango.",
@@ -502,7 +502,7 @@ export const ha: Record<string, string> = {
   "mk.security.l4d": "Da zarar wa'adin ya ƙare, ana cire bayanai daga manyan rukunin ma'ajiyarmu.",
   "mk.security.report": "Ka gano matsalar tsaro?",
   "mk.security.reportd": "Muna maraba da bayyanawa cikin hikima. Da fatan za ka ba da rahoton raunin da kake zargi a ɓoye, kuma ka ba mu isasshen lokaci don gyara shi kafin ka bayyana shi a fili.",
-  "mk.security.reportLink": "Ba da rahoto zuwa support@leoned.africa →",
+  "mk.security.reportLink": "Ba da rahoto zuwa admin@leoned.ng →",
 
   // Contact
   "mk.contact.crumb": "Tuntuɓe mu",
@@ -537,7 +537,7 @@ export const ha: Record<string, string> = {
   "mk.form.note": "Ta hanyar aikawa, ka amince da <a>Manufar sirri</a> ɗinmu.",
   "mk.form.success": "Na gode! Buƙatarka ta iso.",
   "mk.form.successd": "Ƙungiyarmu za ta tuntuɓe ka nan ba da jimawa ba.",
-  "mk.form.error": "Ba mu iya aika buƙatarka ba. Da fatan za ka sake gwadawa nan ba da jimawa ba, ko ka aika imel zuwa support@leoned.africa.",
+  "mk.form.error": "Ba mu iya aika buƙatarka ba. Da fatan za ka sake gwadawa nan ba da jimawa ba, ko ka aika imel zuwa admin@leoned.ng.",
 
   // FAQ page
   "mk.faq.crumb": "Tambayoyi",
@@ -586,7 +586,7 @@ export const ha: Record<string, string> = {
   "mk.faq.security.q4": "Shin LeonEd yana sayar da bayanan ɗalibai?",
   "mk.faq.security.a4": "A'a. Ba a taɓa sayar da bayanan ɗalibai ko amfani da su don talla ba. Duba <studentData>Manufar bayanan ɗalibai</studentData> ɗinmu.",
   "mk.faq.support.q1": "Ta yaya zan tuntuɓi tallafi?",
-  "mk.faq.support.a1": "Aika imel zuwa <mail>support@leoned.africa</mail> ko ziyarci <help>Cibiyar Taimako</help>. Tallafin fasaha yana samuwa 24/7.",
+  "mk.faq.support.a1": "Aika imel zuwa <mail>admin@leoned.ng</mail> ko ziyarci <help>Cibiyar Taimako</help>. Tallafin fasaha yana samuwa 24/7.",
   "mk.faq.support.q2": "Ta yaya zan ba da rahoton kuskure ko neman sabuwar siffa?",
   "mk.faq.support.a2": "Aika imel ga tallafi tare da bayanin abin da ya faru, abin da kake tsammani, da hotunan allo idan zai yiwu.",
   "mk.faq.support.q3": "A ina zan duba ko LeonEd ya tsaya?",
@@ -616,9 +616,9 @@ export const ha: Record<string, string> = {
   "mk.support.q1": "A ina zan shiga?",
   "mk.support.a1": "Kowa (masu makaranta, masu gudanarwa, malamai, iyaye da ɗalibai) yana shiga a <login>shafin shiga na LeonEd</login> da bayanan da makarantarsu ta ba su.",
   "mk.support.q2": "Ba zan iya shiga asusuna ba. Me zan yi?",
-  "mk.support.a2": "Iyaye, malamai da ɗalibai su fara tuntuɓar mai gudanar da makarantarsu, wanda ke sarrafa shigar ƙofofi. Idan matsalar ta ci gaba, aika imel zuwa support@leoned.africa tare da sunan makarantarka da bayanin matsalar.",
+  "mk.support.a2": "Iyaye, malamai da ɗalibai su fara tuntuɓar mai gudanar da makarantarsu, wanda ke sarrafa shigar ƙofofi. Idan matsalar ta ci gaba, aika imel zuwa admin@leoned.ng tare da sunan makarantarka da bayanin matsalar.",
   "mk.support.q3": "Ta yaya zan ba da rahoton kuskure ko neman sabuwar siffa?",
-  "mk.support.a3": "Aika imel zuwa support@leoned.africa da cikakken bayani gwargwadon iko: abin da kake yi, abin da kake tsammani, abin da ya faru, da hotunan allo idan zai yiwu.",
+  "mk.support.a3": "Aika imel zuwa admin@leoned.ng da cikakken bayani gwargwadon iko: abin da kake yi, abin da kake tsammani, abin da ya faru, da hotunan allo idan zai yiwu.",
   "mk.support.q4": "Ta yaya makarantarmu za ta fitar da bayananta?",
   "mk.support.a4": "Makarantarka ce ta mallaki bayananta. Idan biyan kuɗin shigarka ya ƙare, kana da kwanaki 30 don fitar da duk bayanai. Tuntuɓi tallafi don shirya fitarwa.",
   "mk.support.q5": "Ta yaya za mu yi rajistar sabuwar makaranta?",
@@ -662,7 +662,7 @@ export const ha: Record<string, string> = {
   "mk.legalhub.desc": "Duk abin da ke jagorantar yadda LeonEd ke aiki da makarantarka, da yadda muke kare mutanen da ke cikinta.",
   "mk.legalhub.read": "Karanta takarda",
   "mk.legalhub.questions": "Kana da tambayoyi game da manufofinmu?",
-  "mk.legalhub.email": "Aika imel zuwa support@leoned.africa →",
+  "mk.legalhub.email": "Aika imel zuwa admin@leoned.ng →",
   "mk.legalhub.privacy": "Yadda LeonEd ke kare ingancin bayanan cibiyoyi da na karatu.",
   "mk.legalhub.terms": "Sharuɗɗan da ke aiki lokacin da makarantarka da masu amfani da ita suka shiga LeonEd.",
   "mk.legalhub.student-data": "Alkawuranmu game da bayanan ɗalibai da yara: ba a sayar da su, ba a amfani da su don talla.",

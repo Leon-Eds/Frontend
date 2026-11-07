@@ -12,12 +12,12 @@ export interface LanguageInfo {
   flag: string;
 }
 
-// Nigerian languages first
+// English first (easy way back), then the Nigerian languages
 export const languages: LanguageInfo[] = [
+  { code: "en", name: "English", nativeName: "English", flag: "🇬🇧" },
   { code: "ig", name: "Igbo", nativeName: "Igbo", flag: "🇳🇬" },
   { code: "yo", name: "Yoruba", nativeName: "Yorùbá", flag: "🇳🇬" },
   { code: "ha", name: "Hausa", nativeName: "Hausa", flag: "🇳🇬" },
-  { code: "en", name: "English", nativeName: "English", flag: "🇬🇧" },
   { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },
   { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
   { code: "de", name: "German", nativeName: "Deutsch", flag: "🇩🇪" },

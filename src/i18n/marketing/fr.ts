@@ -58,7 +58,7 @@ export const fr: Record<string, string> = {
 
   // Home: hero
   "mk.home.badge": "Système de gestion scolaire",
-  "mk.home.title": "Numériser les salles de classe africaines, <copper>une école</copper> à la fois.",
+  "mk.home.title": "Système de gestion scolaire, <copper>simplifié</copper>",
   "mk.home.lead": "La solution numérique complète pour les dossiers des élèves, le traitement automatisé des résultats et l'accès sécurisé aux portails. Un seul système qui relie vos propriétaires, administrateurs, enseignants, élèves et parents.",
   "mk.home.contact": "Nous contacter",
   "mk.home.trust": "La confiance de plus de 500 établissements à travers le continent",
@@ -318,7 +318,7 @@ export const fr: Record<string, string> = {
   "mk.homeFaq.q6": "Cela fonctionne-t-il sur téléphone et avec une connexion lente ?",
   "mk.homeFaq.a6": "Oui. LeonEd est conçu pour le mobile et les environnements à faible débit, afin que parents et personnel puissent se connecter de partout.",
   "mk.homeFaq.q7": "Comment obtenir de l'aide en cas de problème ?",
-  "mk.homeFaq.a7": "Notre équipe fournit une assistance technique 24h/24 et 7j/7. Écrivez à <mail>support@leoned.africa</mail> ou consultez le <help>Centre d'aide</help>.",
+  "mk.homeFaq.a7": "Notre équipe fournit une assistance technique 24h/24 et 7j/7. Écrivez à <mail>admin@leoned.ng</mail> ou consultez le <help>Centre d'aide</help>.",
 
   // Features
   "mk.features.crumb": "Fonctionnalités",
@@ -440,7 +440,7 @@ export const fr: Record<string, string> = {
   // About
   "mk.about.crumb": "À propos",
   "mk.about.eyebrow": "À propos de LeonEd",
-  "mk.about.title": "Numériser les salles de classe africaines, une école à la fois.",
+  "mk.about.title": "Système de gestion scolaire, simplifié",
   "mk.about.desc": "LeonEd est un système de gestion scolaire conçu pour faire passer les écoles africaines des registres papier et des feuilles de résultats manuelles à une plateforme numérique unique, sécurisée et connectée.",
   "mk.about.quote": "Une école fonctionne mieux lorsque ses <copper>propriétaires, enseignants, élèves et parents</copper> voient tous la même chose, au même moment.",
   "mk.about.p1": "Dans trop d'écoles, les dossiers sont éparpillés entre registres, tableurs et classeurs. Les résultats demandent des semaines de calcul à la main, et les parents ne découvrent les progrès de leur enfant qu'en fin de trimestre.",
@@ -502,7 +502,7 @@ export const fr: Record<string, string> = {
   "mk.security.l4d": "Une fois ce délai écoulé, les dossiers sont supprimés de nos clusters principaux.",
   "mk.security.report": "Vous avez trouvé une faille de sécurité ?",
   "mk.security.reportd": "Nous encourageons la divulgation responsable. Signalez-nous les vulnérabilités présumées en privé et laissez-nous un délai raisonnable pour les corriger avant toute publication.",
-  "mk.security.reportLink": "Signaler à support@leoned.africa →",
+  "mk.security.reportLink": "Signaler à admin@leoned.ng →",
 
   // Contact
   "mk.contact.crumb": "Contact",
@@ -537,7 +537,7 @@ export const fr: Record<string, string> = {
   "mk.form.note": "En envoyant ce formulaire, vous acceptez notre <a>Politique de confidentialité</a>.",
   "mk.form.success": "Merci ! Votre demande a bien été reçue.",
   "mk.form.successd": "Notre équipe vous contactera prochainement.",
-  "mk.form.error": "Nous n'avons pas pu envoyer votre demande. Réessayez dans un instant ou écrivez à support@leoned.africa.",
+  "mk.form.error": "Nous n'avons pas pu envoyer votre demande. Réessayez dans un instant ou écrivez à admin@leoned.ng.",
 
   // FAQ page
   "mk.faq.crumb": "FAQ",
@@ -586,7 +586,7 @@ export const fr: Record<string, string> = {
   "mk.faq.security.q4": "LeonEd vend-il les données des élèves ?",
   "mk.faq.security.a4": "Non. Les données des élèves ne sont jamais vendues ni utilisées à des fins publicitaires. Consultez notre <studentData>Politique des données des élèves</studentData>.",
   "mk.faq.support.q1": "Comment contacter l'assistance ?",
-  "mk.faq.support.a1": "Écrivez à <mail>support@leoned.africa</mail> ou consultez le <help>Centre d'aide</help>. L'assistance technique est disponible 24h/24 et 7j/7.",
+  "mk.faq.support.a1": "Écrivez à <mail>admin@leoned.ng</mail> ou consultez le <help>Centre d'aide</help>. L'assistance technique est disponible 24h/24 et 7j/7.",
   "mk.faq.support.q2": "Comment signaler un bug ou demander une fonctionnalité ?",
   "mk.faq.support.a2": "Écrivez à l'assistance en décrivant ce qui s'est passé, ce que vous attendiez, avec des captures d'écran si possible.",
   "mk.faq.support.q3": "Où vérifier si LeonEd est indisponible ?",
@@ -616,9 +616,9 @@ export const fr: Record<string, string> = {
   "mk.support.q1": "Où dois-je me connecter ?",
   "mk.support.a1": "Tout le monde (propriétaires, administrateurs, enseignants, parents et élèves) se connecte sur la <login>page de connexion LeonEd</login> avec les identifiants fournis par l'école.",
   "mk.support.q2": "Je n'arrive pas à accéder à mon compte. Que faire ?",
-  "mk.support.a2": "Parents, enseignants et élèves doivent d'abord contacter l'administrateur de leur école, qui gère l'accès aux portails. Si le problème persiste, écrivez à support@leoned.africa en indiquant le nom de votre école et le problème rencontré.",
+  "mk.support.a2": "Parents, enseignants et élèves doivent d'abord contacter l'administrateur de leur école, qui gère l'accès aux portails. Si le problème persiste, écrivez à admin@leoned.ng en indiquant le nom de votre école et le problème rencontré.",
   "mk.support.q3": "Comment signaler un bug ou demander une fonctionnalité ?",
-  "mk.support.a3": "Écrivez à support@leoned.africa avec le plus de détails possible : ce que vous faisiez, ce que vous attendiez, ce qui s'est passé, et des captures d'écran si possible.",
+  "mk.support.a3": "Écrivez à admin@leoned.ng avec le plus de détails possible : ce que vous faisiez, ce que vous attendiez, ce qui s'est passé, et des captures d'écran si possible.",
   "mk.support.q4": "Comment notre école peut-elle exporter ses données ?",
   "mk.support.a4": "Votre établissement est propriétaire de ses données. Si votre abonnement prend fin, vous disposez de 30 jours pour exporter tous vos dossiers. Contactez l'assistance pour organiser un export.",
   "mk.support.q5": "Comment inscrire une nouvelle école ?",
@@ -662,7 +662,7 @@ export const fr: Record<string, string> = {
   "mk.legalhub.desc": "Tout ce qui encadre la collaboration entre LeonEd et votre école, et la protection des personnes qui la composent.",
   "mk.legalhub.read": "Lire le document",
   "mk.legalhub.questions": "Des questions sur nos politiques ?",
-  "mk.legalhub.email": "Écrire à support@leoned.africa →",
+  "mk.legalhub.email": "Écrire à admin@leoned.ng →",
   "mk.legalhub.privacy": "Comment LeonEd protège l'intégrité des données institutionnelles et scolaires.",
   "mk.legalhub.terms": "Les conditions qui s'appliquent lorsque votre école et ses utilisateurs accèdent à LeonEd.",
   "mk.legalhub.student-data": "Nos engagements sur les données des élèves et des enfants : jamais vendues, jamais utilisées pour la publicité.",

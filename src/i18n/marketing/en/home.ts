@@ -1,7 +1,7 @@
 export const home = {
   // Hero
   "mk.home.badge": "School Management System",
-  "mk.home.title": "Digitizing African Classrooms, <copper>One School</copper> at a Time.",
+  "mk.home.title": "School Management System, <copper>Simplified</copper>",
   "mk.home.lead": "The complete digital management solution for student records, automated result processing and secure portal access. One system that connects your owners, administrators, teachers, students and parents.",
   "mk.home.contact": "Contact Us",
   "mk.home.trust": "Trusted by 500+ institutions across the continent",
@@ -273,5 +273,5 @@ export const home = {
   "mk.homeFaq.q6": "Does it work on phones and slow internet?",
   "mk.homeFaq.a6": "Yes. LeonEd is designed for mobile use and low-bandwidth environments, so parents and staff can log in from anywhere.",
   "mk.homeFaq.q7": "How do we get help if something goes wrong?",
-  "mk.homeFaq.a7": "Our team provides 24/7 technical assistance. Email <mail>support@leoned.africa</mail> or visit the <help>Help Center</help>.",
+  "mk.homeFaq.a7": "Our team provides 24/7 technical assistance. Email <mail>admin@leoned.ng</mail> or visit the <help>Help Center</help>.",
 };
