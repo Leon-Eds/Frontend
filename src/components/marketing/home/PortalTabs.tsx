@@ -5,11 +5,12 @@ import Link from "next/link";
 import { Ms } from "../Ms";
 import { useMk } from "../useMk";
 
-type Portal = "admin" | "teacher" | "parent" | "student";
+type Portal = "admin" | "teacher" | "bursar" | "parent" | "student";
 
 const TABS: [Portal, string, string][] = [
   ["admin", "admin_panel_settings", "mk.portals.tabAdmin"],
   ["teacher", "co_present", "mk.portals.tabTeacher"],
+  ["bursar", "account_balance", "mk.portals.tabBursar"],
   ["parent", "family_restroom", "mk.portals.tabParent"],
   ["student", "school", "mk.portals.tabStudent"],
 ];
@@ -17,6 +18,7 @@ const TABS: [Portal, string, string][] = [
 const CTA: Record<Portal, [string, string]> = {
   admin: ["/register", "mk.nav.register"],
   teacher: ["/login", "mk.portals.teacher.cta"],
+  bursar: ["/login", "mk.portals.bursar.cta"],
   parent: ["/login", "mk.portals.parent.cta"],
   student: ["/login", "mk.portals.student.cta"],
 };
@@ -96,6 +98,30 @@ function Mock({ portal }: { portal: Portal }) {
           </div>
         ))}
         <div className="prow"><span><b>{p("sow")}</b><small>{p("topic")}</small></span><span className="tag">{p("uploaded")}</span></div>
+      </div>
+    );
+
+  if (portal === "bursar")
+    return (
+      <div className="pmock">
+        <div className="pmock-head">
+          <div className="pmock-user">
+            <span className="avatar c">BU</span>
+            <span>
+              <b>{p("title")}</b>
+              <small>{p("week")}</small>
+            </span>
+          </div>
+          <span className="tag">{p("tag")}</span>
+        </div>
+        <div className="pgrid">
+          <div className="pbox"><small>{p("collected")}</small><b>₦18.4M</b></div>
+          <div className="pbox"><small>{p("outstanding")}</small><b>₦5.2M</b></div>
+          <div className="pbox"><small>{p("cleared")}</small><b>78%</b></div>
+        </div>
+        <div className="prow"><span><b>{p("classFees")}</b><Meter value={82} /></span><span className="tag">82%</span></div>
+        <div className="prow"><span><b>{p("reminder")}</b><small>{p("reminderd")}</small></span><span className="tag c">{p("sent")}</span></div>
+        <div className="prow"><span><b>Adebayo Tolu · JSS 2B</b><small>{p("instalment")}</small></span><span className="tag r">{p("due")}</span></div>
       </div>
     );
 

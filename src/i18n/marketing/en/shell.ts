@@ -17,7 +17,7 @@ export const shell = {
   "mk.nav.close": "Close menu",
   "mk.nav.homeLabel": "LeonEd home",
 
-  "mk.footer.desc": "LeonEd is a school management system driving the digital transformation of African education.",
+  "mk.footer.desc": "LeonEd is a School Management System designed to simplify school administration by bringing essential school operations into one connected platform.",
   "mk.footer.solutions": "Solutions",
   "mk.footer.records": "Digital Records",
   "mk.footer.results": "Result Processing",
@@ -49,7 +49,7 @@ export const shell = {
 
   "mk.cta.eyebrow": "Get started with LeonEd",
   "mk.cta.title": "Ready to digitize your school?",
-  "mk.cta.desc": "Join the institutions across the continent already running student records, results and parent communication on LeonEd.",
+  "mk.cta.desc": "LeonEd helps schools spend less time struggling with administration and more time focusing on education and growth.",
   "mk.cta.perk1": "Secure portals for parents, teachers & students",
   "mk.cta.perk2": "Automated results & report cards",
   "mk.cta.perk3": "24/7 technical assistance",

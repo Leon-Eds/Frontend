@@ -15,11 +15,11 @@ export const help = {
   "mk.faq.empty": "No questions match your search. Try another word, or <a>ask us directly</a>.",
 
   "mk.faq.general.q1": "What is LeonEd?",
-  "mk.faq.general.a1": "LeonEd is a school management system that digitizes student records, automates result processing and gives owners, administrators, teachers, students and parents secure access to one connected platform.",
+  "mk.faq.general.a1": "LeonEd is a School Management System designed to simplify school administration. It brings student and staff records, attendance, academic activities, examinations, results, school fees and parent communication into one connected platform, with role-based portals for administrators, teachers, bursars, parents and students.",
   "mk.faq.general.q2": "Which schools is LeonEd for?",
   "mk.faq.general.a2": "LeonEd is built for African schools, from single campuses to multi-campus groups and whole districts. Result processing adapts to national curriculum standards.",
   "mk.faq.general.q3": "What modules are included?",
-  "mk.faq.general.a3": "Fee Management, Attendance Tracking, Scheme of Work, Curriculum Management, Parent Communication, Staff Management, Analytics & Reporting and Mobile Accessibility, alongside Digital Student Records, Automated Results and Secure Portals. See <features>all features</features>.",
+  "mk.faq.general.a3": "Student and staff records, attendance, academic activities and schemes of work, examinations and automated results, fee management, parent communication, and analytics & reporting, all accessed through secure role-based portals. See <features>all features</features>.",
   "mk.faq.general.q4": "Do users need to install an app?",
   "mk.faq.general.a4": "No. LeonEd works in the web browser on phones, tablets and computers, and is designed for low-bandwidth environments.",
 
@@ -79,7 +79,7 @@ export const help = {
   "mk.support.portal": "Looking for your portal?",
   "mk.support.portalLink": "Go to Login →",
   "mk.support.q1": "Where do I log in?",
-  "mk.support.a1": "Everyone (owners, administrators, teachers, parents and students) signs in at the <login>LeonEd login page</login> with the details provided by their school.",
+  "mk.support.a1": "Everyone (administrators, teachers, bursars, parents and students) signs in at the <login>LeonEd login page</login> with the details provided by their school.",
   "mk.support.q2": "I can't access my account. What should I do?",
   "mk.support.a2": "Parents, teachers and students should first contact their school's administrator, who manages portal access. If the problem continues, email admin@leoned.ng with your school name and a description of the issue.",
   "mk.support.q3": "How do I report a bug or request a feature?",

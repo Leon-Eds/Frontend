@@ -5,8 +5,8 @@ import { Toaster } from "react-hot-toast";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "LeonEd | School Management System",
-  description: "The complete digital academic management platform for African schools. Manage student records, result processing, and secure portal access.",
+  title: "LeonEd — School Management, Simplified",
+  description: "LeonEd is a School Management System designed to simplify school administration by bringing essential school operations into one connected platform.",
 };
 
 export default function RootLayout({

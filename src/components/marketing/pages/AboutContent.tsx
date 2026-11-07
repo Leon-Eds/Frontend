@@ -45,11 +45,19 @@ export function AboutContent() {
         <div className="container">
           <SectionHead eyebrow="mk.about.aud.eyebrow" title="mk.about.aud.title" desc="mk.about.aud.desc" />
           <div className="audience">
-            {["corporate_fare", "co_present", "family_restroom", "school"].map((icon, i) => (
+            {(
+              [
+                ["admin_panel_settings", 1],
+                ["co_present", 2],
+                ["account_balance", 5],
+                ["family_restroom", 3],
+                ["school", 4],
+              ] as const
+            ).map(([icon, n], i) => (
               <div key={icon} className={"aud reveal" + d(i)}>
                 <Ms name={icon} />
-                <h4>{t(`mk.about.a${i + 1}`)}</h4>
-                <p>{t(`mk.about.a${i + 1}d`)}</p>
+                <h4>{t(`mk.about.a${n}`)}</h4>
+                <p>{t(`mk.about.a${n}d`)}</p>
               </div>
             ))}
           </div>

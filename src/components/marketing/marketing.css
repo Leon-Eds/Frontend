@@ -748,3 +748,5 @@ body:has(.mkt) .chatway--trigger-container { left: 18px !important; right: auto 
 }
 /* Keep the brand as "LeonEd" inside all-caps labels */
 .mkt .brand-case { text-transform: none; }
+/* Five audience cards (bursars added) */
+@media (min-width: 981px) { .mkt .audience { grid-template-columns: repeat(5, 1fr); } }

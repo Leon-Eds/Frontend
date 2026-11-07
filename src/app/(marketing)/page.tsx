@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { HomeContent } from "@/components/marketing/home/HomeContent";
 
 export const metadata: Metadata = {
-  title: "LeonEd | School Management System",
+  title: "LeonEd — School Management, Simplified",
   description:
-    "The complete digital academic management platform for African schools. Manage student records, result processing, and secure portal access.",
+    "LeonEd is a School Management System designed to simplify school administration by bringing essential school operations into one connected platform.",
 };
 
 export default function HomePage() {

@@ -51,7 +51,7 @@ export const securityContact = {
   "mk.contact.startd": "Create your school's account now and set up in minutes.",
   "mk.contact.startLink": "Register Your School →",
   "mk.contact.user": "Existing user",
-  "mk.contact.userd": "Owners, admins, teachers, parents and students sign in here.",
+  "mk.contact.userd": "Administrators, teachers, bursars, parents and students sign in here.",
   "mk.contact.userLink": "Login →",
   "mk.form.title": "Request a walkthrough",
   "mk.form.required": "Fields marked * are required.",

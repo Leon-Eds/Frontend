@@ -3,7 +3,7 @@ import { AboutContent } from "@/components/marketing/pages/AboutContent";
 
 export const metadata: Metadata = {
   title: "About LeonEd | School Management System",
-  description: "LeonEd is digitizing African classrooms, one school at a time, with one secure system for owners, administrators, teachers, students and parents.",
+  description: "LeonEd is a smart School Management System that helps schools organize their operations, manage important records and connect administrators, teachers, bursars and parents through one platform.",
 };
 
 export default function AboutPage() {
