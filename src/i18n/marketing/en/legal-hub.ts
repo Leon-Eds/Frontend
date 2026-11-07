@@ -1,0 +1,21 @@
+export const legalHub = {
+  "mk.legalhub.crumb": "Legal",
+  "mk.legalhub.eyebrow": "Legal Center",
+  "mk.legalhub.title": "Policies & agreements",
+  "mk.legalhub.desc": "Everything that governs how LeonEd works with your school, and how we protect the people in it.",
+  "mk.legalhub.read": "Read document",
+  "mk.legalhub.questions": "Questions about our policies?",
+  "mk.legalhub.email": "Email support@leoned.africa →",
+  "mk.legalhub.privacy": "How LeonEd protects the integrity of institutional and academic data.",
+  "mk.legalhub.terms": "The terms that apply when your school and its users access LeonEd.",
+  "mk.legalhub.student-data": "Our commitments on student and children's data: never sold, never used for ads.",
+  "mk.legalhub.dpa": "How LeonEd processes personal data on behalf of schools, as their data processor.",
+  "mk.legalhub.cookies": "What cookies and similar technologies we use, and how to control them.",
+  "mk.legalhub.acceptable-use": "The rules everyone using LeonEd agrees to follow.",
+  "mk.legalhub.accessibility": "Our commitment to making LeonEd usable by everyone.",
+  "mk.legal.updated": "Last updated: {date}",
+  "mk.legal.onThisPage": "On this page",
+  "mk.legal.other": "Other legal documents",
+  // Shown on legal pages in non-English languages
+  "mk.legal.englishOnly": "This document is available in English, which is the authoritative version.",
+};

@@ -1,8 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { marketingTranslations } from "@/i18n/marketing";
 
-export type Language = "en" | "fr" | "es" | "de" | "pt" | "zh";
+export type Language = "ig" | "yo" | "ha" | "en" | "fr" | "es" | "de" | "pt" | "zh";
 
 export interface LanguageInfo {
   code: Language;
@@ -11,7 +12,11 @@ export interface LanguageInfo {
   flag: string;
 }
 
+// Nigerian languages first
 export const languages: LanguageInfo[] = [
+  { code: "ig", name: "Igbo", nativeName: "Igbo", flag: "🇳🇬" },
+  { code: "yo", name: "Yoruba", nativeName: "Yorùbá", flag: "🇳🇬" },
+  { code: "ha", name: "Hausa", nativeName: "Hausa", flag: "🇳🇬" },
   { code: "en", name: "English", nativeName: "English", flag: "🇬🇧" },
   { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },
   { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
@@ -1191,6 +1196,11 @@ const translations: Record<string, Record<string, string>> = {
     "guide.step4.desc": "邀请教职工加入并为其分配教学班级。"
   }
 };
+
+// Marketing site copy lives in its own dictionaries (src/i18n/marketing) under the "mk." namespace
+for (const [lang, dict] of Object.entries(marketingTranslations)) {
+  translations[lang] = { ...translations[lang], ...dict };
+}
 
 interface LanguageContextProps {
   language: Language;

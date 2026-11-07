@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* The marketing site has its own stylesheet; keep its class names (e.g. .container) out of Tailwind */
+@source not "../components/marketing";
 
 :root {
   --background: #ffffff;
