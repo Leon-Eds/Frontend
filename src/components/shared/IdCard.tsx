@@ -153,7 +153,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
 
           <div className="flex-1 flex flex-col w-full px-6 relative z-10 mt-2">
 
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2 mb-3">
               <div className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: themeColor }}>
                   <User className="w-3 h-3 text-white" />
@@ -186,7 +186,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
             <div className="w-full border-t border-gray-200 mb-2"></div>
 
             <h4 className="text-[8px] font-black text-center text-gray-900 mb-2">TERMS & CONDITIONS</h4>
-            <ul className="text-[7px] text-gray-600 font-medium space-y-1 pl-2 list-disc ml-2">
+            <ul className="text-[7px] text-gray-600 font-medium space-y-0.5 pl-2 list-disc ml-2">
               <li>This card is the property of the school.</li>
               <li>It must be worn at all times on school premises.</li>
               <li>This card is non-transferable.</li>
@@ -201,10 +201,10 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
               <path d="M0,20 C30,30 70,10 100,40 L100,45 C70,15 30,35 0,25 Z" fill={accentColor}/>
             </svg>
             
-            <div className="bg-white p-1 rounded z-10 shadow-sm relative mb-1 -mt-8 border-2 border-white">
+            <div className="bg-white p-1 rounded z-10 shadow-sm relative mb-1 border-2 border-white">
               <QRCode 
                 value={JSON.stringify({ s: schoolInfo.name, n: student.fullName, id: student.admissionNumber || student.studentId })} 
-                size={50}
+                size={76}
                 level="L"
               />
             </div>

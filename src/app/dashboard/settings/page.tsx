@@ -173,7 +173,7 @@ export default function SettingsPage() {
           schoolApi.getById(sId).then((school: any) => {
             console.log("[DEBUG] Backend School Payload Received:", school);
             if (school?.address) setSchoolAddress(school.address);
-            if (school?.phone) setSchoolPhone(school.phone);
+            if (school?.contactPhone || school?.phone) setSchoolPhone(school.contactPhone || school.phone);
             if (school?.name) setSchoolName(school.name);
             if (school?.bankAccountName) setBankAccountName(school.bankAccountName);
             if (school?.bankName) setBankName(school.bankName);
@@ -259,6 +259,11 @@ export default function SettingsPage() {
   };
 
   const handleSaveSchoolProfile = async () => {
+    // The school phone is printed on student ID cards as the return contact
+    if ((userRole === "Admin" || userRole === "SuperAdmin") && !schoolPhone.trim()) {
+      setToast({ message: "School contact phone is required", type: "error" });
+      return;
+    }
     setIsSavingProfile(true);
     try {
       let finalLogoUrl = schoolLogo;
@@ -720,8 +725,9 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Phone</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Phone <span className="text-red-500">*</span></label>
               <input
+                required
                 value={schoolPhone}
                 onChange={e => setSchoolPhone(e.target.value)}
                 placeholder="+234 800 000 0000"
