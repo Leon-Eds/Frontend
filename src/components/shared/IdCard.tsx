@@ -50,7 +50,10 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
             {/* School Logo & Name */}
             <div className="flex flex-col items-center mb-2">
               {schoolInfo.logo ? (
-                <img src={schoolInfo.logo} alt="School Logo" className="h-10 object-contain mb-1" crossOrigin="anonymous" />
+                // White badge keeps the logo readable whatever the theme colour
+                <div className="bg-white rounded-xl px-3 py-1.5 shadow-md border-2 flex items-center justify-center mb-1" style={{ borderColor: themeColor }}>
+                  <img src={schoolInfo.logo} alt="School Logo" className="h-9 max-w-[140px] object-contain" crossOrigin="anonymous" />
+                </div>
               ) : (
                 <div className="h-10 w-10 rounded-full bg-white text-gray-900 flex items-center justify-center font-black text-xl mb-1 shadow-sm">
                   {schoolInfo.name?.charAt(0) || "S"}
@@ -141,7 +144,9 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
           {/* Header sits inside the theme band (same height) so the contact rows always start below the curve */}
           <div className="w-full h-[36%] pt-8 pb-8 flex flex-col items-center justify-center relative z-10 px-6 shrink-0">
             {schoolInfo.logo && (
-              <img src={schoolInfo.logo} alt="School Logo" className="h-10 object-contain mb-1" crossOrigin="anonymous" />
+              <div className="bg-white rounded-xl px-3 py-1 shadow-md flex items-center justify-center mb-1.5">
+                <img src={schoolInfo.logo} alt="School Logo" className="h-9 max-w-[140px] object-contain" crossOrigin="anonymous" />
+              </div>
             )}
             <div className="font-black text-white text-[11px] uppercase tracking-wider text-center leading-tight">
               {schoolInfo.name || "LeonEd Institution"}
