@@ -38,22 +38,19 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
           {/* Lanyard Hole */}
           <div className="absolute top-2 left-1/2 -translate-x-1/2 w-14 h-3 bg-gray-100 rounded-full z-50 shadow-inner border border-gray-200" />
 
-          {/* Top Background Shape */}
-          <div className="absolute top-0 left-0 w-full h-32 z-0">
+          {/* Top Background Shape (kept short so the logo sits on white) */}
+          <div className="absolute top-0 left-0 w-full h-[3.75rem] z-0">
             <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
               <path d="M0,0 L100,0 L100,60 C70,90 30,70 0,50 Z" fill={themeColor}/>
               <path d="M0,50 C30,70 70,90 100,60 L100,65 C70,95 30,75 0,55 Z" fill={accentColor}/>
             </svg>
           </div>
 
-          <div className="flex-1 flex flex-col items-center px-6 pt-12 relative z-10 w-full">
+          <div className="flex-1 flex flex-col items-center px-6 pt-14 relative z-10 w-full">
             {/* School Logo & Name */}
             <div className="flex flex-col items-center mb-2">
               {schoolInfo.logo ? (
-                // White badge keeps the logo readable whatever the theme colour
-                <div className="bg-white rounded-xl px-3 py-1.5 shadow-md border-2 flex items-center justify-center mb-1" style={{ borderColor: themeColor }}>
-                  <img src={schoolInfo.logo} alt="School Logo" className="h-9 max-w-[140px] object-contain" crossOrigin="anonymous" />
-                </div>
+                <img src={schoolInfo.logo} alt="School Logo" className="h-10 max-w-[160px] object-contain mb-1" crossOrigin="anonymous" />
               ) : (
                 <div className="h-10 w-10 rounded-full bg-white text-gray-900 flex items-center justify-center font-black text-xl mb-1 shadow-sm">
                   {schoolInfo.name?.charAt(0) || "S"}
@@ -144,8 +141,9 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
           {/* Header sits inside the theme band (same height) so the contact rows always start below the curve */}
           <div className="w-full h-[36%] pt-8 pb-8 flex flex-col items-center justify-center relative z-10 px-6 shrink-0">
             {schoolInfo.logo && (
-              <div className="bg-white rounded-xl px-3 py-1 shadow-md flex items-center justify-center mb-1.5">
-                <img src={schoolInfo.logo} alt="School Logo" className="h-9 max-w-[140px] object-contain" crossOrigin="anonymous" />
+              // White circular badge keeps the logo readable on the theme band
+              <div className="w-16 h-16 rounded-full bg-white p-2 shadow-md flex items-center justify-center overflow-hidden mb-1.5 shrink-0">
+                <img src={schoolInfo.logo} alt="School Logo" className="max-w-full max-h-full object-contain" crossOrigin="anonymous" />
               </div>
             )}
             <div className="font-black text-white text-[11px] uppercase tracking-wider text-center leading-tight">
