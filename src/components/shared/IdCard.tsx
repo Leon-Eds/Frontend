@@ -2,7 +2,7 @@
 
 import React, { forwardRef } from "react";
 import QRCode from "react-qr-code";
-import { UserPlus, User, Phone, Users, IdCard as IdCardIcon, GraduationCap, Shield, Calendar } from "lucide-react";
+import { UserPlus, User, Phone, Users, IdCard as IdCardIcon, GraduationCap, Calendar } from "lucide-react";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 
 interface IdCardProps {
@@ -104,16 +104,6 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
 
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: themeColor }}>
-                  <Shield className="w-3 h-3 text-white" />
-                </div>
-                <div className="flex text-[10px] font-bold">
-                  <span className="text-gray-500 w-20">HOUSE:</span>
-                  <span className="text-gray-900 uppercase">{student.house || 'UNITY'}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: themeColor }}>
                   <Calendar className="w-3 h-3 text-white" />
                 </div>
                 <div className="flex text-[10px] font-bold">
@@ -142,26 +132,26 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
           <div className="absolute top-2 left-1/2 -translate-x-1/2 w-14 h-3 bg-gray-100 rounded-full z-50 shadow-inner border border-gray-200" />
 
           {/* Top Background Shape (Deep Green) */}
-          <div className="absolute top-0 left-0 w-full h-[40%] z-0">
+          <div className="absolute top-0 left-0 w-full h-[36%] z-0">
             <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
               <path d="M0,0 L100,0 L100,80 C50,110 0,80 0,80 Z" fill={themeColor}/>
             </svg>
           </div>
 
-          <div className="w-full pt-10 pb-2 flex justify-center relative z-10">
-             {schoolInfo.logo ? (
-                <img src={schoolInfo.logo} alt="School Logo" className="h-10 object-contain" crossOrigin="anonymous" />
-              ) : (
-                <div className="h-10 flex items-center justify-center font-black text-white text-xl">
-                  {schoolInfo.name}
-                </div>
-              )}
+          {/* Header sits inside the theme band (same height) so the contact rows always start below the curve */}
+          <div className="w-full h-[36%] pt-8 pb-8 flex flex-col items-center justify-center relative z-10 px-6 shrink-0">
+            {schoolInfo.logo && (
+              <img src={schoolInfo.logo} alt="School Logo" className="h-10 object-contain mb-1" crossOrigin="anonymous" />
+            )}
+            <div className="font-black text-white text-[11px] uppercase tracking-wider text-center leading-tight">
+              {schoolInfo.name || "LeonEd Institution"}
+            </div>
+            <h4 className="text-[9px] font-black text-center text-white opacity-90 mt-3">
+              IF FOUND, PLEASE RETURN TO:
+            </h4>
           </div>
 
-          <div className="flex-1 flex flex-col w-full px-6 relative z-10 mt-10">
-            <h4 className="text-[9px] font-black text-center text-gray-900 mb-4">
-              IN CASE OF EMERGENCY,<br/>PLEASE CONTACT:
-            </h4>
+          <div className="flex-1 flex flex-col w-full px-6 relative z-10 mt-2">
 
             <div className="space-y-2 mb-4">
               <div className="flex items-start gap-3">
@@ -170,7 +160,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
                 </div>
                 <div className="flex flex-col text-[9px] font-bold">
                   <span className="text-gray-500">NAME:</span>
-                  <span className="text-gray-900 uppercase">{student.emergencyContactName || student.parentName || student.guardianName || 'N/A'}</span>
+                  <span className="text-gray-900 uppercase">{schoolInfo.name || 'N/A'}</span>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -179,7 +169,16 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
                 </div>
                 <div className="flex flex-col text-[9px] font-bold">
                   <span className="text-gray-500">PHONE:</span>
-                  <span className="text-gray-900 uppercase">{student.emergencyContactPhone || student.parentPhone || student.guardianPhone || 'N/A'}</span>
+                  <span className="text-gray-900 uppercase">{schoolInfo.phone || 'N/A'}</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: themeColor }}>
+                  <Users className="w-3 h-3 text-white" />
+                </div>
+                <div className="flex flex-col text-[9px] font-bold">
+                  <span className="text-gray-500">RELATIONSHIP:</span>
+                  <span className="text-gray-900 uppercase">School Admin</span>
                 </div>
               </div>
             </div>

@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { Loader2, Download, Printer, CreditCard } from "lucide-react";
 import QRCode from "react-qr-code";
-import { studentApi } from "@/lib/api";
+import { studentApi, schoolApi } from "@/lib/api";
 
 export default function IDCardPage() {
   const [student, setStudent] = useState<any>(null);
+  const [school, setSchool] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +19,9 @@ export default function IDCardPage() {
           if (user.id || user._id) {
             const data = await studentApi.getById(user.id || user._id);
             setStudent(data);
+          }
+          if (user.schoolId || user.SchoolId) {
+            schoolApi.getById(user.schoolId || user.SchoolId).then(setSchool).catch(() => {});
           }
         }
       } catch (err) {
@@ -104,7 +108,7 @@ export default function IDCardPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-[#053d26]/10 to-white/50 z-0"></div>
           <div className="absolute top-0 left-0 right-0 h-1/4 bg-[#053d26] z-10 flex items-center px-4">
             <h2 className="text-white font-bold text-sm tracking-widest uppercase">
-              {student.school?.name || "LeonEd Institution"}
+              {school?.name || "LeonEd Institution"}
             </h2>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-2 bg-[#b05e1c] z-10"></div>
@@ -140,8 +144,8 @@ export default function IDCardPage() {
                     <p className="font-bold text-gray-900 truncate">{student.admissionNumber || "N/A"}</p>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-gray-400 uppercase tracking-widest" style={{ fontSize: "7px" }}>Emergency</p>
-                    <p className="font-bold text-gray-900 truncate">{student.parentPhone || "N/A"}</p>
+                    <p className="text-gray-400 uppercase tracking-widest" style={{ fontSize: "7px" }}>If Found, Call School Admin</p>
+                    <p className="font-bold text-gray-900 truncate">{school?.contactPhone || "N/A"}</p>
                   </div>
                 </div>
               </div>

@@ -88,7 +88,7 @@ export default function StudentsPage() {
               setSchoolInfo(prev => ({
                 ...prev,
                 address: school.address || prev.address,
-                phone: school.phone || prev.phone,
+                phone: school.contactPhone || school.phone || prev.phone,
                 name: school.name || prev.name
               }));
               if (school.ownerName || school.principalName || school.adminName) {
