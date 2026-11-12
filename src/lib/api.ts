@@ -936,7 +936,7 @@ export const studentApi = {
 
 // Attendance
 export interface ScanResult {
-  event: 'CheckIn' | 'CheckOut' | 'Marked' | 'AlreadyCheckedIn' | 'AlreadyCheckedOut';
+  event: 'CheckIn' | 'CheckOut' | 'Marked' | 'AlreadyCheckedIn' | 'AlreadyCheckedOut' | 'NotCheckedIn';
   studentName: string;
   time?: string;
   checkInAt?: string;
@@ -983,12 +983,13 @@ export const attendanceApi = {
     return handleResponse(res);
   },
   
-  // event says what the scan did: CheckIn / CheckOut when the school uses check-out, otherwise Marked
-  scanIdCard: async (admissionNumber: string, date: string, status: 'Present' | 'Absent' | 'Late', remarks?: string): Promise<ScanResult> => {
+  // event says what the scan did: CheckIn / CheckOut when the school uses check-out, otherwise Marked.
+  // mode forces a check-in or check-out (attendance officer buttons); omit it for automatic behaviour.
+  scanIdCard: async (admissionNumber: string, date: string, status: 'Present' | 'Absent' | 'Late', remarks?: string, mode?: 'checkIn' | 'checkOut'): Promise<ScanResult> => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/scan`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ admissionNumber, date, status, remarks }),
+      body: JSON.stringify({ admissionNumber, date, status, remarks, ...(mode ? { mode } : {}) }),
     });
     return handleResponse<ScanResult>(res);
   },

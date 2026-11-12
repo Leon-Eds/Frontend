@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, CheckCircle2, LogIn, LogOut, AlertCircle, Loader2, Search } from "lucide-react";
 import QRScanner from "@/components/dashboard/QRScanner";
 import { attendanceApi, ScanResult } from "@/lib/api";
@@ -23,7 +23,11 @@ const eventCopy: Record<ScanResult["event"], { label: string; tone: string; Icon
   Marked: { label: "Marked present", tone: "bg-green-50 border-green-200 text-green-800", Icon: CheckCircle2 },
   AlreadyCheckedIn: { label: "Already checked in", tone: "bg-amber-50 border-amber-200 text-amber-800", Icon: AlertCircle },
   AlreadyCheckedOut: { label: "Already checked out today", tone: "bg-amber-50 border-amber-200 text-amber-800", Icon: AlertCircle },
+  NotCheckedIn: { label: "Not checked in today", tone: "bg-amber-50 border-amber-200 text-amber-800", Icon: AlertCircle },
 };
+
+type ScanMode = "checkIn" | "checkOut";
+const MODE_STORAGE_KEY = "leoned_scanner_mode";
 
 /** Student cards encode JSON with an admissionNumber; older cards hold the number as plain text. */
 function readAdmissionNumber(decodedText: string): { admissionNumber?: string; error?: string } {
@@ -41,17 +45,31 @@ const todayLocal = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD i
 
 export default function AttendanceScannerPage() {
   const [isScanning, setIsScanning] = useState(true);
+  // Explicit check-in/check-out so a student scanned in twice is never checked out by mistake
+  const [mode, setMode] = useState<ScanMode>("checkIn");
   const [manualNumber, setManualNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [entries, setEntries] = useState<ScanEntry[]>([]);
   const lastRead = useRef<{ text: string; at: number } | null>(null);
   const nextId = useRef(1);
 
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(MODE_STORAGE_KEY) === "checkOut") setMode("checkOut");
+    } catch {}
+  }, []);
+
+  const changeMode = (next: ScanMode) => {
+    setMode(next);
+    lastRead.current = null; // let the same card be scanned straight away in the new mode
+    try { localStorage.setItem(MODE_STORAGE_KEY, next); } catch {}
+  };
+
   const record = async (admissionNumber: string) => {
     setIsSubmitting(true);
     const entry: ScanEntry = { id: nextId.current++, admissionNumber, at: new Date() };
     try {
-      const result = await attendanceApi.scanIdCard(admissionNumber, todayLocal(), "Present", "Scanned QR Code");
+      const result = await attendanceApi.scanIdCard(admissionNumber, todayLocal(), "Present", "Scanned QR Code", mode);
       entry.studentName = result?.studentName;
       entry.event = result?.event || "Marked";
     } catch (err) {
@@ -93,6 +111,32 @@ export default function AttendanceScannerPage() {
         >
           {isScanning ? <><CameraOff className="h-4 w-4" /> Stop camera</> : <><Camera className="h-4 w-4" /> Start camera</>}
         </button>
+      </div>
+
+      <div role="radiogroup" aria-label="Scan mode" className="grid grid-cols-2 gap-2 bg-gray-100 p-1.5 rounded-2xl">
+        {([
+          { value: "checkIn", label: "Check in", hint: "Arriving at school", Icon: LogIn },
+          { value: "checkOut", label: "Check out", hint: "Leaving school", Icon: LogOut },
+        ] as const).map(option => {
+          const selected = mode === option.value;
+          return (
+            <button
+              key={option.value}
+              role="radio"
+              aria-checked={selected}
+              onClick={() => changeMode(option.value)}
+              className={`flex items-center justify-center gap-3 rounded-xl py-3 px-4 transition-colors ${selected
+                ? option.value === "checkIn" ? "bg-[#053d26] text-white shadow-sm" : "bg-blue-700 text-white shadow-sm"
+                : "text-gray-600 hover:bg-white"}`}
+            >
+              <option.Icon className="h-5 w-5" />
+              <span className="text-left">
+                <span className="block font-bold">{option.label}</span>
+                <span className={`block text-xs ${selected ? "text-white/80" : "text-gray-500"}`}>{option.hint}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {latest && (
@@ -144,7 +188,7 @@ export default function AttendanceScannerPage() {
           className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#053d26] text-white font-bold hover:bg-[#042c1b] disabled:opacity-60"
         >
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          Record
+          {mode === "checkIn" ? "Check in" : "Check out"}
         </button>
       </form>
 
