@@ -295,7 +295,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
   };
 
   return (
-    <div className="flex h-screen w-64 flex-col bg-[#053d26] text-white shrink-0">
+    // 100dvh is the visible screen height on phones; 100vh hides the bottom (Logout) behind the browser bar
+    <div className="flex h-screen supports-[height:100dvh]:h-[100dvh] w-64 flex-col bg-[#053d26] text-white shrink-0">
       {/* Logo Area */}
       <div className="flex h-20 items-center justify-between px-6 border-b border-white/10">
         <Link href={role === "superadmin" ? "/super-admin" : demoRole === "AttendanceOfficer" ? "/dashboard/scanner" : "/dashboard"} className="flex items-center gap-3" onClick={handleNavClick}>
@@ -346,7 +347,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 space-y-1 pl-4 pr-2 py-6 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
+      <nav className="flex-1 min-h-0 space-y-1 pl-4 pr-2 py-6 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30">
         {navigation.map((item) => {
           const isActive = 
             pathname === item.href || 
@@ -410,7 +411,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
       {/* Upgrade CTA card for Free tier schools */}
       {role !== "superadmin" && role !== "teacher" && role !== "faculty" && role !== "student" && role !== "parent" && role !== "guardian" && role !== "attendanceofficer" && plan === "Free" && (
-        <div className="mx-4 mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-center">
+        <div className="mx-4 mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-center shrink-0">
           <p className="text-xs text-amber-200 font-bold mb-2">{t("sidebar.free_plan_msg")}</p>
           <Link
             href="/dashboard/settings/billing"
@@ -423,7 +424,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       )}
 
       {/* Bottom Navigation */}
-      <div className="border-t border-white/10 p-4 space-y-1">
+      <div className="border-t border-white/10 p-4 space-y-1 shrink-0">
         {role !== "student" && role !== "parent" && role !== "guardian" && demoRole !== "Student" && (
           <Link
             href={role === "superadmin" ? "/super-admin/settings" : "/dashboard/settings"}

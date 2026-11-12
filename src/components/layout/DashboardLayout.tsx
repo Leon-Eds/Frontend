@@ -45,7 +45,7 @@ export default function DashboardLayout({
   const isOverview = pathname === "/dashboard" || pathname === "/super-admin";
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#f8f9fa] overflow-hidden print:h-auto print:overflow-visible">
+    <div className="flex flex-col h-screen supports-[height:100dvh]:h-[100dvh] w-full bg-[#f8f9fa] overflow-hidden print:h-auto! print:overflow-visible">
       <div className="flex flex-1 w-full overflow-hidden relative print:overflow-visible">
         {/* Mobile overlay */}
         {sidebarOpen && !isStudent && (

@@ -140,8 +140,9 @@ export default function LoginPage() {
         if (selected === 'student') {
           return ['student', 'parent', 'guardian'].includes(returned);
         }
+        // The "Support Staff" tab covers bursars and attendance officers
         if (selected === 'bursar') {
-          return ['bursar'].includes(returned);
+          return ['bursar', 'attendanceofficer'].includes(returned);
         }
         return true;
       };
@@ -319,7 +320,7 @@ export default function LoginPage() {
                       : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                   }`}
                 >
-                  {r === "Admin" ? "School Admin" : r}
+                  {r === "Admin" ? "School Admin" : r === "Bursar" ? "Support Staff" : r}
                 </button>
               ))}
             </div>
