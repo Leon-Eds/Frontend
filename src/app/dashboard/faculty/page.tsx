@@ -6,7 +6,7 @@ import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, Ar
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { teacherApi, Teacher, CreateTeacherRequest, UpdateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi, teacherPortalApi, attendanceApi, bursarApi, resultApi, sessionApi } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { useAnnouncementsWebSocket } from "@/hooks/useAnnouncementsWebSocket";
+import { useAnnouncementsRefresh } from "@/hooks/useAnnouncementsRefresh";
 import TeacherMessages from '@/components/faculty/TeacherMessages';
 export function FacultyDirectory() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -995,7 +995,7 @@ export function FacultyHomepage() {
     }
   }, []);
 
-  useAnnouncementsWebSocket(fetchAnnouncementsOnly);
+  useAnnouncementsRefresh(fetchAnnouncementsOnly);
   const [teacherImage, setTeacherImage] = useState<string | null>(null);
   const [formClasses, setFormClasses] = useState<any[]>([]);
   const [revisionClasses, setRevisionClasses] = useState<{classId: string, className: string, comment: string}[]>([]);

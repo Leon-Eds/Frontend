@@ -175,9 +175,7 @@ export default function SettingsPage() {
 
       // Fetch students count for export payload (Admin only)
       if (parsedUser?.role === 'SchoolAdmin' || !parsedUser?.role || parsedUser?.role === 'Admin') {
-        studentApi.getAll().then(students => {
-          setStudentsCount(students.length);
-        }).catch(() => {});
+        studentApi.count().then(setStudentsCount).catch(() => {});
       }
 
       // Redirect legacy ?section= links to the section's own URL

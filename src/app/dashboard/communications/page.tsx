@@ -23,7 +23,7 @@ import {
   Loader2
 } from "lucide-react";
 import { announcementApi, studentApi, teacherApi, classApi } from "@/lib/api";
-import { useAnnouncementsWebSocket } from "@/hooks/useAnnouncementsWebSocket";
+import { useAnnouncementsRefresh } from "@/hooks/useAnnouncementsRefresh";
 
 interface Announcement {
   id: string;
@@ -113,7 +113,7 @@ export default function BroadcastHub() {
   };
 
   // Listen to websocket events
-  useAnnouncementsWebSocket(fetchAnnouncements);
+  useAnnouncementsRefresh(fetchAnnouncements);
 
   // Load existing data from localStorage (no mock seeding)
   useEffect(() => {
@@ -129,11 +129,11 @@ export default function BroadcastHub() {
       try {
         const [teachers, students, classes] = await Promise.all([
           teacherApi.getAll().catch(() => []),
-          studentApi.getAll().catch(() => []),
+          studentApi.count().catch(() => 0),
           classApi.getAll().catch(() => [])
         ]);
         setStaffCount(Array.isArray(teachers) ? teachers.length : 0);
-        setStudentCount(Array.isArray(students) ? students.length : 0);
+        setStudentCount(typeof students === 'number' ? students : 0);
         setClassesList(Array.isArray(classes) ? classes : []);
       } catch (err) {
         console.error("Failed to fetch dynamic data for broadcast hub", err);

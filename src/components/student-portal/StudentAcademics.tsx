@@ -207,30 +207,10 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           resultsArray = [];
         }
         
+        // Only published results from the server are shown
         if (!resultsArray || resultsArray.length === 0) {
-          // Fallback to mock data
-          const studentRecordId = studentInfo.studentId || studentInfo.id || studentInfo._id;
-          const studentName = studentInfo.fullName || studentInfo.name || "";
-          const localGradesStr = localStorage.getItem("mock_student_grades");
-          
-          if (localGradesStr) {
-            try {
-              const localGrades = JSON.parse(localGradesStr);
-              if (localGrades[studentRecordId]) {
-                resultsArray = localGrades[studentRecordId];
-              } else if (studentName) {
-                const matchByName = Object.values(localGrades).find(
-                  (rec: any) => rec.studentName && rec.studentName.toLowerCase() === studentName.toLowerCase()
-                ) as any;
-                if (matchByName && matchByName.grades) resultsArray = matchByName.grades;
-              }
-            } catch (e) {}
-          }
-          
-          if (!resultsArray || resultsArray.length === 0) {
-            setGrades([]);
-            return;
-          }
+          setGrades([]);
+          return;
         }
 
         const mappedGrades = resultsArray.map((r: any) => {

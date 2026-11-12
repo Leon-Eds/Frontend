@@ -22,14 +22,6 @@ interface StudentRegistry {
 export default function FeeClearanceDashboard() {
   const router = useRouter();
 
-  const updateLocalFee = useCallback((studentId: string, updates: any, studentName?: string) => {
-    if (typeof window === 'undefined') return;
-    const existingStr = localStorage.getItem('mock_fee_records');
-    const existing = existingStr ? JSON.parse(existingStr) : {};
-    existing[studentId] = { ...existing[studentId], ...updates, studentName: studentName || existing[studentId]?.studentName };
-    localStorage.setItem('mock_fee_records', JSON.stringify(existing));
-  }, []);
-
   const [registry, setRegistry] = useState<StudentRegistry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -208,7 +200,6 @@ export default function FeeClearanceDashboard() {
       s.id === detailStudent.id ? { ...s, amountPaid: newPaid, status: newStatus } : s
     ));
     setDetailStudent({ ...detailStudent, amountPaid: newPaid, status: newStatus });
-    updateLocalFee(detailStudent.id, { amountPaid: newPaid, status: newStatus }, detailStudent.name);
     setIsEditingPaid(false);
 
     // Hit the backend endpoint if term and session are available
@@ -261,7 +252,7 @@ export default function FeeClearanceDashboard() {
       setError(null);
       
       const [students, sessionData] = await Promise.all([
-        studentApi.getAll().catch(() => []),
+        studentApi.getSummaries().catch(() => []),
         sessionApi.getAll().catch(() => [])
       ]);
 
@@ -350,16 +341,8 @@ export default function FeeClearanceDashboard() {
       setAllFeeStructures(feeStructures);
       setStudentCustomFeesMap(customFeesMap);
 
-      const localFeesStr = typeof window !== 'undefined' ? localStorage.getItem('mock_fee_records') : null;
-      const localFees = localFeesStr ? JSON.parse(localFeesStr) : {};
-      let needsBackfill = false;
-
       const mapped: StudentRegistry[] = students.map((student) => {
         const fee = feeMap.get(student.id) || feeMap.get((student as any).refId) || feeMap.get((student as any).studentId);
-        if (student.fullName === "Kid Gojo") {
-        }
-        
-        const localFee = localFees[student.id] || {};
         // Fee structures list class names without the arm ("JSS 1", not "JSS 1 A")
         const sClass = (student as any).classLevel || student.className || "";
 
@@ -400,12 +383,6 @@ export default function FeeClearanceDashboard() {
           finalStatus = "Cleared";
         }
 
-        // Backfill studentName into existing local records
-        if (localFees[student.id] && !localFees[student.id].studentName) {
-          localFees[student.id].studentName = student.fullName;
-          needsBackfill = true;
-        }
-
         return {
           id: student.id,
           name: student.fullName,
@@ -417,15 +394,11 @@ export default function FeeClearanceDashboard() {
           amountDue: finalAmountDue,
           amountPaid: finalAmountPaid,
           receiptImageUrl: fee?.receiptImageUrl || fee?.receiptUrl || fee?.imageUrl || fee?.receipt || fee?.paymentReceipt || fee?.proofOfPayment || null,
-          paymentDescription: localFee.description || "Tuition Fee",
-          paymentDate: localFee.date || new Date().toISOString(),
+          // Description and date come from the payment record on the server
+          paymentDescription: fee?.description || "Tuition Fee",
+          paymentDate: fee?.updatedAt || fee?.clearedAt || undefined,
         };
       });
-      
-      // Persist backfilled names
-      if (needsBackfill && typeof window !== 'undefined') {
-        localStorage.setItem('mock_fee_records', JSON.stringify(localFees));
-      }
       
       setRegistry(mapped);
     } catch (err) {
@@ -496,14 +469,6 @@ export default function FeeClearanceDashboard() {
         }
         return s;
       }));
-      const selectedStudent = registry.find(s => s.id === selectedStudentId);
-      updateLocalFee(selectedStudentId, { 
-        amountDue: pDue, 
-        amountPaid: pPaid, 
-        status: newStatus,
-        description: paymentDescription || "Manual Fee Payment",
-        date: new Date().toISOString()
-      }, selectedStudent?.name);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to record payment";
       toast.error(msg);
@@ -520,7 +485,6 @@ export default function FeeClearanceDashboard() {
       return student;
     }));
     const actionStudent = registry.find(s => s.id === id);
-    updateLocalFee(id, { status: newStatus }, actionStudent?.name);
 
     if (!currentTermId) return;
 

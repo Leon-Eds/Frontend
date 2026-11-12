@@ -114,11 +114,10 @@ export default function ApprovedResults() {
 
         // Fetch students (for passport photos) using admin API
         try {
-          const cStudentsRes = await studentApi.getAll();
+          const cStudentsRes = await studentApi.getSummaries();
           const allStudents = Array.isArray(cStudentsRes) ? cStudentsRes : (cStudentsRes as any)?.data || (cStudentsRes as any)?.students || [];
-          setClassStudents(allStudents);
-          if (allStudents.length > 0) {
-          }
+          // Only this class's students ("No. in Class" used to show the whole school)
+          setClassStudents(allStudents.filter((s: any) => s.classId === selectedClassId));
         } catch (e) {
           console.warn("Could not fetch students for passport photos", e);
         }

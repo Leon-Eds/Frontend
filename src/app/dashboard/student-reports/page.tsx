@@ -47,7 +47,7 @@ export default function StudentDetailedReport() {
         const user = JSON.parse(userStr);
 
         // Get all students to find the current one (for student role) or first student (for admin preview)
-        const students = await studentApi.getAll();
+        const students = await studentApi.getSummaries();
         const allStudents = Array.isArray(students) ? students : [];
 
         // Get sessions to find the current term

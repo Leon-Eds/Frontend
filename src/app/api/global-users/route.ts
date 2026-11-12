@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
+import { API_BASE_URL } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
 
-const API_BASE_URL = 'https://leoned.vercel.app/api';
 
 const extractArray = (obj: any): any[] => {
   if (!obj) return [];

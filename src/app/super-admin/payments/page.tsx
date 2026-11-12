@@ -3,11 +3,8 @@
 import { useEffect, useState } from "react";
 import { CreditCard, Download, Search, AlertCircle, Loader2 } from "lucide-react";
 import { DataTable, Column } from "@/components/ui/DataTable";
-import { getAuthHeaders } from "@/lib/api";
+import { getAuthHeaders, API_BASE_URL } from "@/lib/api";
 
-const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-  ? '/backend-api'
-  : 'https://leoned.vercel.app/api';
 
 export default function PaymentsPage() {
   const [logs, setLogs] = useState<any[]>([]);

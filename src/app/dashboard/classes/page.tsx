@@ -94,7 +94,7 @@ export default function AcademicFlow() {
         classApi.getAll(),
         subjectApi.getAll(),
         sessionApi.getAll().catch(() => []),
-        studentApi.getAll().catch(() => []),
+        studentApi.getSummaries().catch(() => []),
         teacherApi.getAll().catch(() => []),
       ]);
       const classItems = Array.isArray(classData) ? classData : [];

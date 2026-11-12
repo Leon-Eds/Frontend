@@ -1,4 +1,5 @@
-const API_BASE_URL = 'https://leoned.vercel.app/api';
+// Backend address; set NEXT_PUBLIC_API_BASE_URL to point the app at another backend
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://leoned.vercel.app/api';
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 
@@ -843,12 +844,34 @@ export const studentApi = {
     if (schoolId) {
       headers['School-Id'] = schoolId;
     }
-    const res = await fetchWithTimeout(`${API_BASE_URL}/student?pageSize=1000`, {
+    // all=true returns every student (pageSize=1000 used to cut bigger schools off silently)
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student?all=true`, {
       headers,
     });
     const data = await handleResponse<Student[] | PaginatedResponse<Student>>(res);
     if (Array.isArray(data)) return data;
     return data.items || data.data || [];
+  },
+
+  // Every student with just the basics (id, name, admission no., class, gender, status, photo),
+  // for lists and pickers that don't need parent or login details
+  getSummaries: async (): Promise<Student[]> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student?all=true&view=summary`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await handleResponse<Student[] | PaginatedResponse<Student>>(res);
+    if (Array.isArray(data)) return data;
+    return data.items || data.data || [];
+  },
+
+  // Number of students, without downloading them
+  count: async (): Promise<number> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/student?pageSize=1&view=summary`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await handleResponse<Student[] | PaginatedResponse<Student>>(res);
+    if (Array.isArray(data)) return data.length;
+    return Number(data.totalCount ?? (data.items || data.data || []).length);
   },
 
   getById: async (id: string): Promise<Student> => {

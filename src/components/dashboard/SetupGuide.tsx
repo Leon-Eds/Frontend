@@ -50,7 +50,7 @@ export default function SetupGuide() {
         classApi.getAll(),
         subjectApi.getAll(),
         teacherApi.getAll(),
-        studentApi.getAll(),
+        studentApi.count(),
       ]);
 
       const sessionList: AcademicSession[] = sessions.status === 'fulfilled'
@@ -68,7 +68,7 @@ export default function SetupGuide() {
         : 0;
       
       const studentCount = studentRes.status === 'fulfilled'
-        ? (Array.isArray(studentRes.value) ? studentRes.value.length : 0)
+        ? studentRes.value
         : 0;
 
       const hasCurrentSession = sessionList.some(s => s.isCurrent);

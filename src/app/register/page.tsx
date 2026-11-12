@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Lock, School, User, Mail, Phone, MapPin, Globe, ChevronRight, ChevronLeft, CheckCircle2, Building2, Loader2, Eye, EyeOff } from "lucide-react";
-import { authApi } from "@/lib/api";
+import { authApi, API_BASE_URL } from "@/lib/api";
 import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 
@@ -145,7 +145,7 @@ export default function RegisterSchoolPage() {
             const data = await uploadRes.json();
             const logoUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
             // Using fetch directly as schoolApi.update might not be fully typed here
-            await fetch(`https://leoned.vercel.app/api/school/${user.schoolId}`, {
+            await fetch(`${API_BASE_URL}/school/${user.schoolId}`, {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',
