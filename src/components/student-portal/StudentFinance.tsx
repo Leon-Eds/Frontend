@@ -54,25 +54,9 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
       setError(null);
       
       const { feeStructureApi } = await import('@/lib/api');
-      const structures = await feeStructureApi.getStructures();
-      const customFeesMap = await feeStructureApi.getStudentCustomFees();
-      
-      const studentId = studentInfo.studentId || studentInfo.id || studentInfo._id;
-      const studentClass = studentInfo.className || studentInfo.formClass || "JSS 1";
-      
-      const applicableStructures = structures.filter((s: any) => {
-        if (s.type === 'base') {
-          const match = s.applicableLevels.some((l: string) => 
-            l === 'All' || studentClass.replace(/\s+/g, '').toLowerCase() === l.replace(/\s+/g, '').toLowerCase()
-          );
-          if (match) return true;
-        }
-        if (s.type === 'custom' && customFeesMap[studentId]?.includes(s.id)) {
-          return true;
-        }
-        return false;
-      });
-      setFeeBreakdown(applicableStructures);
+      // The server works out which base and custom fees apply to this student
+      const myFees = await feeStructureApi.getMyFees().catch(() => ({ fees: [], total: 0 }));
+      setFeeBreakdown(myFees.fees);
 
       const res = await feeApi.getMyStatus(selectedTermId);
       const data = (res as any)?.data || res;

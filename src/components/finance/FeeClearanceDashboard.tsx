@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { Eye, Search, Filter, Download, MoreVertical, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Printer, AlertCircle, Loader2, RotateCw, Lock, UploadCloud, Plus, Mail, Check, FileText, X, Settings2, XCircle, CheckCircle, ExternalLink, History } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { studentApi, sessionApi, classApi, bursarApi, dashboardApi, uploadToCloudinary } from "@/lib/api";
+import { studentApi, sessionApi, classApi, bursarApi, dashboardApi, uploadToCloudinary, feeStructureApi, FeeTermSummary } from "@/lib/api";
 
 interface StudentRegistry {
   id: string;
@@ -16,6 +16,7 @@ interface StudentRegistry {
   status: "Cleared" | "Unpaid" | "Pending Verification";
   amountDue?: number;
   amountPaid?: number;
+  classLevel?: string;
 }
 
 export default function FeeClearanceDashboard() {
@@ -68,8 +69,9 @@ export default function FeeClearanceDashboard() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [selectedTermId, setSelectedTermId] = useState("");
-  const [amountDue, setAmountDue] = useState("50000");
-  const [amountPaid, setAmountPaid] = useState("50000");
+  const [amountDue, setAmountDue] = useState("0");
+  const [amountPaid, setAmountPaid] = useState("0");
+  const [termSummary, setTermSummary] = useState<FeeTermSummary | null>(null);
   const [paymentDescription, setPaymentDescription] = useState("");
   const [receiptImageUrl, setReceiptImageUrl] = useState("");
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
@@ -171,7 +173,7 @@ export default function FeeClearanceDashboard() {
       }));
       
       // Recompute the amount due for optimistic UI
-      const sClass = detailStudent.class || detailStudent.className || "";
+      const sClass = detailStudent.classLevel || detailStudent.program || "";
       let computedDue = 0;
       allFeeStructures.filter(s => s.type === 'base').forEach(base => {
         if (base.applicableLevels.some((l: string) => l === 'All' || sClass.replace(/\s+/g, '').toLowerCase() === l.replace(/\s+/g, '').toLowerCase())) {
@@ -216,7 +218,7 @@ export default function FeeClearanceDashboard() {
           studentId: detailStudent.id,
           termId: currentTermId,
           academicSessionId: currentSessionId,
-          amountDue: detailStudent.amountDue || 50000,
+          amountDue: detailStudent.amountDue || 0,
           amountPaid: newPaid,
           description: "System generated (Amount Paid updated)",
           receiptImageUrl: ""
@@ -417,7 +419,8 @@ export default function FeeClearanceDashboard() {
         }
         
         const localFee = localFees[student.id] || {};
-        const sClass = (student as any).class || student.className || "";
+        // Fee structures list class names without the arm ("JSS 1", not "JSS 1 A")
+        const sClass = (student as any).classLevel || student.className || "";
 
         // Compute Base Fees
         let computedDue = 0;
@@ -467,6 +470,7 @@ export default function FeeClearanceDashboard() {
           name: student.fullName,
           avatarUrl: student.profilePictureUrl || (student as any).avatarUrl,
           program: student.className || "Unassigned",
+          classLevel: (student as any).classLevel || undefined,
           refId: student.admissionNumber || student.id,
           status: finalStatus as "Cleared" | "Unpaid" | "Pending Verification",
           amountDue: finalAmountDue,
@@ -606,6 +610,11 @@ export default function FeeClearanceDashboard() {
     s.refId.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  useEffect(() => {
+    if (!currentTermId) return;
+    feeStructureApi.getTermSummary(currentTermId).then(setTermSummary).catch(() => setTermSummary(null));
+  }, [currentTermId, registry]);
+
   const stats = {
     total: registry.length,
     unpaid: registry.filter(s => s.status === 'Unpaid').length,
@@ -682,6 +691,25 @@ export default function FeeClearanceDashboard() {
 
 
       {/* Active Students Registry Table */}
+      {termSummary && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: "Expected this term", value: `₦${termSummary.totalExpected.toLocaleString()}`, tone: "text-gray-900" },
+            { label: "Collected", value: `₦${termSummary.totalCollected.toLocaleString()}`, tone: "text-[#053d26]" },
+            { label: "Outstanding", value: `₦${termSummary.totalOutstanding.toLocaleString()}`, tone: "text-amber-600" },
+            { label: "Collected so far", value: `${termSummary.collectionRate}%`, tone: "text-gray-900" },
+          ].map(card => (
+            <div key={card.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">{card.label}</p>
+              <p className={`text-2xl font-black mt-1 ${card.tone}`}>{card.value}</p>
+            </div>
+          ))}
+          <p className="col-span-2 lg:col-span-4 text-xs text-gray-400 -mt-2">
+            {termSummary.termName} Term, {termSummary.sessionName} · {termSummary.clearedCount} of {termSummary.studentsCount} active students cleared
+          </p>
+        </div>
+      )}
+
       <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
         {/* Table Toolbar Header */}
         <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -999,9 +1027,15 @@ export default function FeeClearanceDashboard() {
               {/* Amount Due */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Amount Due (₦)</label>
-                <div className="block w-full rounded-2xl border border-gray-100 bg-gray-50 py-3 px-4 text-sm font-bold text-gray-500">
-                  {Number(amountDue).toLocaleString()}
-                </div>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={amountDue}
+                  onChange={(e) => setAmountDue(e.target.value)}
+                  className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
+                />
+                <p className="text-[11px] text-gray-400">Filled from the student's fee structures. Change it for discounts or extra charges.</p>
               </div>
 
               {/* Amount Paid */}

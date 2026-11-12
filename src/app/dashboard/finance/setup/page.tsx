@@ -17,6 +17,9 @@ export default function FeeStructureSetup() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStructure, setEditingStructure] = useState<Partial<FeeStructure> | null>(null);
   const [feeToDelete, setFeeToDelete] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [legacyData, setLegacyData] = useState<ReturnType<typeof feeStructureApi.getLegacyLocalData>>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     loadStructures();
@@ -29,14 +32,12 @@ export default function FeeStructureSetup() {
         feeStructureApi.getStructures(),
         classApi.getAll().catch(() => [])
       ]);
-      setStructures(data || []);
-      
+      setStructures(data);
+      // Fees saved in this browser before fee setup moved to the server can be imported once
+      setLegacyData(data.length === 0 ? feeStructureApi.getLegacyLocalData() : null);
+
       const levels = Array.from(new Set(classes.map(c => c.name || (c as any).className || '').filter(Boolean)));
-      if (levels.length > 0) {
-        setAvailableLevels(levels as string[]);
-      } else {
-        setAvailableLevels(["JSS 1", "JSS 2", "JSS 3", "SS 1", "SS 2", "SS 3"]);
-      }
+      setAvailableLevels(levels as string[]);
     } catch (err) {
       toast.error("Failed to load fee structures");
     } finally {
@@ -45,31 +46,39 @@ export default function FeeStructureSetup() {
   };
 
   const handleSave = async () => {
-    if (!editingStructure?.name || !editingStructure.amount) {
-      toast.error("Name and amount are required");
+    if (!editingStructure?.name?.trim() || !editingStructure.amount || editingStructure.amount <= 0) {
+      toast.error("Enter a fee name and an amount greater than zero");
+      return;
+    }
+    const type = editingStructure.type || 'base';
+    if (type === 'base' && !(editingStructure.applicableLevels || []).length) {
+      toast.error("Select the classes this fee applies to, or All classes");
       return;
     }
 
-    let updatedStructures = [...structures];
-    if (editingStructure.id) {
-      updatedStructures = updatedStructures.map(s => s.id === editingStructure.id ? editingStructure as FeeStructure : s);
-    } else {
-      const newStruct: FeeStructure = {
-        ...editingStructure,
-        id: `fs_${Date.now()}`,
-        type: editingStructure.type || 'base',
-        applicableLevels: editingStructure.type === 'base' ? (editingStructure.applicableLevels || []) : [],
-      } as FeeStructure;
-      updatedStructures.push(newStruct);
-    }
+    const payload = {
+      name: editingStructure.name.trim(),
+      amount: editingStructure.amount,
+      type,
+      applicableLevels: type === 'base' ? editingStructure.applicableLevels || [] : [],
+    };
 
+    setIsSaving(true);
     try {
-      await feeStructureApi.saveStructures(updatedStructures);
-      setStructures(updatedStructures);
-      toast.success("Fee structure saved successfully");
+      if (editingStructure.id) {
+        const updated = await feeStructureApi.updateStructure(editingStructure.id, payload);
+        setStructures(prev => prev.map(s => s.id === updated.id ? updated : s));
+      } else {
+        const created = await feeStructureApi.createStructure(payload);
+        setStructures(prev => [...prev, created]);
+        setLegacyData(null);
+      }
+      toast.success("Fee saved");
       setIsModalOpen(false);
-    } catch (err) {
-      toast.error("Failed to save fee structure");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save fee");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -79,14 +88,43 @@ export default function FeeStructureSetup() {
 
   const confirmDelete = async () => {
     if (!feeToDelete) return;
-    const updatedStructures = structures.filter(s => s.id !== feeToDelete);
     try {
-      await feeStructureApi.saveStructures(updatedStructures);
-      setStructures(updatedStructures);
+      await feeStructureApi.deleteStructure(feeToDelete);
+      setStructures(prev => prev.filter(s => s.id !== feeToDelete));
       toast.success("Fee deleted");
       setFeeToDelete(null);
-    } catch (err) {
-      toast.error("Failed to delete fee");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete fee");
+    }
+  };
+
+  // Recreate fees from this browser's old local storage on the server, keeping custom fee assignments
+  const handleImportLegacy = async () => {
+    if (!legacyData) return;
+    setIsImporting(true);
+    try {
+      const idMap = new Map<string, string>();
+      const created: FeeStructure[] = [];
+      for (const fee of legacyData.structures) {
+        if (!fee.name || !(fee.amount > 0)) continue;
+        const type = fee.type === 'custom' ? 'custom' : 'base';
+        const levels = type === 'base' && fee.applicableLevels?.length ? fee.applicableLevels : (type === 'base' ? ['All'] : []);
+        const saved = await feeStructureApi.createStructure({ name: fee.name, amount: fee.amount, type, applicableLevels: levels });
+        idMap.set(fee.id, saved.id);
+        created.push(saved);
+      }
+      for (const [studentId, feeIds] of Object.entries(legacyData.customFees || {})) {
+        const mapped = feeIds.map(id => idMap.get(id)).filter((id): id is string => Boolean(id));
+        if (mapped.length > 0) await feeStructureApi.saveStudentCustomFees(studentId, mapped).catch(() => {});
+      }
+      feeStructureApi.clearLegacyLocalData();
+      setStructures(created);
+      setLegacyData(null);
+      toast.success(`Imported ${created.length} fee${created.length === 1 ? '' : 's'}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Import failed. Some fees may have been imported; refresh to check.");
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -94,7 +132,7 @@ export default function FeeStructureSetup() {
     if (struct) {
       setEditingStructure({ ...struct });
     } else {
-      setEditingStructure({ type: 'base', applicableLevels: [], amount: 0, name: '' });
+      setEditingStructure({ type: 'base', applicableLevels: [], name: '' });
     }
     setIsModalOpen(true);
   };
@@ -102,11 +140,15 @@ export default function FeeStructureSetup() {
   const toggleLevel = (level: string) => {
     if (!editingStructure) return;
     const currentLevels = editingStructure.applicableLevels || [];
-    if (currentLevels.includes(level)) {
-      setEditingStructure({ ...editingStructure, applicableLevels: currentLevels.filter(l => l !== level) });
-    } else {
-      setEditingStructure({ ...editingStructure, applicableLevels: [...currentLevels, level] });
+    if (level === 'All') {
+      setEditingStructure({ ...editingStructure, applicableLevels: currentLevels.includes('All') ? [] : ['All'] });
+      return;
     }
+    const withoutAll = currentLevels.filter(l => l !== 'All');
+    setEditingStructure({
+      ...editingStructure,
+      applicableLevels: withoutAll.includes(level) ? withoutAll.filter(l => l !== level) : [...withoutAll, level],
+    });
   };
 
   const baseFees = structures.filter(s => s.type === 'base');
@@ -136,6 +178,24 @@ export default function FeeStructureSetup() {
         </button>
       </div>
 
+      {!loading && legacyData && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="font-bold text-amber-900">Fees found in this browser</p>
+            <p className="text-sm text-amber-800 mt-1">
+              {legacyData.structures.length} fee{legacyData.structures.length === 1 ? '' : 's'} were set up before fee settings were saved to your school account. Import them so every device and the bursar see the same fees.
+            </p>
+          </div>
+          <button
+            onClick={handleImportLegacy}
+            disabled={isImporting}
+            className="shrink-0 px-5 py-2.5 rounded-full bg-amber-600 text-white font-bold hover:bg-amber-700 disabled:opacity-60 transition-colors"
+          >
+            {isImporting ? "Importing..." : "Import fees"}
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center p-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#053d26]"></div>
@@ -157,17 +217,17 @@ export default function FeeStructureSetup() {
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {fee.applicableLevels?.map(lvl => (
                         <span key={lvl} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-bold uppercase tracking-wider">
-                          {lvl}
+                          {lvl === 'All' ? 'All classes' : lvl}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <div className="flex opacity-0 group-hover:opacity-100 transition-opacity gap-2">
-                    <button onClick={() => openModal(fee)} className="p-1.5 text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-lg">
-                      <Edit className="w-4 h-4" />
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={() => openModal(fee)} aria-label={`Edit ${fee.name}`} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg">
+                      <Edit className="w-3.5 h-3.5" /> Edit
                     </button>
-                    <button onClick={() => handleDelete(fee.id)} className="p-1.5 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-lg">
-                      <Trash2 className="w-4 h-4" />
+                    <button onClick={() => handleDelete(fee.id)} aria-label={`Delete ${fee.name}`} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
                   </div>
                 </div>
@@ -188,12 +248,12 @@ export default function FeeStructureSetup() {
                     <h3 className="font-bold text-gray-900">{fee.name}</h3>
                     <p className="text-amber-600 font-black text-lg mt-1">₦{fee.amount.toLocaleString()}</p>
                   </div>
-                  <div className="flex opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity gap-2">
-                    <button onClick={() => openModal(fee)} className="p-1.5 text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-lg">
-                      <Edit className="w-4 h-4" />
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={() => openModal(fee)} aria-label={`Edit ${fee.name}`} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg">
+                      <Edit className="w-3.5 h-3.5" /> Edit
                     </button>
-                    <button onClick={() => handleDelete(fee.id)} className="p-1.5 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-lg">
-                      <Trash2 className="w-4 h-4" />
+                    <button onClick={() => handleDelete(fee.id)} aria-label={`Delete ${fee.name}`} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg">
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
                   </div>
                 </div>
@@ -217,11 +277,24 @@ export default function FeeStructureSetup() {
             </div>
             
             <div className="p-6 space-y-5 overflow-y-auto flex-1">
-              <div className="grid grid-cols-1 gap-4">
-                <div className={`p-4 rounded-xl border cursor-pointer transition-colors border-[#053d26] bg-[#053d26]/5`}>
-                  <div className="font-bold text-gray-900 mb-1">Base Fee</div>
-                  <div className="text-xs text-gray-500">Applies automatically to entire levels</div>
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  { type: 'base', title: 'Base Fee', desc: 'Applies automatically to whole classes' },
+                  { type: 'custom', title: 'Custom Fee', desc: 'Assigned to individual students (e.g. Bus Levy)' },
+                ] as const).map(option => {
+                  const selected = (editingStructure.type || 'base') === option.type;
+                  return (
+                    <button
+                      key={option.type}
+                      type="button"
+                      onClick={() => setEditingStructure({ ...editingStructure, type: option.type })}
+                      className={`p-4 rounded-xl border text-left transition-colors ${selected ? 'border-[#053d26] bg-[#053d26]/5' : 'border-gray-200 hover:bg-gray-50'}`}
+                    >
+                      <div className="font-bold text-gray-900 mb-1">{option.title}</div>
+                      <div className="text-xs text-gray-500">{option.desc}</div>
+                    </button>
+                  );
+                })}
               </div>
 
               <div>
@@ -236,64 +309,41 @@ export default function FeeStructureSetup() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Amount (₦)</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Amount per term (₦)</label>
                 <input 
                   type="number" 
-                  value={editingStructure.amount || ''} 
-                  onChange={e => setEditingStructure({ ...editingStructure, amount: Number(e.target.value) })}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26] transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Account Name (Optional)</label>
-                <input 
-                  type="text" 
-                  value={editingStructure.accountName || ''} 
-                  onChange={e => setEditingStructure({ ...editingStructure, accountName: e.target.value })}
-                  placeholder="e.g. LeonEd School Main Account"
+                  min="0"
+                  value={editingStructure.amount ?? ''} 
+                  onChange={e => setEditingStructure({ ...editingStructure, amount: e.target.value === '' ? undefined : Number(e.target.value) })}
+                  placeholder="e.g. 50000"
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26] transition-all"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Bank Name (Optional)</label>
-                <input 
-                  type="text" 
-                  value={editingStructure.bankName || ''} 
-                  onChange={e => setEditingStructure({ ...editingStructure, bankName: e.target.value })}
-                  placeholder="e.g. Zenith Bank"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26] transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Account Number (Optional)</label>
-                <input 
-                  type="text" 
-                  value={editingStructure.accountNumber || ''} 
-                  onChange={e => setEditingStructure({ ...editingStructure, accountNumber: e.target.value })}
-                  placeholder="e.g. 1234567890"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#053d26] focus:ring-1 focus:ring-[#053d26] transition-all"
-                />
-              </div>
-
+              {(editingStructure.type || 'base') === 'base' && (
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Applicable Levels</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Applies to</label>
                   <div className="flex flex-wrap gap-2">
-                    {availableLevels.map(level => {
+                    {['All', ...availableLevels].map(level => {
                       const isSelected = editingStructure.applicableLevels?.includes(level);
                       return (
                         <button
                           key={level}
+                          type="button"
                           onClick={() => toggleLevel(level)}
                           className={`px-4 py-2 rounded-full text-sm font-bold border transition-colors ${isSelected ? 'bg-[#053d26] text-white border-[#053d26]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
                         >
-                          {level}
+                          {level === 'All' ? 'All classes' : level}
                         </button>
                       );
                     })}
                   </div>
+                  {availableLevels.length === 0 && (
+                    <p className="text-xs text-gray-500 mt-2">No classes yet. Create classes first, or choose All classes.</p>
+                  )}
                 </div>
+              )}
+              <p className="text-xs text-gray-500">Bank details for payments are set once for the school in Settings &rsaquo; School Profile.</p>
             </div>
 
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0">
@@ -305,10 +355,11 @@ export default function FeeStructureSetup() {
               </button>
               <button 
                 onClick={handleSave}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm"
+                disabled={isSaving}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] disabled:opacity-60 transition-colors shadow-sm"
               >
                 <Save className="w-4 h-4" />
-                Save Fee
+                {isSaving ? "Saving..." : "Save Fee"}
               </button>
             </div>
           </div>

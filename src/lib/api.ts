@@ -1593,41 +1593,88 @@ export interface FeeStructure {
   accountNumber?: string;
 }
 
+export interface FeeTermSummary {
+  termId: string;
+  termName: string;
+  sessionName: string;
+  studentsCount: number;
+  clearedCount: number;
+  totalExpected: number;
+  totalCollected: number;
+  totalOutstanding: number;
+  collectionRate: number;
+}
+
 export const feeStructureApi = {
   getStructures: async (): Promise<FeeStructure[]> => {
-    if (typeof window !== 'undefined') {
-      const data = localStorage.getItem('mock_fee_structures');
-      if (data) return JSON.parse(data);
-    }
-    // Default mock data
-    return [
-      { id: 'fs_1', name: 'Basic School Fee', amount: 50000, type: 'base', applicableLevels: ['JSS 1', 'JSS 2', 'JSS 3'] },
-      { id: 'fs_2', name: 'Senior School Fee', amount: 70000, type: 'base', applicableLevels: ['SS 1', 'SS 2', 'SS 3'] },
-      { id: 'fs_3', name: 'School Bus Levy', amount: 15000, type: 'custom', applicableLevels: [] },
-      { id: 'fs_4', name: 'Excursion Fee', amount: 5000, type: 'custom', applicableLevels: [] }
-    ];
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee-structure`, { headers: getAuthHeaders() });
+    const data = await handleResponse<FeeStructure[]>(res);
+    return Array.isArray(data) ? data : [];
   },
-  saveStructures: async (structures: FeeStructure[]) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('mock_fee_structures', JSON.stringify(structures));
-    }
+  createStructure: async (data: Omit<FeeStructure, 'id'>): Promise<FeeStructure> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee-structure`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ name: data.name, amount: data.amount, type: data.type, applicableLevels: data.applicableLevels }),
+    });
+    return handleResponse<FeeStructure>(res);
   },
+  updateStructure: async (id: string, data: Partial<FeeStructure>): Promise<FeeStructure> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee-structure/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ name: data.name, amount: data.amount, type: data.type, applicableLevels: data.applicableLevels }),
+    });
+    return handleResponse<FeeStructure>(res);
+  },
+  deleteStructure: async (id: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee-structure/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  // Map of studentId -> array of FeeStructure IDs
   getStudentCustomFees: async (): Promise<Record<string, string[]>> => {
-    // Map of studentId -> array of FeeStructure IDs
-    if (typeof window !== 'undefined') {
-      const data = localStorage.getItem('mock_student_custom_fees');
-      if (data) return JSON.parse(data);
-    }
-    return {};
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee-structure/student-custom-fees`, { headers: getAuthHeaders() });
+    const data = await handleResponse<Record<string, string[]>>(res);
+    return data && typeof data === 'object' ? data : {};
   },
   saveStudentCustomFees: async (studentId: string, feeIds: string[]) => {
-    if (typeof window !== 'undefined') {
-      const data = localStorage.getItem('mock_student_custom_fees');
-      const parsed = data ? JSON.parse(data) : {};
-      parsed[studentId] = feeIds;
-      localStorage.setItem('mock_student_custom_fees', JSON.stringify(parsed));
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee-structure/student-custom-fees/${studentId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ feeStructureIds: feeIds }),
+    });
+    return handleResponse(res);
+  },
+  // Fees that apply to the logged-in student (student portal)
+  getMyFees: async (): Promise<{ fees: FeeStructure[]; total: number }> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee-structure/my-fees`, { headers: getAuthHeaders() });
+    return handleResponse<{ fees: FeeStructure[]; total: number }>(res);
+  },
+  // Expected, collected and outstanding totals for a term (current term when omitted)
+  getTermSummary: async (termId?: string): Promise<FeeTermSummary> => {
+    const qs = termId ? `?termId=${termId}` : '';
+    const res = await fetchWithTimeout(`${API_BASE_URL}/fee-structure/term-summary${qs}`, { headers: getAuthHeaders() });
+    return handleResponse<FeeTermSummary>(res);
+  },
+  // Fee setup used to live only in this browser's storage; read it once so it can be imported
+  getLegacyLocalData: (): { structures: FeeStructure[]; customFees: Record<string, string[]> } | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const structures = JSON.parse(localStorage.getItem('mock_fee_structures') || '[]');
+      const customFees = JSON.parse(localStorage.getItem('mock_student_custom_fees') || '{}');
+      return Array.isArray(structures) && structures.length > 0 ? { structures, customFees } : null;
+    } catch {
+      return null;
     }
-  }
+  },
+  clearLegacyLocalData: () => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('mock_fee_structures');
+    localStorage.removeItem('mock_student_custom_fees');
+  },
 };
 
 // Global Users (for superadmin) — NOTE: /api/auth/admins endpoint was removed in Node.js backend
