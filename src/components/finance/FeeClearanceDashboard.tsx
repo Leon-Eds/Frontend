@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { Eye, Search, Filter, Download, MoreVertical, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Printer, AlertCircle, Loader2, RotateCw, Lock, UploadCloud, Plus, Mail, Check, FileText, X, Settings2, XCircle, CheckCircle, ExternalLink, History } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { studentApi, sessionApi, classApi, bursarApi, dashboardApi, uploadToCloudinary, feeStructureApi, FeeTermSummary } from "@/lib/api";
+import { studentApi, sessionApi, bursarApi, dashboardApi, uploadToCloudinary, feeStructureApi, FeeTermSummary } from "@/lib/api";
 
 interface StudentRegistry {
   id: string;
@@ -260,9 +260,8 @@ export default function FeeClearanceDashboard() {
       setIsLoading(true);
       setError(null);
       
-      const [students, classes, sessionData] = await Promise.all([
+      const [students, sessionData] = await Promise.all([
         studentApi.getAll().catch(() => []),
-        classApi.getAll().catch(() => []),
         sessionApi.getAll().catch(() => [])
       ]);
 
@@ -316,14 +315,12 @@ export default function FeeClearanceDashboard() {
             if (active?.id) { tId = active.id; break; }
           }
         }
-        if (tId) console.log("[DEBUG] Found termId from student object:", tId);
       }
 
       if (!tId) {
          try {
            const reportData = await bursarApi.getReport().catch(() => null) as any;
            if (reportData) {
-             console.log("[DEBUG] getReport succeeded without termId! Data:", reportData);
              tId = reportData.termId || reportData.currentTermId || (reportData.data && reportData.data[0]?.termId);
            }
          } catch(e) {}
@@ -336,75 +333,20 @@ export default function FeeClearanceDashboard() {
         setCurrentTermId(tId || '');
       }
 
-      let feeRecords: any[] = [];
-      if (tId) {
-         const classList = Array.isArray(classes) ? classes : [];
-         
-         const feePromises = classList.map(async (c: any) => {
-           let fees = await bursarApi.getClassFees(c.id, tId).catch(() => []) as any;
-           if (!fees || fees.length === 0 || (fees.data && fees.data.length === 0)) {
-             fees = await bursarApi.getClassFees(c.id, tId).catch(() => []) as any;
-           }
-           return fees;
-         });
-         
-         const classFees = await Promise.all(feePromises);
-         
-         feeRecords = classFees.map(f => {
-           if (Array.isArray(f)) return f;
-           if (f && typeof f === 'object' && 'data' in f) return (f as any).data;
-           if (f && typeof f === 'object' && 'items' in f) return (f as any).items;
-           return [];
-         }).flat();
-         console.log("[DEBUG] Fetched feeRecords:", feeRecords);
-      }
-
-      // FALLBACK: If feeRecords is empty, try fetching individually for each student
-      if (feeRecords.length === 0) {
-         console.log("[DEBUG] Bulk fetch returned empty or currentTerm missing, falling back to individual getStudentFees...");
-         if (students && students.length > 0) {
-            console.log("[DEBUG] First student FULL object:", JSON.stringify(students[0], null, 2));
-         }
-         const individualPromises = (Array.isArray(students) ? students : []).map(async (s: any) => {
-             let res = null;
-             res = await bursarApi.getStudentFees(s.id, tId).catch((err) => {
-               console.warn(`[DEBUG] getStudentFees failed for ${s.id}:`, err);
-               return null;
-             }) as any;
-             
-             if (!res || (Array.isArray(res) && res.length === 0) || (res.data && res.data.length === 0)) {
-                res = await bursarApi.getStudentFees(s.id, tId).catch(() => null) as any;
-             }
-             let items: any[] = [];
-            if (Array.isArray(res)) items = res;
-            else if (res && Array.isArray(res.data)) items = res.data;
-            else if (res && Array.isArray(res.items)) items = res.items;
-            else if (res && typeof res === 'object') items = [res.data || res];
-            
-            return items.map(item => ({ ...item, studentId: s.id }));
-         });
-         const individualResults = await Promise.all(individualPromises);
-         feeRecords = individualResults.flat().filter(Boolean);
-         console.log("[DEBUG] Flattened Individual fetch feeRecords:", feeRecords);
-      }
+      // One request for the whole term's fee records, loaded alongside the fee structures
+      // (this used to be a request per class and then one per student)
+      const [termFees, feeStructures, customFeesMap] = await Promise.all([
+        tId ? bursarApi.getTermFees(tId).catch(() => []) : Promise.resolve([]),
+        feeStructureApi.getStructures().catch(() => []),
+        feeStructureApi.getStudentCustomFees().catch(() => ({})),
+      ]);
+      const feeRecords: any[] = Array.isArray(termFees) ? termFees : [];
 
       const feeMap = new Map();
       feeRecords.forEach(f => {
-         if (!f) return;
-         const sId = f.studentId || f.student?.id || f.student?._id || (typeof f.student === 'string' ? f.student : null);
-         if (sId) {
-            feeMap.set(sId.toString(), f);
-         } else {
-            console.warn("[DEBUG] Could not extract student ID from fee record:", f);
-         }
+         const sId = f?.studentId || f?.student?.id;
+         if (sId) feeMap.set(sId.toString(), f);
       });
-      console.log("[DEBUG] Final feeMap keys:", Array.from(feeMap.keys()));
-      console.log("[DEBUG] Students available to map:", students.map(s => ({ id: s.id, refId: (s as any).refId, studentId: (s as any).studentId, name: s.fullName })));
-
-      // Load fee structures
-      const { feeStructureApi } = await import('@/lib/api');
-      const feeStructures = await feeStructureApi.getStructures().catch(() => []);
-      const customFeesMap = await feeStructureApi.getStudentCustomFees().catch(() => ({}));
       setAllFeeStructures(feeStructures);
       setStudentCustomFeesMap(customFeesMap);
 
@@ -415,7 +357,6 @@ export default function FeeClearanceDashboard() {
       const mapped: StudentRegistry[] = students.map((student) => {
         const fee = feeMap.get(student.id) || feeMap.get((student as any).refId) || feeMap.get((student as any).studentId);
         if (student.fullName === "Kid Gojo") {
-           console.log("[DEBUG] Kid Gojo fee record JSON:", JSON.stringify(fee, null, 2));
         }
         
         const localFee = localFees[student.id] || {};

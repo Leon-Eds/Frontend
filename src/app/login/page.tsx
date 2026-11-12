@@ -120,7 +120,6 @@ export default function LoginPage() {
         }
       }
 
-      console.log("[Login] User object to store:", JSON.stringify(userObj));
 
       // Validate that the returned role matches the selected login role
       const returnedRole = (userObj.role || '').toLowerCase().trim();

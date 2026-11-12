@@ -197,7 +197,6 @@ export default function SettingsPage() {
         const sId = parsedUser?.schoolId || parsedUser?.SchoolId || parsedUser?.id;
         if (sId) {
           schoolApi.getById(sId).then((school: any) => {
-            console.log("[DEBUG] Backend School Payload Received:", school);
             if (school?.address) setSchoolAddress(school.address);
             if (school?.contactPhone || school?.phone) setSchoolPhone(school.contactPhone || school.phone);
             if (school?.name) setSchoolName(school.name);
@@ -449,7 +448,6 @@ export default function SettingsPage() {
             font: selectedFontObj.apiName
           }
         };
-        console.log(`[DEBUG] Sending School Theme Update Payload:`, payload);
         await schoolApi.update(sId, payload).catch((e) => {
           console.error("[DEBUG] Theme update failed:", e);
         });
@@ -484,7 +482,6 @@ export default function SettingsPage() {
             font: selectedFontObj.apiName
           }
         };
-        console.log(`[DEBUG] Sending School Font Update Payload:`, payload);
         await schoolApi.update(sId, payload).catch((e) => {
           console.error("[DEBUG] Font update failed:", e);
         });

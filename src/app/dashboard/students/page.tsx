@@ -6,7 +6,6 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { Eye, Edit2, Download, TrendingUp, AlertCircle, CheckCircle2, Loader2, UserPlus, X, Trash2, Save, GraduationCap, Power, CreditCard, Printer, Search } from 'lucide-react';
 import QRCode from 'react-qr-code';
-import { toPng } from 'html-to-image';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { studentApi, schoolApi, promotionApi, classApi, Student, UpdateStudentRequest, formatDate } from '@/lib/api';
 import Link from 'next/link';

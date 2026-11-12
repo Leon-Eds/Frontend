@@ -97,10 +97,8 @@ export default function StaffDirectory() {
         await attendanceOfficerApi.create({ ...officerPayload, password: officerPayload.password || '' });
       } else if (formData.role === 'Bursar' || formData.role === 'Bursar / Finance Officer') {
         const { role, ...bursarPayload } = formData;
-        console.log('[Staff Page] Creating Bursar with payload:', JSON.stringify(bursarPayload, null, 2));
         await bursarApi.create(bursarPayload);
       } else {
-        console.log('[Staff Page] Creating Staff with payload:', JSON.stringify(formData, null, 2));
         await staffApi.create(formData);
       }
       toast.success("Staff created successfully!");

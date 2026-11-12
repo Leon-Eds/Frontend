@@ -72,16 +72,6 @@ function FormClassResultsInner() {
     profilePic = matchedStudent?.profilePictureUrl || matchedStudent?.imageUrl || matchedStudent?.image || nameObj.profilePictureUrl || nameObj.profileImageUrl || nameObj.imageUrl || nameObj.image || currentResult.studentProfilePictureUrl || currentResult.profilePictureUrl || nameObj.avatar || "/placeholder-user.jpg";
     
     // DEBUG LOG: Inspect the result object to find where the image is stored
-    console.log("[DEBUG] Student Data & Signatures:", JSON.stringify({
-      studentObj: currentResult.student,
-      userObj: currentResult.user,
-      currentResultKeys: Object.keys(currentResult),
-      extractedProfilePic: profilePic,
-      formTeacherSignatureUrl,
-      principalSignatureUrl,
-      currentResultTeacherSignature: currentResult.formTeacherSignatureUrl,
-      currentResultPrincipalSignature: currentResult.principalSignatureUrl
-    }, null, 2));
 
     adm = currentResult.admissionNumber || currentResult.student?.admissionNumber || currentResult.user?.admissionNumber || sId;
     pos = currentResult.pos || currentResult.position || currentResult.rank || "--";
@@ -121,7 +111,6 @@ function FormClassResultsInner() {
         if (user.signatureUrl) setFormTeacherSignatureUrl(user.signatureUrl);
         else if (user.teacher?.signatureUrl) setFormTeacherSignatureUrl(user.teacher.signatureUrl);
         
-        console.log("[DEBUG] User Object:", JSON.stringify({ userKeys: Object.keys(user), hasSignature: !!user.signatureUrl || !!user.teacher?.signatureUrl }, null, 2));
         
         // Fetch school details to get principal name, address, etc.
         const schoolId = user.schoolId || user.SchoolId || user.school?.id || user.school?._id;
@@ -129,7 +118,6 @@ function FormClassResultsInner() {
           try {
             const schoolData = await schoolApi.getById(schoolId);
             const sd = (schoolData as any);
-            console.log("[DEBUG] School Metadata:", JSON.stringify({ schoolKeys: Object.keys(sd), principalSignature: sd?.principalSignatureUrl }, null, 2));
             if (sd?.principalName) setPrincipalName(sd.principalName);
             else if (sd?.ownerName) setPrincipalName(sd.ownerName);
             if (sd?.address) setSchoolAddress(sd.address);
@@ -236,10 +224,6 @@ function FormClassResultsInner() {
           
           // DEBUG LOG: Inspect class students to find where the passport image is stored
           if (cStudents.length > 0) {
-            console.log("[DEBUG] Class Students (Sample):", JSON.stringify({
-              firstStudent: cStudents[0],
-              keys: Object.keys(cStudents[0])
-            }, null, 2));
           }
         } catch (err) {
           console.error("Failed to fetch class students for size");

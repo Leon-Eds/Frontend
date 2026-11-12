@@ -44,7 +44,6 @@ export const StudentEnrollmentWizard = () => {
       try {
         // Always read from the ref to get the latest state
         const latestData = formDataRef.current;
-        console.log('[StudentWizard] Submitting:', JSON.stringify(latestData, (k, v) => v instanceof File ? `[File: ${v.name}]` : v, 2));
         const student = await studentApi.create(latestData as CreateStudentRequest);
         // Save the generated fields (like admissionNumber, password) back to the form data
         setFormData((prev) => ({ 

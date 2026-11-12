@@ -92,15 +92,12 @@ function FacultyAttendanceInner() {
       try {
         // First, fetch the baseline roster of students for this class
         const classStudentsRes = await teacherPortalApi.getClassStudents(selectedClassId).catch(() => []);
-        console.log("[ATTENDANCE DEBUG] Raw getClassStudents response:", JSON.stringify(classStudentsRes, null, 2));
         const baselineStudents = Array.isArray(classStudentsRes) 
           ? classStudentsRes 
           : (classStudentsRes as any)?.data || (classStudentsRes as any)?.items || (classStudentsRes as any)?.students || [];
-        console.log("[ATTENDANCE DEBUG] Parsed baselineStudents:", JSON.stringify(baselineStudents, null, 2));
 
         // Second, fetch today's attendance sheet
         const existingData = await attendanceApi.getClassAttendance(selectedClassId, date).catch(() => []);
-        console.log("[ATTENDANCE DEBUG] Raw getClassAttendance response:", JSON.stringify(existingData, null, 2));
         const existingRecords = (existingData as any)?.records || (existingData as any)?.items || (existingData as any)?.data || (Array.isArray(existingData) ? existingData : []);
         const returnedDate = (existingData as any)?.date;
         
@@ -122,7 +119,6 @@ function FacultyAttendanceInner() {
         if (Array.isArray(baselineStudents) && baselineStudents.length > 0) {
           loadedStudents = baselineStudents.map(s => {
             const resolvedId = s.student?.id || s.student?._id || s.studentId || s.id || s._id;
-            console.log("[ATTENDANCE DEBUG] Student mapping:", { rawKeys: Object.keys(s), resolvedId, fullName: s.fullName || s.name || s.student?.fullName });
             return {
               ...s,
               studentId: resolvedId
@@ -138,7 +134,6 @@ function FacultyAttendanceInner() {
           });
         }
         
-        console.log("[ATTENDANCE DEBUG] Final loadedStudents:", loadedStudents.map(s => ({ studentId: s.studentId, name: s.fullName || s.name })));
         setStudents(loadedStudents);
 
         const defaultAtt: Record<string, 'Present' | 'Absent' | 'Late'> = {};
@@ -146,7 +141,6 @@ function FacultyAttendanceInner() {
           const resolvedId = s.studentId;
           defaultAtt[resolvedId] = (savedAttendance[resolvedId] as any) || 'Present';
         });
-        console.log("[ATTENDANCE DEBUG] Default attendance map:", defaultAtt);
         setAttendance(defaultAtt);
       } catch (err) {
         console.error("Failed to fetch attendance sheet", err);
@@ -175,9 +169,7 @@ function FacultyAttendanceInner() {
           status
         };
       });
-      console.log("[ATTENDANCE SAVE] Saving attendance with payload:", JSON.stringify({ selectedClassId, date, records }, null, 2));
       const saveResult = await attendanceApi.recordDailyAttendance(selectedClassId, date, records);
-      console.log("[ATTENDANCE SAVE] Save result from backend:", JSON.stringify(saveResult, null, 2));
       toast.success("Attendance saved successfully!");
     } catch (err) {
       console.error("[ATTENDANCE SAVE] Failed to save attendance:", err);

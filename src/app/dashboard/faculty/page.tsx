@@ -1023,12 +1023,20 @@ export function FacultyHomepage() {
         const pic = user.profilePictureUrl || user.imageUrl || user.photo || user.image || user.teacher?.profilePictureUrl || user.teacher?.imageUrl || user.teacher?.photo || user.teacher?.image || null;
         if (pic) setTeacherImage(pic);
 
+        // Start the independent requests together instead of one after another
+        const statsPromise = dashboardApi.getTeacherDashboard();
+        const classesPromise = teacherPortalApi.getClasses();
+        const formClassesPromise = attendanceApi.getMyFormClasses();
+        const sessionsPromise = sessionApi.getAll().catch(() => []);
+        const announcementsPromise = announcementApi.getAll({ pageSize: 2 });
+        // Failures are handled where each one is awaited below
+        [statsPromise, classesPromise, formClassesPromise, announcementsPromise].forEach(p => p.catch(() => {}));
+
         let assignments: any[] = [];
         let formClass: any = null;
         let localStats: any = null;
         try {
-          localStats = await dashboardApi.getTeacherDashboard();
-          console.log("[FacultyHomepage DEBUG] Teacher stats:", JSON.stringify(localStats, null, 2));
+          localStats = await statsPromise;
           
           // Try to extract profile picture from dashboard stats
           if (!pic && localStats) {
@@ -1063,7 +1071,7 @@ export function FacultyHomepage() {
         let allClasses: any[] = [];
         try {
           // Fetch classes via teacher portal — returns {classId, className, arm, studentCount, subjects}
-          const classesRes = await teacherPortalApi.getClasses();
+          const classesRes = await classesPromise;
           allClasses = Array.isArray(classesRes) ? classesRes : ((classesRes as any)?.data || (classesRes as any)?.items || []);
           const userId = user.id || user._id || user.teacher?.id || user.teacher?._id;
           
@@ -1071,7 +1079,7 @@ export function FacultyHomepage() {
           
           // Use the dedicated backend endpoint for form classes
           try {
-            const formClassesRes = await attendanceApi.getMyFormClasses();
+            const formClassesRes = await formClassesPromise;
             const unwrapped = Array.isArray(formClassesRes) ? formClassesRes : ((formClassesRes as any).data || (formClassesRes as any).items || (formClassesRes as any).classes || (formClassesRes as any).formClasses || []);
             myFormClasses = Array.isArray(unwrapped) ? unwrapped : [];
             // Map the objects correctly if they return classId instead of id
@@ -1114,14 +1122,18 @@ export function FacultyHomepage() {
           setFormClasses(myFormClasses);
 
           try {
-            const sessions = await sessionApi.getAll().catch(() => []);
+            const sessions = await sessionsPromise;
             const activeSession = sessions.find((s: any) => s.isCurrent);
             const activeTerm = activeSession?.terms?.find((t: any) => t.isCurrent);
             if (activeTerm && myFormClasses.length > 0) {
               const revs: any[] = [];
-              for (const fc of myFormClasses) {
+              // Check every form class's results at once
+              const classResults = await Promise.all(myFormClasses.map(fc =>
+                resultApi.getClassResults(fc.classId || fc.id || fc._id, activeTerm.id).catch(() => null)
+              ));
+              myFormClasses.forEach((fc, index) => {
                 const cId = fc.classId || fc.id || fc._id;
-                const cRes = await resultApi.getClassResults(cId, activeTerm.id).catch(() => null);
+                const cRes = classResults[index];
                 if (cRes) {
                   const rData = (cRes as any)?.data || cRes;
                   const rawStatus = String((cRes as any)?.status || (cRes as any)?.approvalStatus || rData?.status || rData?.approvalStatus || "").trim().toLowerCase();
@@ -1133,7 +1145,7 @@ export function FacultyHomepage() {
                     });
                   }
                 }
-              }
+              });
               setRevisionClasses(revs);
             }
           } catch (e) {
@@ -1143,16 +1155,16 @@ export function FacultyHomepage() {
           console.error("Failed to fetch teacher classes", e);
         }
 
-        // Fetch dashboard statistics
+        // Dashboard statistics (the same response loaded above)
         let dashboardStats: any = {};
         try {
-          dashboardStats = await dashboardApi.getTeacherDashboard();
+          dashboardStats = await statsPromise;
         } catch (e) {
           console.error("Failed to fetch teacher dashboard stats", e);
         }
         // Fetch announcements
         try {
-          const list = await announcementApi.getAll({ pageSize: 2 });
+          const list = await announcementsPromise;
           setAnnouncements(list);
         } catch (e) {
           console.error("Failed to load announcements", e);

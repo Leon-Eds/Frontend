@@ -15,9 +15,6 @@ import {
 } from "lucide-react";
 import { reportApi, classApi, sessionApi } from "@/lib/api";
 import toast from "react-hot-toast";
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { DataTable, Column } from '@/components/ui/DataTable';
 
 // Where each report endpoint puts its rows
@@ -173,13 +170,15 @@ export default function ReportsHub() {
     fetchReport(activeReport, selectedClassId, selectedTermId);
   }, [activeReport, selectedClassId, selectedTermId, selectedSessionId, startDate, endDate]);
 
-  const handleExportExcel = () => {
+  // The Excel and PDF libraries are large, so they load only when an export is requested
+  const handleExportExcel = async () => {
     if (!reportData || reportData.length === 0) {
       toast.error("No data to export");
       return;
     }
     const rt = reportTypes.find(r => r.id === activeReport);
     const filename = `LeonEd Report ${rt?.name || 'Data'} ${new Date().getFullYear()}.xlsx`;
+    const XLSX = await import("xlsx");
     
     const worksheet = XLSX.utils.json_to_sheet(reportData);
     const workbook = XLSX.utils.book_new();
@@ -188,13 +187,14 @@ export default function ReportsHub() {
     toast.success("Excel Export Downloaded");
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!reportData || reportData.length === 0) {
       toast.error("No data to export");
       return;
     }
     const rt = reportTypes.find(r => r.id === activeReport);
     const filename = `LeonEd Report ${rt?.name || 'Data'} ${new Date().getFullYear()}.pdf`;
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
 
     const doc = new jsPDF();
     const columns = Object.keys(reportData[0]);

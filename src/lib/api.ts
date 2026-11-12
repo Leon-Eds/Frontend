@@ -34,16 +34,9 @@ export function getAuthHeaders(): HeadersInit {
     }
   }
 
+  // The backend takes the school from the logged-in account; this header only matters for super admins
   if (sid) {
     headers['School-Id'] = sid;
-    headers['SchoolId'] = sid;
-    headers['schoolid'] = sid;
-    headers['school-id'] = sid;
-  }
-
-  // Debug log to see if sid is actually found
-  if (typeof window !== 'undefined') {
-    if (!sid) console.warn("[API Auth] getAuthHeaders could NOT find sid! Headers:", headers);
   }
 
   return headers;
@@ -72,7 +65,6 @@ function getAuthHeadersMultipart(): HeadersInit {
   }
   if (sid) {
     headers['School-Id'] = sid;
-    headers['SchoolId'] = sid;
   }
   return headers;
 }
@@ -160,8 +152,36 @@ async function checkAndRefreshAuthToken() {
   }
 }
 
-/** Fetch with timeout + automatic retry for cold-starting backends */
+// Identical GET requests made close together (e.g. the sidebar and the page both loading the
+// school) share one network call. Any write clears the cache so saved changes show at once.
+const GET_SHARE_TTL_MS = 10000;
+const sharedGets = new Map<string, { promise: Promise<Response>; expires: number }>();
+
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 60000): Promise<Response> {
+  const method = (options.method || 'GET').toUpperCase();
+  if (method !== 'GET') {
+    sharedGets.clear();
+    return fetchFromNetwork(url, options, timeoutMs);
+  }
+
+  const now = Date.now();
+  for (const [key, entry] of sharedGets) if (entry.expires <= now) sharedGets.delete(key);
+
+  const auth = (options.headers as Record<string, string> | undefined)?.['Authorization'] || '';
+  const key = `${auth}|${url}`;
+  let entry = sharedGets.get(key);
+  if (!entry) {
+    entry = { promise: fetchFromNetwork(url, options, timeoutMs), expires: now + GET_SHARE_TTL_MS };
+    sharedGets.set(key, entry);
+    // Failed requests are not shared, so the next caller retries
+    entry.promise.then(res => { if (!res.ok) sharedGets.delete(key); }, () => sharedGets.delete(key));
+  }
+  // Each caller gets its own copy of the response body
+  return (await entry.promise).clone();
+}
+
+/** Fetch with timeout + automatic retry for cold-starting backends */
+async function fetchFromNetwork(url: string, options: RequestInit = {}, timeoutMs = 60000): Promise<Response> {
   if (!url.includes('/auth/login') && !url.includes('/auth/refresh-token')) {
     await checkAndRefreshAuthToken();
     
@@ -1850,7 +1870,6 @@ export const staffApi = {
       headers: getAuthHeaders(),
     });
     const parsed = await res.clone().json().catch(() => null);
-    console.log('[staffApi.getAll] GET /bursar response:', res.status, parsed);
     return handleResponse<Staff[]>(res);
   },
   create: async (data: CreateStaffRequest): Promise<Staff> => {
@@ -1939,14 +1958,11 @@ export const teacherPortalApi = {
 export const bursarApi = {
   create: async (data: any) => {
     const body = JSON.stringify(data);
-    console.log('[bursarApi.create] Request URL:', `${API_BASE_URL}/bursar`);
-    console.log('[bursarApi.create] Request body:', body);
     const res = await fetchWithTimeout(`${API_BASE_URL}/bursar`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body,
     });
-    console.log('[bursarApi.create] Response status:', res.status);
     if (!res.ok) {
       const errorText = await res.clone().text();
       console.error('[bursarApi.create] Error response:', errorText);
@@ -1966,6 +1982,14 @@ export const bursarApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);
+  },
+  // Every fee record for a term in one response
+  getTermFees: async (termId: string): Promise<any[]> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/bursar/fees/term/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await handleResponse<any[]>(res);
+    return Array.isArray(data) ? data : [];
   },
   getClassFees: async (classId: string, termId?: string) => {
     const qs = termId ? `?termId=${termId}` : '';
@@ -2164,23 +2188,19 @@ export const schemeOfWorkApi = {
   
   getBySubject: async (classId: string, subjectId: string, termId: string) => {
     const url = `${API_BASE_URL}/scheme-of-work/class/${classId}/subject/${subjectId}/term/${termId}`;
-    console.log("[SoW API] getBySubject URL:", url);
     const res = await fetchWithTimeout(url, {
       headers: getAuthHeaders(),
     });
     const data = await handleResponse(res);
-    console.log("[SoW API] getBySubject response:", data);
     return data;
   },
   
   getByClass: async (classId: string, termId: string) => {
     const url = `${API_BASE_URL}/scheme-of-work/class/${classId}/term/${termId}`;
-    console.log("[SoW API] getByClass URL:", url);
     const res = await fetchWithTimeout(url, {
       headers: getAuthHeaders(),
     });
     const data = await handleResponse(res);
-    console.log("[SoW API] getByClass response:", data);
     return data;
   }
 };

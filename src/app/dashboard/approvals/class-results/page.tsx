@@ -54,16 +54,6 @@ function FormClassResultsInner() {
 
   if (currentResult) {
     // DEBUG LOG: Inspect the result object to find where the image is stored
-    console.log("[DEBUG] class-results Student Data & Signatures:", JSON.stringify({
-      studentObj: currentResult.student,
-      userObj: currentResult.user,
-      currentResultKeys: Object.keys(currentResult),
-      extractedProfilePic: profilePic,
-      formTeacherSignatureUrl,
-      principalSignatureUrl,
-      currentResultTeacherSignature: currentResult.formTeacherSignatureUrl,
-      currentResultPrincipalSignature: currentResult.principalSignatureUrl
-    }, null, 2));
 
     sId = currentResult.studentId || currentResult.student?.id || currentResult.id || currentIndex.toString();
     
@@ -160,7 +150,6 @@ function FormClassResultsInner() {
               try {
                 const schoolData = await schoolApi.getById(schoolId);
                 const sd = (schoolData as any);
-                console.log("[DEBUG] class-results School Metadata:", JSON.stringify({ schoolKeys: Object.keys(sd), principalSignature: sd?.principalSignatureUrl }, null, 2));
                 if (sd?.principalName) setPrincipalName(sd.principalName);
                 else if (sd?.ownerName) setPrincipalName(sd.ownerName);
                 if (sd?.address) setSchoolAddress(sd.address);

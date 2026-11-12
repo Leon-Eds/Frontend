@@ -45,19 +45,16 @@ export default function StudentAttendance({ studentInfo }: { studentInfo: any })
     const fetchAttendance = async () => {
       try {
         setIsLoading(true);
-        console.log("[DEBUG] studentInfo in attendance:", studentInfo);
         const studentId = studentInfo?.id || studentInfo?.studentId || studentInfo?._id;
         
         let res;
         try {
           res = await attendanceApi.getMyAttendance(selectedTermId);
         } catch (e) {
-          console.warn("[DEBUG] getMyAttendance failed or 404, falling back...");
           if (studentId) {
              try {
                 res = await attendanceApi.getStudentAttendance(studentId, selectedTermId);
              } catch (e2) {
-                console.warn("[DEBUG] getStudentAttendance also failed or 404.");
                 res = [];
              }
           }
@@ -70,8 +67,6 @@ export default function StudentAttendance({ studentInfo }: { studentInfo: any })
         
         // Removed fallback to getStudentAttendance because the endpoint does not exist.
 
-        console.log("[DEBUG] Raw attendance fetch result:", JSON.stringify(res, null, 2));
-        console.log("[DEBUG] Extracted records:", records);
         
         // Compute stats
         let present = data?.present ?? data?.stats?.present ?? data?.presentCount ?? data?.totalPresent ?? data?.Present ?? 0;

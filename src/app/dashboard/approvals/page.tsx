@@ -121,7 +121,6 @@ export default function ResultsApproval() {
       const resultPromises = classes.map(async (cls) => {
         try {
           const results = await resultApi.getClassResults(cls.id, currentTerm.id);
-          console.log(`[Approvals] Results for class ${cls.name}:`, results);
           const rData = (results as any)?.data || results;
           const rawStatusStr = String((results as any)?.status || (results as any)?.approvalStatus || rData?.status || rData?.approvalStatus || "Pending").trim().toLowerCase();
 

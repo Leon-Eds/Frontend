@@ -118,7 +118,6 @@ export default function ApprovedResults() {
           const allStudents = Array.isArray(cStudentsRes) ? cStudentsRes : (cStudentsRes as any)?.data || (cStudentsRes as any)?.students || [];
           setClassStudents(allStudents);
           if (allStudents.length > 0) {
-            console.log("[DEBUG] Students (Sample):", JSON.stringify({ firstStudent: allStudents[0], keys: Object.keys(allStudents[0]) }, null, 2));
           }
         } catch (e) {
           console.warn("Could not fetch students for passport photos", e);
@@ -126,7 +125,6 @@ export default function ApprovedResults() {
 
         // Get class details for form teacher info
         const selectedClass = classes.find((c: any) => (c.id || c._id) === selectedClassId);
-        console.log("[DEBUG] Selected Class Object:", JSON.stringify(selectedClass, null, 2));
         if (selectedClass) {
           const ftName = selectedClass.formTeacherName || selectedClass.formTeacher?.name || selectedClass.formTeacher?.fullName || (selectedClass.formTeacher?.firstName ? `${selectedClass.formTeacher.firstName} ${selectedClass.formTeacher.lastName || ''}`.trim() : '') || selectedClass.teacher?.name || selectedClass.teacher?.fullName || (selectedClass.teacher?.firstName ? `${selectedClass.teacher.firstName} ${selectedClass.teacher.lastName || ''}`.trim() : '');
           if (ftName) setFormTeacherName(ftName);
@@ -135,7 +133,6 @@ export default function ApprovedResults() {
         }
 
         const data = await resultApi.getApprovedClassResults(selectedClassId, selectedTermId);
-        console.log("[DEBUG Approved Results Payload]", data);
         
         let detailedResults: any[] = [];
         const rData = (data as any)?.data || data;
@@ -519,7 +516,7 @@ export default function ApprovedResults() {
                         {['Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Cooperation', 'Peer Relationship'].map((b, i) => (
                           <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
                             <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{b}</td>
-                            <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{(currentResult?.affective?.[b.toLowerCase()] || currentResult?.affective?.[b]) || (Math.floor(Math.random() * 2) + 4)}</td>
+                            <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{show(currentResult?.affectiveDomains?.[['punctuality', 'neatness', 'politeness', 'honesty', 'cooperation', 'peerRelationship'][i]])}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -537,7 +534,7 @@ export default function ApprovedResults() {
                         {['Handwriting', 'Public Speaking', 'Sports & Athletics', 'Club Participation', 'Craft / Lab Skills', 'Musical Skill'].map((s, i) => (
                           <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
                             <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{s}</td>
-                            <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{(currentResult?.psychomotor?.[s.toLowerCase()] || currentResult?.psychomotor?.[s]) || (Math.floor(Math.random() * 2) + 3)}</td>
+                            <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{show(currentResult?.psychomotorDomains?.[['handwriting', 'publicSpeaking', 'sports', 'clubParticipation', 'craftSkills', 'musicalSkill'][i]])}</td>
                           </tr>
                         ))}
                       </tbody>

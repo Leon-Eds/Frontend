@@ -27,34 +27,23 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
 
   useEffect(() => {
     if (!selectedTermId || viewMode !== 'sow') {
-      console.log("[SoW Student] fetchSow skipped — viewMode:", viewMode, "termId:", selectedTermId);
       return;
     }
     const fetchSow = async () => {
       try {
         setIsLoadingSow(true);
         
-        console.log("[SoW Student] === Scheme of Work Debug ===");
-        console.log("[SoW Student] studentInfo keys:", Object.keys(studentInfo));
-        console.log("[SoW Student] studentInfo.classId:", studentInfo.classId);
-        console.log("[SoW Student] studentInfo.class:", studentInfo.class);
-        console.log("[SoW Student] resultMetadata:", resultMetadata);
         
         // classId comes from studentInfo, resultMetadata, or localStorage
         let targetClassId = studentInfo.classId || studentInfo.class?._id || studentInfo.class?.id;
-        console.log("[SoW Student] classId from studentInfo:", targetClassId);
         
         if (!targetClassId && resultMetadata) {
           targetClassId = resultMetadata.classId || resultMetadata.class?.id || resultMetadata.class?._id;
-          console.log("[SoW Student] classId from resultMetadata:", targetClassId);
         }
         
         if (!targetClassId) {
           const user = JSON.parse(localStorage.getItem('leoned_user') || '{}');
-          console.log("[SoW Student] localStorage user keys:", Object.keys(user));
-          console.log("[SoW Student] user.classId:", user.classId, "user.student?.classId:", user.student?.classId);
           targetClassId = user.classId || user.student?.classId || user.student?.class?._id || user.class?._id;
-          console.log("[SoW Student] classId from localStorage:", targetClassId);
         }
         
         if (!targetClassId) {
@@ -175,7 +164,6 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           targetClassId = user.classId || user.student?.classId || user.student?.class?._id || user.class?._id;
         }
         
-        console.log("[Student Portal] Raw resultsData from backend:", resultsData);
         
         let resultsArray: any[] = [];
         
@@ -525,7 +513,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                     {['Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Cooperation', 'Peer Relationship'].map((b, i) => (
                       <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
                         <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{b}</td>
-                        <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{(resultMetadata?.affective?.[b.toLowerCase()] || resultMetadata?.affective?.[b]) || (Math.floor(Math.random() * 2) + 4)}</td>
+                        <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{show(resultMetadata?.affectiveDomains?.[['punctuality', 'neatness', 'politeness', 'honesty', 'cooperation', 'peerRelationship'][i]])}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -543,7 +531,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                     {['Handwriting', 'Public Speaking', 'Sports & Athletics', 'Club Participation', 'Craft / Lab Skills', 'Musical Skill'].map((s, i) => (
                       <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
                         <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{s}</td>
-                        <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{(resultMetadata?.psychomotor?.[s.toLowerCase()] || resultMetadata?.psychomotor?.[s]) || (Math.floor(Math.random() * 2) + 3)}</td>
+                        <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{show(resultMetadata?.psychomotorDomains?.[['handwriting', 'publicSpeaking', 'sports', 'clubParticipation', 'craftSkills', 'musicalSkill'][i]])}</td>
                       </tr>
                     ))}
                   </tbody>
