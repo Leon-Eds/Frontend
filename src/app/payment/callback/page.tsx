@@ -84,7 +84,7 @@ function PaymentCallbackContent() {
             <XCircle className="h-16 w-16 text-red-500" />
             <h1 className="text-2xl font-bold text-gray-900">Payment Failed</h1>
             <p className="text-gray-500">We could not verify your payment. It may have been cancelled or failed processing.</p>
-            <Link href="/dashboard/settings?section=billing" className="mt-4 px-6 py-3 bg-gray-100 text-gray-700 rounded-full font-bold hover:bg-gray-200 transition-colors w-full">
+            <Link href="/dashboard/settings/billing" className="mt-4 px-6 py-3 bg-gray-100 text-gray-700 rounded-full font-bold hover:bg-gray-200 transition-colors w-full">
               Return to Billing
             </Link>
           </div>

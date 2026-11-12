@@ -145,7 +145,7 @@ export default function NotificationsPopover() {
           
           <div className="p-3 border-t border-gray-100 bg-gray-50 text-center shrink-0">
             <Link 
-              href="/dashboard/settings?section=notifications"
+              href="/dashboard/settings/notifications"
               onClick={() => setIsOpen(false)}
               className="text-xs text-gray-500 hover:text-gray-900 font-medium"
             >

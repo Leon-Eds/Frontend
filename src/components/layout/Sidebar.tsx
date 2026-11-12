@@ -44,7 +44,7 @@ const schoolNavigation = [
   { name: "Financials", href: "/dashboard/finance", icon: Banknote },
   { name: "Staff Directory", href: "/dashboard/faculty", icon: Users },
   { name: "Session Rollover", href: "/dashboard/rollover", icon: CalendarClock },
-  // { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
+  { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
 ];
 
 const adminNavigation = [
@@ -55,7 +55,7 @@ const adminNavigation = [
   { name: "Support Staff", href: "/dashboard/staff", icon: UserPlus },
   { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
   { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
-  // { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
+  { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
   { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
 ];
 
@@ -406,7 +406,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <div className="mx-4 mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-center">
           <p className="text-xs text-amber-200 font-bold mb-2">{t("sidebar.free_plan_msg")}</p>
           <Link
-            href="/dashboard/settings"
+            href="/dashboard/settings/billing"
             onClick={handleNavClick}
             className="block w-full py-2 bg-[#b05e1c] hover:bg-[#965017] text-white font-bold text-xs rounded-xl transition-colors shadow-sm"
           >

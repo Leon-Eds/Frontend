@@ -252,7 +252,7 @@ export default function DashboardOverview() {
               Dismiss
             </button>
             <Link
-              href="/dashboard/settings?section=billing"
+              href="/dashboard/settings/billing"
               className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md transition-all hover:shadow-lg text-sm"
             >
               View Plans

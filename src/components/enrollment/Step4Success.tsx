@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, User, UserPlus, LayoutDashboard, CheckCircle2, Building2 } from 'lucide-react';
+import { ShieldCheck, User, UserPlus, LayoutDashboard, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { CreateStudentRequest } from '@/lib/api';
 
@@ -9,6 +9,7 @@ interface Step4Props {
 }
 
 export const Step4Success: React.FC<Step4Props> = ({ data, onReset }) => {
+  const className = (data as any).className as string | undefined;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Main Success Area */}
@@ -30,7 +31,7 @@ export const Step4Success: React.FC<Step4Props> = ({ data, onReset }) => {
         </h2>
         
         <p className="text-lg text-gray-600 mb-8 max-w-md">
-          The academic records for <span className="font-bold text-gray-900">{data.fullName || "Student"}</span> have been architected and finalized.
+          <span className="font-bold text-gray-900">{data.fullName || "The student"}</span> has been added{className ? <> to <span className="font-bold text-gray-900">{className}</span></> : null}. Share the login details on this page with the student or their parent so they can sign in to the student portal.
         </p>
 
         <div className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-sm font-bold text-[#053d26] mb-12">
@@ -66,7 +67,7 @@ export const Step4Success: React.FC<Step4Props> = ({ data, onReset }) => {
         <div className="bg-[#053d26] rounded-3xl p-8 shadow-sm text-white">
           <h3 className="text-xl font-bold mb-4">Student Credentials</h3>
           <p className="text-sm text-green-100/80 mb-6">
-            Please share these credentials with the student or parent. They will be required for portal access.
+            Give these login details to the student or parent. They will use them to sign in to the student portal.
           </p>
           
           <div className="space-y-4 bg-[#042c1b] p-5 rounded-2xl border border-green-800">
@@ -80,7 +81,7 @@ export const Step4Success: React.FC<Step4Props> = ({ data, onReset }) => {
             <div>
               <p className="text-xs text-green-300 font-bold uppercase tracking-widest mb-1">Password</p>
               <div className="flex items-center justify-between">
-                <p className="font-bold text-lg tracking-wider">{data.password || "password"}</p>
+                <p className="font-bold text-lg tracking-wider">{data.password || "—"}</p>
                 <span className="text-[10px] bg-green-500/20 text-green-200 px-2 py-1 rounded font-bold">DEFAULT</span>
               </div>
             </div>
@@ -99,25 +100,10 @@ export const Step4Success: React.FC<Step4Props> = ({ data, onReset }) => {
               <span className="text-sm text-gray-500">Gender</span>
               <span className="text-sm font-bold text-gray-900">{data.gender || "—"}</span>
             </div>
-            <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+            <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">Guardian</span>
               <span className="text-sm font-bold text-gray-900">{data.parentName || "—"}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Payment Status</span>
-              <span className="px-2 py-1 rounded-md bg-orange-100 text-orange-700 text-[10px] font-bold uppercase tracking-wider">Pending</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Database Sync Toast */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="h-5 w-5 text-teal-600" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-gray-900">Database Sync Complete</h4>
-            <p className="text-xs text-gray-500">All regional nodes updated.</p>
           </div>
         </div>
       </div>

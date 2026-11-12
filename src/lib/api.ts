@@ -1906,14 +1906,12 @@ export const reportApi = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/report/enrollment${qs}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
-  getAttendance: async (classId: string, startDate?: string, endDate?: string, termId?: string, academicSessionId?: string) => {
+  getAttendance: async (classId: string, termId: string, academicSessionId?: string) => {
     const q = new URLSearchParams();
-    if (startDate) q.append('startDate', startDate);
-    if (endDate) q.append('endDate', endDate);
-    if (termId) q.append('termId', termId);
+    q.append('classId', classId);
+    q.append('termId', termId);
     if (academicSessionId) q.append('academicSessionId', academicSessionId);
-    const qs = q.toString() ? `?${q.toString()}` : '';
-    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/class/${classId}/stats${qs}`, { headers: getAuthHeaders() });
+    const res = await fetchWithTimeout(`${API_BASE_URL}/report/attendance?${q.toString()}`, { headers: getAuthHeaders() });
     return handleResponse(res);
   },
   getPerformance: async (classId?: string, termId?: string, academicSessionId?: string) => {

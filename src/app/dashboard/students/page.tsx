@@ -4,7 +4,7 @@ import IdCard from "@/components/shared/IdCard";
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { Eye, Edit2, Download, TrendingUp, AlertCircle, CheckCircle2, Loader2, UserPlus, X, Trash2, Save, GraduationCap, Power, CreditCard, Printer } from 'lucide-react';
+import { Eye, Edit2, Download, TrendingUp, AlertCircle, CheckCircle2, Loader2, UserPlus, X, Trash2, Save, GraduationCap, Power, CreditCard, Printer, Search } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { toPng } from 'html-to-image';
 import { DataTable, Column } from '@/components/ui/DataTable';
@@ -341,9 +341,14 @@ export default function StudentsPage() {
   const activeCount = students.filter(s => s.status === 'Active').length;
   const graduatedCount = students.filter(s => s.status === 'Graduated').length;
 
-  const filteredStudents = selectedClass === "All" 
-    ? students 
-    : students.filter(s => s.classId === selectedClass || (s as any).class?.id === selectedClass || s.className === selectedClass);
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredStudents = students.filter(s => {
+    const inClass = selectedClass === "All" || s.classId === selectedClass || (s as any).class?.id === selectedClass || s.className === selectedClass;
+    if (!inClass) return false;
+    if (!normalizedQuery) return true;
+    return [s.fullName, s.admissionNumber, s.parentName]
+      .some(field => (field || "").toLowerCase().includes(normalizedQuery));
+  });
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-10">
@@ -445,13 +450,23 @@ export default function StudentsPage() {
               </select>
               <select 
                 value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
+                onChange={(e) => { setSelectedClass(e.target.value); setCurrentPage(1); }}
                 className="bg-gray-100 rounded-full px-4 py-2 text-xs font-bold text-gray-600 focus:outline-none appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234B5563%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:8px_8px] bg-[right_12px_center]">
                 <option value="All">Class: All</option>
                 {classes.map(c => (
                   <option key={c.id || c._id} value={c.id || c._id}>{c.name || c.className}</option>
                 ))}
               </select>
+              <div className="relative w-full sm:w-64">
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  placeholder="Search name, admission no. or parent"
+                  className="w-full bg-gray-100 rounded-full pl-9 pr-4 py-2 text-xs font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
+                />
+              </div>
             </div>
             <button
               onClick={handleExportCSV}

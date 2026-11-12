@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard, Camera, Banknote, UserCircle, PenTool } from "lucide-react";
 import { authApi, studentApi, schoolApi, paymentApi, uploadToCloudinary, teacherPortalApi } from "@/lib/api";
 import { useLanguage, Language } from "@/components/LanguageProvider";
@@ -26,7 +27,13 @@ const FONTS = [
 ];
 
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState<SettingsSection>(null);
+  // The open section lives in the URL (/dashboard/settings/<section>) so each one is linkable
+  const routeParams = useParams<{ section?: string[] }>();
+  const router = useRouter();
+  const sectionSlug = routeParams.section?.[0] ?? null;
+  const setActiveSection = (section: SettingsSection) => {
+    router.push(section ? `/dashboard/settings/${section}` : "/dashboard/settings");
+  };
   const [userRole, setUserRole] = useState<string>("Admin");
 
   // School profile state
@@ -154,11 +161,11 @@ export default function SettingsPage() {
         }).catch(() => {});
       }
 
-      // Check query params for active section
+      // Redirect legacy ?section= links to the section's own URL
       const params = new URLSearchParams(window.location.search);
-      const section = params.get("section") as SettingsSection;
-      if (section && ['school', 'notifications', 'security', 'appearance', 'localization', 'advanced', 'billing'].includes(section)) {
-        setActiveSection(section);
+      const section = params.get("section");
+      if (section && ['school', 'profile', 'notifications', 'security', 'appearance', 'localization', 'advanced', 'billing'].includes(section)) {
+        router.replace(`/dashboard/settings/${section}`);
       }
 
       // Fetch payment plans for billing section
@@ -551,6 +558,13 @@ export default function SettingsPage() {
     : (userRole === "Faculty" || userRole === "Bursar")
     ? allSections.filter(s => ['profile', 'security', 'notifications'].includes(s.id))
     : allSections.filter(s => s.id !== 'profile'); // Admin sees school instead of profile
+
+  // Only open sections this role can see; unknown or disallowed slugs show the settings grid
+  const isAdminView = userRole !== "Student" && userRole !== "Faculty" && userRole !== "Bursar";
+  const activeSection: SettingsSection =
+    sectionSlug && (sections.some(s => s.id === sectionSlug && !(s as any).href) || (sectionSlug === 'advanced' && isAdminView))
+      ? (sectionSlug as SettingsSection)
+      : null;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-10">

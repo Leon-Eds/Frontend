@@ -20,11 +20,55 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { DataTable, Column } from '@/components/ui/DataTable';
 
+// Where each report endpoint puts its rows
+const REPORT_LIST_KEYS: Record<string, string> = {
+  enrollment: "students",
+  attendance: "students",
+  performance: "scores",
+  feepayment: "payments",
+  revenue: "transactions",
+  studentstatus: "students",
+  outstandingfees: "debtors",
+};
+
+const humanize = (key: string) =>
+  key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()).trim();
+
+function extractRows(type: string, payload: any): any[] {
+  if (Array.isArray(payload)) return payload;
+  if (type === "staff") {
+    const teachers = (payload.teachers || []).map((t: any) => ({ role: "Teacher", ...t }));
+    const bursars = (payload.bursars || []).map((b: any) => ({ role: "Bursar", fullName: b.name, ...b }));
+    return [...teachers, ...bursars];
+  }
+  const rows = payload[REPORT_LIST_KEYS[type]];
+  return Array.isArray(rows) ? rows : [];
+}
+
+// Top-level totals (numbers/strings, and one level of nested counts) shown above the table
+function extractSummary(payload: any): { label: string; value: string }[] {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return [];
+  const skip = /id$|date$/i;
+  const items: { label: string; value: string }[] = [];
+  for (const [key, value] of Object.entries(payload)) {
+    if (skip.test(key)) continue;
+    if (typeof value === "number" || typeof value === "string") {
+      items.push({ label: humanize(key), value: typeof value === "number" ? value.toLocaleString() : value });
+    } else if (value && typeof value === "object" && !Array.isArray(value)) {
+      for (const [subKey, subValue] of Object.entries(value)) {
+        if (typeof subValue === "number") items.push({ label: `${humanize(key)}: ${humanize(subKey)}`, value: subValue.toLocaleString() });
+      }
+    }
+  }
+  return items;
+}
+
 export default function ReportsHub() {
   const [activeTab, setActiveTab] = useState<"academic" | "financial" | "admin">("academic");
   const [activeReport, setActiveReport] = useState<string>("enrollment");
   const [isLoading, setIsLoading] = useState(false);
   const [reportData, setReportData] = useState<any[]>([]);
+  const [reportSummary, setReportSummary] = useState<{ label: string; value: string }[]>([]);
 
   const [classes, setClasses] = useState<any[]>([]);
   const [terms, setTerms] = useState<any[]>([]);
@@ -45,6 +89,11 @@ export default function ReportsHub() {
     { id: "staff", name: "Staff Directory", icon: Users, desc: "Teachers and roles" },
     { id: "outstandingfees", name: "Outstanding Fees", icon: AlertCircle, desc: "Pending balances" },
   ];
+
+  // Filters each report actually uses on the backend
+  const needsClass = ["attendance", "performance"].includes(activeReport);
+  const needsTerm = ["attendance", "performance", "feepayment", "outstandingfees"].includes(activeReport);
+  const needsDates = activeReport === "revenue";
 
   useEffect(() => {
     const loadFilters = async () => {
@@ -89,24 +138,20 @@ export default function ReportsHub() {
   }, [selectedSessionId, allSessions]);
 
   const fetchReport = async (type: string, classId: string, termId: string) => {
-    if (type === "performance" && (!classId || !termId)) {
-      toast.error(`Please ensure a class and term are selected for the ${type} report.`);
-      setReportData([]);
-      return;
-    }
-    if (type === "attendance" && !classId) {
-      toast.error(`Please ensure a class is selected for the ${type} report.`);
-      setReportData([]);
-      return;
-    }
-    
-    setIsLoading(true);
     setReportData([]);
+    setReportSummary([]);
+    // Wait until the filters this report needs have loaded
+    if ((["attendance", "performance"].includes(type) && !classId) ||
+        (["attendance", "performance", "feepayment", "outstandingfees"].includes(type) && !termId)) {
+      return;
+    }
+
+    setIsLoading(true);
     try {
       let res: any;
       switch (type) {
-        case "enrollment": res = await reportApi.getEnrollment(termId, selectedSessionId); break;
-        case "attendance": res = await reportApi.getAttendance(classId, startDate, endDate, termId, selectedSessionId); break;
+        case "enrollment": res = await reportApi.getEnrollment(undefined, selectedSessionId); break;
+        case "attendance": res = await reportApi.getAttendance(classId, termId, selectedSessionId); break;
         case "performance": res = await reportApi.getPerformance(classId, termId, selectedSessionId); break;
         case "feepayment": res = await reportApi.getFeePayment(termId, selectedSessionId); break;
         case "revenue": res = await reportApi.getRevenue(startDate, endDate); break;
@@ -114,11 +159,9 @@ export default function ReportsHub() {
         case "staff": res = await reportApi.getStaff(); break;
         case "outstandingfees": res = await reportApi.getOutstandingFees(termId, selectedSessionId); break;
       }
-      let fetchedData = res?.data || res || [];
-      if (fetchedData && !Array.isArray(fetchedData)) {
-        fetchedData = fetchedData.items || fetchedData.records || fetchedData.results || fetchedData.students || fetchedData.staff || fetchedData.data || fetchedData.stats || fetchedData.attendance || fetchedData.performance || fetchedData.teachers || [];
-      }
-      setReportData(Array.isArray(fetchedData) ? fetchedData : []);
+      const payload = res?.data ?? res ?? {};
+      setReportData(extractRows(type, payload));
+      setReportSummary(extractSummary(payload));
     } catch (e: any) {
       toast.error(e.message || "Failed to load report");
     } finally {
@@ -128,7 +171,7 @@ export default function ReportsHub() {
 
   useEffect(() => {
     fetchReport(activeReport, selectedClassId, selectedTermId);
-  }, [activeReport, selectedClassId, selectedTermId, startDate, endDate]);
+  }, [activeReport, selectedClassId, selectedTermId, selectedSessionId, startDate, endDate]);
 
   const handleExportExcel = () => {
     if (!reportData || reportData.length === 0) {
@@ -220,7 +263,7 @@ export default function ReportsHub() {
               ))}
             </select>
           )}
-          {['attendance', 'performance'].includes(activeReport) && classes.length > 0 && (
+          {needsClass && classes.length > 0 && (
             <select
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
@@ -233,7 +276,7 @@ export default function ReportsHub() {
               ))}
             </select>
           )}
-          {['performance', 'enrollment', 'feepayment', 'studentstatus'].includes(activeReport) && terms.length > 0 && (
+          {needsTerm && terms.length > 0 && (
             <select
               value={selectedTermId}
               onChange={(e) => setSelectedTermId(e.target.value)}
@@ -241,12 +284,12 @@ export default function ReportsHub() {
             >
               {terms.map(t => (
                 <option key={t.id || t._id || t.termId} value={t.id || t._id || t.termId}>
-                  {t.name || t.termName || "Term"}
+                  {t.name || t.termName || (t.termNumber ? `${t.termNumber} Term` : "Term")}
                 </option>
               ))}
             </select>
           )}
-          {['revenue', 'attendance'].includes(activeReport) && (
+          {needsDates && (
             <div className="flex items-center gap-2">
               <input
                 type="date"
@@ -322,6 +365,17 @@ export default function ReportsHub() {
               <FileText className="h-6 w-6 text-[#20c997] print:hidden" />
               {reportTypes.find(r => r.id === activeReport)?.name}
             </h2>
+
+            {!isLoading && reportSummary.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                {reportSummary.map((item) => (
+                  <div key={item.label} className="rounded-2xl bg-gray-50 border border-gray-100 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{item.label}</p>
+                    <p className="text-lg font-black text-[#053d26] mt-1 break-words">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-32 space-y-4 print:hidden">
