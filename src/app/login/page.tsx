@@ -128,6 +128,8 @@ export default function LoginPage() {
       
       // Map selected role names to what the backend might return
       const roleMatches = (returned: string, selected: string): boolean => {
+        // Attendance officers have no tab of their own; let them sign in from any tab
+        if (returned === 'attendanceofficer') return true;
         if (selected === 'admin') {
           return ['schooladmin', 'admin', 'school_admin', ''].includes(returned) 
             || (!['teacher', 'faculty', 'student', 'parent', 'guardian', 'bursar'].includes(returned));
@@ -172,7 +174,7 @@ export default function LoginPage() {
       }
       
       // Store selected role for portal context across the app
-      localStorage.setItem("leoned_demo_role", selectedRole);
+      localStorage.setItem("leoned_demo_role", returnedRole === "attendanceofficer" ? "AttendanceOfficer" : selectedRole);
       
       // Synchronously apply the theme BEFORE client-side navigation to prevent FOUC (delay)
       try {
@@ -209,6 +211,8 @@ export default function LoginPage() {
       const effectiveRole = returnedRole || selectedRoleLower;
       if (effectiveRole === "superadmin") {
         router.push("/super-admin");
+      } else if (effectiveRole === "attendanceofficer") {
+        router.push("/dashboard/scanner");
       } else if (selectedRoleLower === "student" || effectiveRole === "student" || effectiveRole === "parent" || effectiveRole === "guardian") {
         router.push("/dashboard/student-portal");
       } else if (selectedRoleLower === "teacher" || effectiveRole === "teacher" || effectiveRole === "faculty") {

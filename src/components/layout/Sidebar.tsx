@@ -73,6 +73,10 @@ const studentNavigation = [
   { name: "Attendance", href: "/dashboard/student-portal", icon: UserCheck },
 ];
 
+const attendanceOfficerNavigation = [
+  { name: "Scan Attendance", href: "/dashboard/scanner", icon: UserCheck },
+];
+
 const bursarNavigation = [
   { name: "Fee Approvals", href: "/dashboard/bursar", icon: DollarSign },
   { name: "Fee Structures", href: "/dashboard/finance/setup", icon: Settings },
@@ -246,6 +250,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
             setDemoRole("Student");
           } else if (normalizedRole === "bursar") {
             setDemoRole("Bursar");
+          } else if (normalizedRole === "attendanceofficer") {
+            setDemoRole("AttendanceOfficer");
           } else {
             setDemoRole(localStorage.getItem("leoned_demo_role") || "Admin");
           }
@@ -264,6 +270,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     else if (demoRole === "Faculty" || demoRole === "Teacher") navigation = facultyNavigation;
     else if (demoRole === "Student") navigation = studentNavigation;
     else if (demoRole === "Bursar") navigation = bursarNavigation;
+    else if (demoRole === "AttendanceOfficer") navigation = attendanceOfficerNavigation;
   }
 
   const handleLogout = async () => {
@@ -291,7 +298,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     <div className="flex h-screen w-64 flex-col bg-[#053d26] text-white shrink-0">
       {/* Logo Area */}
       <div className="flex h-20 items-center justify-between px-6 border-b border-white/10">
-        <Link href={role === "superadmin" ? "/super-admin" : "/dashboard"} className="flex items-center gap-3" onClick={handleNavClick}>
+        <Link href={role === "superadmin" ? "/super-admin" : demoRole === "AttendanceOfficer" ? "/dashboard/scanner" : "/dashboard"} className="flex items-center gap-3" onClick={handleNavClick}>
           <div className={`relative bg-white overflow-hidden shrink-0 flex items-center justify-center border-2 border-white/10 shadow-sm ${schoolName === "LeonEd" ? "w-32 h-10 rounded-lg" : "w-10 h-10 rounded-full"}`}>
             <Image
               src={logoUrl || "/logo.png"}
@@ -402,7 +409,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       )}
 
       {/* Upgrade CTA card for Free tier schools */}
-      {role !== "superadmin" && role !== "teacher" && role !== "faculty" && role !== "student" && role !== "parent" && role !== "guardian" && plan === "Free" && (
+      {role !== "superadmin" && role !== "teacher" && role !== "faculty" && role !== "student" && role !== "parent" && role !== "guardian" && role !== "attendanceofficer" && plan === "Free" && (
         <div className="mx-4 mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-center">
           <p className="text-xs text-amber-200 font-bold mb-2">{t("sidebar.free_plan_msg")}</p>
           <Link

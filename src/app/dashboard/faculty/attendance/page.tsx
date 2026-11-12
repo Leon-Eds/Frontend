@@ -287,7 +287,15 @@ function FacultyAttendanceInner() {
                 
                 // Fire the new backend API endpoint for immediate QR scanning
                 attendanceApi.scanIdCard(student.admissionNumber || sId, date, 'Present', 'Scanned via QR Code')
-                  .then(() => toast.success(`${student.fullName || student.name} marked present!`))
+                  .then((result) => {
+                    const name = student.fullName || student.name;
+                    // Schools with check-out enabled check students in on the first scan and out on the next
+                    if (result?.event === 'CheckIn') toast.success(`${name} checked in`);
+                    else if (result?.event === 'CheckOut') toast.success(`${name} checked out`);
+                    else if (result?.event === 'AlreadyCheckedIn') toast(`${name} is already checked in`);
+                    else if (result?.event === 'AlreadyCheckedOut') toast(`${name} has already checked out today`);
+                    else toast.success(`${name} marked present!`);
+                  })
                   .catch((err) => {
                      console.error("QR Scan Sync Error:", err);
                      // Note: We still marked them present locally, so they can hit "Save Register" later as a fallback

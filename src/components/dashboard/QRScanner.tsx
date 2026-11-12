@@ -77,7 +77,10 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
     return () => {
       cancelled = true;
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
+        // stop() throws synchronously when the camera never started (e.g. permission denied)
+        try {
+          scannerRef.current.stop().catch(() => {});
+        } catch {}
         scannerRef.current = null;
       }
     };
@@ -90,7 +93,9 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
     try {
       // If camera is running, stop it first
       if (scannerRef.current && cameraActive) {
-        await scannerRef.current.stop().catch(() => {});
+        try {
+          await scannerRef.current.stop();
+        } catch {}
         setCameraActive(false);
       }
 

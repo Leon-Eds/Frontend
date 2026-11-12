@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { UserPlus, X, Loader2, Users, MoreVertical, Sparkles, AlertCircle } from 'lucide-react';
-import { staffApi, Staff, CreateStaffRequest, UpdateStaffRequest, bursarApi } from '@/lib/api';
+import { staffApi, Staff, CreateStaffRequest, UpdateStaffRequest, bursarApi, attendanceOfficerApi } from '@/lib/api';
+
+const roleLabel = (role?: string) => role === 'AttendanceOfficer' ? 'Attendance Officer' : role || 'Staff';
 import toast from 'react-hot-toast';
 
 export default function StaffDirectory() {
@@ -50,7 +52,9 @@ export default function StaffDirectory() {
         }
       }
       
-      setStaff(validItems);
+      // Attendance officers are listed alongside bursars
+      const officers = await attendanceOfficerApi.getAll().catch(() => []);
+      setStaff([...validItems, ...officers]);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load staff";
       if (message.includes("404")) {
@@ -88,7 +92,10 @@ export default function StaffDirectory() {
 
     setIsSubmitting(true);
     try {
-      if (formData.role === 'Bursar' || formData.role === 'Bursar / Finance Officer') {
+      if (formData.role === 'AttendanceOfficer') {
+        const { role, ...officerPayload } = formData;
+        await attendanceOfficerApi.create({ ...officerPayload, password: officerPayload.password || '' });
+      } else if (formData.role === 'Bursar' || formData.role === 'Bursar / Finance Officer') {
         const { role, ...bursarPayload } = formData;
         console.log('[Staff Page] Creating Bursar with payload:', JSON.stringify(bursarPayload, null, 2));
         await bursarApi.create(bursarPayload);
@@ -148,7 +155,9 @@ export default function StaffDirectory() {
       const targetStaff = staff.find(s => s.id === deleteModal.staffId);
       const isBursar = targetStaff?.role === 'Bursar' || targetStaff?.role === 'Bursar / Finance Officer';
       
-      if (isBursar) {
+      if (targetStaff?.role === 'AttendanceOfficer') {
+        await attendanceOfficerApi.delete(deleteModal.staffId);
+      } else if (isBursar) {
         await bursarApi.delete(deleteModal.staffId);
       } else {
         await staffApi.delete(deleteModal.staffId);
@@ -190,7 +199,7 @@ export default function StaffDirectory() {
             Support Staff
           </h1>
           <p className="text-sm lg:text-base text-gray-500 max-w-xl leading-relaxed">
-            Manage your administrative and support staff. Create accounts for Bursars, Librarians, and other essential roles.
+            Manage your administrative and support staff. Create accounts for Bursars and Attendance Officers, who can scan any student's ID card to take attendance.
           </p>
         </div>
 
@@ -251,7 +260,7 @@ export default function StaffDirectory() {
                 </div>
                 <div className="relative">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#053d26]/10 text-[#053d26]">
-                    {s.role || "Staff"}
+                    {roleLabel(s.role)}
                   </span>
                 </div>
               </div>
@@ -319,12 +328,14 @@ export default function StaffDirectory() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Role</label>
-                  <input
-                    type="text"
-                    value="Bursar / Finance Officer"
-                    disabled
-                    className="block w-full rounded-xl border border-gray-200 bg-gray-100 py-3 px-4 text-gray-500 cursor-not-allowed"
-                  />
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26]"
+                  >
+                    <option value="Bursar">Bursar / Finance Officer</option>
+                    <option value="AttendanceOfficer">Attendance Officer (scans student ID cards)</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password <span className="text-red-500">*</span></label>

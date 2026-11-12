@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
@@ -15,6 +15,7 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isStudent, setIsStudent] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -23,6 +24,10 @@ export default function DashboardLayout({
         try {
           const user = JSON.parse(userStr);
           const role = user.role?.toLowerCase() || "";
+          // Attendance officers only have the scanner and their own settings
+          if (role === "attendanceofficer" && !pathname.startsWith("/dashboard/scanner") && !pathname.startsWith("/dashboard/settings")) {
+            router.replace("/dashboard/scanner");
+          }
           if (role === "student" || role === "parent" || role === "guardian") {
             setIsStudent(true);
           } else {
@@ -35,7 +40,7 @@ export default function DashboardLayout({
         if (demoRole === "Student") setIsStudent(true);
       }
     }
-  }, []);
+  }, [pathname, router]);
 
   const isOverview = pathname === "/dashboard" || pathname === "/super-admin";
 

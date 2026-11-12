@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, ArrowLeft, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone, MoreVertical, Wallet, ShieldAlert } from 'lucide-react';
+import { UserPlus, X, Loader2, AlertCircle, Calendar, BookOpen, Clock, Users, ArrowRight, ArrowLeft, CheckCircle2, ChevronRight, Award, TrendingUp, Plus, ClipboardList, CheckSquare, FileText, Sparkles, BookText, Megaphone, MoreVertical, Wallet, ShieldAlert, CreditCard } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { teacherApi, Teacher, CreateTeacherRequest, UpdateTeacherRequest, classApi, subjectApi, dashboardApi, announcementApi, teacherPortalApi, attendanceApi, bursarApi, resultApi, sessionApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -739,6 +739,22 @@ export function FacultyDirectory() {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Staff Number
+                  </label>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    value={editFormData.staffNumber || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, staffNumber: e.target.value })}
+                    className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
+                    placeholder="e.g. STF-0001"
+                    disabled={isSubmitting}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Printed on the staff ID card. Must be unique in your school.</p>
+                </div>
+
                 <div className="flex gap-3 pt-4">
                   <button
                     type="button"
@@ -776,7 +792,7 @@ export function FacultyDirectory() {
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => {
-                    setEditFormData({ fullName: activeTeacher.fullName, phone: activeTeacher.phone || '' });
+                    setEditFormData({ fullName: activeTeacher.fullName, phone: activeTeacher.phone || '', staffNumber: activeTeacher.staffNumber || '' });
                     setEditModal({ isOpen: true, teacher: activeTeacher });
                   }}
                   className="px-4 py-1.5 rounded-full text-xs font-bold text-[#053d26] bg-green-50 hover:bg-green-100 transition-colors"
@@ -821,6 +837,10 @@ export function FacultyDirectory() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Phone</span>
                   <span className="text-sm font-semibold text-gray-700">{activeTeacher.phone || 'N/A'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Staff ID</span>
+                  <span className="text-sm font-semibold text-gray-700">{activeTeacher.staffNumber || 'Assigned on first card'}</span>
                 </div>
               </div>
 
@@ -901,7 +921,29 @@ export function FacultyDirectory() {
             </div>
             
             {/* Actions Footer */}
-            <div className="p-6 border-t border-gray-100 bg-gray-50 shrink-0">
+            <div className="p-6 border-t border-gray-100 bg-gray-50 shrink-0 space-y-3">
+               <button
+                  onClick={async () => {
+                    try {
+                      const blob = await teacherApi.downloadIdCardPdf(activeTeacher.id);
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `Staff-ID-${activeTeacher.staffNumber || activeTeacher.fullName}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      window.URL.revokeObjectURL(url);
+                      // A number is assigned the first time a card is made, so refresh to show it
+                      if (!activeTeacher.staffNumber) await fetchTeachers();
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Failed to download staff ID card");
+                    }
+                  }}
+                  className="w-full py-3.5 rounded-xl font-bold bg-white text-[#053d26] hover:bg-green-50 border border-[#053d26]/20 shadow-sm transition-all flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="w-4 h-4" /> Download Staff ID Card
+                </button>
                <button
                   onClick={async () => {
                     if (window.confirm(`Are you sure you want to ${activeTeacher.isActive ? 'deactivate' : 'activate'} this teacher?`)) {

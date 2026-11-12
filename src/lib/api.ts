@@ -386,6 +386,7 @@ export interface UpdateTeacherRequest {
   fullName?: string;
   phone?: string;
   profilePictureUrl?: string;
+  staffNumber?: string;
 }
 
 export interface Teacher {
@@ -398,6 +399,7 @@ export interface Teacher {
   imageUrl?: string;
   image?: string;
   profilePictureUrl?: string;
+  staffNumber?: string;
   assignments?: TeacherAssignment[];
 }
 
@@ -627,6 +629,10 @@ export interface UpdateSchoolRequest {
   principalName?: string;
   principalSignatureUrl?: string;
   schoolStampUrl?: string;
+  notificationSettings?: {
+    attendance: { enabled: boolean; notifyOn: string[] };
+  };
+  attendanceCheckOutEnabled?: boolean;
 }
 
 export interface UpdateSchoolPlanRequest {
@@ -929,6 +935,14 @@ export const studentApi = {
 };
 
 // Attendance
+export interface ScanResult {
+  event: 'CheckIn' | 'CheckOut' | 'Marked' | 'AlreadyCheckedIn' | 'AlreadyCheckedOut';
+  studentName: string;
+  time?: string;
+  checkInAt?: string;
+  checkOutAt?: string;
+}
+
 export const attendanceApi = {
   recordDailyAttendance: async (classId: string, date: string, records: { studentId: string; status: 'Present' | 'Absent' | 'Late'; remarks?: string }[]) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/class/${classId}`, {
@@ -969,13 +983,14 @@ export const attendanceApi = {
     return handleResponse(res);
   },
   
-  scanIdCard: async (admissionNumber: string, date: string, status: 'Present' | 'Absent' | 'Late', remarks?: string) => {
+  // event says what the scan did: CheckIn / CheckOut when the school uses check-out, otherwise Marked
+  scanIdCard: async (admissionNumber: string, date: string, status: 'Present' | 'Absent' | 'Late', remarks?: string): Promise<ScanResult> => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/attendance/scan`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ admissionNumber, date, status, remarks }),
     });
-    return handleResponse(res);
+    return handleResponse<ScanResult>(res);
   },
 };
 
@@ -1074,6 +1089,13 @@ export const teacherApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);
+  },
+  downloadIdCardPdf: async (id: string): Promise<Blob> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher/${id}/idcard/pdf`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to download staff ID card (${res.status})`);
+    return res.blob();
   },
 };
 
@@ -1796,6 +1818,30 @@ export const paymentApi = {
 };
 
 // Staff API (Bursar, Librarian, etc.)
+// Attendance officers: support staff who can scan any student's ID card
+export const attendanceOfficerApi = {
+  getAll: async (): Promise<Staff[]> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance-officer`, { headers: getAuthHeaders() });
+    const data = await handleResponse<Staff[]>(res);
+    return Array.isArray(data) ? data : [];
+  },
+  create: async (data: { fullName: string; email: string; phone?: string; password: string }): Promise<Staff> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance-officer`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<Staff>(res);
+  },
+  delete: async (id: string) => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/attendance-officer/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+};
+
 export const staffApi = {
   getAll: async (): Promise<Staff[]> => {
     // The backend uses /bursar to list all bursars (which act as staff for now)
@@ -1862,6 +1908,13 @@ export const teacherPortalApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);
+  },
+  downloadMyIdCardPdf: async (): Promise<Blob> => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/idcard/pdf`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to download staff ID card (${res.status})`);
+    return res.blob();
   },
   updateSignature: async (signatureUrl: string) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/signature`, {

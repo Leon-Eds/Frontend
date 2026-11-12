@@ -54,6 +54,13 @@ export default function SettingsPage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   // Set once the school record has loaded, so saving never overwrites saved values with blanks
   const [schoolLoaded, setSchoolLoaded] = useState(false);
+  const [staffNumber, setStaffNumber] = useState("");
+  // Attendance settings saved on the school (admin only)
+  const [attendanceEmails, setAttendanceEmails] = useState(true);
+  const [attendanceNotifyOn, setAttendanceNotifyOn] = useState<string[]>(["Present", "Absent", "Late"]);
+  const [checkOutEnabled, setCheckOutEnabled] = useState(false);
+  const [isSavingAttendance, setIsSavingAttendance] = useState(false);
+  const [isDownloadingCard, setIsDownloadingCard] = useState(false);
 
   // Security / change password state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -113,6 +120,7 @@ export default function SettingsPage() {
             if (parsedUser.signatureUrl) setSignatureUrl(parsedUser.signatureUrl);
             // The cached login data has no signature after a fresh login, so load the saved one
             teacherPortalApi.getProfile().then((profile: any) => {
+              if (profile?.staffNumber) setStaffNumber(profile.staffNumber);
               if (!profile?.signatureUrl) return;
               setSignatureUrl(profile.signatureUrl);
               const cached = JSON.parse(localStorage.getItem('leoned_user') || '{}');
@@ -133,6 +141,8 @@ export default function SettingsPage() {
           setUserRole("Faculty");
         } else if (activeRole?.toLowerCase() === "bursar") {
           setUserRole("Bursar");
+        } else if (activeRole?.toLowerCase() === "attendanceofficer") {
+          setUserRole("AttendanceOfficer");
         } else if (activeRole === "Student" || activeRole === "student" || activeRole === "parent" || activeRole === "guardian") {
           setUserRole("Student");
           window.location.href = "/dashboard/student-portal";
@@ -198,6 +208,12 @@ export default function SettingsPage() {
             if (school?.logoUrl) setSchoolLogo(school.logoUrl);
             if (school?.principalName) setPrincipalName(school.principalName);
             if (school?.principalSignatureUrl) setSignatureUrl(school.principalSignatureUrl);
+            const attendanceSettings = school?.notificationSettings?.attendance;
+            if (attendanceSettings) {
+              setAttendanceEmails(attendanceSettings.enabled ?? true);
+              if (Array.isArray(attendanceSettings.notifyOn)) setAttendanceNotifyOn(attendanceSettings.notifyOn);
+            }
+            setCheckOutEnabled(Boolean(school?.attendanceCheckOutEnabled));
             setSchoolLoaded(true);
             
             // Attempt to load theme and font if they are coming from the backend directly
@@ -572,12 +588,12 @@ export default function SettingsPage() {
 
   const sections = userRole === "Student"
     ? allSections.filter(s => ['profile', 'notifications'].includes(s.id))
-    : (userRole === "Faculty" || userRole === "Bursar")
+    : (userRole === "Faculty" || userRole === "Bursar" || userRole === "AttendanceOfficer")
     ? allSections.filter(s => ['profile', 'security', 'notifications'].includes(s.id))
     : allSections.filter(s => s.id !== 'profile'); // Admin sees school instead of profile
 
   // Only open sections this role can see; unknown or disallowed slugs show the settings grid
-  const isAdminView = userRole !== "Student" && userRole !== "Faculty" && userRole !== "Bursar";
+  const isAdminView = userRole !== "Student" && userRole !== "Faculty" && userRole !== "Bursar" && userRole !== "AttendanceOfficer";
   const activeSection: SettingsSection =
     sectionSlug && (sections.some(s => s.id === sectionSlug && !(s as any).href) || (sectionSlug === 'advanced' && isAdminView))
       ? (sectionSlug as SettingsSection)
@@ -837,6 +853,48 @@ export default function SettingsPage() {
               </div>
             )}
             
+            {userRole === "Faculty" && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
+                  My Staff ID Card
+                </label>
+                <div className="flex flex-wrap items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="flex-1 min-w-[10rem]">
+                    <p className="text-xs text-gray-500">Staff ID</p>
+                    <p className="font-bold text-gray-900">{staffNumber || "Assigned when you download your card"}</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setIsDownloadingCard(true);
+                      try {
+                        const blob = await teacherPortalApi.downloadMyIdCardPdf();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Staff-ID-${staffNumber || 'card'}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                        if (!staffNumber) {
+                          teacherPortalApi.getProfile().then((p: any) => p?.staffNumber && setStaffNumber(p.staffNumber)).catch(() => {});
+                        }
+                      } catch (err) {
+                        setToast({ message: err instanceof Error ? err.message : "Failed to download staff ID card", type: "error" });
+                      } finally {
+                        setIsDownloadingCard(false);
+                      }
+                    }}
+                    disabled={isDownloadingCard}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#053d26] hover:bg-[#042c1b] text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-60"
+                  >
+                    {isDownloadingCard ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                    Download ID Card
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end gap-3 mt-8 md:col-span-2">
               <button onClick={() => setActiveSection(null)} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">Cancel</button>
               <button onClick={handleSaveSchoolProfile} disabled={isSavingProfile} className="px-5 py-2.5 rounded-xl bg-[#053d26] hover:bg-[#042c1b] text-white font-bold flex items-center gap-2 transition-colors">
@@ -1023,6 +1081,71 @@ export default function SettingsPage() {
             <h2 className="text-2xl font-bold text-gray-900">Notification Preferences</h2>
             <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-5 w-5" /></button>
           </div>
+          {isAdminView && (
+            <div className="max-w-xl mb-8 rounded-2xl border border-gray-200 p-5 space-y-4">
+              <div>
+                <h3 className="font-bold text-gray-900">Attendance</h3>
+                <p className="text-xs text-gray-500 mt-1">How attendance is taken and when parents are emailed.</p>
+              </div>
+              <label className="flex items-center justify-between gap-4 cursor-pointer">
+                <div>
+                  <h4 className="font-bold text-gray-900 text-sm">Email parents about attendance</h4>
+                  <p className="text-xs text-gray-500 mt-1">Sent when a student&apos;s attendance is marked or changes.</p>
+                </div>
+                <input type="checkbox" checked={attendanceEmails} onChange={(e) => setAttendanceEmails(e.target.checked)} className="h-5 w-5 accent-[#053d26]" />
+              </label>
+              {attendanceEmails && (
+                <div className="flex flex-wrap gap-2 pl-1">
+                  {["Present", "Late", "Absent"].map(status => (
+                    <label key={status} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-sm font-medium text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={attendanceNotifyOn.includes(status)}
+                        onChange={(e) => setAttendanceNotifyOn(prev => e.target.checked ? [...prev, status] : prev.filter(s => s !== status))}
+                        className="accent-[#053d26]"
+                      />
+                      {status}
+                    </label>
+                  ))}
+                </div>
+              )}
+              <label className="flex items-center justify-between gap-4 cursor-pointer border-t border-gray-100 pt-4">
+                <div>
+                  <h4 className="font-bold text-gray-900 text-sm">Check-in and check-out</h4>
+                  <p className="text-xs text-gray-500 mt-1">A student&apos;s first ID card scan of the day checks them in and the next checks them out. Parents are emailed both times.</p>
+                </div>
+                <input type="checkbox" checked={checkOutEnabled} onChange={(e) => setCheckOutEnabled(e.target.checked)} className="h-5 w-5 accent-[#053d26]" />
+              </label>
+              <div className="flex justify-end">
+                <button
+                  onClick={async () => {
+                    const sId = JSON.parse(localStorage.getItem('leoned_user') || '{}').schoolId;
+                    if (!sId || !schoolLoaded) {
+                      setToast({ message: "School settings haven't finished loading. Please refresh and try again.", type: "error" });
+                      return;
+                    }
+                    setIsSavingAttendance(true);
+                    try {
+                      await schoolApi.update(sId, {
+                        notificationSettings: { attendance: { enabled: attendanceEmails, notifyOn: attendanceNotifyOn } },
+                        attendanceCheckOutEnabled: checkOutEnabled,
+                      });
+                      setToast({ message: "Attendance settings saved", type: "success" });
+                    } catch (err) {
+                      setToast({ message: err instanceof Error ? err.message : "Failed to save attendance settings", type: "error" });
+                    } finally {
+                      setIsSavingAttendance(false);
+                    }
+                  }}
+                  disabled={isSavingAttendance}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] disabled:opacity-60"
+                >
+                  {isSavingAttendance ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save attendance settings
+                </button>
+              </div>
+            </div>
+          )}
           <div className="space-y-6 max-w-xl">
             {[
               { label: 'Email Alerts', desc: 'Receive email notifications for important events', default: true },
