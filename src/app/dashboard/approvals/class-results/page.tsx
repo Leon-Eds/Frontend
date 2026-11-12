@@ -5,6 +5,7 @@ import { CheckCircle2, AlertCircle, Loader2, FileText, Send, UserCheck, ShieldAl
 import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subjectApi, dashboardApi, studentApi, scoreApi, schoolApi, reportCardApi } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
+import { show, subjectPosition, formatAverage, ordinal } from "@/lib/result-display";
 
 function FormClassResultsInner() {
   const router = useRouter();
@@ -557,13 +558,13 @@ function FormClassResultsInner() {
                     return (
                       <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
                         <td className="py-2 px-3 text-left font-bold text-[#053d26] border border-gray-300">{subjName}</td>
-                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.firstCA || "-"}</td>
-                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.secondCA || "-"}</td>
-                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.examScore || subj.exam || "-"}</td>
-                        <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{subj.totalScore || subj.total || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(subj.firstCA)}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(subj.secondCA)}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(subj.examScore, subj.exam)}</td>
+                        <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{show(subj.totalScore, subj.total)}</td>
                         <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{sGrade}</td>
-                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.classAverage || subj.classAvg || "-"}</td>
-                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.position || subj.pos || "-"}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(subj.classAverage, subj.classAvg)}</td>
+                        <td className="py-2 px-1 border border-gray-300 text-gray-700">{subjectPosition(subj)}</td>
                         <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{remark}</td>
                       </tr>
                     );

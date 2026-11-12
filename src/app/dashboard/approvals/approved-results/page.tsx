@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { BookOpen, AlertCircle, FileText, Download, Loader2, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { resultApi, sessionApi, classApi, schoolApi, studentApi } from "@/lib/api";
 import Image from "next/image";
+import { show, subjectPosition, formatAverage, ordinal } from "@/lib/result-display";
 
 export default function ApprovedResults() {
   const router = useRouter();
@@ -452,13 +453,13 @@ export default function ApprovedResults() {
                         return (
                           <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
                             <td className="py-2 px-3 text-left font-bold text-[#053d26] border border-gray-300">{subjName}</td>
-                            <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.firstCA || "-"}</td>
-                            <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.secondCA || "-"}</td>
-                            <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.examScore || subj.exam || "-"}</td>
-                            <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{subj.totalScore || subj.total || "-"}</td>
+                            <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(subj.firstCA)}</td>
+                            <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(subj.secondCA)}</td>
+                            <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(subj.examScore, subj.exam)}</td>
+                            <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{show(subj.totalScore, subj.total)}</td>
                             <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{sGrade}</td>
-                            <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.classAverage || subj.classAvg || "-"}</td>
-                            <td className="py-2 px-1 border border-gray-300 text-gray-700">{subj.position || subj.pos || "-"}</td>
+                            <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(subj.classAverage, subj.classAvg)}</td>
+                            <td className="py-2 px-1 border border-gray-300 text-gray-700">{subjectPosition(subj)}</td>
                             <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{remarkText}</td>
                           </tr>
                         );
@@ -467,13 +468,13 @@ export default function ApprovedResults() {
                     <tfoot>
                       <tr className="bg-[#f0fdf4] font-bold text-[#053d26] border-t-2 border-[#053d26]">
                         <td colSpan={4} className="py-3 px-4 text-left border border-gray-300 uppercase">
-                          CUMULATIVE SCORE: {(currentResult?.subjects || []).reduce((sum: number, s: any) => sum + Number(s.totalScore || 0), 0)} / {(currentResult?.subjects || []).length * 100}
+                          CUMULATIVE SCORE: {(currentResult?.subjects || []).reduce((sum: number, s: any) => sum + Number(s.totalScore ?? s.total ?? 0), 0)} / {(currentResult?.subjects || []).length * 100}
                         </td>
                         <td colSpan={2} className="py-3 px-4 text-center border border-gray-300 uppercase">
-                          AVERAGE: {currentResult?.averageScore || currentResult?.average || currentResult?.gpa ? Number(currentResult?.averageScore || currentResult?.average || currentResult?.gpa).toFixed(1) : "-"}%
+                          AVERAGE: {formatAverage(currentResult?.averageScore ?? currentResult?.average ?? currentResult?.gpa)}%
                         </td>
                         <td colSpan={3} className="py-3 px-4 text-right border border-gray-300 uppercase">
-                          POSITION: {currentResult?.pos || "-"}
+                          POSITION: {show(currentResult?.pos, currentResult?.position)}
                         </td>
                       </tr>
                     </tfoot>

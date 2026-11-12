@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { BookOpen, FileText, Loader2, AlertCircle, Download, Award, TrendingUp, UserCheck, CheckCircle2 } from "lucide-react";
 import { resultApi, sessionApi, reportCardApi, schemeOfWorkApi, schoolApi } from "@/lib/api";
 import toast from "react-hot-toast";
+import { show, subjectPosition, formatAverage, ordinal } from "@/lib/result-display";
 
 export default function StudentAcademics({ studentInfo }: { studentInfo: any }) {
   const [grades, setGrades] = useState<any[]>([]);
@@ -271,7 +272,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             total: total,
             grade: grade,
             classAvg: r.classAvg ?? r.classAverage ?? "-",
-            pos: r.remark || r.position || r.pos || "-",
+            pos: subjectPosition(r),
             high: r.highScore ?? r.highest ?? "-",
             low: r.lowScore ?? r.lowest ?? "-",
             remark: remarkText
@@ -430,9 +431,10 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{termLabel}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">Session:</span> <span className="font-medium text-gray-800">{terms.find(t => String(t.id || t._id) === String(selectedTermId))?.sessionName || resultMetadata?.sessionName || "-"}</span></div>
                 <div className="flex"><span className="w-32 font-bold text-[#053d26]">No. in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.classSize || studentInfo.class?.size || studentInfo.classSize || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.position || resultMetadata?.pos || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{typeof resultMetadata?.position === "number" ? ordinal(resultMetadata.position) : show(resultMetadata?.position, resultMetadata?.pos)}</span></div>
+                {resultMetadata?.classAverage != null ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class Average:</span> <span className="font-medium text-gray-800">{formatAverage(resultMetadata.classAverage)}%</span></div> : null}
                 {resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days School Opened:</span> <span className="font-medium text-gray-800">{resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened}</span></div> : null}
-                {resultMetadata?.daysPresent ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{resultMetadata.daysPresent}</span></div> : null}
+                {resultMetadata?.daysPresent != null ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{resultMetadata.daysPresent}</span></div> : null}
                 {resultMetadata?.nextTermBegins && !isNaN(new Date(resultMetadata.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Next Term Begins:</span> <span className="font-medium text-gray-800">{new Date(resultMetadata.nextTermBegins).toLocaleDateString()}</span></div> : null}
               </div>
               <div className="hidden sm:flex w-24 h-24 shrink-0 rounded-md border-4 border-white shadow-sm bg-gray-100 items-center justify-center overflow-hidden relative self-start">
@@ -467,8 +469,8 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                       <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.exam}</td>
                       <td className="py-2 px-1 border border-gray-300 font-black text-[#053d26]">{g.total}</td>
                       <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{g.grade}</td>
-                      <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.classAvg || "-"}</td>
-                      <td className="py-2 px-1 border border-gray-300 text-gray-700">{g.pos || "-"}</td>
+                      <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(g.classAvg)}</td>
+                      <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(g.pos)}</td>
                       <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{g.remark}</td>
                     </tr>
                   ))}
@@ -476,8 +478,8 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 <tfoot>
                   <tr className="bg-[#f0fdf4] font-bold text-[#053d26] border-t-2 border-[#053d26]">
                     <td colSpan={4} className="py-3 px-4 text-left border border-gray-300 uppercase">CUMULATIVE SCORE: {totalStudentScore} / {maxPossibleScore}</td>
-                    <td colSpan={2} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {resultMetadata?.averageScore || resultMetadata?.average || resultMetadata?.gpa || "-"}%</td>
-                    <td colSpan={2} className="py-3 px-4 text-right border border-gray-300 uppercase">POSITION: {resultMetadata?.position || resultMetadata?.rank || "-"}</td>
+                    <td colSpan={2} className="py-3 px-4 text-center border border-gray-300 uppercase">AVERAGE: {formatAverage(resultMetadata?.averageScore ?? resultMetadata?.average ?? resultMetadata?.gpa)}%</td>
+                    <td colSpan={2} className="py-3 px-4 text-right border border-gray-300 uppercase">POSITION: {typeof resultMetadata?.position === "number" ? ordinal(resultMetadata.position) : show(resultMetadata?.position, resultMetadata?.rank)}</td>
                   </tr>
                 </tfoot>
               </table>
