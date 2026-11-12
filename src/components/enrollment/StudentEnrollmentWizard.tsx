@@ -22,6 +22,8 @@ export const StudentEnrollmentWizard = () => {
     parentName: '',
     parentPhone: '',
     parentEmail: '',
+    parentRelationship: '',
+    parentAddress: '',
     password: '',
     enrollmentDate: new Date().toISOString().split('T')[0],
   });
@@ -82,6 +84,8 @@ export const StudentEnrollmentWizard = () => {
       parentName: '',
       parentPhone: '',
       parentEmail: '',
+      parentRelationship: '',
+      parentAddress: '',
       password: '',
     });
     setCurrentStep(1);

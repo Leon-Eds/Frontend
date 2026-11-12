@@ -328,6 +328,8 @@ export interface CreateStudentRequest {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
+  parentRelationship?: string;
+  parentAddress?: string;
   password?: string;
   bloodGroup?: string;
   arm?: string;
@@ -343,6 +345,8 @@ export interface UpdateStudentRequest {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
+  parentRelationship?: string;
+  parentAddress?: string;
   password?: string;
   status?: StudentStatus;
   profilePictureUrl?: string;
@@ -359,6 +363,9 @@ export interface Student {
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
+  parentRelationship?: string;
+  parentAddress?: string;
+  parent?: { passportUrl?: string } | null;
   password?: string;
   status: StudentStatus;
   enrolledAt?: string;
@@ -1799,6 +1806,12 @@ export const teacherPortalApi = {
   },
   getClassStudents: async (classId: string) => {
     const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/classes/${classId}/students`, {
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+  getProfile: async () => {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/teacher-portal/profile`, {
       headers: getAuthHeaders(),
     });
     return handleResponse(res);

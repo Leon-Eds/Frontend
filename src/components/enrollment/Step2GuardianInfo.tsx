@@ -14,8 +14,6 @@ interface Step2Props {
 }
 
 export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNext, onBack }) => {
-  const [relationship, setRelationship] = useState('');
-  const [homeAddress, setHomeAddress] = useState('');
   const [isEmergencyContact, setIsEmergencyContact] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -127,8 +125,8 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
                   { label: 'Sibling', value: 'Sibling' },
                   { label: 'Other', value: 'Other' },
                 ]}
-                value={relationship}
-                onChange={(e) => setRelationship(e.target.value)}
+                value={data.parentRelationship || ''}
+                onChange={(e) => updateData({ parentRelationship: e.target.value })}
               />
             </div>
 
@@ -136,7 +134,7 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
               <Input
                 label="Phone Number"
                 autoComplete="off"
-                placeholder="+254 --- --- ---"
+                placeholder="+234 --- --- ----"
                 value={data.parentPhone || ''}
                 onChange={(e) => updateData({ parentPhone: e.target.value })}
               />
@@ -164,9 +162,9 @@ export const Step2GuardianInfo: React.FC<Step2Props> = ({ data, updateData, onNe
               </label>
               <textarea
                 className="w-full rounded-2xl border-0 bg-gray-100 py-4 px-5 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors resize-none h-24"
-                placeholder="Street, City, County, Postal Code"
-                value={homeAddress}
-                onChange={(e) => setHomeAddress(e.target.value)}
+                placeholder="Street, City, State"
+                value={data.parentAddress || ''}
+                onChange={(e) => updateData({ parentAddress: e.target.value })}
               />
             </div>
 

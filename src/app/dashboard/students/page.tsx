@@ -147,6 +147,8 @@ export default function StudentsPage() {
       parentName: student.parentName,
       parentPhone: student.parentPhone,
       parentEmail: student.parentEmail,
+      parentRelationship: student.parentRelationship,
+      parentAddress: student.parentAddress,
       password: student.password,
       status: student.status,
     });
@@ -578,11 +580,16 @@ export default function StudentsPage() {
                 ['Class', viewStudent.className || 'Unassigned'],
                 ['Status', viewStudent.status],
                 ['Guardian', viewStudent.parentName || '—'],
+                ['Relationship', viewStudent.parentRelationship || '—'],
                 ['Guardian Phone', viewStudent.parentPhone || '—'],
                 ['Guardian Email', viewStudent.parentEmail || '—'],
+                ['Home Address', viewStudent.parentAddress || '—'],
+                ['Guardian ID', viewStudent.parent?.passportUrl
+                  ? <a href={viewStudent.parent.passportUrl} target="_blank" rel="noopener noreferrer" className="text-[#053d26] underline">View document</a>
+                  : '—'],
                 ['Enrolled', formatDate(viewStudent.enrolledAt)],
               ].map(([label, val]) => (
-                <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50">
+                <div key={String(label)} className="flex justify-between items-center py-2 border-b border-gray-50">
                   <span className="text-sm text-gray-500">{label}</span>
                   <span className="text-sm font-bold text-gray-900">{val}</span>
                 </div>
@@ -721,6 +728,29 @@ export default function StudentsPage() {
                   <input
                     value={editForm.parentEmail || ''}
                     onChange={e => setEditForm(f => ({ ...f, parentEmail: e.target.value }))}
+                    className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Relationship</label>
+                  <select
+                    value={editForm.parentRelationship || ''}
+                    onChange={e => setEditForm(f => ({ ...f, parentRelationship: e.target.value }))}
+                    className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
+                  >
+                    <option value="">Select relationship</option>
+                    {['Mother', 'Father', 'Guardian', 'Grandparent', 'Sibling', 'Other'].map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Home Address</label>
+                  <input
+                    value={editForm.parentAddress || ''}
+                    onChange={e => setEditForm(f => ({ ...f, parentAddress: e.target.value }))}
                     className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
                   />
                 </div>

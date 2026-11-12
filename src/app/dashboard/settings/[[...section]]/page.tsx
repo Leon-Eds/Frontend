@@ -52,6 +52,8 @@ export default function SettingsPage() {
   const [schoolStampFile, setSchoolStampFile] = useState<File | null>(null);
   const [principalName, setPrincipalName] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  // Set once the school record has loaded, so saving never overwrites saved values with blanks
+  const [schoolLoaded, setSchoolLoaded] = useState(false);
 
   // Security / change password state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -109,6 +111,13 @@ export default function SettingsPage() {
           let activeRole = parsedUser.role || "Admin";
           if (activeRole === "Teacher" || activeRole === "Faculty") {
             if (parsedUser.signatureUrl) setSignatureUrl(parsedUser.signatureUrl);
+            // The cached login data has no signature after a fresh login, so load the saved one
+            teacherPortalApi.getProfile().then((profile: any) => {
+              if (!profile?.signatureUrl) return;
+              setSignatureUrl(profile.signatureUrl);
+              const cached = JSON.parse(localStorage.getItem('leoned_user') || '{}');
+              localStorage.setItem('leoned_user', JSON.stringify({ ...cached, signatureUrl: profile.signatureUrl }));
+            }).catch(() => {});
           } else {
             if (parsedUser.principalSignatureUrl) setSignatureUrl(parsedUser.principalSignatureUrl);
             if (parsedUser.schoolStampUrl) setSchoolStampUrl(parsedUser.schoolStampUrl);
@@ -186,6 +195,10 @@ export default function SettingsPage() {
             if (school?.bankName) setBankName(school.bankName);
             if (school?.bankAccountNumber) setBankAccountNumber(school.bankAccountNumber);
             if (school?.schoolStampUrl) setSchoolStampUrl(school.schoolStampUrl);
+            if (school?.logoUrl) setSchoolLogo(school.logoUrl);
+            if (school?.principalName) setPrincipalName(school.principalName);
+            if (school?.principalSignatureUrl) setSignatureUrl(school.principalSignatureUrl);
+            setSchoolLoaded(true);
             
             // Attempt to load theme and font if they are coming from the backend directly
             if (school?.schoolTheme) {
@@ -271,6 +284,10 @@ export default function SettingsPage() {
       setToast({ message: "School contact phone is required", type: "error" });
       return;
     }
+    if ((userRole === "Admin" || userRole === "SuperAdmin") && !schoolLoaded) {
+      setToast({ message: "School settings haven't finished loading. Please refresh and try again.", type: "error" });
+      return;
+    }
     setIsSavingProfile(true);
     try {
       let finalLogoUrl = schoolLogo;
@@ -319,8 +336,8 @@ export default function SettingsPage() {
             localStorage.setItem(`leoned_logo_${sId}`, finalLogoUrl);
             window.dispatchEvent(new CustomEvent('leoned_logo_updated', { detail: { logoUrl: finalLogoUrl } }));
           }
-        } else {
-          // Teacher saving profile
+        } else if (userRole === "Faculty" && finalSignatureUrl) {
+          // Teacher saving profile; skipped when there is no signature so a saved one is never blanked
           parsed.signatureUrl = finalSignatureUrl;
           localStorage.setItem('leoned_user', JSON.stringify(parsed));
           await teacherPortalApi.updateSignature(finalSignatureUrl);
