@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote, X, Loader2, AlertCircle, Trash2, CheckCircle2, ArrowLeft, ArrowRight, Users, UserPlus, UserMinus, ArrowLeftRight, Check, BookOpenCheck } from 'lucide-react';
-import { classApi, subjectApi, sessionApi, studentApi, teacherApi, SchoolClass, Subject, AcademicSession, CreateClassRequest, CreateSubjectRequest, Student, Teacher, schemeOfWorkApi } from '@/lib/api';
+import { classApi, classLabel, subjectApi, sessionApi, studentApi, teacherApi, SchoolClass, Subject, AcademicSession, CreateClassRequest, CreateSubjectRequest, Student, Teacher, schemeOfWorkApi } from '@/lib/api';
 import Link from 'next/link';
 
 type ModalType = 'createClass' | 'subjectLibrary' | null;
@@ -1085,7 +1085,7 @@ export default function AcademicFlow() {
                 >
                   <option value="">-- Select Class --</option>
                   {classes.filter(c => c.id !== selectedClassId).map(c => (
-                    <option key={c.id} value={c.id}>{c.name} {c.arm ? `(${c.arm})` : ''}</option>
+                    <option key={c.id} value={c.id}>{classLabel(c)}</option>
                   ))}
                 </select>
               </div>

@@ -5,7 +5,7 @@ import { Input } from '../ui/form/Input';
 import { Select } from '../ui/form/Select';
 import { DatePicker } from '../ui/form/DatePicker';
 import { Wand2, Info, CheckCircle2, Loader2 } from 'lucide-react';
-import { CreateStudentRequest, classApi, SchoolClass } from '@/lib/api';
+import { CreateStudentRequest, classApi, classLabel, SchoolClass } from '@/lib/api';
 
 interface Step3Props {
   data: Partial<CreateStudentRequest>;
@@ -71,7 +71,7 @@ export const Step3AcademicPlacement: React.FC<Step3Props> = ({ data, updateData,
     }
   }, []);
 
-  const classOptions = classes.map((c) => ({ label: c.name + (c.arm ? ` – ${c.arm}` : ''), value: c.id }));
+  const classOptions = classes.map((c) => ({ label: classLabel(c), value: c.id }));
 
 
 

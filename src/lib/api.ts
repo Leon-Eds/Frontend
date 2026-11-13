@@ -485,6 +485,7 @@ export interface SchoolClass {
   id: string;
   schoolId: string;
   academicSessionId?: string;
+  academicSessionName?: string | null;
   name: string;
   arm?: string;
   capacity?: number;
@@ -495,6 +496,12 @@ export interface SchoolClass {
   formTeacherName?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/** "JSS1 (A) — 2025/2026": the session tells apart same-named classes from different sessions */
+export function classLabel(c: { name?: string; className?: string; arm?: string | null; academicSessionName?: string | null }) {
+  const base = `${c.name || c.className || ''}${c.arm ? ` (${c.arm})` : ''}`;
+  return c.academicSessionName ? `${base} — ${c.academicSessionName}` : base;
 }
 
 export interface AssignSubjectsToClassRequest {
