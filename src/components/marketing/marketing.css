@@ -750,3 +750,31 @@ body:has(.mkt) .chatway--trigger-container { left: 18px !important; right: auto 
 .mkt .brand-case { text-transform: none; }
 /* Five audience cards (bursars added) */
 @media (min-width: 981px) { .mkt .audience { grid-template-columns: repeat(5, 1fr); } }
+
+/* Install app banner (landing page) */
+.mkt .install-prompt { position: fixed; left: 24px; bottom: 24px; z-index: 60;
+  width: min(420px, calc(100% - 32px)); display: flex; align-items: flex-start; gap: 14px;
+  padding: 18px 44px 18px 18px; border-radius: var(--radius); background: var(--paper);
+  border: 1px solid var(--line); box-shadow: var(--shadow-lg);
+  animation: mkt-install-in .35s cubic-bezier(.2, .8, .2, 1); }
+.mkt .install-prompt-icon { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; }
+.mkt .install-prompt-body { min-width: 0; }
+.mkt .install-prompt-body strong { display: block; font-family: var(--font-display); font-size: 17px; color: var(--green-800); line-height: 1.25; }
+.mkt .install-prompt-body p { margin-top: 4px; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+.mkt .install-prompt-step { display: inline-flex; align-items: center; gap: 3px; font-weight: 700; color: var(--green-700); white-space: nowrap; }
+.mkt .install-prompt-step .ms { font-size: 18px; }
+.mkt .install-prompt-actions { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+.mkt .install-prompt-actions .btn { height: 42px; padding: 0 20px; font-size: 14.5px; }
+.mkt .install-prompt-later { font-size: 14px; font-weight: 600; color: var(--ink-3); }
+.mkt .install-prompt-later:hover { color: var(--ink); }
+.mkt .install-prompt-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px;
+  display: grid; place-items: center; border-radius: 999px; color: var(--ink-3); }
+.mkt .install-prompt-close:hover { background: var(--cream-2); color: var(--ink); }
+.mkt .install-prompt-close .ms { font-size: 20px; }
+@keyframes mkt-install-in { from { opacity: 0; transform: translateY(16px); } }
+@media (max-width: 600px) {
+  .mkt .install-prompt { left: 16px; right: 16px; bottom: 16px; width: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mkt .install-prompt { animation: none; }
+}

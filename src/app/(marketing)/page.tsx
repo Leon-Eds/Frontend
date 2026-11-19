@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { HomeContent } from "@/components/marketing/home/HomeContent";
+import { InstallPrompt } from "@/components/marketing/home/InstallPrompt";
 
 export const metadata: Metadata = {
   title: "LeonEd — School Management, Simplified",
@@ -8,5 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <HomeContent />;
+  return (
+    <>
+      <HomeContent />
+      <InstallPrompt />
+    </>
+  );
 }

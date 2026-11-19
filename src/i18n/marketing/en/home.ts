@@ -6,6 +6,14 @@ export const home = {
   "mk.home.contact": "Contact Us",
   "mk.home.trust": "Trusted by 500+ institutions across the continent",
 
+  // Install app banner
+  "mk.install.title": "Install the LeonEd app",
+  "mk.install.lead": "Add LeonEd to your home screen for quick, full-screen access.",
+  "mk.install.ios": "Tap <share>Share</share> then <add>Add to Home Screen</add>.",
+  "mk.install.cta": "Install",
+  "mk.install.later": "Not now",
+  "mk.install.close": "Close",
+
   // Hero mock dashboard
   "mk.mock.greeting": "Good morning, Principal",
   "mk.mock.term": "First Term · 2026/2027 Session · Week 8",

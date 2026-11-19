@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
 import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
+import { dashboardPathFor } from "@/lib/auth-redirect";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -208,20 +209,7 @@ export default function LoginPage() {
       } catch (e) {}
       
       // Redirect based on role — use selectedRole as primary since it's user intent
-      const effectiveRole = returnedRole || selectedRoleLower;
-      if (effectiveRole === "superadmin") {
-        router.push("/super-admin");
-      } else if (effectiveRole === "attendanceofficer") {
-        router.push("/dashboard/scanner");
-      } else if (selectedRoleLower === "student" || effectiveRole === "student" || effectiveRole === "parent" || effectiveRole === "guardian") {
-        router.push("/dashboard/student-portal");
-      } else if (selectedRoleLower === "teacher" || effectiveRole === "teacher" || effectiveRole === "faculty") {
-        router.push("/dashboard/faculty");
-      } else if (selectedRoleLower === "bursar" || effectiveRole === "bursar") {
-        router.push("/dashboard/bursar");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push(dashboardPathFor(returnedRole || selectedRoleLower, selectedRoleLower));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Login failed. Please check your credentials.";
       if (message.toLowerCase().includes('otp') || message.toLowerCase().includes('verification')) {

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { Toaster } from "react-hot-toast";
@@ -7,6 +7,16 @@ import Script from "next/script";
 export const metadata: Metadata = {
   title: "LeonEd — School Management, Simplified",
   description: "LeonEd is a School Management System designed to simplify school administration by bringing essential school operations into one connected platform.",
+  applicationName: "LeonEd",
+  appleWebApp: {
+    capable: true,
+    title: "LeonEd",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#003f27",
 };
 
 export default function RootLayout({
