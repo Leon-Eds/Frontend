@@ -19,13 +19,13 @@ export default function ForgotPasswordPage() {
     setError("");
 
     if (!email.trim()) {
-      setError("Please enter your email address.");
+      setError(t("auth.enter_email"));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      setError("Please enter a valid email address.");
+      setError(t("auth.valid_email"));
       return;
     }
 
@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
       await authApi.forgotPassword({ email: email.trim() });
       setIsSubmitted(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to send reset link. Please try again.");
+      setError(err instanceof Error ? err.message : t("auth.send_failed"));
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <div className="bg-gray-55/40 border border-gray-100 rounded-2xl p-4 text-center">
-              <span className="text-xs text-gray-400 font-medium block mb-1">Sent to</span>
+              <span className="text-xs text-gray-400 font-medium block mb-1">{t("auth.sent_to")}</span>
               <span className="text-sm text-gray-800 font-bold break-all">{email}</span>
             </div>
 
@@ -86,7 +86,7 @@ export default function ForgotPasswordPage() {
               }}
               className="w-full py-4 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors block text-center"
             >
-              Try another email address
+              {t("auth.try_another")}
             </button>
 
             <Link
@@ -135,7 +135,7 @@ export default function ForgotPasswordPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Sending...</span>
+                  <span>{t("auth.sending")}</span>
                 </>
               ) : (
                 <span>{t("forgot.send")}</span>

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Lock, School, User, Mail, Phone, MapPin, Globe, ChevronRight, ChevronLeft, CheckCircle2, Building2, Loader2, Eye, EyeOff } from "lucide-react";
 import { authApi, API_BASE_URL } from "@/lib/api";
-import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
+import { useLanguage, LanguageSelector, interpolate } from "@/components/LanguageProvider";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 
 export default function RegisterSchoolPage() {
@@ -56,25 +56,25 @@ export default function RegisterSchoolPage() {
 
   const validateStep1 = () => {
     const errs: Record<string, string> = {};
-    if (!formData.schoolName.trim()) errs.schoolName = "School name is required";
-    if (!formData.schoolType) errs.schoolType = "Please select a school type";
-    if (!formData.city.trim()) errs.city = "City is required";
-    if (!formData.country.trim()) errs.country = "Country is required";
-    if (!formData.address.trim()) errs.address = "Address is required";
+    if (!formData.schoolName.trim()) errs.schoolName = t("reg.e_school");
+    if (!formData.schoolType) errs.schoolType = t("reg.e_type");
+    if (!formData.city.trim()) errs.city = t("reg.e_city");
+    if (!formData.country.trim()) errs.country = t("reg.e_country");
+    if (!formData.address.trim()) errs.address = t("reg.e_address");
     return errs;
   };
 
   const validateStep2 = () => {
     const errs: Record<string, string> = {};
-    if (!formData.adminName.trim()) errs.adminName = "Full name is required";
-    if (!formData.adminRole) errs.adminRole = "Please select a role";
-    if (!formData.adminEmail.trim()) errs.adminEmail = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminEmail)) errs.adminEmail = "Enter a valid email address";
-    if (!formData.adminPhone.trim()) errs.adminPhone = "Phone number is required";
-    if (!formData.password) errs.password = "Password is required";
-    else if (formData.password.length < 6) errs.password = "Password must be at least 6 characters";
-    if (!formData.confirmPassword) errs.confirmPassword = "Please confirm your password";
-    else if (formData.password !== formData.confirmPassword) errs.confirmPassword = "Passwords do not match";
+    if (!formData.adminName.trim()) errs.adminName = t("reg.e_name");
+    if (!formData.adminRole) errs.adminRole = t("reg.e_role");
+    if (!formData.adminEmail.trim()) errs.adminEmail = t("reg.e_email");
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminEmail)) errs.adminEmail = t("reg.e_email_bad");
+    if (!formData.adminPhone.trim()) errs.adminPhone = t("reg.e_phone");
+    if (!formData.password) errs.password = t("reg.e_pw");
+    else if (formData.password.length < 6) errs.password = t("fac.pw_len");
+    if (!formData.confirmPassword) errs.confirmPassword = t("reg.e_confirm");
+    else if (formData.password !== formData.confirmPassword) errs.confirmPassword = t("fac.pw_match");
     return errs;
   };
 
@@ -119,7 +119,7 @@ export default function RegisterSchoolPage() {
       const tokenExpiry = (response as any).tokenExpiry;
 
       if (!token) {
-        throw new Error("Registration succeeded but auto-login failed. Please sign in manually.");
+        throw new Error(t("reg.autologin"));
       }
 
       // Store auth data
@@ -163,9 +163,9 @@ export default function RegisterSchoolPage() {
       // Redirect straight to dashboard
       router.push("/dashboard");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Registration failed. Please try again.";
+      const message = err instanceof Error ? err.message : t("reg.failed");
       if (message.toLowerCase().includes('duplicate') || message.toLowerCase().includes('already exists') || message.toLowerCase().includes('409') || message.toLowerCase().includes('conflict')) {
-        setApiError("Registration failed: A school or user with these details already exists. Please try a different email or school name.");
+        setApiError(t("reg.exists"));
       } else if (message.toLowerCase().includes('otp') || message.toLowerCase().includes('verification')) {
         // Redirect to OTP verification page if backend returns verification required
         router.push(`/verify-otp?email=${encodeURIComponent(formData.adminEmail)}`);
@@ -272,7 +272,7 @@ export default function RegisterSchoolPage() {
                     <Building2 className="h-5 w-5 text-[#b05e1c]" />
                     {t("register.school_name")}
                   </h2>
-                  <p className="text-sm text-gray-500">Tell us about your institution.</p>
+                  <p className="text-sm text-gray-500">{t("reg.tell_us")}</p>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -294,7 +294,7 @@ export default function RegisterSchoolPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">School Logo <span className="text-gray-400 font-normal">(Optional)</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("reg.logo")} <span className="text-gray-400 font-normal">{t("reg.optional")}</span></label>
                     <div className="flex items-center gap-4">
                       {logoImage && (
                         <div className="h-12 w-12 rounded-full border border-gray-200 overflow-hidden shrink-0 relative bg-gray-50">
@@ -322,11 +322,11 @@ export default function RegisterSchoolPage() {
                       onChange={handleChange}
                       className={`block w-full rounded-xl border ${errors.schoolType ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors appearance-none`}
                     >
-                      <option value="">Select school type</option>
-                      <option value="primary">Primary School</option>
-                      <option value="secondary">Secondary School</option>
-                      <option value="combined">Combined (Primary &amp; Secondary)</option>
-                      <option value="tertiary">Tertiary Institution</option>
+                      <option value="">{t("reg.type_ph")}</option>
+                      <option value="primary">{t("reg.t_primary")}</option>
+                      <option value="secondary">{t("reg.t_secondary")}</option>
+                      <option value="combined">{t("reg.t_combined")}</option>
+                      <option value="tertiary">{t("reg.t_tertiary")}</option>
                     </select>
                     {errors.schoolType && <p className="text-xs text-red-500 mt-1">{errors.schoolType}</p>}
                   </div>
@@ -417,7 +417,7 @@ export default function RegisterSchoolPage() {
                     <User className="h-5 w-5 text-[#b05e1c]" />
                     {t("register.admin_name")}
                   </h2>
-                  <p className="text-sm text-gray-500">This will be the primary admin account for your school.</p>
+                  <p className="text-sm text-gray-500">{t("reg.admin_d")}</p>
                 </div>
 
                 <div className="space-y-4">
@@ -448,12 +448,12 @@ export default function RegisterSchoolPage() {
                       onChange={handleChange}
                       className={`block w-full rounded-xl border ${errors.adminRole ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50"} py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors appearance-none`}
                     >
-                      <option value="">Select your role</option>
-                      <option value="principal">Principal / Headmaster</option>
-                      <option value="vp">Vice Principal</option>
-                      <option value="admin">School Administrator</option>
-                      <option value="it">IT Administrator</option>
-                      <option value="owner">School Owner / Director</option>
+                      <option value="">{t("reg.role_ph")}</option>
+                      <option value="principal">{t("reg.r_principal")}</option>
+                      <option value="vp">{t("reg.r_vp")}</option>
+                      <option value="admin">{t("reg.r_admin")}</option>
+                      <option value="it">{t("reg.r_it")}</option>
+                      <option value="owner">{t("reg.r_owner")}</option>
                     </select>
                     {errors.adminRole && <p className="text-xs text-red-500 mt-1">{errors.adminRole}</p>}
                   </div>
@@ -638,7 +638,7 @@ export default function RegisterSchoolPage() {
                   className="flex items-center gap-2 px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Home
+                  {t("sal.home")}
                 </Link>
               )}
 
@@ -678,8 +678,7 @@ export default function RegisterSchoolPage() {
           <div className="text-center mt-8 flex items-center justify-center gap-1.5">
             <Lock className="h-3.5 w-3.5 text-gray-400" />
             <p className="text-xs text-gray-400">
-              Your data is encrypted and protected under our{" "}
-              <span className="underline underline-offset-2">Privacy Policy</span>
+              {interpolate(t("reg.privacy"), { link: <span className="underline underline-offset-2">{t("reg.privacy_link")}</span> })}
             </p>
           </div>
         </div>

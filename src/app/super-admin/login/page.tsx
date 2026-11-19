@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
-import { useLanguage, LanguageSelector } from "@/components/LanguageProvider";
+import { useLanguage, LanguageSelector, interpolate } from "@/components/LanguageProvider";
 
 export default function SuperAdminLoginPage() {
     const router = useRouter();
@@ -31,7 +31,7 @@ export default function SuperAdminLoginPage() {
         setError("");
 
         if (!email.trim() || !password) {
-            setError("Please enter both email and password.");
+            setError(t("sal.both"));
             return;
         }
 
@@ -56,7 +56,7 @@ export default function SuperAdminLoginPage() {
 
             if (!token) {
                 console.error("[SuperAdmin Login] No token found in response:", r);
-                throw new Error("Login succeeded but no security token was returned. Please contact support.");
+                throw new Error(t("sal.no_token"));
             }
 
             // Store auth data
@@ -68,7 +68,7 @@ export default function SuperAdminLoginPage() {
             // Redirect to super admin dashboard
             router.push("/super-admin");
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Login failed. Please check your credentials.";
+            const message = err instanceof Error ? err.message : t("sal.failed");
             setError(message);
         } finally {
             setIsLoading(false);
@@ -112,7 +112,7 @@ export default function SuperAdminLoginPage() {
                 className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-black/60 border border-gray-200/60 dark:border-white/10 shadow-sm text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-[#053d26] dark:hover:text-white hover:bg-white dark:hover:bg-black transition-all backdrop-blur-sm"
             >
                 <span className="text-lg leading-none">&larr;</span>
-                <span>Home</span>
+                <span>{t("sal.home")}</span>
             </Link>
 
             {/* Top Right Floating Language Switcher */}
@@ -139,8 +139,8 @@ export default function SuperAdminLoginPage() {
 
                 {/* Login Form */}
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Platform Authority</h2>
-                    <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mb-6">Enter credentials for super admin access</p>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t("sob.authority")}</h2>
+                    <p className="text-sm text-gray-500 dark:text-[#a1a1aa] mb-6">{t("sal.desc")}</p>
 
                     {error && (
                         <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-900/50 dark:text-red-400">
@@ -213,7 +213,7 @@ export default function SuperAdminLoginPage() {
                                 ) : (
                                     <>
                                         <ShieldAlert className="h-5 w-5" />
-                                        <span>Access Dashboard</span>
+                                        <span>{t("sal.access")}</span>
                                     </>
                                 )}
                             </button>
@@ -222,15 +222,16 @@ export default function SuperAdminLoginPage() {
 
                     <div className="mt-8 text-center text-sm border-t border-gray-100 dark:border-gray-800 pt-6">
                         <Link href="/super-admin/onboard" className="font-semibold text-[#b05e1c] hover:underline">
-                            Platform Onboarding
+                            {t("sal.onboarding")}
                         </Link>
                     </div>
 
                     <div className="mt-4 text-center text-xs text-gray-500">
-                        For school access, use the{" "}
-                        <Link href="/login" className="font-semibold text-gray-700 dark:text-gray-300 hover:underline">
-                            standard login
-                        </Link>
+                        {interpolate(t("sal.school_access"), { link: (
+                            <Link href="/login" className="font-semibold text-gray-700 dark:text-gray-300 hover:underline">
+                                {t("sal.standard")}
+                            </Link>
+                        ) })}
                     </div>
                 </div>
 

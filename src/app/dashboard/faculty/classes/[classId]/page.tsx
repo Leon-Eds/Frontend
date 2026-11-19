@@ -5,11 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, CheckSquare, UserCheck, FileSpreadsheet, ChevronLeft, ArrowRight, ShieldCheck, Loader2, AlertCircle, Clock } from "lucide-react";
 import { teacherPortalApi, dashboardApi, attendanceApi } from "@/lib/api";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function ClassHub({ params }: { params: Promise<{ classId: string }> }) {
   const resolvedParams = use(params);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useLanguage();
   
   const classId = resolvedParams.classId;
   const subjectId = searchParams.get("subjectId");
@@ -129,7 +131,7 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
         }
       } catch (err) {
         console.error("Failed to load class hub data", err);
-        setError("Failed to load class information");
+        setError("hub.load_failed");
       } finally {
         setIsLoading(false);
       }
@@ -142,7 +144,7 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
     return (
       <div className="flex flex-col items-center justify-center py-20 min-h-[60vh]">
         <Loader2 className="h-10 w-10 animate-spin text-[#053d26] mb-4" />
-        <p className="text-gray-500 font-medium">Loading class hub...</p>
+        <p className="text-gray-500 font-medium">{t("hub.loading")}</p>
       </div>
     );
   }
@@ -153,10 +155,10 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
         <div className="h-12 w-12 rounded-full bg-orange-100 text-[#b05e1c] flex items-center justify-center mx-auto">
           <AlertCircle className="h-6 w-6" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">Error</h2>
-        <p className="text-sm text-gray-500">{error}</p>
+        <h2 className="text-xl font-bold text-gray-900">{t("hub.error")}</h2>
+        <p className="text-sm text-gray-500">{t(error)}</p>
         <button onClick={() => router.back()} className="px-6 py-2.5 bg-[#053d26] text-white rounded-full font-bold text-sm hover:bg-[#042c1b]">
-          Go Back
+          {t("hub.go_back")}
         </button>
       </div>
     );
@@ -176,11 +178,11 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="bg-[#053d26]/10 text-[#053d26] px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider">
-              Class Hub
+              {t("hub.badge")}
             </span>
             {isFormTeacher && (
               <span className="bg-green-100 text-green-700 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-                <ShieldCheck className="h-3 w-3" /> Form Class
+                <ShieldCheck className="h-3 w-3" /> {t("hub.form_class")}
               </span>
             )}
           </div>
@@ -198,12 +200,12 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
               <CheckSquare className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">Score Entry</h3>
-              <p className="text-sm text-gray-500 mt-2">Enter CA and Exam scores for your assigned subjects.</p>
+              <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{t("hub.score_entry")}</h3>
+              <p className="text-sm text-gray-500 mt-2">{t("hub.score_entry_d")}</p>
             </div>
           </div>
           <div className="mt-6 flex items-center text-sm font-bold text-[#b05e1c] group-hover:text-[#053d26]">
-            Open Ledger <ArrowRight className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
+            {t("hub.open_ledger")} <ArrowRight className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
           </div>
         </Link>
 
@@ -217,12 +219,12 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
                   <UserCheck className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">Attendance</h3>
-                  <p className="text-sm text-gray-500 mt-2">Take daily attendance for this class.</p>
+                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{t("layout.nav.attendance")}</h3>
+                  <p className="text-sm text-gray-500 mt-2">{t("hub.attendance_d")}</p>
                 </div>
               </div>
               <div className="mt-6 flex items-center text-sm font-bold text-teal-600 group-hover:text-[#053d26]">
-                Mark Register <ArrowRight className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
+                {t("hub.mark_register")} <ArrowRight className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
 
@@ -233,12 +235,12 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
                   <Clock className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">Attendance History</h3>
-                  <p className="text-sm text-gray-500 mt-2">View past attendance records for this class.</p>
+                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{t("hub.history")}</h3>
+                  <p className="text-sm text-gray-500 mt-2">{t("hub.history_d")}</p>
                 </div>
               </div>
               <div className="mt-6 flex items-center text-sm font-bold text-blue-600 group-hover:text-[#053d26]">
-                View History <ArrowRight className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
+                {t("hub.view_history")} <ArrowRight className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
 
@@ -249,12 +251,12 @@ export default function ClassHub({ params }: { params: Promise<{ classId: string
                   <FileSpreadsheet className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">Process Results</h3>
-                  <p className="text-sm text-gray-500 mt-2">Compile and publish end-of-term broadsheets and report cards.</p>
+                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{t("hub.process")}</h3>
+                  <p className="text-sm text-gray-500 mt-2">{t("hub.process_d")}</p>
                 </div>
               </div>
               <div className="mt-6 flex items-center text-sm font-bold text-[#053d26]">
-                View Broadsheet <ArrowRight className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
+                {t("hub.view_broadsheet")} <ArrowRight className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
           </>

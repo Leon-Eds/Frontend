@@ -8,8 +8,10 @@ import Link from 'next/link';
 import { sessionApi, AcademicSession, CreateSessionRequest, CreateTermRequest } from '@/lib/api';
 import { DatePicker } from '@/components/ui/form/DatePicker';
 import PromotionsManager from '@/components/dashboard/PromotionsManager';
+import { useLanguage, localeFor, interpolate, termLabel } from "@/components/LanguageProvider";
 
 export default function SessionRollover() {
+  const { t, tv, language } = useLanguage();
   const router = useRouter();
 
   // Role guard redirect
@@ -73,7 +75,7 @@ export default function SessionRollover() {
       const items = Array.isArray(result) ? result : [];
       setSessions(items);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load sessions");
+      setError(err instanceof Error ? err.message : "rol.load_failed");
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +91,7 @@ export default function SessionRollover() {
 
   const handleCreateSession = async () => {
     if (!newSession.name || !newSession.startDate || !newSession.endDate) {
-      setCreateError("All fields are required");
+      setCreateError(t("rol.all_required"));
       return;
     }
     setIsCreating(true);
@@ -101,16 +103,16 @@ export default function SessionRollover() {
       fetchSessions();
       
       toast(
-        (t) => (
+        (tst) => (
           <div className="flex flex-col gap-3 p-1">
             <div>
-              <p className="font-bold text-gray-900">Session Created!</p>
-              <p className="text-sm text-gray-600">Would you like to activate this new session now?</p>
+              <p className="font-bold text-gray-900">{t("rol.created")}</p>
+              <p className="text-sm text-gray-600">{t("rol.activate_q")}</p>
             </div>
             <div className="flex gap-2 mt-1">
               <button 
                 onClick={() => {
-                  toast.dismiss(t.id);
+                  toast.dismiss(tst.id);
                   const session = createdSession as any;
                   if (session && session.id) {
                     handleSetCurrentSession(session.id);
@@ -118,13 +120,13 @@ export default function SessionRollover() {
                 }}
                 className="bg-[#053d26] text-white px-4 py-2 rounded-lg text-sm font-bold w-full"
               >
-                Activate Now
+                {t("rol.activate_now")}
               </button>
               <button 
-                onClick={() => toast.dismiss(t.id)}
+                onClick={() => toast.dismiss(tst.id)}
                 className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-gray-200"
               >
-                Later
+                {t("rol.later")}
               </button>
             </div>
           </div>
@@ -132,7 +134,7 @@ export default function SessionRollover() {
         { duration: 15000, position: 'top-center' }
       );
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Failed to create session");
+      setCreateError(err instanceof Error ? err.message : t("rol.create_failed"));
     } finally {
       setIsCreating(false);
     }
@@ -147,7 +149,7 @@ export default function SessionRollover() {
       setNewTerm({ termNumber: 'First', startDate: '', endDate: '' });
       fetchSessions();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add term");
+      toast.error(err instanceof Error ? err.message : t("rol.term_add_failed"));
     } finally {
       setIsAddingTerm(false);
     }
@@ -158,7 +160,7 @@ export default function SessionRollover() {
       await sessionApi.setCurrent(id);
       fetchSessions();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to set current session");
+      toast.error(err instanceof Error ? err.message : t("rol.set_session_failed"));
     }
   };
 
@@ -167,13 +169,13 @@ export default function SessionRollover() {
       await sessionApi.setCurrentTerm(termId);
       fetchSessions();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to set current term");
+      toast.error(err instanceof Error ? err.message : t("rol.set_term_failed"));
     }
   };
 
   const handleUpdateSession = async () => {
     if (!editSessionId || !editSessionName || !editSessionStartDate || !editSessionEndDate) {
-      setEditSessionError("All fields are required");
+      setEditSessionError(t("rol.all_required"));
       return;
     }
     setIsUpdatingSession(true);
@@ -186,9 +188,9 @@ export default function SessionRollover() {
       });
       setEditSessionId(null);
       fetchSessions();
-      toast.success("Session updated successfully");
+      toast.success(t("rol.session_updated"));
     } catch (err) {
-      setEditSessionError(err instanceof Error ? err.message : "Failed to update session");
+      setEditSessionError(err instanceof Error ? err.message : t("rol.session_update_failed"));
     } finally {
       setIsUpdatingSession(false);
     }
@@ -196,7 +198,7 @@ export default function SessionRollover() {
 
   const handleUpdateTerm = async () => {
     if (!editTermId || !editTermStartDate || !editTermEndDate) {
-      setEditTermError("All fields are required");
+      setEditTermError(t("rol.all_required"));
       return;
     }
     setIsUpdatingTerm(true);
@@ -209,22 +211,22 @@ export default function SessionRollover() {
       });
       setEditTermId(null);
       fetchSessions();
-      toast.success("Term updated successfully");
+      toast.success(t("rol.term_updated"));
     } catch (err) {
-      setEditTermError(err instanceof Error ? err.message : "Failed to update term");
+      setEditTermError(err instanceof Error ? err.message : t("rol.term_update_failed"));
     } finally {
       setIsUpdatingTerm(false);
     }
   };
 
   const handleDeleteSession = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this academic session? All associated classes, terms, and promotion history mapped to this session will be removed.")) return;
+    if (!confirm(t("rol.delete_confirm"))) return;
     try {
       await sessionApi.delete(id);
       fetchSessions();
-      toast.success("Session deleted successfully");
+      toast.success(t("rol.deleted"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete session");
+      toast.error(err instanceof Error ? err.message : t("rol.delete_failed"));
     }
   };
 
@@ -246,9 +248,9 @@ export default function SessionRollover() {
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="max-w-3xl">
-          <h1 className="text-4xl font-bold text-[#053d26] mb-3">Academic Transition Hub</h1>
+          <h1 className="text-4xl font-bold text-[#053d26] mb-3">{t("rol.title")}</h1>
           <p className="text-gray-600 text-sm leading-relaxed">
-            Orchestrate the end-of-year transition with surgical precision. Manage academic sessions, terms, batch promotions, and initialize the upcoming session architecture.
+            {t("rol.subtitle")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
@@ -259,7 +261,7 @@ export default function SessionRollover() {
                 activeTab === 'sessions' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Sessions & Terms
+              {t("rol.tab_sessions")}
             </button>
             <button
               onClick={() => setActiveTab('promotions')}
@@ -267,7 +269,7 @@ export default function SessionRollover() {
                 activeTab === 'promotions' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Student Promotions
+              {t("rol.tab_promotions")}
             </button>
           </div>
           {activeTab === 'sessions' && (
@@ -275,7 +277,7 @@ export default function SessionRollover() {
               onClick={() => setShowCreateSession(true)}
               className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm shrink-0 whitespace-nowrap"
             >
-              <Plus className="h-5 w-5" /> New Session
+              <Plus className="h-5 w-5" /> {t("rol.new_session")}
             </button>
           )}
         </div>
@@ -285,14 +287,14 @@ export default function SessionRollover() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
-          <span className="ml-3 text-gray-500 font-medium">Loading academic sessions...</span>
+          <span className="ml-3 text-gray-500 font-medium">{t("rol.loading")}</span>
         </div>
       ) : error ? (
         <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-12 text-center">
           <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Failed to load sessions</h3>
-          <p className="text-sm text-gray-500 mb-6">{error}</p>
-          <button onClick={fetchSessions} className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors">Retry</button>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">{t("rol.load_failed")}</h3>
+          <p className="text-sm text-gray-500 mb-6">{t(error)}</p>
+          <button onClick={fetchSessions} className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors">{t("common.retry")}</button>
         </div>
       ) : activeTab === 'promotions' ? (
         <PromotionsManager currentSession={currentSession} sessions={sessions} />
@@ -303,19 +305,19 @@ export default function SessionRollover() {
             {/* Current Session */}
             <div className="bg-gray-50 rounded-[2rem] p-8 border border-gray-200 flex flex-col justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-2">Current Active Session</p>
-                <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">{currentSession?.name || 'None Set'}</div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-2">{t("rol.current")}</p>
+                <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">{currentSession?.name || t("rol.none_set")}</div>
                 <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-8 ${
                   currentSession ? 'bg-[#053d26] text-white' : 'bg-gray-200 text-gray-600'
                 }`}>
-                  {currentSession ? 'Active' : 'No active session'}
+                  {currentSession ? tv("status", "Active") : t("rol.no_active")}
                 </span>
               </div>
 
               {currentSession && (
                 <div>
                   <div className="flex justify-between items-end mb-2">
-                    <span className="text-sm font-semibold text-gray-700">Session Progress</span>
+                    <span className="text-sm font-semibold text-gray-700">{t("rol.progress")}</span>
                     <span className="text-3xl font-bold text-gray-900">{getSessionProgress(currentSession)}%</span>
                   </div>
                   <div className="h-2 w-full bg-gray-200 rounded-full mb-4 overflow-hidden">
@@ -323,31 +325,31 @@ export default function SessionRollover() {
                   </div>
                   <p className="text-xs text-gray-500 italic">
                     {currentSession.startDate && currentSession.endDate
-                      ? `${new Date(currentSession.startDate).toLocaleDateString()} — ${new Date(currentSession.endDate).toLocaleDateString()}`
-                      : 'Dates not set'}
+                      ? `${new Date(currentSession.startDate).toLocaleDateString(localeFor(language))} — ${new Date(currentSession.endDate).toLocaleDateString(localeFor(language))}`
+                      : t("rol.no_dates")}
                   </p>
 
                   {/* Terms */}
                   {currentSession.terms && currentSession.terms.length > 0 && (
                     <div className="mt-6 space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Terms</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{t("rol.terms")}</p>
                       {currentSession.terms.map(term => (
                       <div key={term.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-all hover:bg-white hover:shadow-sm">
                       <div>
-                        <p className="font-bold text-sm text-gray-900">{term.termNumber} Term</p>
+                        <p className="font-bold text-sm text-gray-900">{termLabel(t, term.termNumber)}</p>
                         <p className="text-xs text-gray-500 font-medium">
-                          {term.startDate ? new Date(term.startDate).toLocaleDateString() : 'TBD'} - {term.endDate ? new Date(term.endDate).toLocaleDateString() : 'TBD'}
+                          {term.startDate ? new Date(term.startDate).toLocaleDateString(localeFor(language)) : t("rol.tbd")} - {term.endDate ? new Date(term.endDate).toLocaleDateString(localeFor(language)) : t("rol.tbd")}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         {term.isCurrent ? (
-                          <span className="px-2.5 py-1 rounded-full bg-green-100 text-[#053d26] text-[10px] font-bold">Current</span>
+                          <span className="px-2.5 py-1 rounded-full bg-green-100 text-[#053d26] text-[10px] font-bold">{t("rol.current_badge")}</span>
                         ) : (
                           <button
                             onClick={() => handleSetCurrentTerm(term.id)}
                             className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition-colors"
                           >
-                            Set Current
+                            {t("rol.set_current")}
                           </button>
                         )}
                         <button
@@ -360,7 +362,7 @@ export default function SessionRollover() {
                           }}
                           className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold hover:bg-blue-100 transition-colors"
                         >
-                          Edit
+                          {t("ah.edit")}
                         </button>
                       </div>
                     </div>
@@ -371,7 +373,7 @@ export default function SessionRollover() {
                 onClick={() => { setAddTermToSessionId(currentSession.id); }}
                 className="mt-4 text-sm font-bold text-[#b05e1c] hover:text-[#965017] transition-colors"
               >
-                + Add Term
+                {t("rol.add_term_link")}
               </button>
             </div>
           )}
@@ -383,20 +385,20 @@ export default function SessionRollover() {
             <Calendar className="w-64 h-64 -mt-16 -mr-16" />
           </div>
           <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-green-200/80 mb-2">All Sessions</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-green-200/80 mb-2">{t("cls.all_sessions")}</p>
             <div className="text-2xl font-bold mb-6">{sessions.length} Total</div>
           </div>
 
           <div className="relative z-10 space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
             {sessions.length === 0 ? (
-              <p className="text-green-200/70 text-sm">No sessions created yet. Click &quot;New Session&quot; to start.</p>
+              <p className="text-green-200/70 text-sm">{t("rol.no_sessions")}</p>
             ) : (
               sessions.map(session => (
                 <div key={session.id} className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="font-bold text-sm">{session.name}</div>
                     <p className="text-[10px] text-green-200/70">
-                      {session.terms?.length || 0} terms • {session.isCurrent ? 'Active' : 'Inactive'}
+                      {t("rol.terms_line", { n: session.terms?.length || 0, status: session.isCurrent ? tv("status", "Active") : tv("status", "Inactive") })}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -410,26 +412,26 @@ export default function SessionRollover() {
                       }}
                       className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold transition-colors shrink-0"
                     >
-                      Edit
+                      {t("ah.edit")}
                     </button>
                     {!session.isCurrent && (
                       <button
                         onClick={() => handleSetCurrentSession(session.id)}
                         className="px-3 py-1.5 rounded-full bg-white/20 text-white text-[10px] font-bold hover:bg-white/30 transition-colors shrink-0"
                       >
-                        Activate
+                        {t("rol.activate")}
                       </button>
                     )}
                     {session.isCurrent && (
-                      <span className="px-3 py-1.5 rounded-full bg-green-400/20 text-green-200 text-[10px] font-bold shrink-0">Active</span>
+                      <span className="px-3 py-1.5 rounded-full bg-green-400/20 text-green-200 text-[10px] font-bold shrink-0">{tv("status", "Active")}</span>
                     )}
                     {!session.isCurrent && (
                       <button
                         onClick={() => handleDeleteSession(session.id)}
                         className="px-3 py-1.5 rounded-full bg-red-400/20 text-red-200 text-[10px] font-bold hover:bg-red-400/30 transition-colors shrink-0"
-                        title="Delete Session"
+                        title={t("rol.delete_title")}
                       >
-                        Delete
+                        {t("common.delete")}
                       </button>
                     )}
                   </div>
@@ -443,10 +445,10 @@ export default function SessionRollover() {
       {/* Setup Navigation Pointers (Eye-level) */}
       <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-between items-center bg-white rounded-3xl p-4 sm:p-6 border border-gray-100 shadow-sm">
         <Link href="/dashboard" className="flex items-center justify-center w-full sm:w-auto gap-2 text-gray-500 hover:text-[#053d26] font-semibold text-sm transition-colors px-4 py-2 rounded-xl hover:bg-gray-50 text-center">
-          <ArrowLeft className="w-4 h-4" /> Previous Step: Dashboard
+          <ArrowLeft className="w-4 h-4" /> {t("rol.prev_step")}
         </Link>
         <Link href="/dashboard/classes" className="flex items-center justify-center w-full sm:w-auto gap-2 px-6 py-3 bg-[#053d26] text-white rounded-2xl font-bold text-sm hover:bg-[#042f1d] transition-colors shadow-sm text-center">
-          Next Step: Classes & Subjects <ArrowRight className="w-4 h-4" />
+          {t("rol.next_step")} <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
 
@@ -456,9 +458,9 @@ export default function SessionRollover() {
               <AlertTriangle className="w-8 h-8" />
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Critical Action: Initialize Rollover</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">{t("rol.critical")}</h3>
               <p className="text-sm text-gray-600 leading-relaxed mb-8">
-                Proceeding with the rollover will set a new session as current. Ensure all grades are finalized and fee status audits are complete before execution.
+                {t("rol.critical_d")}
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <button
@@ -466,7 +468,7 @@ export default function SessionRollover() {
                   disabled={sessions.length < 2}
                   className="flex items-center gap-2 px-6 py-3.5 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Initiate Rollover <Rocket className="w-4 h-4 ml-1" />
+                  {t("rol.initiate")} <Rocket className="w-4 h-4 ml-1" />
                 </button>
               </div>
             </div>
@@ -479,7 +481,7 @@ export default function SessionRollover() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateSession(false)}>
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">Create Academic Session</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t("rol.create_title")}</h2>
               <button onClick={() => setShowCreateSession(false)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-6 w-6" /></button>
             </div>
             {createError && (
@@ -487,36 +489,36 @@ export default function SessionRollover() {
             )}
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Session Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("rol.session_name")}</label>
                 <input
                   value={newSession.name}
                   onChange={e => setNewSession(s => ({ ...s, name: e.target.value }))}
-                  placeholder="e.g. 2024/2025"
+                  placeholder={t("rol.session_ph")}
                   className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <DatePicker
-                  label="Start Date"
+                  label={t("rol.start")}
                   value={newSession.startDate}
                   onChange={e => setNewSession(s => ({ ...s, startDate: e.target.value }))}
                 />
                 <DatePicker
-                  label="End Date"
+                  label={t("rol.end")}
                   value={newSession.endDate}
                   onChange={e => setNewSession(s => ({ ...s, endDate: e.target.value }))}
                 />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
-              <button onClick={() => setShowCreateSession(false)} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">Cancel</button>
+              <button onClick={() => setShowCreateSession(false)} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">{t("common.cancel")}</button>
               <button
                 onClick={handleCreateSession}
                 disabled={isCreating}
                 className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {isCreating ? 'Creating...' : 'Create Session'}
+                {isCreating ? t("cls.creating") : t("setup.session_new")}
               </button>
             </div>
           </div>
@@ -528,44 +530,44 @@ export default function SessionRollover() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setAddTermToSessionId(null)}>
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">Add Term</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t("rol.add_term_title")}</h2>
               <button onClick={() => setAddTermToSessionId(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-6 w-6" /></button>
             </div>
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Term</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("rpt.term")}</label>
                 <select
                   value={newTerm.termNumber}
                   onChange={e => setNewTerm(t => ({ ...t, termNumber: e.target.value as 'First' | 'Second' | 'Third' }))}
                   className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors appearance-none"
                 >
-                  <option value="First">First Term</option>
-                  <option value="Second">Second Term</option>
-                  <option value="Third">Third Term</option>
+                  <option value="First">{t("rc.term_first")}</option>
+                  <option value="Second">{t("rc.term_second")}</option>
+                  <option value="Third">{t("rc.term_third")}</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <DatePicker
-                  label="Start Date"
+                  label={t("rol.start")}
                   value={newTerm.startDate}
                   onChange={e => setNewTerm(t => ({ ...t, startDate: e.target.value }))}
                 />
                 <DatePicker
-                  label="End Date"
+                  label={t("rol.end")}
                   value={newTerm.endDate}
                   onChange={e => setNewTerm(t => ({ ...t, endDate: e.target.value }))}
                 />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
-              <button onClick={() => setAddTermToSessionId(null)} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">Cancel</button>
+              <button onClick={() => setAddTermToSessionId(null)} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">{t("common.cancel")}</button>
               <button
                 onClick={handleAddTerm}
                 disabled={isAddingTerm}
                 className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {isAddingTerm ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {isAddingTerm ? 'Adding...' : 'Add Term'}
+                {isAddingTerm ? t("rol.adding") : t("rol.add_term_title")}
               </button>
             </div>
           </div>
@@ -577,7 +579,7 @@ export default function SessionRollover() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEditSessionId(null)}>
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">Edit Academic Session</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t("rol.edit_session")}</h2>
               <button onClick={() => setEditSessionId(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-6 w-6" /></button>
             </div>
             {editSessionError && (
@@ -585,36 +587,36 @@ export default function SessionRollover() {
             )}
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Session Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("rol.session_name")}</label>
                 <input
                   value={editSessionName}
                   onChange={e => setEditSessionName(e.target.value)}
-                  placeholder="e.g. 2024/2025"
+                  placeholder={t("rol.session_ph")}
                   className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <DatePicker
-                  label="Start Date"
+                  label={t("rol.start")}
                   value={editSessionStartDate}
                   onChange={e => setEditSessionStartDate(e.target.value)}
                 />
                 <DatePicker
-                  label="End Date"
+                  label={t("rol.end")}
                   value={editSessionEndDate}
                   onChange={e => setEditSessionEndDate(e.target.value)}
                 />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
-              <button onClick={() => setEditSessionId(null)} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">Cancel</button>
+              <button onClick={() => setEditSessionId(null)} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">{t("common.cancel")}</button>
               <button
                 onClick={handleUpdateSession}
                 disabled={isUpdatingSession}
                 className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {isUpdatingSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {isUpdatingSession ? 'Saving...' : 'Save Changes'}
+                {isUpdatingSession ? t("common.saving") : t("common.save_changes")}
               </button>
             </div>
           </div>
@@ -626,7 +628,7 @@ export default function SessionRollover() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEditTermId(null)}>
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">Edit Term</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t("rol.edit_term")}</h2>
               <button onClick={() => setEditTermId(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-6 w-6" /></button>
             </div>
             {editTermError && (
@@ -634,39 +636,39 @@ export default function SessionRollover() {
             )}
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Term</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("rpt.term")}</label>
                 <select
                   value={editTermNumber}
                   onChange={e => setEditTermNumber(e.target.value as 'First' | 'Second' | 'Third')}
                   className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors appearance-none"
                 >
-                  <option value="First">First Term</option>
-                  <option value="Second">Second Term</option>
-                  <option value="Third">Third Term</option>
+                  <option value="First">{t("rc.term_first")}</option>
+                  <option value="Second">{t("rc.term_second")}</option>
+                  <option value="Third">{t("rc.term_third")}</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <DatePicker
-                  label="Start Date"
+                  label={t("rol.start")}
                   value={editTermStartDate}
                   onChange={e => setEditTermStartDate(e.target.value)}
                 />
                 <DatePicker
-                  label="End Date"
+                  label={t("rol.end")}
                   value={editTermEndDate}
                   onChange={e => setEditTermEndDate(e.target.value)}
                 />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-8">
-              <button onClick={() => setEditTermId(null)} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">Cancel</button>
+              <button onClick={() => setEditTermId(null)} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">{t("common.cancel")}</button>
               <button
                 onClick={handleUpdateTerm}
                 disabled={isUpdatingTerm}
                 className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {isUpdatingTerm ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {isUpdatingTerm ? 'Saving...' : 'Save Changes'}
+                {isUpdatingTerm ? t("common.saving") : t("common.save_changes")}
               </button>
             </div>
           </div>
@@ -682,21 +684,21 @@ export default function SessionRollover() {
                 <AlertTriangle className="h-6 w-6 text-red-500" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Confirm Rollover</h3>
-                <p className="text-sm text-gray-500">This is a critical action.</p>
+                <h3 className="text-lg font-bold text-gray-900">{t("rol.confirm_title")}</h3>
+                <p className="text-sm text-gray-500">{t("rol.confirm_sub")}</p>
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-6">
-              Type <span className="font-bold text-gray-900">ROLLOVER</span> below to confirm you want to proceed with the session transition.
+              {interpolate(t("rol.confirm_d"), { word: <span className="font-bold text-gray-900">ROLLOVER</span> })}
             </p>
             <input
               value={rolloverInput}
               onChange={e => setRolloverInput(e.target.value)}
-              placeholder="Type ROLLOVER to confirm"
+              placeholder={t("rol.confirm_ph")}
               className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors mb-6"
             />
             <div className="flex justify-end gap-3">
-              <button onClick={() => { setShowRolloverConfirm(false); setRolloverInput(""); }} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">Cancel</button>
+              <button onClick={() => { setShowRolloverConfirm(false); setRolloverInput(""); }} className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm">{t("common.cancel")}</button>
               <button
                 disabled={rolloverInput !== 'ROLLOVER'}
                 onClick={() => {
@@ -710,7 +712,7 @@ export default function SessionRollover() {
                 }}
                 className="px-6 py-3 rounded-full bg-red-600 text-white font-bold hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                <Rocket className="h-4 w-4" /> Proceed
+                <Rocket className="h-4 w-4" /> {t("rol.proceed")}
               </button>
             </div>
           </div>

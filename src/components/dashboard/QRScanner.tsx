@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { AlertCircle, Camera, ImageIcon, Loader2 } from "lucide-react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface QRScannerProps {
   onScanSuccess: (decodedText: string) => void;
@@ -10,6 +11,7 @@ interface QRScannerProps {
 }
 
 export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps) {
+  const { t } = useLanguage();
   const [errorMsg, setErrorMsg] = useState("");
   const [isStarting, setIsStarting] = useState(true);
   const [cameraActive, setCameraActive] = useState(false);
@@ -62,10 +64,10 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
           console.error("Camera start failed:", err);
           setErrorMsg(
             err?.message?.includes("NotAllowed") || err?.message?.includes("Permission")
-              ? "Camera permission denied. Please allow camera access in your browser settings."
+              ? "qr.denied"
               : err?.message?.includes("NotFound")
-              ? "No camera found on this device. Try uploading an image instead."
-              : `Could not start camera: ${err?.message || err}`
+              ? "qr.no_camera"
+              : `qr.start_failed|${err?.message || err}`
           );
           setIsStarting(false);
         }
@@ -107,7 +109,7 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
         onScanSuccessRef.current(result);
       }
     } catch (err: any) {
-      setErrorMsg("No QR/barcode found in the image. Try a clearer photo.");
+      setErrorMsg("qr.not_found");
       setTimeout(() => setErrorMsg(""), 3000);
     }
 
@@ -119,14 +121,14 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
     <div className="w-full max-w-sm mx-auto rounded-2xl border border-gray-200 shadow-sm bg-white overflow-hidden">
       {errorMsg && (
         <div className="p-3 bg-red-50 text-red-600 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
+          <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg.startsWith("qr.start_failed|") ? t("qr.start_failed", { msg: errorMsg.slice("qr.start_failed|".length) }) : t(errorMsg)}
         </div>
       )}
 
       {isStarting && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
-          <p className="text-xs font-semibold text-gray-500">Starting camera…</p>
+          <p className="text-xs font-semibold text-gray-500">{t("qr.starting")}</p>
         </div>
       )}
 
@@ -148,7 +150,7 @@ export default function QRScanner({ onScanSuccess, onScanError }: QRScannerProps
           className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors"
         >
           <ImageIcon className="w-3.5 h-3.5" />
-          Upload Image Instead
+          {t("qr.upload")}
         </button>
       </div>
     </div>

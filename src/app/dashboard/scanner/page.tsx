@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, CheckCircle2, LogIn, LogOut, AlertCircle, Loader2, Search } from "lucide-react";
 import QRScanner from "@/components/dashboard/QRScanner";
 import { attendanceApi, ScanResult } from "@/lib/api";
+import { useLanguage, localeFor } from "@/components/LanguageProvider";
 
 interface ScanEntry {
   id: number;
@@ -18,12 +19,12 @@ interface ScanEntry {
 const DUPLICATE_WINDOW_MS = 5000;
 
 const eventCopy: Record<ScanResult["event"], { label: string; tone: string; Icon: typeof CheckCircle2 }> = {
-  CheckIn: { label: "Checked in", tone: "bg-green-50 border-green-200 text-green-800", Icon: LogIn },
-  CheckOut: { label: "Checked out", tone: "bg-blue-50 border-blue-200 text-blue-800", Icon: LogOut },
-  Marked: { label: "Marked present", tone: "bg-green-50 border-green-200 text-green-800", Icon: CheckCircle2 },
-  AlreadyCheckedIn: { label: "Already checked in", tone: "bg-amber-50 border-amber-200 text-amber-800", Icon: AlertCircle },
-  AlreadyCheckedOut: { label: "Already checked out today", tone: "bg-amber-50 border-amber-200 text-amber-800", Icon: AlertCircle },
-  NotCheckedIn: { label: "Not checked in today", tone: "bg-amber-50 border-amber-200 text-amber-800", Icon: AlertCircle },
+  CheckIn: { label: "scan.ev.CheckIn", tone: "bg-green-50 border-green-200 text-green-800", Icon: LogIn },
+  CheckOut: { label: "scan.ev.CheckOut", tone: "bg-blue-50 border-blue-200 text-blue-800", Icon: LogOut },
+  Marked: { label: "scan.ev.Marked", tone: "bg-green-50 border-green-200 text-green-800", Icon: CheckCircle2 },
+  AlreadyCheckedIn: { label: "scan.ev.AlreadyCheckedIn", tone: "bg-amber-50 border-amber-200 text-amber-800", Icon: AlertCircle },
+  AlreadyCheckedOut: { label: "scan.ev.AlreadyCheckedOut", tone: "bg-amber-50 border-amber-200 text-amber-800", Icon: AlertCircle },
+  NotCheckedIn: { label: "scan.ev.NotCheckedIn", tone: "bg-amber-50 border-amber-200 text-amber-800", Icon: AlertCircle },
 };
 
 type ScanMode = "checkIn" | "checkOut";
@@ -33,17 +34,18 @@ const MODE_STORAGE_KEY = "leoned_scanner_mode";
 function readAdmissionNumber(decodedText: string): { admissionNumber?: string; error?: string } {
   try {
     const data = JSON.parse(decodedText);
-    if (data?.type === "staff") return { error: "This is a staff ID card, not a student card." };
+    if (data?.type === "staff") return { error: "scan.staff_card" };
     const admissionNumber = data?.admissionNumber || data?.studentId || data?.id;
-    return admissionNumber ? { admissionNumber: String(admissionNumber) } : { error: "This QR code is not a student ID card." };
+    return admissionNumber ? { admissionNumber: String(admissionNumber) } : { error: "scan.not_student" };
   } catch {
-    return decodedText.trim() ? { admissionNumber: decodedText.trim() } : { error: "Empty QR code." };
+    return decodedText.trim() ? { admissionNumber: decodedText.trim() } : { error: "scan.empty_qr" };
   }
 }
 
 const todayLocal = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in the device's time zone
 
 export default function AttendanceScannerPage() {
+  const { t, language } = useLanguage();
   const [isScanning, setIsScanning] = useState(true);
   // Explicit check-in/check-out so a student scanned in twice is never checked out by mistake
   const [mode, setMode] = useState<ScanMode>("checkIn");
@@ -73,7 +75,7 @@ export default function AttendanceScannerPage() {
       entry.studentName = result?.studentName;
       entry.event = result?.event || "Marked";
     } catch (err) {
-      entry.error = err instanceof Error ? err.message : "Could not record attendance.";
+      entry.error = err instanceof Error ? err.message : "scan.record_failed";
     } finally {
       setEntries(prev => [entry, ...prev].slice(0, 50));
       setIsSubmitting(false);
@@ -100,23 +102,23 @@ export default function AttendanceScannerPage() {
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[#053d26]">Scan Attendance</h1>
+          <h1 className="text-3xl font-bold text-[#053d26]">{t("layout.nav.scan_attendance")}</h1>
           <p className="text-gray-600 text-sm mt-1">
-            Scan a student&apos;s ID card to record attendance for {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}.
+            {t("scan.subtitle", { date: new Date().toLocaleDateString(localeFor(language), { weekday: "long", day: "numeric", month: "long" }) })}
           </p>
         </div>
         <button
           onClick={() => setIsScanning(s => !s)}
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 bg-white font-bold text-gray-700 hover:bg-gray-50"
         >
-          {isScanning ? <><CameraOff className="h-4 w-4" /> Stop camera</> : <><Camera className="h-4 w-4" /> Start camera</>}
+          {isScanning ? <><CameraOff className="h-4 w-4" /> {t("scan.stop")}</> : <><Camera className="h-4 w-4" /> {t("scan.start")}</>}
         </button>
       </div>
 
-      <div role="radiogroup" aria-label="Scan mode" className="grid grid-cols-2 gap-2 bg-gray-100 p-1.5 rounded-2xl">
+      <div role="radiogroup" aria-label={t("scan.mode")} className="grid grid-cols-2 gap-2 bg-gray-100 p-1.5 rounded-2xl">
         {([
-          { value: "checkIn", label: "Check in", hint: "Arriving at school", Icon: LogIn },
-          { value: "checkOut", label: "Check out", hint: "Leaving school", Icon: LogOut },
+          { value: "checkIn", label: t("scan.check_in"), hint: t("scan.check_in_d"), Icon: LogIn },
+          { value: "checkOut", label: t("scan.check_out"), hint: t("scan.check_out_d"), Icon: LogOut },
         ] as const).map(option => {
           const selected = mode === option.value;
           return (
@@ -147,9 +149,9 @@ export default function AttendanceScannerPage() {
         >
           {latest.error ? <AlertCircle className="h-8 w-8 shrink-0" /> : latestCopy && <latestCopy.Icon className="h-8 w-8 shrink-0" />}
           <div>
-            <p className="text-lg font-black">{latest.error ? "Not recorded" : latestCopy?.label}</p>
+            <p className="text-lg font-black">{latest.error ? t("scan.not_recorded") : latestCopy ? t(latestCopy.label) : ""}</p>
             <p className="text-sm">
-              {latest.error || `${latest.studentName || latest.admissionNumber} · ${latest.at.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true })}`}
+              {latest.error ? t(latest.error) : `${latest.studentName || latest.admissionNumber} · ${latest.at.toLocaleTimeString(localeFor(language), { hour: "numeric", minute: "2-digit", hour12: true })}`}
             </p>
           </div>
         </div>
@@ -171,14 +173,14 @@ export default function AttendanceScannerPage() {
         }}
         className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-3"
       >
-        <label htmlFor="manual-admission" className="sr-only">Admission number</label>
+        <label htmlFor="manual-admission" className="sr-only">{t("scan.manual_label")}</label>
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             id="manual-admission"
             value={manualNumber}
             onChange={(e) => setManualNumber(e.target.value)}
-            placeholder="Card won't scan? Type the admission number"
+            placeholder={t("scan.manual_ph")}
             className="w-full rounded-xl bg-gray-100 pl-9 pr-4 py-3 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26]"
           />
         </div>
@@ -188,26 +190,26 @@ export default function AttendanceScannerPage() {
           className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#053d26] text-white font-bold hover:bg-[#042c1b] disabled:opacity-60"
         >
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {mode === "checkIn" ? "Check in" : "Check out"}
+          {mode === "checkIn" ? t("scan.check_in") : t("scan.check_out")}
         </button>
       </form>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
         <h2 className="px-5 py-4 border-b border-gray-100 font-bold text-gray-900">Scans this session ({entries.length})</h2>
         {entries.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-gray-500 text-center">No scans yet. Hold a student&apos;s ID card up to the camera.</p>
+          <p className="px-5 py-8 text-sm text-gray-500 text-center">{t("scan.empty")}</p>
         ) : (
           <ul className="divide-y divide-gray-50">
             {entries.map(entry => (
               <li key={entry.id} className="px-5 py-3 flex items-center justify-between gap-3 text-sm">
                 <div className="min-w-0">
-                  <p className="font-bold text-gray-900 truncate">{entry.studentName || entry.admissionNumber || "Unreadable card"}</p>
+                  <p className="font-bold text-gray-900 truncate">{entry.studentName || entry.admissionNumber || t("scan.unreadable")}</p>
                   <p className={`text-xs ${entry.error ? "text-red-600" : "text-gray-500"}`}>
-                    {entry.error || (entry.event ? eventCopy[entry.event].label : "")}
+                    {entry.error ? t(entry.error) : (entry.event ? t(eventCopy[entry.event].label) : "")}
                   </p>
                 </div>
                 <span className="text-xs text-gray-400 shrink-0">
-                  {entry.at.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true })}
+                  {entry.at.toLocaleTimeString(localeFor(language), { hour: "numeric", minute: "2-digit", hour12: true })}
                 </span>
               </li>
             ))}

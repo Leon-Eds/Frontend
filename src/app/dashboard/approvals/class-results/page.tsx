@@ -6,9 +6,11 @@ import { resultApi, sessionApi, classApi, teacherPortalApi, attendanceApi, subje
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { show, subjectPosition, formatAverage, ordinal } from "@/lib/result-display";
+import { useLanguage, localeFor, interpolate } from "@/components/LanguageProvider";
 
 function FormClassResultsInner() {
   const router = useRouter();
+  const { t, tv, language } = useLanguage();
   const searchParams = useSearchParams();
   const urlClassId = searchParams.get('classId');
   const [results, setResults] = useState<any[]>([]);
@@ -85,7 +87,7 @@ function FormClassResultsInner() {
     const init = async () => {
       try {
         if (!urlClassId) {
-          setError("No class ID provided in URL.");
+          setError("acr.no_class_id");
           setIsLoading(false);
           return;
         }
@@ -98,7 +100,7 @@ function FormClassResultsInner() {
 
         const targetFc = allClasses.find(c => String(c.id || c._id) === String(urlClassId));
         if (!targetFc) {
-          setError("Class not found.");
+          setError("acr.not_found");
           setIsLoading(false);
           return;
         }
@@ -117,12 +119,12 @@ function FormClassResultsInner() {
         const activeTerm = activeSession?.terms?.find(t => t.isCurrent);
         
         if (!activeTerm) {
-          setError("No active academic term found.");
+          setError("rev.no_term");
           setIsLoading(false);
           return;
         }
         setCurrentTerm(activeTerm);
-        setCurrentSessionName(activeSession?.name || "Current Session");
+        setCurrentSessionName(activeSession?.name || "");
         
         try {
           const userStr = localStorage.getItem("leoned_user");
@@ -236,7 +238,7 @@ function FormClassResultsInner() {
 
         setResults(detailedResults);
       } catch (err: any) {
-        setError(err.message || "Failed to load results.");
+        setError(err.message || "fcr.load_failed");
       } finally {
         setIsLoading(false);
       }
@@ -301,7 +303,7 @@ function FormClassResultsInner() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="h-10 w-10 animate-spin text-[#053d26] mb-4" />
-        <p className="text-gray-500 font-medium">Loading form class results...</p>
+        <p className="text-gray-500 font-medium">{t("fcr.loading")}</p>
       </div>
     );
   }
@@ -312,10 +314,10 @@ function FormClassResultsInner() {
         <div className="h-12 w-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
           <AlertCircle className="h-6 w-6" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">Access Error</h2>
-        <p className="text-sm text-gray-500">{error}</p>
+        <h2 className="text-xl font-bold text-gray-900">{t("fcr.access_error")}</h2>
+        <p className="text-sm text-gray-500">{t(error)}</p>
         <button onClick={() => router.push("/dashboard/faculty")} className="px-6 py-2.5 bg-[#053d26] text-white rounded-full font-bold text-sm hover:bg-[#042c1b]">
-          Return to Dashboard
+          {t("fcr.return_dash")}
         </button>
       </div>
     );
@@ -335,9 +337,9 @@ function FormClassResultsInner() {
       await resultApi.approve(formClass.classId, currentTerm.id, { approve: true });
       await resultApi.publish(formClass.classId, currentTerm.id).catch(() => {});
       setClassStatus("Approved");
-      toast.success("Results approved successfully!");
+      toast.success(t("apr.approved"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to approve results");
+      toast.error(err instanceof Error ? err.message : t("apr.approve_failed"));
     } finally {
       setIsProcessing(false);
     }
@@ -353,9 +355,9 @@ function FormClassResultsInner() {
       });
       setClassStatus("Revision Requested");
       setIsRejectModalOpen(false);
-      toast.success("Revision requested successfully");
+      toast.success(t("apr.rev_ok"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to request revision");
+      toast.error(err instanceof Error ? err.message : t("apr.rev_failed"));
     } finally {
       setIsProcessing(false);
     }
@@ -380,7 +382,7 @@ function FormClassResultsInner() {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to download PDF");
+      toast.error(t("common.download_failed"));
     } finally {
       setIsDownloading(false);
     }
@@ -393,7 +395,7 @@ function FormClassResultsInner() {
             <button 
               onClick={() => router.back()}
               className="mt-1 p-2 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors shadow-sm"
-              title="Go Back"
+              title={t("hub.go_back")}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m15 18-6-6 6-6"/>
@@ -402,14 +404,14 @@ function FormClassResultsInner() {
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-black uppercase tracking-wider rounded-full">
-                  Term Results
+                  {t("fcr.badge")}
                 </span>
               </div>
               <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
-                Form Class Review
+                {t("fcr.title")}
               </h1>
               <p className="text-sm text-gray-500 font-medium max-w-2xl">
-                Review the computed results for {formClass?.name || formClass?.className || "your class"}. 
+                {t("acr.subtitle", { cls: formClass?.name || formClass?.className || t("fcr.your_class") })}
               </p>
             </div>
           </div>
@@ -422,20 +424,20 @@ function FormClassResultsInner() {
                   disabled={isProcessing}
                   className="px-4 py-2 rounded-full bg-white border border-rose-200 text-rose-600 font-bold hover:bg-rose-50 transition-all text-xs disabled:opacity-50"
                 >
-                  Request Revision
+                  {t("apr.request_rev")}
                 </button>
                 <button
                   onClick={handleApprove}
                   disabled={isProcessing}
                   className="px-4 py-2 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-xs disabled:opacity-50 shadow-md"
                 >
-                  {isProcessing ? "Processing..." : "Approve Results"}
+                  {isProcessing ? t("acr.processing") : t("acr.approve_results")}
                 </button>
               </>
             )}
             {classStatus === "Approved" && (
               <span className="px-4 py-2 rounded-full bg-green-50 text-green-700 font-bold border border-green-200 text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Approved
+                <CheckCircle2 className="w-3.5 h-3.5" /> {tv("approval", "Approved")}
               </span>
             )}
             <button
@@ -444,7 +446,7 @@ function FormClassResultsInner() {
               className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all text-xs shadow-md disabled:opacity-50 print:hidden"
             >
               {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-              Download PDF
+              {t("common.download_pdf")}
             </button>
           </div>
       </div>
@@ -459,7 +461,7 @@ function FormClassResultsInner() {
             <div className="flex justify-between items-center border-b-2 border-[#053d26] pb-4 mb-3">
               <div className="w-20 h-20 shrink-0 rounded-full border-4 border-[#b45309] bg-[#053d26] text-white flex items-center justify-center overflow-hidden flex-col">
                 {schoolLogo ? (
-                  <img src={schoolLogo} alt="School Logo" className="w-full h-full object-cover rounded-full" />
+                  <img src={schoolLogo} alt={t("layout.school_logo")} className="w-full h-full object-cover rounded-full" />
                 ) : (
                   <>
                     <Award className="w-6 h-6 text-[#b45309]" />
@@ -475,55 +477,55 @@ function FormClassResultsInner() {
             </div>
             
             <div className="text-center py-2 mb-4 border-b border-gray-300 mx-16">
-              <h2 className="text-xl font-bold text-[#053d26] tracking-[0.2em] uppercase">Terminal Academic Report</h2>
-              <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || "Empowering the Future"}</p>
+              <h2 className="text-xl font-bold text-[#053d26] tracking-[0.2em] uppercase">{t("rc.title")}</h2>
+              <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || t("rc.motto")}</p>
               <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">
-                {currentTerm?.termNumber === 1 || currentTerm?.termNumber === "First" ? "First Term" : currentTerm?.termNumber === 2 || currentTerm?.termNumber === "Second" ? "Second Term" : currentTerm?.termNumber === 3 || currentTerm?.termNumber === "Third" ? "Third Term" : `${currentTerm?.termNumber || ""} Term`}
+                {currentTerm?.termNumber === 1 || currentTerm?.termNumber === "First" ? t("rc.term_first") : currentTerm?.termNumber === 2 || currentTerm?.termNumber === "Second" ? t("rc.term_second") : currentTerm?.termNumber === 3 || currentTerm?.termNumber === "Third" ? t("rc.term_third") : t("rc.term_n", { n: currentTerm?.termNumber || "" })}
               </p>
             </div>
 
             {/* Student Details */}
             <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100 flex flex-col sm:flex-row items-start justify-between gap-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs flex-1">
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span id="result-student-name" className="font-medium text-gray-800">{studentName}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{adm || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{formClass?.className || formClass?.name || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{currentResult?.gender || "-"}</span></div>
-                {currentResult?.dateOfBirth && !isNaN(new Date(currentResult.dateOfBirth).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Date of Birth:</span> <span className="font-medium text-gray-800">{new Date(currentResult.dateOfBirth).toLocaleDateString()}</span></div> : null}
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{currentTerm?.termNumber === 1 || currentTerm?.termNumber === "First" ? "First Term" : currentTerm?.termNumber === 2 || currentTerm?.termNumber === "Second" ? "Second Term" : currentTerm?.termNumber === 3 || currentTerm?.termNumber === "Third" ? "Third Term" : `${currentTerm?.termNumber || ""} Term`}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Session:</span> <span className="font-medium text-gray-800">{currentSessionName || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">No. in Class:</span> <span className="font-medium text-gray-800">{classSize > 0 ? classSize : results.length}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{pos}</span></div>
-                {currentResult?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days School Opened:</span> <span className="font-medium text-gray-800">{currentResult.daysSchoolOpened}</span></div> : null}
-                {currentResult?.daysPresent ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{currentResult.daysPresent}</span></div> : null}
-                {currentResult?.nextTermBegins && !isNaN(new Date(currentResult.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Next Term Begins:</span> <span className="font-medium text-gray-800">{new Date(currentResult.nextTermBegins).toLocaleDateString()}</span></div> : null}
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.name")}</span> <span id="result-student-name" className="font-medium text-gray-800">{studentName}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.adm")}</span> <span className="font-medium text-gray-800">{adm || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.class")}</span> <span className="font-medium text-gray-800">{formClass?.className || formClass?.name || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.gender")}</span> <span className="font-medium text-gray-800">{currentResult?.gender || "-"}</span></div>
+                {currentResult?.dateOfBirth && !isNaN(new Date(currentResult.dateOfBirth).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.dob")}</span> <span className="font-medium text-gray-800">{new Date(currentResult.dateOfBirth).toLocaleDateString(localeFor(language))}</span></div> : null}
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.term")}</span> <span className="font-medium text-gray-800">{currentTerm?.termNumber === 1 || currentTerm?.termNumber === "First" ? t("rc.term_first") : currentTerm?.termNumber === 2 || currentTerm?.termNumber === "Second" ? t("rc.term_second") : currentTerm?.termNumber === 3 || currentTerm?.termNumber === "Third" ? t("rc.term_third") : t("rc.term_n", { n: currentTerm?.termNumber || "" })}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.session")}</span> <span className="font-medium text-gray-800">{currentSessionName || t("sow.current_session")}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.class_size")}</span> <span className="font-medium text-gray-800">{classSize > 0 ? classSize : results.length}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.position")}</span> <span className="font-medium text-gray-800">{pos}</span></div>
+                {currentResult?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.days_opened")}</span> <span className="font-medium text-gray-800">{currentResult.daysSchoolOpened}</span></div> : null}
+                {currentResult?.daysPresent ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.days_present")}</span> <span className="font-medium text-gray-800">{currentResult.daysPresent}</span></div> : null}
+                {currentResult?.nextTermBegins && !isNaN(new Date(currentResult.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.next_term")}</span> <span className="font-medium text-gray-800">{new Date(currentResult.nextTermBegins).toLocaleDateString(localeFor(language))}</span></div> : null}
               </div>
               <div className="w-24 h-24 shrink-0 rounded-md border-4 border-white shadow-sm bg-gray-100 flex items-center justify-center overflow-hidden relative self-center sm:self-start">
-                <span className="text-gray-400 text-[10px] font-bold absolute z-0 text-center">NO<br/>PHOTO</span>
-                <img src={profilePic} alt="Student Passport" className="w-full h-full object-cover z-10 relative bg-white" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <span className="text-gray-400 text-[10px] font-bold absolute z-0 text-center">{t("rc.no_photo")}</span>
+                <img src={profilePic} alt={t("rc.passport_alt")} className="w-full h-full object-cover z-10 relative bg-white" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             </div>
 
             {/* Academic Performance Table */}
-            <h3 className="text-[13px] font-black text-[#053d26] tracking-widest uppercase mb-2">Academic Performance</h3>
+            <h3 className="text-[13px] font-black text-[#053d26] tracking-widest uppercase mb-2">{t("rc.academic")}</h3>
             <div className="border-t-[3px] border-[#053d26]">
               <table className="w-full text-xs text-center border-collapse mb-4">
                 <thead>
                   <tr className="bg-[#053d26] text-white">
-                    <th className="py-2.5 px-3 text-left w-[25%] border border-[#053d26] font-bold">SUBJECT</th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CA 1<br/><span className="text-[9px] font-normal">(20)</span></th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CA 2<br/><span className="text-[9px] font-normal">(20)</span></th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">EXAM<br/><span className="text-[9px] font-normal">(60)</span></th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">GRADE</th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CLASS<br/>AVG</th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">POS</th>
-                    <th className="py-2.5 px-2 border border-[#053d26] w-[20%] font-bold">REMARK</th>
+                    <th className="py-2.5 px-3 text-left w-[25%] border border-[#053d26] font-bold">{t("rc.subject")}</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">{t("rc.ca1")}<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">{t("rc.ca2")}<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">{t("rc.exam")}<br/><span className="text-[9px] font-normal">(60)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">{t("rc.total")}<br/><span className="text-[9px] font-normal">(100)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">{t("rc.grade")}</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">{t("rc.class_avg")}</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">{t("rc.pos")}</th>
+                    <th className="py-2.5 px-2 border border-[#053d26] w-[20%] font-bold">{t("rc.remark")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {subjects.map((subj: any, i: number) => {
-                    const subjName = subj.subjectName || subj.subject?.name || subj.subject || "Unknown";
+                    const subjName = subj.subjectName || subj.subject?.name || subj.subject || t("fee.unknown");
                     const tScore = Number(subj.totalScore || subj.total || 0);
                     let sGrade = subj.grade;
                     if (!sGrade) {
@@ -536,12 +538,12 @@ function FormClassResultsInner() {
                     }
                     let remark = subj.remark;
                     if (!remark || remark === "N/A" || remark === "-") {
-                      if (sGrade.includes("A")) remark = "Excellent";
-                      else if (sGrade.includes("B")) remark = "Very Good";
-                      else if (sGrade.includes("C")) remark = "Good";
-                      else if (sGrade.includes("D")) remark = "Fair";
-                      else if (sGrade.includes("E")) remark = "Poor";
-                      else remark = "Fail";
+                      if (sGrade.includes("A")) remark = t("rc.excellent");
+                      else if (sGrade.includes("B")) remark = t("rc.very_good");
+                      else if (sGrade.includes("C")) remark = t("rc.good");
+                      else if (sGrade.includes("D")) remark = t("rc.fair");
+                      else if (sGrade.includes("E")) remark = t("rc.poor");
+                      else remark = t("rc.fail");
                     }
                     
                     return (
@@ -571,14 +573,14 @@ function FormClassResultsInner() {
 
             {/* Grading Key */}
             <div className="mt-4 pb-4">
-              <h4 className="text-xs font-bold text-[#053d26] mb-2">Grading Key</h4>
+              <h4 className="text-xs font-bold text-[#053d26] mb-2">{t("rc.key")}</h4>
               <div className="flex flex-wrap gap-x-8 gap-y-2 text-[11px] text-gray-600 font-medium">
-                <div><span className="font-bold text-[#053d26]">A</span> 70-100 (Excellent)</div>
-                <div><span className="font-bold text-[#053d26]">B</span> 60-69 (Very Good)</div>
-                <div><span className="font-bold text-[#053d26]">C</span> 50-59 (Good)</div>
-                <div><span className="font-bold text-[#053d26]">D</span> 45-49 (Fair)</div>
-                <div><span className="font-bold text-[#053d26]">E</span> 40-44 (Poor)</div>
-                <div><span className="font-bold text-[#053d26]">F</span> 0-39 (Fail)</div>
+                <div><span className="font-bold text-[#053d26]">A</span> 70-100 ({t("rc.excellent")})</div>
+                <div><span className="font-bold text-[#053d26]">B</span> 60-69 ({t("rc.very_good")})</div>
+                <div><span className="font-bold text-[#053d26]">C</span> 50-59 ({t("rc.good")})</div>
+                <div><span className="font-bold text-[#053d26]">D</span> 45-49 ({t("rc.fair")})</div>
+                <div><span className="font-bold text-[#053d26]">E</span> 40-44 ({t("rc.poor")})</div>
+                <div><span className="font-bold text-[#053d26]">F</span> 0-39 ({t("rc.fail")})</div>
               </div>
             </div>
           </div>
@@ -593,20 +595,21 @@ function FormClassResultsInner() {
               <span>Adm. No: {adm || "-"}</span>
             </div>
 
-            <h3 className="text-sm font-bold text-[#053d26] tracking-widest uppercase mb-1 border-b-[2.5px] border-[#b45309] pb-1 inline-block w-full">Affective & Psychomotor Domains</h3>
-            <p className="text-[11px] text-gray-500 italic mb-4">Non-academic assessment of behaviour, character and practical skills.</p>
+            <h3 className="text-sm font-bold text-[#053d26] tracking-widest uppercase mb-1 border-b-[2.5px] border-[#b45309] pb-1 inline-block w-full">{t("rc.domains")}</h3>
+            <p className="text-[11px] text-gray-500 italic mb-4">{t("rc.domains_d")}</p>
 
             <div className="flex flex-col sm:flex-row gap-6 mb-2">
               <div className="flex-1">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="bg-[#053d26] text-white">
-                      <th className="py-2 px-3 border border-[#053d26]">BEHAVIOUR (AFFECTIVE)</th>
-                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">RATING</th>
+                      <th className="py-2 px-3 border border-[#053d26]">{t("rc.behaviour")}</th>
+                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">{t("rc.rating")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {['Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Cooperation', 'Peer Relationship'].map((b, i) => {
+                    {['punctuality', 'neatness', 'politeness', 'honesty', 'cooperation', 'peerRelationship'].map((dk, i) => {
+                      const b = t(`rc.d.${dk}`);
                       const keys = ['punctuality', 'neatness', 'politeness', 'honesty', 'cooperation', 'peerRelationship'];
                       const val = currentResult?.affectiveDomains?.[keys[i]] || "-";
                       return (
@@ -623,12 +626,13 @@ function FormClassResultsInner() {
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="bg-[#053d26] text-white">
-                      <th className="py-2 px-3 border border-[#053d26]">SKILLS (PSYCHOMOTOR)</th>
-                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">RATING</th>
+                      <th className="py-2 px-3 border border-[#053d26]">{t("rc.skills")}</th>
+                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">{t("rc.rating")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {['Handwriting', 'Public Speaking', 'Sports & Athletics', 'Club Participation', 'Craft / Lab Skills', 'Musical Skill'].map((s, i) => {
+                    {['handwriting', 'publicSpeaking', 'sports', 'clubParticipation', 'craftSkills', 'musicalSkill'].map((dk, i) => {
+                      const s = t(`rc.d.${dk}`);
                       const keys = ['handwriting', 'publicSpeaking', 'sports', 'clubParticipation', 'craftSkills', 'musicalSkill'];
                       const val = currentResult?.psychomotorDomains?.[keys[i]] || "-";
                       return (
@@ -642,26 +646,26 @@ function FormClassResultsInner() {
                 </table>
               </div>
             </div>
-            <p className="text-[10px] text-gray-500 italic mb-8 border-b border-gray-200 pb-4">Rating scale: 5 = Excellent, 4 = Good, 3 = Fair, 2 = Weak, 1 = Poor</p>
+            <p className="text-[10px] text-gray-500 italic mb-8 border-b border-gray-200 pb-4">{t("rc.scale")}</p>
 
             <div className="space-y-8 flex-1">
               <div>
                 <h4 className="text-sm font-bold text-[#053d26] mb-2 flex items-center justify-between">
-                  Form Teacher's Remark
+                  {t("rc.ft_remark")}
                 </h4>
                 <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
                   {remarks[sId] || currentResult?.teacherComment || currentResult?.formTeacherRemark || currentResult?.teacherRemark || currentResult?.comment || "-"}
                 </div>
                 <div className="flex flex-col items-center">
                   {currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl ? (
-                    <img src={currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl || ""} alt="Teacher Signature" className="h-10 mb-1 object-contain mix-blend-multiply" />
+                    <img src={currentResult?.formTeacherSignatureUrl || formTeacherSignatureUrl || ""} alt={t("rc.teacher_sig")} className="h-10 mb-1 object-contain mix-blend-multiply" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
-                    <span className="font-bold">Form Teacher</span><br/>
-                    <span>Teacher's Name: {currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}`.trim() : "_________________")}</span>
+                    <span className="font-bold">{t("rc.ft")}</span><br/>
+                    <span>{t("rc.teacher_name", { name: currentResult?.formTeacherName || formClass?.teacher?.name || (formClass?.teacher?.firstName ? `${formClass.teacher.firstName} ${formClass.teacher.lastName || ""}`.trim() : "_________________") })}</span>
                   </div>
                 </div>
               </div>
@@ -670,35 +674,35 @@ function FormClassResultsInner() {
               <div className="flex flex-col gap-2 h-full justify-end">
                 <div className="flex flex-col items-center">
                   {currentResult?.principalSignatureUrl || principalSignatureUrl ? (
-                    <img src={currentResult?.principalSignatureUrl || principalSignatureUrl || ""} alt="Principal Signature" className="h-10 mb-1 object-contain mix-blend-multiply" crossOrigin="anonymous" />
+                    <img src={currentResult?.principalSignatureUrl || principalSignatureUrl || ""} alt={t("rc.principal_sig")} className="h-10 mb-1 object-contain mix-blend-multiply" crossOrigin="anonymous" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
-                    <span className="font-bold">Principal / Head of School</span><br/>
-                    <span>Principal's Name: {currentResult?.principalName || principalName || "_________________"}</span>
+                    <span className="font-bold">{t("rc.principal")}</span><br/>
+                    <span>{t("rc.principal_name", { name: currentResult?.principalName || principalName || "_________________" })}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="mt-8 mb-4 border border-green-200 bg-[#f0fdf4] flex justify-between p-3 px-4 text-xs font-bold text-[#053d26]">
-              <span>PROMOTED TO: {currentResult?.promotedTo || "-"}</span>
-              <span>NEXT TERM BEGINS: {currentResult?.nextTermBegins && !isNaN(new Date(currentResult.nextTermBegins).getTime()) ? new Date(currentResult.nextTermBegins).toLocaleDateString() : "-"}</span>
+              <span>{t("rc.promoted", { v: currentResult?.promotedTo || "-" })}</span>
+              <span>{t("rc.next_term_up", { v: currentResult?.nextTermBegins && !isNaN(new Date(currentResult.nextTermBegins).getTime()) ? new Date(currentResult.nextTermBegins).toLocaleDateString(localeFor(language)) : "-" })}</span>
             </div>
 
             <div className="flex justify-between items-start mt-4 relative">
               <div className="text-[10px] text-gray-500 italic max-w-sm pt-4">
-                <strong className="block text-[#053d26] mb-1 font-bold">Authentication</strong>
-                This report is official only when it bears the school's embossed stamp and the Principal's original signature above.
+                <strong className="block text-[#053d26] mb-1 font-bold">{t("rc.auth")}</strong>
+                {t("rc.auth_d")}
               </div>
               <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#053d26] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative overflow-hidden">
                 {schoolStampUrl ? (
-                  <img src={schoolStampUrl} alt="School Stamp" className="w-full h-full object-contain mix-blend-multiply" crossOrigin="anonymous" />
+                  <img src={schoolStampUrl} alt={t("rc.stamp_alt")} className="w-full h-full object-contain mix-blend-multiply" crossOrigin="anonymous" />
                 ) : (
                   <span className="text-[9px] font-bold text-[#053d26] leading-tight flex flex-col gap-1">
-                    OFFICIAL<br/>SCHOOL STAMP
+                    {t("rc.stamp")}
                     <span className="text-[6px] font-normal leading-[1] mt-1 text-[#b45309] uppercase">{schoolName}</span>
                   </span>
                 )}
@@ -713,22 +717,22 @@ function FormClassResultsInner() {
               disabled={currentIndex === 0}
               className="px-5 py-2.5 rounded-full border border-gray-200 font-bold text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Previous Student
+              {t("fcr.prev_student")}
             </button>
             <button
               onClick={handleNext}
               disabled={currentIndex === results.length - 1}
               className="px-5 py-2.5 rounded-full bg-[#053d26] text-white font-bold text-sm hover:bg-[#042c1b] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Next Student
+              {t("fcr.next_student")}
             </button>
           </div>
         </div>
       ) : (
         <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100">
           <FileSpreadsheet className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-          <p className="font-bold text-lg text-gray-900">No results found</p>
-          <p className="text-sm text-gray-500 mt-2">Make sure subject scores have been entered for this class.</p>
+          <p className="font-bold text-lg text-gray-900">{t("acr.no_results")}</p>
+          <p className="text-sm text-gray-500 mt-2">{t("acr.no_results_d")}</p>
         </div>
       )}
 
@@ -737,7 +741,7 @@ function FormClassResultsInner() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-gray-100 space-y-6 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <h3 className="text-xl font-bold text-gray-900">Request Revision</h3>
+              <h3 className="text-xl font-bold text-gray-900">{t("apr.request_rev")}</h3>
               <button 
                 onClick={() => setIsRejectModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 font-bold text-lg"
@@ -750,18 +754,18 @@ function FormClassResultsInner() {
               <div className="bg-amber-50 rounded-2xl p-4 flex items-start gap-3 border border-amber-100">
                 <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-900 font-medium">
-                  This will send the results back to the form teacher. Please provide a clear reason or instructions on what needs to be fixed.
+                  {t("acr.rev_modal_d")}
                 </p>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">
-                  Reason for Revision
+                  {t("acr.reason")}
                 </label>
                 <textarea
                   value={rejectComment}
                   onChange={(e) => setRejectComment(e.target.value)}
-                  placeholder="e.g., Please review John Doe's Math score..."
+                  placeholder={t("acr.reason_ph")}
                   className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] text-sm font-medium resize-none min-h-[120px]"
                 />
               </div>
@@ -773,7 +777,7 @@ function FormClassResultsInner() {
                 className="flex-1 py-3 rounded-full border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 transition-colors"
                 disabled={isProcessing}
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button 
                 onClick={submitRevision}
@@ -781,7 +785,7 @@ function FormClassResultsInner() {
                 className="flex-1 py-3 rounded-full bg-rose-600 text-white font-bold hover:bg-rose-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {isProcessing ? "Submitting..." : "Submit Request"}
+                {isProcessing ? t("re.submitting_btn") : t("acr.submit_request")}
               </button>
             </div>
           </div>
@@ -792,11 +796,12 @@ function FormClassResultsInner() {
 }
 
 export default function FormClassResults() {
+  const { t } = useLanguage();
   return (
     <Suspense fallback={
       <div className="flex flex-col items-center justify-center py-20 min-h-[60vh]">
         <Loader2 className="h-10 w-10 animate-spin text-[#053d26] mb-4" />
-        <p className="text-gray-500 font-medium">Loading form class results...</p>
+        <p className="text-gray-500 font-medium">{t("fcr.loading")}</p>
       </div>
     }>
       <FormClassResultsInner />

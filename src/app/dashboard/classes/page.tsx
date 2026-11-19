@@ -5,10 +5,12 @@ import toast from 'react-hot-toast';
 import { Plus, BookOpen, Settings, MoreVertical, Edit2, ChevronRight, Calculator, BookText, Banknote, X, Loader2, AlertCircle, Trash2, CheckCircle2, ArrowLeft, ArrowRight, Users, UserPlus, UserMinus, ArrowLeftRight, Check, BookOpenCheck } from 'lucide-react';
 import { classApi, classLabel, subjectApi, sessionApi, studentApi, teacherApi, SchoolClass, Subject, AcademicSession, CreateClassRequest, CreateSubjectRequest, Student, Teacher, schemeOfWorkApi } from '@/lib/api';
 import Link from 'next/link';
+import { useLanguage, interpolate } from "@/components/LanguageProvider";
 
 type ModalType = 'createClass' | 'subjectLibrary' | null;
 
 export default function AcademicFlow() {
+  const { t, tv } = useLanguage();
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [currentSession, setCurrentSession] = useState<AcademicSession | null>(null);
@@ -117,7 +119,7 @@ export default function AcademicFlow() {
         setSelectedSessionId(sessions[0].id);
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to load academic data";
+      const message = err instanceof Error ? err.message : t("cls.load_failed");
       setError(message);
     } finally {
       setIsLoading(false);
@@ -140,7 +142,7 @@ export default function AcademicFlow() {
     e.preventDefault();
     setFormError("");
     if (!className.trim()) {
-      setFormError("Class name is required.");
+      setFormError(t("cls.name_required"));
       return;
     }
     setIsSubmitting(true);
@@ -160,10 +162,10 @@ export default function AcademicFlow() {
       setActiveModal(null);
       setClassName('');
       setClassArm('');
-      setSuccessMsg(`Class "${payload.name}" created successfully!`);
+      setSuccessMsg(t("cls.created", { name: payload.name }));
       await fetchData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to create class";
+      const msg = err instanceof Error ? err.message : t("cls.create_failed");
       setFormError(msg);
     } finally {
       setIsSubmitting(false);
@@ -174,7 +176,7 @@ export default function AcademicFlow() {
     e.preventDefault();
     setFormError("");
     if (!subjectName.trim()) {
-      setFormError("Subject name is required.");
+      setFormError(t("cls.subj_required"));
       return;
     }
     setIsSubmitting(true);
@@ -182,12 +184,12 @@ export default function AcademicFlow() {
       await subjectApi.create({ name: subjectName.trim() });
       setSubjectName('');
       setFormError("");
-      setSuccessMsg(`Subject "${subjectName.trim()}" added!`);
+      setSuccessMsg(t("cls.subj_added", { name: subjectName.trim() }));
       // Refresh subjects list
       const freshSubjects = await subjectApi.getAll();
       setSubjects(Array.isArray(freshSubjects) ? freshSubjects : []);
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to create subject");
+      setFormError(err instanceof Error ? err.message : t("cls.subj_create_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -198,21 +200,21 @@ export default function AcademicFlow() {
       await subjectApi.delete(id);
       setSubjects(prev => prev.filter(s => s.id !== id));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete subject");
+      toast.error(err instanceof Error ? err.message : t("cls.subj_delete_failed"));
     }
   };
 
   const handleDeleteClass = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this class?")) return;
+    if (!confirm(t("cls.delete_confirm"))) return;
     try {
       await classApi.delete(id);
       setClasses(prev => prev.filter(c => c.id !== id));
-      setSuccessMsg("Class deleted successfully.");
+      setSuccessMsg(t("cls.deleted"));
       if (selectedClassId === id) {
         setSelectedClassId(null);
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete class");
+      toast.error(err instanceof Error ? err.message : t("cls.delete_failed"));
     }
   };
 
@@ -222,23 +224,23 @@ export default function AcademicFlow() {
       await studentApi.update(studentId, { classId: null as any });
       
       toast.success(
-        (t) => (
+        (tst) => (
           <div className="flex flex-col gap-2">
-            <span>{studentName} removed from class.</span>
+            <span>{t("cls.removed", { name: studentName })}</span>
             <button
               onClick={async () => {
-                toast.dismiss(t.id);
+                toast.dismiss(tst.id);
                 try {
                   await studentApi.update(studentId, { classId: selectedClassId || "" });
-                  toast.success(`${studentName} restored to class.`);
+                  toast.success(t("cls.restored", { name: studentName }));
                   await fetchData();
                 } catch (e) {
-                  toast.error("Failed to restore student");
+                  toast.error(t("cls.restore_failed"));
                 }
               }}
               className="text-xs bg-white text-gray-900 font-bold px-3 py-1.5 rounded self-start shadow-sm border border-gray-200 hover:bg-gray-50"
             >
-              Undo
+              {t("cls.undo")}
             </button>
           </div>
         ),
@@ -247,7 +249,7 @@ export default function AcademicFlow() {
       
       await fetchData();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to remove student");
+      toast.error(err instanceof Error ? err.message : t("cls.remove_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -261,12 +263,12 @@ export default function AcademicFlow() {
     try {
       setIsSubmitting(true);
       await studentApi.update(student.id, { classId: targetClassId });
-      setSuccessMsg(`${student.fullName} moved to class ${targetClass?.name || ""}.`);
+      setSuccessMsg(t("cls.moved", { name: student.fullName, cls: targetClass?.name || "" }));
       setShowMoveStudentModal(null);
       setTargetClassId('');
       await fetchData();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to move student");
+      toast.error(err instanceof Error ? err.message : t("cls.move_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -277,10 +279,10 @@ export default function AcademicFlow() {
     try {
       setIsSubmitting(true);
       await studentApi.update(studentId, { classId: selectedClassId });
-      setSuccessMsg(`${studentName} added to class.`);
+      setSuccessMsg(t("cls.added", { name: studentName }));
       await fetchData();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to add student");
+      toast.error(err instanceof Error ? err.message : t("cls.add_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -292,11 +294,11 @@ export default function AcademicFlow() {
     try {
       setIsSubmitting(true);
       await classApi.assignSubjects(selectedClassId, { subjectIds: selectedSubjectIds });
-      setSuccessMsg("Class subjects updated successfully.");
+      setSuccessMsg(t("cls.subjects_updated"));
       setShowAssignSubjectsModal(false);
       await fetchData();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to assign subjects");
+      toast.error(err instanceof Error ? err.message : t("cls.assign_subj_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -308,12 +310,12 @@ export default function AcademicFlow() {
     try {
       setIsSubmitting(true);
       await classApi.update(showAssignFormTeacherModal.id, { formTeacherId });
-      setSuccessMsg(`Form teacher assigned to ${showAssignFormTeacherModal.name} successfully.`);
+      setSuccessMsg(t("cls.ft_assigned", { cls: showAssignFormTeacherModal.name }));
       setShowAssignFormTeacherModal(null);
       setFormTeacherId('');
       await fetchData();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to assign form teacher");
+      toast.error(err instanceof Error ? err.message : t("cls.ft_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -361,14 +363,14 @@ export default function AcademicFlow() {
                 <h1 className="text-3xl font-extrabold text-[#053d26]">{currentClass.name} {currentClass.arm ? `(${currentClass.arm})` : ''}</h1>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
                   <p className="text-sm text-gray-500">
-                    {currentClass.arm ? `Arm/Section: ${currentClass.arm} • ` : ""}
-                    {classStudents.length} Students enrolled
+                    {currentClass.arm ? t("cls.arm_line", { arm: currentClass.arm }) : ""}
+                    {t("cls.enrolled_count", { n: classStudents.length })}
                   </p>
                   {(currentClass.formTeacherId || currentClass.formTeacherName) && (
                     <>
                       <span className="hidden sm:block text-gray-300">•</span>
                       <p className="text-sm font-semibold text-[#053d26] bg-green-50 px-2.5 py-0.5 rounded-full inline-flex w-max items-center gap-1.5 border border-green-100">
-                        👨‍🏫 {allTeachers.find(t => t.id === currentClass.formTeacherId)?.fullName || currentClass.formTeacherName || 'Assigned'}
+                        👨‍🏫 {allTeachers.find(tc => tc.id === currentClass.formTeacherId)?.fullName || currentClass.formTeacherName || t("cls.assigned")}
                       </p>
                     </>
                   )}
@@ -382,7 +384,7 @@ export default function AcademicFlow() {
                   onClick={() => { setShowAddStudentModal(true); setStudentSearchText(''); }}
                   className="flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm text-sm"
                 >
-                  <UserPlus className="h-4 w-4" /> Add Student
+                  <UserPlus className="h-4 w-4" /> {t("cls.add_student")}
                 </button>
               ) : (
                 <button
@@ -392,7 +394,7 @@ export default function AcademicFlow() {
                   }}
                   className="flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm text-sm"
                 >
-                  <BookOpenCheck className="h-4 w-4" /> Assign Subjects
+                  <BookOpenCheck className="h-4 w-4" /> {t("cls.assign_subjects")}
                 </button>
               )}
               <button
@@ -402,7 +404,7 @@ export default function AcademicFlow() {
                 }}
                 className="flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-orange-100 text-[#b05e1c] font-bold hover:bg-orange-200 transition-colors shadow-sm text-sm"
               >
-                <UserPlus className="h-4 w-4" /> {currentClass.formTeacherId || currentClass.formTeacherName ? 'Change Form Teacher' : 'Form Teacher'}
+                <UserPlus className="h-4 w-4" /> {currentClass.formTeacherId || currentClass.formTeacherName ? t("cls.change_ft") : t("cls.ft")}
               </button>
             </div>
           </div>
@@ -417,7 +419,7 @@ export default function AcademicFlow() {
                   : 'border-transparent text-gray-500 hover:text-gray-950'
               }`}
             >
-              <Users className="h-4 w-4" /> Class Members ({classStudents.length})
+              <Users className="h-4 w-4" /> {t("cls.tab_members", { n: classStudents.length })}
             </button>
             <button
               onClick={() => setActiveTab('subjects')}
@@ -427,7 +429,7 @@ export default function AcademicFlow() {
                   : 'border-transparent text-gray-500 hover:text-gray-950'
               }`}
             >
-              <BookText className="h-4 w-4" /> Curriculum Subjects ({currentClass.subjects?.length || 0})
+              <BookText className="h-4 w-4" /> {t("cls.tab_subjects", { n: currentClass.subjects?.length || 0 })}
             </button>
           </div>
 
@@ -437,13 +439,13 @@ export default function AcademicFlow() {
               {classStudents.length === 0 ? (
                 <div className="py-20 text-center text-gray-500">
                   <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">No students in this class</h3>
-                  <p className="text-sm text-gray-400 mb-6">Assign existing students or enroll new ones.</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">{t("cls.no_students")}</h3>
+                  <p className="text-sm text-gray-400 mb-6">{t("cls.no_students_d")}</p>
                   <button
                     onClick={() => { setShowAddStudentModal(true); setStudentSearchText(''); }}
                     className="px-5 py-2.5 rounded-full border border-gray-200 font-bold hover:bg-gray-50 text-xs transition-colors"
                   >
-                    Add Member
+                    {t("cls.add_member")}
                   </button>
                 </div>
               ) : (
@@ -451,10 +453,10 @@ export default function AcademicFlow() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50/50 border-b border-gray-100">
-                        <th className="py-4 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider">Student Profile</th>
-                        <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Admission No</th>
-                        <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Status</th>
-                        <th className="py-4 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Actions</th>
+                        <th className="py-4 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider">{t("cls.th_profile")}</th>
+                        <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">{t("cls.th_adm")}</th>
+                        <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">{t("stu.status")}</th>
+                        <th className="py-4 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">{t("common.actions")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -477,7 +479,7 @@ export default function AcademicFlow() {
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                               student.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
                             }`}>
-                              {student.status}
+                              {tv("status", student.status)}
                             </span>
                           </td>
                           <td className="py-5 px-8 text-right">
@@ -485,14 +487,14 @@ export default function AcademicFlow() {
                               <button
                                 onClick={() => setShowMoveStudentModal(student)}
                                 className="p-2 text-gray-400 hover:text-[#053d26] hover:bg-green-50 rounded-xl transition-all"
-                                title="Move to another class"
+                                title={t("cls.move_title")}
                               >
                                 <ArrowLeftRight className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => handleRemoveStudent(student.id, student.fullName)}
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                                title="Remove from class"
+                                title={t("cls.remove_title")}
                               >
                                 <UserMinus className="h-4 w-4" />
                               </button>
@@ -510,8 +512,8 @@ export default function AcademicFlow() {
               {!currentClass.subjects || currentClass.subjects.length === 0 ? (
                 <div className="py-20 text-center text-gray-500">
                   <BookText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">No subjects assigned</h3>
-                  <p className="text-sm text-gray-400 mb-6">Assign curriculum subjects to this class tier.</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">{t("cls.no_subjects")}</h3>
+                  <p className="text-sm text-gray-400 mb-6">{t("cls.no_subjects_d")}</p>
                   <button
                     onClick={() => {
                       setSelectedSubjectIds([]);
@@ -519,7 +521,7 @@ export default function AcademicFlow() {
                     }}
                     className="px-5 py-2.5 rounded-full border border-gray-200 font-bold hover:bg-gray-50 text-xs transition-colors"
                   >
-                    Assign Subjects
+                    {t("cls.assign_subjects")}
                   </button>
                 </div>
               ) : (
@@ -527,9 +529,9 @@ export default function AcademicFlow() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50/50 border-b border-gray-100">
-                        <th className="py-4 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider">Subject Name</th>
-                        <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Teacher</th>
-                        <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Type</th>
+                        <th className="py-4 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider">{t("cls.th_subject")}</th>
+                        <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">{t("cls.th_teacher")}</th>
+                        <th className="py-4 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">{t("cls.th_type")}</th>
                         <th className="py-4 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider text-right"></th>
                       </tr>
                     </thead>
@@ -539,9 +541,9 @@ export default function AcademicFlow() {
                         const subId = typeof sub === 'string' ? sub : (subObj?.id || subObj?._id || subObj?.subjectId);
                         if (!subId) return null;
                         const subjectDetail = subjects.find(s => s.id === subId);
-                        const subName = subjectDetail?.name || (typeof sub === 'object' && (subObj?.name || subObj?.subjectName)) || 'Unnamed Subject';
-                        const assignedTeacher = allTeachers.find(t => 
-                          t.assignments?.some(a => a.classId === currentClass.id && a.subjectId === subId)
+                        const subName = subjectDetail?.name || (typeof sub === 'object' && (subObj?.name || subObj?.subjectName)) || t("cls.unnamed");
+                        const assignedTeacher = allTeachers.find(tc => 
+                          tc.assignments?.some(a => a.classId === currentClass.id && a.subjectId === subId)
                         );
                         return (
                           <tr key={subId} className="hover:bg-gray-50/30 transition-colors">
@@ -557,16 +559,16 @@ export default function AcademicFlow() {
                               {assignedTeacher ? (
                                 <span className="text-sm font-semibold text-gray-700">{assignedTeacher.fullName}</span>
                               ) : (
-                                <span className="text-xs text-gray-400 italic font-medium">No teacher assigned</span>
+                                <span className="text-xs text-gray-400 italic font-medium">{t("cls.no_teacher")}</span>
                               )}
                             </td>
-                            <td className="py-5 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Core Curriculum</td>
+                            <td className="py-5 px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">{t("cls.core")}</td>
                             <td className="py-5 px-8 text-right">
                               <button
                                 onClick={() => setViewSowModal({subjectId: subId, subjectName: subName, classId: currentClass.id, className: currentClass.name})}
                                 className="text-xs font-bold text-[#053d26] hover:text-[#042c1b] transition-colors mr-4"
                               >
-                                View Scheme
+                                {t("cls.view_scheme")}
                               </button>
                               <button
                                 onClick={() => {
@@ -580,14 +582,14 @@ export default function AcademicFlow() {
                                   }).filter(Boolean) as string[] || [];
                                   classApi.assignSubjects(currentClass.id, { subjectIds: newSelection })
                                     .then(() => {
-                                      setSuccessMsg("Subject unassigned.");
+                                      setSuccessMsg(t("cls.unassigned_ok"));
                                       fetchData();
                                     })
                                     .catch(err => toast.error(err.message));
                                 }}
                                 className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
                               >
-                                Unassign
+                                {t("cls.unassign")}
                               </button>
                             </td>
                           </tr>
@@ -606,9 +608,9 @@ export default function AcademicFlow() {
           {/* Header Area */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
             <div className="max-w-2xl">
-              <h1 className="text-3xl sm:text-4xl font-bold text-[#053d26] mb-3">Academic Flow</h1>
+              <h1 className="text-3xl sm:text-4xl font-bold text-[#053d26] mb-3">{t("cls.title")}</h1>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Manage classroom tiers, departmental alignment, and subject distribution across all grade levels.
+                {t("cls.subtitle")}
               </p>
             </div>
             <div className="flex flex-wrap gap-3 shrink-0">
@@ -618,7 +620,7 @@ export default function AcademicFlow() {
                   className="flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm text-sm"
                 >
                   <Plus className="h-5 w-5" />
-                  Add New Class
+                  {t("cls.add_class")}
                 </button>
               )}
               <button
@@ -626,7 +628,7 @@ export default function AcademicFlow() {
                 className="flex items-center justify-center gap-2 px-5 sm:px-6 py-3 rounded-full bg-white border border-gray-200 text-gray-900 font-bold hover:bg-gray-50 transition-colors shadow-sm text-sm"
               >
                 <BookOpen className="h-5 w-5" />
-                Subject Library
+                {t("cls.library")}
               </button>
             </div>
           </div>
@@ -634,23 +636,23 @@ export default function AcademicFlow() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             <div className="bg-white rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-4">Total Classes</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-4">{t("dash.total_classes")}</p>
               <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-2">{filteredClasses.length}</div>
-              <p className="text-xs text-gray-500 font-semibold">Registered Classes</p>
+              <p className="text-xs text-gray-500 font-semibold">{t("cls.registered_classes")}</p>
             </div>
             <div className="bg-white rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-4">Curriculum Units</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#b05e1c] mb-4">{t("cls.units")}</p>
               <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-2">{subjects.length}</div>
-              <p className="text-xs text-gray-500 font-semibold">Registered Subjects</p>
+              <p className="text-xs text-gray-500 font-semibold">{t("cls.registered_subjects")}</p>
             </div>
             <div className="bg-[#053d26] rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-sm text-white relative overflow-hidden flex flex-col justify-between">
               <div className="absolute right-0 bottom-0 opacity-10">
                  <Settings className="w-32 h-32 -mb-8 -mr-8" />
               </div>
               <div className="relative z-10">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-green-200/80 mb-4">Total Student Slots</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-green-200/80 mb-4">{t("cls.slots")}</p>
                 <div className="text-4xl sm:text-5xl font-bold mb-2">{totalStudents.toLocaleString()}</div>
-                <p className="text-xs text-green-100 font-semibold">Students across all classes</p>
+                <p className="text-xs text-green-100 font-semibold">{t("cls.across")}</p>
               </div>
             </div>
           </div>
@@ -659,15 +661,15 @@ export default function AcademicFlow() {
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
-              <span className="ml-3 text-gray-500 font-medium">Loading academic data...</span>
+              <span className="ml-3 text-gray-500 font-medium">{t("cls.loading")}</span>
             </div>
           ) : error ? (
             <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-12 text-center">
               <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Failed to load academic data</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">{t("cls.load_failed")}</h3>
               <p className="text-sm text-gray-500 mb-6">{error}</p>
               <button onClick={fetchData} className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors">
-                Retry
+                {t("common.retry")}
               </button>
             </div>
           ) : filteredClasses.length === 0 ? (
@@ -675,12 +677,12 @@ export default function AcademicFlow() {
               <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="h-8 w-8 text-gray-400" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">No classes created yet</h3>
-              <p className="text-sm text-gray-500 mb-6">Add your first class to start building your academic structure.</p>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">{t("cls.empty")}</h3>
+              <p className="text-sm text-gray-500 mb-6">{t("cls.empty_d")}</p>
               {!currentSession && (
                 <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 inline-block">
                   <p className="text-sm text-amber-800 font-medium">
-                    💡 Tip: <Link href="/dashboard/rollover" className="underline font-bold hover:text-amber-900">Create an academic session</Link> first for best results.
+                    {interpolate(t("cls.tip"), { link: <Link href="/dashboard/rollover" className="underline font-bold hover:text-amber-900">{t("cls.tip_link")}</Link> })}
                   </p>
                 </div>
               )}
@@ -689,7 +691,7 @@ export default function AcademicFlow() {
                   onClick={() => { setActiveModal('createClass'); setFormError(''); }}
                   className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
                 >
-                  Add New Class
+                  {t("cls.add_class")}
                 </button>
               </div>
             </div>
@@ -697,15 +699,15 @@ export default function AcademicFlow() {
             <div>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-4">
-                  <h2 className="text-xl font-bold text-gray-900">Registered Classes</h2>
+                  <h2 className="text-xl font-bold text-gray-900">{t("cls.registered_classes")}</h2>
                   <select
                     value={selectedSessionId}
                     onChange={(e) => setSelectedSessionId(e.target.value)}
                     className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#053d26]/20"
                   >
-                    <option value="all">All Sessions</option>
+                    <option value="all">{t("cls.all_sessions")}</option>
                     {allSessions.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? '(Current)' : ''}</option>
+                      <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? t("cls.current") : ''}</option>
                     ))}
                   </select>
                 </div>
@@ -714,13 +716,13 @@ export default function AcademicFlow() {
                     onClick={() => setViewMode('grid')}
                     className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
                   >
-                    Grid View
+                    {t("cls.grid")}
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
                     className={`px-4 py-1.5 rounded-full transition-colors ${viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
                   >
-                    List View
+                    {t("cls.list")}
                   </button>
                 </div>
               </div>
@@ -735,7 +737,7 @@ export default function AcademicFlow() {
                         </div>
                         <div className="text-right">
                           <span className="inline-block px-2 py-1 rounded-full bg-[#b2f2bb] text-[#053d26] text-[10px] font-bold uppercase tracking-widest mb-1">
-                            Active
+                            {tv("status", "Active")}
                           </span>
                         </div>
                       </div>
@@ -744,14 +746,14 @@ export default function AcademicFlow() {
                         <h3 className="text-lg font-bold text-gray-900">{cls.name} {cls.arm ? `(${cls.arm})` : ''}</h3>
                         <div className="flex flex-col items-start gap-1">
                           <p className="text-xs text-gray-500">
-                            {cls.arm ? `Arm: ${cls.arm} • ` : ''}{cls.studentCount ?? 0} Enrolled
+                            {cls.arm ? t("cls.arm_short", { arm: cls.arm }) : ''}{t("cls.enrolled_n", { n: cls.studentCount ?? 0 })}
                           </p>
                           <p className="text-xs font-bold text-[#053d26] bg-green-50 px-2 py-1 rounded-full inline-block mt-1 border border-green-100">
-                            Present Today: {cls.presentCount ?? 0}
+                            {t("cls.present_today", { n: cls.presentCount ?? 0 })}
                           </p>
                           {(cls.formTeacherId || cls.formTeacherName) && (
                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-[#053d26] text-[10px] font-bold uppercase tracking-wide border border-green-100">
-                              👨‍🏫 {allTeachers.find(t => t.id === cls.formTeacherId)?.fullName?.split(' ')[0] || cls.formTeacherName?.split(' ')[0] || 'Assigned'}
+                              👨‍🏫 {allTeachers.find(tc => tc.id === cls.formTeacherId)?.fullName?.split(' ')[0] || cls.formTeacherName?.split(' ')[0] || t("cls.assigned")}
                             </div>
                           )}
                         </div>
@@ -763,7 +765,7 @@ export default function AcademicFlow() {
                             const subObj = subject as any;
                             const subId = typeof subject === 'string' ? subject : (subObj?.id || subObj?._id || subObj?.subjectId);
                             const subjectDetail = subjects.find(s => s.id === subId);
-                            const subName = subjectDetail?.name || (typeof subject === 'object' && (subObj?.name || subObj?.subjectName)) || 'Unnamed Subject';
+                            const subName = subjectDetail?.name || (typeof subject === 'object' && (subObj?.name || subObj?.subjectName)) || t("cls.unnamed");
                             return (
                               <div key={subId} className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
                                 <div className="flex items-center gap-2">
@@ -776,7 +778,7 @@ export default function AcademicFlow() {
                             );
                           })}
                           {cls.subjects.length > 3 && (
-                            <p className="text-xs text-gray-400 text-center">+{cls.subjects.length - 3} more subjects</p>
+                            <p className="text-xs text-gray-400 text-center">{t("cls.more_subjects", { n: cls.subjects.length - 3 })}</p>
                           )}
                         </div>
                       )}
@@ -786,13 +788,13 @@ export default function AcademicFlow() {
                           onClick={() => setSelectedClassId(cls.id)}
                           className="flex-1 py-3 rounded-full bg-[#053d26] text-white hover:bg-[#042c1b] transition-colors text-xs font-bold flex items-center justify-center gap-2"
                         >
-                          View Class
+                          {t("cls.view_class")}
                         </button>
                         {selectedSessionId === currentSession?.id && (
                           <button
                             onClick={() => handleDeleteClass(cls.id)}
                             className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
-                            title="Delete Class"
+                            title={t("cls.delete_class")}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -810,8 +812,8 @@ export default function AcademicFlow() {
                       <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-sm text-[#b05e1c] mb-4">
                         <Plus className="w-8 h-8" />
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">Add New Class</h3>
-                      <p className="text-sm text-gray-500">Create a new class level</p>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">{t("cls.add_class")}</h3>
+                      <p className="text-sm text-gray-500">{t("cls.new_level")}</p>
                     </button>
                   )}
                 </div>
@@ -828,18 +830,18 @@ export default function AcademicFlow() {
                           <div>
                             <div className="font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{cls.name} {cls.arm ? `(${cls.arm})` : ''}</div>
                             <div className="text-xs text-gray-500">
-                              {cls.arm ? `${cls.arm} • ` : ''}{cls.studentCount ?? 0} students ({cls.presentCount ?? 0} present today) • {cls.subjects?.length ?? 0} subjects
-                              {(cls.formTeacherId || cls.formTeacherName) && ` • 👨‍🏫 ${allTeachers.find(t => t.id === cls.formTeacherId)?.fullName || cls.formTeacherName || 'Assigned'}`}
+                              {cls.arm ? `${cls.arm} • ` : ''}{t("cls.list_line", { n: cls.studentCount ?? 0, p: cls.presentCount ?? 0, s: cls.subjects?.length ?? 0 })}
+                              {(cls.formTeacherId || cls.formTeacherName) && ` • 👨‍🏫 ${allTeachers.find(tc => tc.id === cls.formTeacherId)?.fullName || cls.formTeacherName || t("cls.assigned")}`}
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-[#b2f2bb] text-[#053d26] text-[10px] font-bold uppercase tracking-wider">Active</span>
+                          <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-[#b2f2bb] text-[#053d26] text-[10px] font-bold uppercase tracking-wider">{tv("status", "Active")}</span>
                           <button
                             onClick={() => setSelectedClassId(cls.id)}
                             className="text-xs font-bold text-[#053d26] hover:underline px-2"
                           >
-                            View
+                            {t("cls.view")}
                           </button>
                           {selectedSessionId === currentSession?.id && (
                             <button
@@ -861,10 +863,10 @@ export default function AcademicFlow() {
           {/* Setup Navigation Pointers (Eye-level) */}
           <div className="mt-6 flex justify-between items-center bg-white rounded-3xl p-4 sm:p-6 border border-gray-100 shadow-sm">
             <Link href="/dashboard/rollover" className="flex items-center gap-2 text-gray-500 hover:text-[#053d26] font-semibold text-sm transition-colors px-4 py-2 rounded-xl hover:bg-gray-50">
-              <ArrowLeft className="w-4 h-4" /> Previous Step: Session
+              <ArrowLeft className="w-4 h-4" /> {t("cls.prev_step")}
             </Link>
             <Link href="/dashboard/faculty" className="flex items-center gap-2 px-6 py-3 bg-[#053d26] text-white rounded-2xl font-bold text-sm hover:bg-[#042f1d] transition-colors shadow-sm">
-              Next Step: Teachers <ArrowRight className="w-4 h-4" />
+              {t("cls.next_step")} <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </>
@@ -878,17 +880,18 @@ export default function AcademicFlow() {
               <X className="h-5 w-5" />
             </button>
 
-            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Add New Class</h2>
-            <p className="text-sm text-gray-500 mb-6">Create a new class level for your school.</p>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">{t("cls.add_class")}</h2>
+            <p className="text-sm text-gray-500 mb-6">{t("cls.add_class_d")}</p>
 
             {/* No-session warning */}
             {!currentSession && (
               <div className="mb-6 p-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800">
-                <strong>Note:</strong> No active academic session found. It&apos;s recommended to{' '}
-                <Link href="/dashboard/rollover" className="underline font-bold" onClick={() => setActiveModal(null)}>
-                  create a session
-                </Link>{' '}
-                first, but you can still create a class.
+                <strong>{t("cls.note")}</strong>{' '}
+                {interpolate(t("cls.no_session_note"), { link: (
+                  <Link href="/dashboard/rollover" className="underline font-bold" onClick={() => setActiveModal(null)}>
+                    {t("cls.no_session_link")}
+                  </Link>
+                ) })}
               </div>
             )}
 
@@ -897,7 +900,7 @@ export default function AcademicFlow() {
               <div className="mb-6 p-3 rounded-xl bg-green-50 border border-green-200 flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                 <span className="text-sm text-green-800">
-                  Session: <strong>{currentSession.name}</strong> (will be auto-linked)
+                  {interpolate(t("cls.session_badge"), { name: <strong>{currentSession.name}</strong> })}
                 </span>
               </div>
             )}
@@ -908,34 +911,34 @@ export default function AcademicFlow() {
 
             <form onSubmit={handleCreateClass} className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Class Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("cls.class_name")} <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder="e.g. SSS 1, JSS 2, Grade 5"
+                  placeholder={t("cls.class_name_ph")}
                   disabled={isSubmitting}
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Arm / Section (optional)</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("cls.arm_opt")}</label>
                 <input
                   type="text"
                   value={classArm}
                   onChange={(e) => setClassArm(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder="e.g. Science, Arts, Gold"
+                  placeholder={t("cls.arm_ph")}
                   disabled={isSubmitting}
                 />
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setActiveModal(null)} className="flex-1 py-3 rounded-full border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors" disabled={isSubmitting}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button type="submit" disabled={isSubmitting} className="flex-1 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
-                  {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating...</> : <><Plus className="h-4 w-4" /> Create Class</>}
+                  {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /> {t("cls.creating")}</> : <><Plus className="h-4 w-4" /> {t("cls.create")}</>}
                 </button>
               </div>
             </form>
@@ -951,8 +954,8 @@ export default function AcademicFlow() {
               <X className="h-5 w-5" />
             </button>
 
-            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Subject Library</h2>
-            <p className="text-sm text-gray-500 mb-6">Manage your school&apos;s curriculum subjects.</p>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">{t("cls.library")}</h2>
+            <p className="text-sm text-gray-500 mb-6">{t("cls.library_d")}</p>
 
             {/* Add new subject form */}
             <form onSubmit={handleCreateSubject} className="flex gap-2 mb-6">
@@ -961,7 +964,7 @@ export default function AcademicFlow() {
                 value={subjectName}
                 onChange={(e) => setSubjectName(e.target.value)}
                 className="flex-1 rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                placeholder="New subject name..."
+                placeholder={t("cls.new_subject_ph")}
                 disabled={isSubmitting}
               />
               <button
@@ -969,7 +972,7 @@ export default function AcademicFlow() {
                 disabled={isSubmitting || !subjectName.trim()}
                 className="px-5 py-2.5 rounded-xl bg-[#053d26] text-white font-bold text-sm hover:bg-[#042c1b] transition-colors disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
               >
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("cls.add")}
               </button>
             </form>
 
@@ -980,7 +983,7 @@ export default function AcademicFlow() {
             {/* Subject list */}
             <div className="overflow-y-auto flex-1 -mx-2 px-2">
               {subjects.length === 0 ? (
-                <div className="text-center py-12 text-gray-400 text-sm">No subjects yet. Add one above.</div>
+                <div className="text-center py-12 text-gray-400 text-sm">{t("cls.no_subjects_lib")}</div>
               ) : (
                 <div className="space-y-2">
                   {subjects.map(subject => (
@@ -1005,7 +1008,7 @@ export default function AcademicFlow() {
 
             <div className="mt-6 pt-4 border-t border-gray-100">
               <button onClick={() => setActiveModal(null)} className="w-full py-3 rounded-full border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">
-                Close
+                {t("common.close")}
               </button>
             </div>
           </div>
@@ -1020,8 +1023,8 @@ export default function AcademicFlow() {
               <X className="h-5 w-5" />
             </button>
 
-            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Add Student to Class</h2>
-            <p className="text-sm text-gray-500 mb-6">Assign unassigned students to {currentClass?.name}.</p>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">{t("cls.add_to_class")}</h2>
+            <p className="text-sm text-gray-500 mb-6">{t("cls.add_to_class_d", { cls: currentClass?.name || "" })}</p>
 
             <div className="relative mb-6">
               <input
@@ -1029,25 +1032,25 @@ export default function AcademicFlow() {
                 value={studentSearchText}
                 onChange={(e) => setStudentSearchText(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                placeholder="Search by student name or admission number..."
+                placeholder={t("cls.search_ph")}
               />
             </div>
 
             <div className="overflow-y-auto flex-1 space-y-2 pr-1">
               {filteredUnassigned.length === 0 ? (
-                <p className="text-center py-8 text-sm text-gray-400">No unassigned students found.</p>
+                <p className="text-center py-8 text-sm text-gray-400">{t("cls.no_unassigned")}</p>
               ) : (
                 filteredUnassigned.map(student => (
                   <div key={student.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-all">
                     <div>
                       <div className="font-bold text-sm text-gray-900">{student.fullName}</div>
-                      <div className="text-xs text-gray-500">{student.admissionNumber || 'No Admission No'}</div>
+                      <div className="text-xs text-gray-500">{student.admissionNumber || t("cls.no_adm")}</div>
                     </div>
                     <button
                       onClick={() => handleAddStudent(student.id, student.fullName)}
                       className="px-4 py-1.5 rounded-full bg-[#053d26] text-white font-bold text-xs hover:bg-[#042c1b] transition-colors"
                     >
-                      Add
+                      {t("cls.add")}
                     </button>
                   </div>
                 ))
@@ -1056,7 +1059,7 @@ export default function AcademicFlow() {
 
             <div className="mt-6 pt-4 border-t border-gray-100">
               <button onClick={() => setShowAddStudentModal(false)} className="w-full py-3 rounded-full border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">
-                Cancel
+                {t("common.cancel")}
               </button>
             </div>
           </div>
@@ -1071,19 +1074,19 @@ export default function AcademicFlow() {
               <X className="h-5 w-5" />
             </button>
 
-            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Move Student</h2>
-            <p className="text-sm text-gray-500 mb-6">Reassign <strong>{showMoveStudentModal.fullName}</strong> to another class.</p>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">{t("cls.move_student")}</h2>
+            <p className="text-sm text-gray-500 mb-6">{interpolate(t("cls.move_d"), { name: <strong>{showMoveStudentModal.fullName}</strong> })}</p>
 
             <form onSubmit={handleMoveStudent} className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Select Target Class</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("cls.target")}</label>
                 <select
                   value={targetClassId}
                   onChange={(e) => setTargetClassId(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                   required
                 >
-                  <option value="">-- Select Class --</option>
+                  <option value="">{t("cls.select_class")}</option>
                   {classes.filter(c => c.id !== selectedClassId).map(c => (
                     <option key={c.id} value={c.id}>{classLabel(c)}</option>
                   ))}
@@ -1092,10 +1095,10 @@ export default function AcademicFlow() {
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowMoveStudentModal(null)} className="flex-1 py-3 rounded-full border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button type="submit" className="flex-1 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors flex items-center justify-center gap-2">
-                  <ArrowLeftRight className="h-4 w-4" /> Move Student
+                  <ArrowLeftRight className="h-4 w-4" /> {t("cls.move_student")}
                 </button>
               </div>
             </form>
@@ -1111,13 +1114,13 @@ export default function AcademicFlow() {
               <X className="h-5 w-5" />
             </button>
 
-            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Assign Subjects</h2>
-            <p className="text-sm text-gray-500 mb-6">Select subjects to assign to <strong>{currentClass?.name}</strong>.</p>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">{t("cls.assign_subjects")}</h2>
+            <p className="text-sm text-gray-500 mb-6">{interpolate(t("cls.assign_subj_d"), { cls: <strong>{currentClass?.name}</strong> })}</p>
 
             <form onSubmit={handleAssignSubjects} className="flex-1 flex flex-col overflow-hidden">
               <div className="overflow-y-auto flex-1 space-y-3 pr-1">
                 {subjects.length === 0 ? (
-                  <p className="text-center py-8 text-sm text-gray-400">No subjects in library. Please add some first.</p>
+                  <p className="text-center py-8 text-sm text-gray-400">{t("cls.no_lib")}</p>
                 ) : (
                   subjects.map(subject => {
                     const isChecked = selectedSubjectIds.includes(subject.id);
@@ -1144,10 +1147,10 @@ export default function AcademicFlow() {
 
               <div className="flex gap-3 pt-6 border-t border-gray-100 mt-6">
                 <button type="button" onClick={() => setShowAssignSubjectsModal(false)} className="flex-1 py-3 rounded-full border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button type="submit" className="flex-1 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors">
-                  Save Assignments
+                  {t("cls.save_assign")}
                 </button>
               </div>
             </form>
@@ -1164,21 +1167,21 @@ export default function AcademicFlow() {
             >
               <X className="h-5 w-5" />
             </button>
-            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Assign Form Teacher</h2>
-            <p className="text-sm text-gray-500 mb-8">Assign a form teacher to {showAssignFormTeacherModal.name}</p>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">{t("cls.assign_ft")}</h2>
+            <p className="text-sm text-gray-500 mb-8">{t("cls.assign_ft_d", { cls: showAssignFormTeacherModal.name })}</p>
 
             <form onSubmit={handleAssignFormTeacher} className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Teacher</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("cls.th_teacher")}</label>
                 <select
                   value={formTeacherId}
                   onChange={(e) => setFormTeacherId(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                   required
                 >
-                  <option value="">Select a Teacher</option>
-                  {allTeachers.map(t => (
-                    <option key={t.id} value={t.id}>{t.fullName}</option>
+                  <option value="">{t("cls.select_teacher")}</option>
+                  {allTeachers.map(tc => (
+                    <option key={tc.id} value={tc.id}>{tc.fullName}</option>
                   ))}
                 </select>
               </div>
@@ -1189,7 +1192,7 @@ export default function AcademicFlow() {
                   className="flex-1 py-3 rounded-full border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors"
                   disabled={isSubmitting}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -1199,12 +1202,12 @@ export default function AcademicFlow() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
+                      {t("common.saving")}
                     </>
                   ) : (
                     <>
                       <UserPlus className="h-4 w-4" />
-                      Assign
+                      {t("cls.assign")}
                     </>
                   )}
                 </button>
@@ -1229,11 +1232,11 @@ export default function AcademicFlow() {
                   sowStatus === 'Rejected' ? 'bg-red-100 text-red-700' :
                   'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {sowStatus}
+                  {tv("approval", sowStatus)}
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-500 mb-6">Scheme of Work for <strong>{viewSowModal.className}</strong></p>
+            <p className="text-sm text-gray-500 mb-6">{interpolate(t("cls.sow_for"), { cls: <strong>{viewSowModal.className}</strong> })}</p>
             
             <div className="flex-1 overflow-y-auto space-y-4 pr-2">
               {sowLoading ? (
@@ -1243,27 +1246,27 @@ export default function AcademicFlow() {
               ) : sowTopics.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                   <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-medium">No scheme of work published yet.</p>
+                  <p className="text-gray-500 font-medium">{t("cls.no_sow")}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100 border border-gray-100 rounded-2xl bg-white overflow-hidden">
-                  {sowTopics.map((t: any, i: number) => (
+                  {sowTopics.map((tp: any, i: number) => (
                     <div key={i} className="p-5 flex gap-6 hover:bg-gray-50/50 transition-colors">
                       <div className="w-16 shrink-0">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Week</span>
-                        <span className="text-xl font-bold text-[#053d26]">{t.week}</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">{t("cls.week")}</span>
+                        <span className="text-xl font-bold text-[#053d26]">{tp.week}</span>
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold text-gray-900 text-base">{t.topic}</h4>
-                          {t.isCompleted && (
+                          <h4 className="font-bold text-gray-900 text-base">{tp.topic}</h4>
+                          {tp.isCompleted && (
                             <span className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
                               <CheckCircle2 className="w-3 h-3" />
-                              Completed
+                              {t("common.completed")}
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-600 text-sm leading-relaxed">{t.description}</p>
+                        <p className="text-gray-600 text-sm leading-relaxed">{tp.description}</p>
                       </div>
                     </div>
                   ))}
@@ -1281,16 +1284,16 @@ export default function AcademicFlow() {
                         setIsReviewingSow(true);
                         await schemeOfWorkApi.review(sowId, { status: "Approved" });
                         setSowStatus("Approved");
-                        toast.success("Scheme of work approved!");
+                        toast.success(t("cls.sow_approved"));
                       } catch (err: any) {
-                        toast.error(err.message || "Failed to approve");
+                        toast.error(err.message || t("cls.approve_failed"));
                       } finally {
                         setIsReviewingSow(false);
                       }
                     }}
                     className="flex-1 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50"
                   >
-                    {isReviewingSow ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Approve Scheme"}
+                    {isReviewingSow ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t("cls.approve_scheme")}
                   </button>
                 )}
                 
@@ -1298,7 +1301,7 @@ export default function AcademicFlow() {
                   <div className="flex-1 flex gap-2">
                     <input 
                       type="text" 
-                      placeholder="Rejection reason..." 
+                      placeholder={t("cls.reject_ph")} 
                       value={sowRejectionReason}
                       onChange={(e) => setSowRejectionReason(e.target.value)}
                       className="flex-1 border border-gray-200 rounded-full px-4 outline-none focus:border-red-400 text-sm"
@@ -1310,16 +1313,16 @@ export default function AcademicFlow() {
                           setIsReviewingSow(true);
                           await schemeOfWorkApi.review(sowId, { status: "Rejected", rejectionReason: sowRejectionReason });
                           setSowStatus("Rejected");
-                          toast.success("Scheme of work rejected!");
+                          toast.success(t("cls.sow_rejected"));
                         } catch (err: any) {
-                          toast.error(err.message || "Failed to reject");
+                          toast.error(err.message || t("cls.reject_failed"));
                         } finally {
                           setIsReviewingSow(false);
                         }
                       }}
                       className="px-6 py-3 rounded-full bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors disabled:opacity-50"
                     >
-                      Reject
+                      {t("cls.reject")}
                     </button>
                   </div>
                 )}

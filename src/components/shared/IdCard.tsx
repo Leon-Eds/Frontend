@@ -1,6 +1,7 @@
 "use client";
 
 import React, { forwardRef } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 import QRCode from "react-qr-code";
 import { UserPlus, User, Phone, Users, IdCard as IdCardIcon, GraduationCap, Calendar } from "lucide-react";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
@@ -20,6 +21,7 @@ interface IdCardProps {
 
 const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
   ({ student, schoolInfo, principalName = "Principal", idCardColor }, ref) => {
+    const { t } = useLanguage();
     const themeColor = idCardColor || schoolInfo.theme || "#053d26";
     const accentColor = "#eab308"; // Gold/Yellow accent from design
 
@@ -50,14 +52,14 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
             {/* School Logo & Name */}
             <div className="flex flex-col items-center mb-2">
               {schoolInfo.logo ? (
-                <img src={schoolInfo.logo} alt="School Logo" className="h-10 max-w-[160px] object-contain mb-1" crossOrigin="anonymous" />
+                <img src={schoolInfo.logo} alt={t("layout.school_logo")} className="h-10 max-w-[160px] object-contain mb-1" crossOrigin="anonymous" />
               ) : (
                 <div className="h-10 w-10 rounded-full bg-white text-gray-900 flex items-center justify-center font-black text-xl mb-1 shadow-sm">
                   {schoolInfo.name?.charAt(0) || "S"}
                 </div>
               )}
               <h1 className="text-[10px] font-black text-gray-900 text-center uppercase leading-tight tracking-wider mt-1 w-full truncate px-2">
-                {schoolInfo.name || "LeonEd Institution"}
+                {schoolInfo.name || t("sid.institution")}
               </h1>
             </div>
 
@@ -77,7 +79,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
               {student.fullName}
             </h2>
             <div className="px-4 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-widest mb-4" style={{ backgroundColor: accentColor }}>
-              STUDENT
+              {t("idc.student")}
             </div>
 
             {/* Details List */}
@@ -87,7 +89,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
                   <IdCardIcon className="w-3 h-3 text-white" />
                 </div>
                 <div className="flex text-[10px] font-bold">
-                  <span className="text-gray-500 w-20">STUDENT ID:</span>
+                  <span className="text-gray-500 w-20">{t("idc.student_id")}</span>
                   <span className="text-gray-900 uppercase">{student.admissionNumber || student.studentId || 'N/A'}</span>
                 </div>
               </div>
@@ -97,7 +99,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
                   <GraduationCap className="w-3 h-3 text-white" />
                 </div>
                 <div className="flex text-[10px] font-bold">
-                  <span className="text-gray-500 w-20">CLASS:</span>
+                  <span className="text-gray-500 w-20">{t("idc.class")}</span>
                   <span className="text-gray-900 uppercase">{student.className || student.formClass || student.class?.name || 'N/A'}</span>
                 </div>
               </div>
@@ -107,7 +109,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
                   <Calendar className="w-3 h-3 text-white" />
                 </div>
                 <div className="flex text-[10px] font-bold">
-                  <span className="text-gray-500 w-20">ISSUE DATE:</span>
+                  <span className="text-gray-500 w-20">{t("idc.issue")}</span>
                   <span className="text-gray-900 uppercase">{issueDate}</span>
                 </div>
               </div>
@@ -143,14 +145,14 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
             {schoolInfo.logo && (
               // White circular badge keeps the logo readable on the theme band
               <div className="w-16 h-16 rounded-full bg-white p-2 shadow-md flex items-center justify-center overflow-hidden mb-1.5 shrink-0">
-                <img src={schoolInfo.logo} alt="School Logo" className="max-w-full max-h-full object-contain" crossOrigin="anonymous" />
+                <img src={schoolInfo.logo} alt={t("layout.school_logo")} className="max-w-full max-h-full object-contain" crossOrigin="anonymous" />
               </div>
             )}
             <div className="font-black text-white text-[11px] uppercase tracking-wider text-center leading-tight">
-              {schoolInfo.name || "LeonEd Institution"}
+              {schoolInfo.name || t("sid.institution")}
             </div>
             <h4 className="text-[9px] font-black text-center text-white opacity-90 mt-3">
-              IF FOUND, PLEASE RETURN TO:
+              {t("idc.if_found")}
             </h4>
           </div>
 
@@ -162,8 +164,8 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
                   <User className="w-3 h-3 text-white" />
                 </div>
                 <div className="flex flex-col text-[9px] font-bold">
-                  <span className="text-gray-500">NAME:</span>
-                  <span className="text-gray-900 uppercase">{schoolInfo.name || 'N/A'}</span>
+                  <span className="text-gray-500">{t("idc.name")}</span>
+                  <span className="text-gray-900 uppercase">{schoolInfo.name || t("common.na")}</span>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -171,7 +173,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
                   <Phone className="w-3 h-3 text-white" />
                 </div>
                 <div className="flex flex-col text-[9px] font-bold">
-                  <span className="text-gray-500">PHONE:</span>
+                  <span className="text-gray-500">{t("idc.phone")}</span>
                   <span className="text-gray-900 uppercase">{schoolInfo.phone || 'N/A'}</span>
                 </div>
               </div>
@@ -180,20 +182,20 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
                   <Users className="w-3 h-3 text-white" />
                 </div>
                 <div className="flex flex-col text-[9px] font-bold">
-                  <span className="text-gray-500">RELATIONSHIP:</span>
-                  <span className="text-gray-900 uppercase">School Admin</span>
+                  <span className="text-gray-500">{t("idc.relationship")}</span>
+                  <span className="text-gray-900 uppercase">{t("idc.school_admin")}</span>
                 </div>
               </div>
             </div>
 
             <div className="w-full border-t border-gray-200 mb-2"></div>
 
-            <h4 className="text-[8px] font-black text-center text-gray-900 mb-2">TERMS & CONDITIONS</h4>
+            <h4 className="text-[8px] font-black text-center text-gray-900 mb-2">{t("idc.terms")}</h4>
             <ul className="text-[7px] text-gray-600 font-medium space-y-0.5 pl-2 list-disc ml-2">
-              <li>This card is the property of the school.</li>
-              <li>It must be worn at all times on school premises.</li>
-              <li>This card is non-transferable.</li>
-              <li>Report loss of this card to the school office immediately.</li>
+              <li>{t("idc.t1")}</li>
+              <li>{t("idc.t2")}</li>
+              <li>{t("idc.t3")}</li>
+              <li>{t("idc.t4")}</li>
             </ul>
           </div>
 
@@ -213,7 +215,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
             </div>
             
             <p className="text-[7px] text-white font-medium z-10 tracking-widest uppercase opacity-90 relative">
-              {schoolInfo.address || "STUDENT ID CARD"}
+              {schoolInfo.address || t("idc.card_label")}
             </p>
           </div>
         </div>

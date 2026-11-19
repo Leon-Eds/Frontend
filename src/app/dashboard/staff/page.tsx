@@ -4,10 +4,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { UserPlus, X, Loader2, Users, MoreVertical, Sparkles, AlertCircle } from 'lucide-react';
 import { staffApi, Staff, CreateStaffRequest, UpdateStaffRequest, bursarApi, attendanceOfficerApi } from '@/lib/api';
 
-const roleLabel = (role?: string) => role === 'AttendanceOfficer' ? 'Attendance Officer' : role || 'Staff';
 import toast from 'react-hot-toast';
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function StaffDirectory() {
+  const { t, tv } = useLanguage();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -56,7 +57,7 @@ export default function StaffDirectory() {
       const officers = await attendanceOfficerApi.getAll().catch(() => []);
       setStaff([...validItems, ...officers]);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to load staff";
+      const message = err instanceof Error ? err.message : "stf.load_failed";
       if (message.includes("404")) {
         setStaff([]);
       } else {
@@ -76,17 +77,17 @@ export default function StaffDirectory() {
     setFormError("");
 
     if (!formData.fullName.trim() || !formData.email.trim() || !formData.password?.trim()) {
-      setFormError("Full name, email, and password are required.");
+      setFormError(t("fac.required"));
       return;
     }
 
     if (formData.password && formData.password.length < 6) {
-      setFormError("Password must be at least 6 characters.");
+      setFormError(t("fac.pw_len"));
       return;
     }
 
     if (formData.password !== confirmPassword) {
-      setFormError("Passwords do not match.");
+      setFormError(t("fac.pw_match"));
       return;
     }
 
@@ -101,14 +102,14 @@ export default function StaffDirectory() {
       } else {
         await staffApi.create(formData);
       }
-      toast.success("Staff created successfully!");
+      toast.success(t("stf.created"));
       setShowModal(false);
       setFormData({ fullName: '', email: '', phone: '', password: '', role: 'Bursar' });
       setConfirmPassword('');
       await fetchStaffs();
     } catch (err: unknown) {
       console.error('[Staff Page] Creation failed. Full error:', err);
-      const message = err instanceof Error ? err.message : "Failed to create staff";
+      const message = err instanceof Error ? err.message : t("stf.create_failed");
       setFormError(message);
     } finally {
       setIsSubmitting(false);
@@ -121,21 +122,21 @@ export default function StaffDirectory() {
     setFormError("");
 
     if (!editFormData.fullName?.trim()) {
-      setFormError("Full name is required.");
+      setFormError(t("fac.name_required"));
       return;
     }
 
     setIsSubmitting(true);
     try {
       const updated = await staffApi.update(editModal.staff.id, editFormData);
-      toast.success("Staff updated successfully!");
+      toast.success(t("stf.updated"));
       setEditModal({isOpen: false, staff: null});
       if (activeStaff && activeStaff.id === editModal.staff.id) {
          setActiveStaff({ ...activeStaff, ...updated });
       }
       await fetchStaffs();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to update staff");
+      setFormError(err instanceof Error ? err.message : t("stf.update_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -161,12 +162,12 @@ export default function StaffDirectory() {
         await staffApi.delete(deleteModal.staffId);
       }
       
-      toast.success("Staff deleted successfully");
+      toast.success(t("stf.deleted"));
       if (activeStaff?.id === deleteModal.staffId) setActiveStaff(null);
       await fetchStaffs();
       setDeleteModal({ isOpen: false, staffId: null });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete staff");
+      toast.error(err instanceof Error ? err.message : t("stf.delete_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -177,7 +178,7 @@ export default function StaffDirectory() {
       <div className="flex h-[80vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-[#053d26]" />
-          <p className="text-sm font-medium text-gray-500 uppercase tracking-widest">Loading Support Staff...</p>
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-widest">{t("stf.loading")}</p>
         </div>
       </div>
     );
@@ -191,13 +192,13 @@ export default function StaffDirectory() {
         
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 border border-gray-200/60 backdrop-blur-sm mb-2 shadow-sm">
-            <span className="text-xs font-bold uppercase tracking-widest text-gray-600">Personnel Management</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-gray-600">{t("stf.badge")}</span>
           </div>
           <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">
-            Support Staff
+            {t("layout.nav.support_staff")}
           </h1>
           <p className="text-sm lg:text-base text-gray-500 max-w-xl leading-relaxed">
-            Manage your administrative and support staff. Create accounts for Bursars and Attendance Officers, who can scan any student's ID card to take attendance.
+            {t("stf.subtitle")}
           </p>
         </div>
 
@@ -208,7 +209,7 @@ export default function StaffDirectory() {
           >
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
             <UserPlus className="h-4 w-4 relative z-10" />
-            <span className="relative z-10">Add Staff</span>
+            <span className="relative z-10">{t("stf.add")}</span>
           </button>
         </div>
       </div>
@@ -218,13 +219,13 @@ export default function StaffDirectory() {
           <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Failed to load staff</h3>
-          <p className="text-sm text-gray-500 mb-6 max-w-md">{error}</p>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">{t("stf.load_failed")}</h3>
+          <p className="text-sm text-gray-500 mb-6 max-w-md">{t(error)}</p>
           <button 
             onClick={fetchStaffs}
             className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
           >
-            Try Again
+            {t("stf.try_again")}
           </button>
         </div>
       ) : staff.length === 0 ? (
@@ -232,14 +233,14 @@ export default function StaffDirectory() {
           <div className="w-16 h-16 bg-[#053d26]/5 text-[#053d26] rounded-full flex items-center justify-center mb-4 ring-8 ring-[#053d26]/[0.02]">
             <Users className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">No staff yet</h3>
-          <p className="text-sm text-gray-500 mb-6 max-w-md">Add your first support staff member to get started.</p>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">{t("stf.empty")}</h3>
+          <p className="text-sm text-gray-500 mb-6 max-w-md">{t("stf.empty_d")}</p>
           <button
             onClick={() => setShowModal(true)}
             className="px-6 py-2.5 rounded-xl bg-[#053d26] text-white text-sm font-semibold hover:bg-[#064e31] transition-colors inline-flex items-center gap-2"
           >
             <UserPlus className="w-4 h-4" />
-            Add Staff
+            {t("stf.add")}
           </button>
         </div>
       ) : (
@@ -258,20 +259,20 @@ export default function StaffDirectory() {
                 </div>
                 <div className="relative">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#053d26]/10 text-[#053d26]">
-                    {roleLabel(s.role)}
+                    {tv("role", s.role || "Staff")}
                   </span>
                 </div>
               </div>
               <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
                 <div className="text-xs text-gray-500 flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" />
-                  ID: {s.id.substring(0, 8)}
+                  {t("stf.id", { id: s.id.substring(0, 8) })}
                 </div>
                 <button
                   onClick={() => handleDeleteStaff(s.id)}
                   className="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
                 >
-                  Remove
+                  {t("common.remove")}
                 </button>
               </div>
             </div>
@@ -285,7 +286,7 @@ export default function StaffDirectory() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !isSubmitting && setShowModal(false)} />
           <div className="relative w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h3 className="text-lg font-bold text-gray-900">Add New Staff</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("stf.add_title")}</h3>
               <button 
                 onClick={() => setShowModal(false)}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-full transition-all"
@@ -305,7 +306,7 @@ export default function StaffDirectory() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("stu.full_name")} <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={formData.fullName}
@@ -315,7 +316,7 @@ export default function StaffDirectory() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("fac.email")} <span className="text-red-500">*</span></label>
                   <input
                     type="email"
                     value={formData.email}
@@ -325,18 +326,18 @@ export default function StaffDirectory() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Role</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("stf.role")}</label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26]"
                   >
-                    <option value="Bursar">Bursar / Finance Officer</option>
-                    <option value="AttendanceOfficer">Attendance Officer (scans student ID cards)</option>
+                    <option value="Bursar">{t("stf.role_bursar")}</option>
+                    <option value="AttendanceOfficer">{t("stf.role_ao")}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("enr.s4.password")} <span className="text-red-500">*</span></label>
                   <input
                     type="password"
                     value={formData.password}
@@ -346,7 +347,7 @@ export default function StaffDirectory() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("fac.confirm_pw")} <span className="text-red-500">*</span></label>
                   <input
                     type="password"
                     value={confirmPassword}
@@ -364,14 +365,14 @@ export default function StaffDirectory() {
                   className="flex-1 px-4 py-3 text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
                   disabled={isSubmitting}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-[#053d26] hover:bg-[#064e31] rounded-xl transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Staff"}
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("stf.create")}
                 </button>
               </div>
             </form>
@@ -387,9 +388,9 @@ export default function StaffDirectory() {
               <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-6">
                 <AlertCircle className="h-8 w-8 text-red-500" />
               </div>
-              <h3 className="text-xl font-black text-gray-900 mb-2">Delete Staff Member</h3>
+              <h3 className="text-xl font-black text-gray-900 mb-2">{t("stf.delete_title")}</h3>
               <p className="text-sm text-gray-500 font-medium px-4 mb-8">
-                Are you sure you want to remove this staff member? This action cannot be undone and will revoke their access.
+                {t("stf.delete_d")}
               </p>
               <div className="flex gap-3 w-full">
                 <button
@@ -398,14 +399,14 @@ export default function StaffDirectory() {
                   className="flex-1 px-4 py-3 text-sm font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
                   disabled={isSubmitting}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   onClick={confirmDeleteStaff}
                   disabled={isSubmitting}
                   className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Yes, delete"}
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("stf.yes_delete")}
                 </button>
               </div>
             </div>

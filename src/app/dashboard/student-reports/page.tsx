@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { Share2, Download, Award, Calendar, CheckCircle2, TrendingUp, BarChart2, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import { reportCardApi, sessionApi, studentApi } from "@/lib/api";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface SubjectScore {
   name: string;
@@ -17,6 +18,7 @@ interface SubjectScore {
 }
 
 export default function StudentDetailedReport() {
+  const { t } = useLanguage();
   const [subjects, setSubjects] = useState<SubjectScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -39,7 +41,7 @@ export default function StudentDetailedReport() {
         // Get current user info from localStorage
         const userStr = localStorage.getItem("leoned_user");
         if (!userStr) {
-          setError("Please log in to view your report.");
+          setError("srep.login");
           setIsLoading(false);
           return;
         }
@@ -54,7 +56,7 @@ export default function StudentDetailedReport() {
         const sessions = await sessionApi.getAll();
         const currentSession = (Array.isArray(sessions) ? sessions : []).find((s: any) => s.isCurrent);
         if (!currentSession) {
-          setError("No active academic session found.");
+          setError("srep.no_session");
           setIsLoading(false);
           return;
         }
@@ -62,7 +64,7 @@ export default function StudentDetailedReport() {
 
         const currentTerm = currentSession.terms?.find((t: any) => t.isCurrent);
         if (!currentTerm) {
-          setError("No active term found in the current session.");
+          setError("srep.no_term");
           setIsLoading(false);
           return;
         }
@@ -78,15 +80,15 @@ export default function StudentDetailedReport() {
         }
 
         if (!targetStudent) {
-          setError("No students found to generate a report for.");
+          setError("srep.no_students");
           setIsLoading(false);
           return;
         }
 
-        setStudentName(targetStudent.fullName || "Student");
+        setStudentName(targetStudent.fullName || "");
         setRealStudentId(targetStudent.id);
         setStudentId(targetStudent.admissionNumber || targetStudent.id);
-        setStudentClass(targetStudent.className || "Unassigned");
+        setStudentClass(targetStudent.className || "");
         setTotalStudents(allStudents.length);
 
         // Fetch report card data
@@ -102,7 +104,7 @@ export default function StudentDetailedReport() {
             const total = Number(item.total || ca + exam);
             const grade = item.grade || (total >= 75 ? "A+" : total >= 70 ? "A" : total >= 60 ? "B+" : total >= 50 ? "B" : total >= 40 ? "C" : "F");
             subjectScores.push({
-              name: item.subjectName || item.name || "Unknown Subject",
+              name: item.subjectName || item.name || "—",
               ca: ca || Number(item.ca || 0),
               exam,
               total,
@@ -126,7 +128,7 @@ export default function StudentDetailedReport() {
         setPrincipalComment(reportData?.principalComment || reportData?.headTeacherComment || reportData?.adminComment || "");
 
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Failed to load report card data";
+        const message = err instanceof Error ? err.message : "srep.load_failed";
         console.error("[Student Reports]", err);
         setError(message);
       } finally {
@@ -138,7 +140,7 @@ export default function StudentDetailedReport() {
 
   const handleDownloadPdf = async () => {
     if (!realStudentId || !currentTermId) {
-      toast.error("Missing information to download report.");
+      toast.error(t("srep.missing"));
       return;
     }
     
@@ -154,7 +156,7 @@ export default function StudentDetailedReport() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to download PDF";
+      const message = err instanceof Error ? err.message : t("common.download_failed");
       console.error("[Student Reports] PDF Download Error:", err);
       toast.error(message);
     } finally {
@@ -168,7 +170,7 @@ export default function StudentDetailedReport() {
     return (
       <div className="flex items-center justify-center min-h-[50vh] text-gray-400 font-semibold text-sm">
         <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        Loading report card...
+        {t("srep.loading")}
       </div>
     );
   }
@@ -177,7 +179,7 @@ export default function StudentDetailedReport() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
         <AlertCircle className="h-10 w-10 text-red-400" />
-        <p className="text-red-600 font-semibold text-sm">{error}</p>
+        <p className="text-red-600 font-semibold text-sm">{t(error)}</p>
       </div>
     );
   }
@@ -188,18 +190,18 @@ export default function StudentDetailedReport() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <p className="text-[10px] font-black uppercase tracking-widest text-[#b05e1c]">
-            ACTIVE ACADEMIC TERM • {sessionName || "Current Session"}
+            {t("srep.active_term", { name: sessionName || t("sow.current_session") })}
           </p>
-          <h1 className="text-3xl font-bold text-[#053d26]">Detailed Academic Report</h1>
+          <h1 className="text-3xl font-bold text-[#053d26]">{t("srep.title")}</h1>
           <p className="text-gray-500 leading-relaxed text-sm">
-            Comprehensive performance analysis and subject breakdown for the current semester.
+            {t("srep.subtitle")}
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           <button className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all text-sm shadow-sm">
             <Share2 className="h-4 w-4" />
-            Share Report
+            {t("srep.share")}
           </button>
           <button 
             onClick={handleDownloadPdf}
@@ -207,7 +209,7 @@ export default function StudentDetailedReport() {
             className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {isDownloading ? "Downloading..." : "Download PDF Report"}
+            {isDownloading ? t("srep.downloading") : t("srep.download")}
           </button>
         </div>
       </div>
@@ -224,17 +226,17 @@ export default function StudentDetailedReport() {
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-gray-900 leading-tight">{studentName}</h3>
-            <p className="text-xs text-gray-400 font-semibold mt-1">Student ID: {studentId}</p>
+            <h3 className="text-lg font-bold text-gray-900 leading-tight">{studentName || t("stu.student")}</h3>
+            <p className="text-xs text-gray-400 font-semibold mt-1">{t("srep.student_id", { id: studentId })}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4 w-full border-t border-gray-100 pt-4 mt-4">
             <div>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Grade Level</p>
-              <p className="text-xs font-bold text-gray-700 mt-0.5">{studentClass}</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t("srep.grade_level")}</p>
+              <p className="text-xs font-bold text-gray-700 mt-0.5">{studentClass || t("common.unassigned")}</p>
             </div>
             <div>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Subjects</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t("srep.subjects")}</p>
               <p className="text-xs font-bold text-gray-700 mt-0.5">{subjects.length}</p>
             </div>
           </div>
@@ -249,11 +251,11 @@ export default function StudentDetailedReport() {
             <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center mb-4">
               <TrendingUp className="w-5 h-5 text-green-300" />
             </div>
-            <p className="text-xs font-bold text-green-200 uppercase tracking-wider">Term Average</p>
+            <p className="text-xs font-bold text-green-200 uppercase tracking-wider">{t("srep.term_avg")}</p>
             <p className="text-4xl font-black mt-2">{termAverage}%</p>
           </div>
           <p className="text-[10px] text-green-200 font-bold uppercase tracking-wider pt-4 border-t border-white/10 mt-4">
-            Across {subjects.length} subjects
+            {t("srep.across", { n: subjects.length })}
           </p>
         </div>
 
@@ -266,11 +268,11 @@ export default function StudentDetailedReport() {
             <div className="w-10 h-10 rounded-2xl bg-[#b05e1c]/10 flex items-center justify-center mb-4">
               <BarChart2 className="w-5 h-5 text-[#b05e1c]" />
             </div>
-            <p className="text-xs font-bold text-[#b05e1c] uppercase tracking-wider">Class Position</p>
+            <p className="text-xs font-bold text-[#b05e1c] uppercase tracking-wider">{t("srep.class_pos")}</p>
             <p className="text-4xl font-black mt-2 text-[#b05e1c]">{classPosition} / {totalStudents}</p>
           </div>
           <p className="text-[10px] text-[#b05e1c] font-bold uppercase tracking-wider pt-4 border-t border-[#b05e1c]/10 mt-4">
-            Overall Performance
+            {t("srep.overall")}
           </p>
         </div>
 
@@ -283,11 +285,11 @@ export default function StudentDetailedReport() {
             <div className="w-10 h-10 rounded-2xl bg-white/50 border border-gray-200 flex items-center justify-center mb-4">
               <Calendar className="w-5 h-5 text-gray-500" />
             </div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Excellent Scores</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("srep.excellent")}</p>
             <p className="text-4xl font-black mt-2 text-gray-900">{subjects.filter(s => s.isExcellent).length}</p>
           </div>
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pt-4 border-t border-gray-200 mt-4">
-            Subjects scoring 75%+
+            {t("srep.excellent_d")}
           </p>
         </div>
       </div>
@@ -296,15 +298,15 @@ export default function StudentDetailedReport() {
       {subjects.length > 0 && (
         <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-50 pb-6">
-            <h2 className="text-xl font-bold text-gray-900">Subject Performance Details</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("srep.details")}</h2>
             <div className="flex items-center gap-4 text-[10px] font-bold tracking-wider">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                <span className="text-gray-500">EXCELLENT</span>
+                <span className="text-gray-500">{t("srep.excellent_up")}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
-                <span className="text-gray-500">NEEDS FOCUS</span>
+                <span className="text-gray-500">{t("srep.needs_focus")}</span>
               </div>
             </div>
           </div>
@@ -313,12 +315,12 @@ export default function StudentDetailedReport() {
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="text-[10px] font-black uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-3">
-                  <th className="pb-3 pr-4">Subject</th>
-                  <th className="pb-3 px-4 text-center">CA (40)</th>
-                  <th className="pb-3 px-4 text-center">Exam (60)</th>
-                  <th className="pb-3 px-4 text-center">Total (100)</th>
-                  <th className="pb-3 px-4 text-center">Grade</th>
-                  <th className="pb-3 pl-4">Teacher&apos;s Remark</th>
+                  <th className="pb-3 pr-4">{t("fac.subject")}</th>
+                  <th className="pb-3 px-4 text-center">{t("srep.ca")}</th>
+                  <th className="pb-3 px-4 text-center">{t("re.exam")}</th>
+                  <th className="pb-3 px-4 text-center">{t("srep.total")}</th>
+                  <th className="pb-3 px-4 text-center">{t("re.grade")}</th>
+                  <th className="pb-3 pl-4">{t("apr.teacher_remark")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -355,7 +357,7 @@ export default function StudentDetailedReport() {
 
       {subjects.length === 0 && !isLoading && (
         <div className="bg-white rounded-[2rem] p-12 shadow-sm border border-gray-100 text-center">
-          <p className="text-gray-400 font-semibold text-sm">No subject scores available for this term yet.</p>
+          <p className="text-gray-400 font-semibold text-sm">{t("srep.no_scores")}</p>
         </div>
       )}
 
@@ -365,8 +367,8 @@ export default function StudentDetailedReport() {
           <div className="lg:col-span-2 bg-white rounded-[2rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Performance Summary</h2>
-                <p className="text-xs text-gray-400 font-semibold mt-0.5">Subject-by-subject breakdown</p>
+                <h2 className="text-lg font-bold text-gray-900">{t("srep.summary")}</h2>
+                <p className="text-xs text-gray-400 font-semibold mt-0.5">{t("srep.summary_d")}</p>
               </div>
             </div>
 
@@ -391,23 +393,23 @@ export default function StudentDetailedReport() {
             <div className="bg-[#053d26] text-white rounded-[2rem] p-6 sm:p-8 border border-[#042c1b] shadow-sm space-y-4">
               <h3 className="text-sm font-bold text-green-300 uppercase tracking-wider flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5" />
-                Academic Insights
+                {t("srep.insights")}
               </h3>
               <div className="space-y-3 text-xs leading-relaxed text-green-100/90 font-medium">
                 <div className="flex gap-2">
                   <span className="text-green-300">📈</span>
-                  <p>{studentName} achieved a term average of {termAverage}% across {subjects.length} subjects.</p>
+                  <p>{t("srep.avg_line", { name: studentName || t("stu.student"), avg: termAverage, n: subjects.length })}</p>
                 </div>
                 <div className="flex gap-2">
                   <span className="text-green-300">★</span>
-                  <p>{subjects.filter(s => s.isExcellent).length} subject{subjects.filter(s => s.isExcellent).length !== 1 ? "s" : ""} scored in the excellent range (75%+).</p>
+                  <p>{t(subjects.filter(s => s.isExcellent).length === 1 ? "srep.excellent_one" : "srep.excellent_many", { n: subjects.filter(s => s.isExcellent).length })}</p>
                 </div>
               </div>
             </div>
 
             {principalComment && (
               <div className="bg-gray-100 rounded-[2rem] p-6 sm:p-8 border border-gray-200 shadow-sm space-y-4">
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Teacher Recommendations</h3>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">{t("srep.recommendations")}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed font-semibold">
                   {principalComment}
                 </p>
@@ -419,7 +421,7 @@ export default function StudentDetailedReport() {
                     </div>
                     <div>
                       <p className="text-xs font-bold text-gray-900">{principalName}</p>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Principal</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t("srep.principal")}</p>
                     </div>
                   </div>
                 )}

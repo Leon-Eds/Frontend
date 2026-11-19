@@ -20,8 +20,10 @@ import { dashboardApi, schoolApi } from "@/lib/api";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 import { formatDate, authApi, teacherApi, studentApi } from "@/lib/api";
 import toast from "react-hot-toast";
+import { useLanguage, interpolate } from "@/components/LanguageProvider";
 
 export default function GlobalUsersManagement() {
+  const { t, tv } = useLanguage();
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState({ totalUsers: 0, totalSchools: 0 });
@@ -52,11 +54,11 @@ export default function GlobalUsersManagement() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50/80 border-y border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              <th className="py-4 px-6 md:px-8">User Profile</th>
-              <th className="py-4 px-4 hidden sm:table-cell">System Role</th>
-              <th className="py-4 px-4 hidden md:table-cell">Last Activity</th>
-              <th className="py-4 px-4 text-right">Status</th>
-              <th className="py-4 px-6 md:px-8 text-right">Actions</th>
+              <th className="py-4 px-6 md:px-8">{t("sau.th_profile")}</th>
+              <th className="py-4 px-4 hidden sm:table-cell">{t("sau.th_role")}</th>
+              <th className="py-4 px-4 hidden md:table-cell">{t("sau.th_activity")}</th>
+              <th className="py-4 px-4 text-right">{t("stu.status")}</th>
+              <th className="py-4 px-6 md:px-8 text-right">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 bg-white">
@@ -89,7 +91,7 @@ export default function GlobalUsersManagement() {
                     {user.role === 'SchoolAdmin' ? <ShieldAlert className="h-3.5 w-3.5" /> : 
                      user.role === 'Teacher' ? <Users className="h-3.5 w-3.5" /> : 
                      <ShieldCheck className="h-3.5 w-3.5" />}
-                    {user.role}
+                    {tv("role", user.role)}
                   </span>
                 </td>
                 <td className="py-4 px-4 text-sm text-gray-500 font-medium hidden md:table-cell">
@@ -100,7 +102,7 @@ export default function GlobalUsersManagement() {
                     user.isActive !== false ? 'bg-green-50 text-green-700 ring-1 ring-green-600/20' : 'bg-gray-50 text-gray-600 ring-1 ring-gray-500/20'
                   }`}>
                     <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${user.isActive !== false ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                    {user.isActive !== false ? 'Active' : 'Inactive'}
+                    {user.isActive !== false ? tv("status", "Active") : tv("status", "Inactive")}
                   </span>
                 </td>
                 <td className="py-4 px-6 md:px-8 text-right relative">
@@ -130,7 +132,7 @@ export default function GlobalUsersManagement() {
                           className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2.5 transition-colors"
                         >
                           <ShieldAlert className="h-4 w-4 text-gray-400" />
-                          {user.isActive !== false ? "Deactivate User" : "Activate User"}
+                          {user.isActive !== false ? t("sau.deactivate") : t("sau.activate")}
                         </button>
                         <button
                           onClick={() => {
@@ -140,7 +142,7 @@ export default function GlobalUsersManagement() {
                           className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-2.5 transition-colors"
                         >
                           <Mail className="h-4 w-4 text-gray-400" />
-                          Reset Password
+                          {t("stu.reset_pw")}
                         </button>
                       </div>
                     )}
@@ -162,11 +164,11 @@ export default function GlobalUsersManagement() {
         {totalPages > 1 && onPageChange && (
           <div className="px-6 py-4 flex items-center justify-between border-t border-gray-100 bg-gray-50/30">
             <span className="text-xs text-gray-500">
-              Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, groupUsers.length)} of {groupUsers.length} entries
+              {t("sau.showing", { from: (page - 1) * ITEMS_PER_PAGE + 1, to: Math.min(page * ITEMS_PER_PAGE, groupUsers.length), total: groupUsers.length })}
             </span>
             <div className="flex items-center gap-2">
               <button onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-transparent"><ChevronLeft className="h-4 w-4" /></button>
-              <span className="text-xs font-medium text-gray-700">Page {page} of {totalPages}</span>
+              <span className="text-xs font-medium text-gray-700">{t("common.page_of", { page, total: totalPages })}</span>
               <button onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-transparent"><ChevronRight className="h-4 w-4" /></button>
             </div>
           </div>
@@ -185,8 +187,8 @@ export default function GlobalUsersManagement() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50/80 border-y border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              <th className="py-4 px-6 md:px-8">Institution</th>
-              <th className="py-4 px-4 text-right">{isTeacher ? 'Staff Count' : 'Student Count'}</th>
+              <th className="py-4 px-6 md:px-8">{t("sas.th_institution")}</th>
+              <th className="py-4 px-4 text-right">{isTeacher ? t("sau.staff_count") : t("sau.student_count")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 bg-white">
@@ -202,12 +204,12 @@ export default function GlobalUsersManagement() {
                         {(s.name || "S")[0].toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-semibold text-gray-900 truncate">{s.name || 'Unknown School'}</div>
+                        <div className="font-semibold text-gray-900 truncate">{s.name || t("sap.unknown_school")}</div>
                       </div>
                     </div>
                   </td>
                   <td className="py-4 px-4 text-right font-medium text-gray-600">
-                    {count} {isTeacher ? (count === 1 ? 'Teacher' : 'Teachers') : (count === 1 ? 'Student' : 'Students')}
+                    {isTeacher ? t("sau.teacher_n", { n: count }) : t("sau.student_n", { n: count })}
                   </td>
                 </tr>
               );
@@ -217,11 +219,11 @@ export default function GlobalUsersManagement() {
         {totalPages > 1 && (
           <div className="px-6 py-4 flex items-center justify-between border-t border-gray-100 bg-gray-50/30">
             <span className="text-xs text-gray-500">
-              Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, schools.length)} of {schools.length} institutions
+              {t("sau.showing_sch", { from: (page - 1) * ITEMS_PER_PAGE + 1, to: Math.min(page * ITEMS_PER_PAGE, schools.length), total: schools.length })}
             </span>
             <div className="flex items-center gap-2">
               <button onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-transparent"><ChevronLeft className="h-4 w-4" /></button>
-              <span className="text-xs font-medium text-gray-700">Page {page} of {totalPages}</span>
+              <span className="text-xs font-medium text-gray-700">{t("common.page_of", { page, total: totalPages })}</span>
               <button onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-transparent"><ChevronRight className="h-4 w-4" /></button>
             </div>
           </div>
@@ -269,9 +271,9 @@ export default function GlobalUsersManagement() {
     })();
 
     toast.promise(promise, {
-      loading: `Updating status for ${user.name}...`,
-      success: `Successfully updated status for ${user.name}`,
-      error: (err) => err instanceof Error ? err.message : `Failed to update status for ${user.name}`
+      loading: t("sau.updating", { name: user.name }),
+      success: t("sau.updated", { name: user.name }),
+      error: (err) => err instanceof Error ? err.message : t("sau.update_failed", { name: user.name })
     });
   };
 
@@ -287,11 +289,11 @@ export default function GlobalUsersManagement() {
     })();
 
     toast.promise(promise, {
-      loading: `Sending password reset link for ${user.name}...`,
+      loading: t("sau.sending", { name: user.name }),
       success: hasEmail 
-        ? `Password reset link sent to ${user.email}` 
-        : `Temporary password reset link generated for ${user.name} (Simulated)`,
-      error: `Failed to request password reset for ${user.name}`
+        ? t("sau.sent", { email: user.email }) 
+        : t("sau.simulated", { name: user.name }),
+      error: t("sau.reset_failed", { name: user.name })
     });
   };
 
@@ -311,7 +313,7 @@ export default function GlobalUsersManagement() {
         });
 
         if (!res.ok) {
-          throw new Error(`Failed to fetch users: ${res.status}`);
+          throw new Error("sau.load_failed");
         }
 
         const data = await res.json();
@@ -371,7 +373,7 @@ export default function GlobalUsersManagement() {
           totalSchools: schools.length
         });
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load users");
+        setError(err instanceof Error ? err.message : "sau.load_failed");
       } finally {
         setIsLoading(false);
       }
@@ -383,18 +385,18 @@ export default function GlobalUsersManagement() {
     <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mb-3">Global User Directory</h1>
-          <p className="text-gray-500 text-lg max-w-2xl">Manage administrative access, faculty, and students across the entire <LeonEdLogoText /> platform.</p>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mb-3">{t("sau.title")}</h1>
+          <p className="text-gray-500 text-lg max-w-2xl">{interpolate(t("sau.subtitle"), { brand: <LeonEdLogoText /> })}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-          <span className="text-gray-500 font-medium mb-1">Total Registered Schools</span>
+          <span className="text-gray-500 font-medium mb-1">{t("sau.total_schools")}</span>
           <span className="text-4xl font-black text-gray-900">{stats.totalSchools > 0 ? stats.totalSchools : users.filter(u => u.role === 'SchoolAdmin').length || 0}</span>
         </div>
         <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-          <span className="text-gray-500 font-medium mb-1">Total Users (Platform-Wide)</span>
+          <span className="text-gray-500 font-medium mb-1">{t("sau.total_users")}</span>
           <span className="text-4xl font-black text-[#053d26]">{stats.totalUsers > 0 ? stats.totalUsers : users.length || 0}</span>
         </div>
       </div>
@@ -407,13 +409,13 @@ export default function GlobalUsersManagement() {
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search users by name or email..."
+              placeholder={t("sau.search_ph")}
               className="w-full bg-white border border-gray-200 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26]/20 focus:border-[#053d26] transition-all text-gray-900 shadow-sm"
             />
           </div>
           <button className="flex items-center gap-2 px-5 py-3 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:text-gray-900 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm">
             <Filter className="h-4 w-4" />
-            Filter Status
+            {t("sau.filter_status")}
           </button>
         </div>
 
@@ -425,15 +427,15 @@ export default function GlobalUsersManagement() {
                 <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
               </div>
             </div>
-            <p className="text-gray-500 font-medium text-lg animate-pulse">Retrieving authorized users...</p>
+            <p className="text-gray-500 font-medium text-lg animate-pulse">{t("sau.retrieving")}</p>
           </div>
         ) : error ? (
           <div className="py-24 flex flex-col items-center justify-center gap-4 text-center px-4">
             <div className="h-16 w-16 rounded-3xl bg-red-50 flex items-center justify-center text-red-500 mb-2 border border-red-100 shadow-sm">
               <ShieldAlert className="h-8 w-8" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900">Failed to load directory</h3>
-            <p className="text-gray-500 max-w-md">{error}</p>
+            <h3 className="text-xl font-bold text-gray-900">{t("sau.failed_dir")}</h3>
+            <p className="text-gray-500 max-w-md">{t(error)}</p>
           </div>
         ) : (() => {
           const filteredUsers = users.filter(user => {
@@ -462,12 +464,12 @@ export default function GlobalUsersManagement() {
                     </div>
                     <div className="text-left">
                       <h3 className="font-bold text-gray-900 text-lg flex items-center gap-3">
-                        School Administrators
+                        {t("sau.admins")}
                         <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
                           {admins.length} {admins.length === 1 ? 'Admin' : 'Admins'}
                         </span>
                       </h3>
-                      <p className="text-sm text-gray-500 mt-0.5">Manage users with school-level administrative privileges</p>
+                      <p className="text-sm text-gray-500 mt-0.5">{t("sau.admins_d")}</p>
                     </div>
                   </div>
                   <div className={`h-10 w-10 rounded-full flex items-center justify-center border border-gray-200 text-gray-400 group-hover:border-blue-200 group-hover:bg-white group-hover:text-blue-600 transition-all ${expandedGroups.admins ? 'rotate-180 bg-gray-50' : ''}`}>
@@ -475,7 +477,7 @@ export default function GlobalUsersManagement() {
                   </div>
                 </button>
                 <div className={`transition-all duration-300 ease-in-out ${expandedGroups.admins ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
-                  {renderUserTable(admins, "No administrators found matching search criteria", pages.admins, (p) => setPages(prev => ({ ...prev, admins: p })))}
+                  {renderUserTable(admins, t("sau.no_admins"), pages.admins, (p) => setPages(prev => ({ ...prev, admins: p })))}
                 </div>
               </div>
 
@@ -491,12 +493,12 @@ export default function GlobalUsersManagement() {
                     </div>
                     <div className="text-left">
                       <h3 className="font-bold text-gray-900 text-lg flex items-center gap-3">
-                        Faculty & Teachers
+                        {t("sau.faculty")}
                         <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
                           {teachers.length > 0 ? teachers.length : totalTeacherCount} {(teachers.length > 0 ? teachers.length : totalTeacherCount) === 1 ? 'Teacher' : 'Teachers'}
                         </span>
                       </h3>
-                      <p className="text-sm text-gray-500 mt-0.5">Manage instructional staff across all institutions</p>
+                      <p className="text-sm text-gray-500 mt-0.5">{t("sau.faculty_d")}</p>
                     </div>
                   </div>
                   <div className={`h-10 w-10 rounded-full flex items-center justify-center border border-gray-200 text-gray-400 group-hover:border-emerald-200 group-hover:bg-white group-hover:text-emerald-600 transition-all ${expandedGroups.teachers ? 'rotate-180 bg-gray-50' : ''}`}>
@@ -510,13 +512,13 @@ export default function GlobalUsersManagement() {
                     <div>
                       {renderSchoolSummaryTable(enrichedSchools.filter(s => Number(s.currentTeacherCount || 0) > 0), 'teachers', pages.teachers, (p) => setPages(prev => ({ ...prev, teachers: p })))}
                       <div className="pb-6">
-                        <p className="text-xs text-gray-400 mt-4 text-center">Individual teacher profiles are managed within each school&apos;s dashboard.</p>
+                        <p className="text-xs text-gray-400 mt-4 text-center">{t("sau.teacher_note")}</p>
                       </div>
                     </div>
                   ) : (
                     <div className="p-6 text-center">
                       <Search className="h-8 w-8 mx-auto mb-3 text-gray-200" />
-                      <p className="text-sm font-medium text-gray-400">No teachers registered across any school yet.</p>
+                      <p className="text-sm font-medium text-gray-400">{t("sau.no_teachers")}</p>
                     </div>
                   )}
                 </div>
@@ -534,12 +536,12 @@ export default function GlobalUsersManagement() {
                     </div>
                     <div className="text-left">
                       <h3 className="font-bold text-gray-900 text-lg flex items-center gap-3">
-                        Students
+                        {t("sao.students_w")}
                         <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2.5 py-0.5 rounded-full">
                           {students.length > 0 ? students.length : totalStudentCount} {(students.length > 0 ? students.length : totalStudentCount) === 1 ? 'Student' : 'Students'}
                         </span>
                       </h3>
-                      <p className="text-sm text-gray-500 mt-0.5">Manage enrolled learners across the platform</p>
+                      <p className="text-sm text-gray-500 mt-0.5">{t("sau.students_d")}</p>
                     </div>
                   </div>
                   <div className={`h-10 w-10 rounded-full flex items-center justify-center border border-gray-200 text-gray-400 group-hover:border-orange-200 group-hover:bg-white group-hover:text-orange-600 transition-all ${expandedGroups.students ? 'rotate-180 bg-gray-50' : ''}`}>
@@ -553,13 +555,13 @@ export default function GlobalUsersManagement() {
                     <div>
                       {renderSchoolSummaryTable(enrichedSchools.filter(s => Number(s.currentStudentCount || 0) > 0), 'students', pages.students, (p) => setPages(prev => ({ ...prev, students: p })))}
                       <div className="pb-6">
-                        <p className="text-xs text-gray-400 mt-4 text-center">Individual student profiles are managed within each school&apos;s dashboard.</p>
+                        <p className="text-xs text-gray-400 mt-4 text-center">{t("sau.student_note")}</p>
                       </div>
                     </div>
                   ) : (
                     <div className="p-6 text-center">
                       <Search className="h-8 w-8 mx-auto mb-3 text-gray-200" />
-                      <p className="text-sm font-medium text-gray-400">No students enrolled across any school yet.</p>
+                      <p className="text-sm font-medium text-gray-400">{t("sau.no_students")}</p>
                     </div>
                   )}
                 </div>
@@ -570,7 +572,7 @@ export default function GlobalUsersManagement() {
 
         <div className="px-6 md:px-8 py-5 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
           <p className="text-sm text-gray-500 font-medium">
-            Showing <span className="font-bold text-gray-900">{
+            {interpolate(t("sau.showing_users"), { n: <span className="font-bold text-gray-900">{
               users.filter(user => {
                 const query = searchQuery.toLowerCase();
                 return (
@@ -578,7 +580,7 @@ export default function GlobalUsersManagement() {
                   (user.email || "").toLowerCase().includes(query)
                 );
               }).length
-            }</span> of {users.length} Users
+            }</span>, total: users.length })}
           </p>
           <div className="flex items-center gap-2">
             <button disabled className="p-2 rounded-xl border border-gray-200 bg-white text-gray-400 opacity-50 cursor-not-allowed"><ChevronLeft className="h-5 w-5" /></button>

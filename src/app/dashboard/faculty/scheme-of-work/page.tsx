@@ -5,6 +5,7 @@ import { Plus, Save, Trash2, BookOpen, AlertCircle, Loader2 } from "lucide-react
 import { useRouter } from "next/navigation";
 import { schemeOfWorkApi, teacherPortalApi, classApi, subjectApi, sessionApi, dashboardApi } from "@/lib/api";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface Topic {
   week: number;
@@ -15,6 +16,7 @@ interface Topic {
 
 export default function SchemeOfWorkPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
@@ -106,7 +108,7 @@ export default function SchemeOfWorkPage() {
         setIsLoading(false);
       } catch (err) {
         console.error("Failed to load initial data:", err);
-        setError("Failed to load initial data.");
+        setError("sow.load_failed");
         setIsLoading(false);
       }
     };
@@ -163,14 +165,14 @@ export default function SchemeOfWorkPage() {
 
   const handleSave = async () => {
     if (!selectedClass || !selectedSubject || !currentTermId) {
-      toast.error("Please select a class and subject.");
+      toast.error(t("sow.select_req"));
       return;
     }
     
     // validate
-    for (const t of topics) {
-      if (!t.topic.trim() || !t.description.trim()) {
-        toast.error(`Please fill all fields for Week ${t.week}`);
+    for (const tp of topics) {
+      if (!tp.topic.trim() || !tp.description.trim()) {
+        toast.error(t("sow.fill_week", { n: tp.week }));
         return;
       }
     }
@@ -179,7 +181,7 @@ export default function SchemeOfWorkPage() {
     try {
       if (existingId) {
         const updateRes = await schemeOfWorkApi.update(existingId, { topics });
-        toast.success("Scheme of work updated successfully");
+        toast.success(t("sow.updated"));
       } else {
         const createRes = await schemeOfWorkApi.create({
           classId: selectedClass,
@@ -187,12 +189,12 @@ export default function SchemeOfWorkPage() {
           termId: currentTermId,
           topics
         });
-        toast.success("Scheme of work created successfully");
+        toast.success(t("sow.created"));
         fetchScheme(); // to get the new ID
       }
     } catch (err: any) {
       console.error("[SoW Teacher] Save failed:", err);
-      toast.error(err.message || "Failed to save scheme of work");
+      toast.error(err.message || t("sow.save_failed"));
     } finally {
       setIsSaving(false);
     }
@@ -207,13 +209,13 @@ export default function SchemeOfWorkPage() {
       setTopics(newTopics);
       
       await schemeOfWorkApi.updateProgress(existingId, { week, isCompleted });
-      toast.success(isCompleted ? `Week ${week} marked as completed!` : `Week ${week} marked as incomplete.`);
+      toast.success(t(isCompleted ? "sow.week_done" : "sow.week_undone", { n: week }));
     } catch (err: any) {
       // Revert on error
       const newTopics = [...topics];
       newTopics[index] = { ...newTopics[index], isCompleted: !isCompleted };
       setTopics(newTopics);
-      toast.error(err.message || "Failed to update progress");
+      toast.error(err.message || t("sow.progress_failed"));
     }
   };
 
@@ -221,7 +223,7 @@ export default function SchemeOfWorkPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
         <Loader2 className="w-8 h-8 text-[#053d26] animate-spin mb-4" />
-        <p className="text-gray-500 font-medium">Loading configuration...</p>
+        <p className="text-gray-500 font-medium">{t("sow.loading")}</p>
       </div>
     );
   }
@@ -234,41 +236,41 @@ export default function SchemeOfWorkPage() {
         <div>
           <h1 className="text-3xl font-bold text-[#053d26] mb-2 flex items-center gap-3">
             <BookOpen className="w-8 h-8" />
-            Scheme of Work
+            {t("layout.nav.scheme_of_work")}
           </h1>
           <p className="text-gray-500 text-sm">
-            Create and publish schemes of work for your assigned subjects.
+            {t("sow.subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
            <span className="w-2.5 h-2.5 rounded-full bg-[#20c997] animate-pulse" />
-           <span className="text-sm font-bold text-gray-700">{currentSessionName || "Current Session"}</span>
+           <span className="text-sm font-bold text-gray-700">{currentSessionName || t("sow.current_session")}</span>
         </div>
       </div>
 
       {/* Selectors */}
       <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-6">
         <div className="flex-1 space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Class</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">{t("stu.class")}</label>
           <select 
             value={selectedClass} 
             onChange={(e) => setSelectedClass(e.target.value)}
             className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl focus:ring-[#053d26] focus:border-[#053d26] p-3 font-semibold"
           >
-            {classes.length === 0 && <option value="">No classes found</option>}
+            {classes.length === 0 && <option value="">{t("sow.no_classes")}</option>}
             {classes.map(c => (
               <option key={c.id || (c as any)._id} value={c.id || (c as any)._id}>{c.name}</option>
             ))}
           </select>
         </div>
         <div className="flex-1 space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Subject</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">{t("fac.subject")}</label>
           <select 
             value={selectedSubject} 
             onChange={(e) => setSelectedSubject(e.target.value)}
             className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl focus:ring-[#053d26] focus:border-[#053d26] p-3 font-semibold"
           >
-            {subjects.length === 0 && <option value="">No subjects found</option>}
+            {subjects.length === 0 && <option value="">{t("sow.no_subjects")}</option>}
             {subjects.map(s => (
               <option key={s.id || (s as any)._id} value={s.id || (s as any)._id}>{s.name}</option>
             ))}
@@ -279,20 +281,20 @@ export default function SchemeOfWorkPage() {
       {error && (
         <div className="bg-red-50 text-red-500 p-4 rounded-xl flex items-center gap-3">
           <AlertCircle className="w-5 h-5" />
-          <p className="font-semibold text-sm">{error}</p>
+          <p className="font-semibold text-sm">{t(error)}</p>
         </div>
       )}
 
       {/* Topics Editor */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-          <h2 className="font-bold text-gray-900 text-lg">Curriculum Topics</h2>
+          <h2 className="font-bold text-gray-900 text-lg">{t("sow.topics")}</h2>
           <button 
             onClick={handleAddTopic}
             className="flex items-center gap-2 px-4 py-2 bg-[#e8f5e9] text-[#053d26] rounded-xl font-bold text-sm hover:bg-[#c8e6c9] transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Week
+            {t("sow.add_week")}
           </button>
         </div>
 
@@ -304,22 +306,22 @@ export default function SchemeOfWorkPage() {
           ) : topics.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
               <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No scheme of work found for this subject.</p>
+              <p className="text-gray-500 font-medium">{t("sow.empty")}</p>
               <button 
                 onClick={handleAddTopic}
                 className="mt-4 text-[#053d26] font-bold hover:underline text-sm"
               >
-                Click here to add the first week
+                {t("sow.add_first")}
               </button>
             </div>
           ) : (
-            topics.map((t, index) => (
+            topics.map((tp, index) => (
               <div key={index} className="flex gap-4 items-start group">
                 <div className="w-20 shrink-0 pt-3">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Week</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{t("cls.week")}</span>
                   <input 
                     type="number" 
-                    value={t.week} 
+                    value={tp.week} 
                     onChange={(e) => handleChange(index, 'week', parseInt(e.target.value) || 1)}
                     className="w-full mt-1 bg-transparent border-0 text-xl font-bold text-[#053d26] focus:ring-0 p-0"
                     min="1"
@@ -330,8 +332,8 @@ export default function SchemeOfWorkPage() {
                   <div className="flex justify-between items-start gap-4">
                     <input 
                       type="text" 
-                      placeholder="Topic Title (e.g. Introduction to Algebra)"
-                      value={t.topic} 
+                      placeholder={t("sow.topic_ph")}
+                      value={tp.topic} 
                       onChange={(e) => handleChange(index, 'topic', e.target.value)}
                       className="w-full bg-transparent border-0 font-bold text-gray-900 text-lg focus:ring-0 p-0 placeholder-gray-400"
                     />
@@ -339,17 +341,17 @@ export default function SchemeOfWorkPage() {
                       <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm whitespace-nowrap">
                         <input 
                           type="checkbox" 
-                          checked={!!t.isCompleted} 
-                          onChange={(e) => handleProgressUpdate(t.week, e.target.checked, index)}
+                          checked={!!tp.isCompleted} 
+                          onChange={(e) => handleProgressUpdate(tp.week, e.target.checked, index)}
                           className="w-4 h-4 rounded text-[#053d26] focus:ring-[#053d26] border-gray-300 cursor-pointer"
                         />
-                        <span className="text-xs font-bold text-gray-700">Completed</span>
+                        <span className="text-xs font-bold text-gray-700">{t("common.completed")}</span>
                       </label>
                     )}
                   </div>
                   <textarea 
-                    placeholder="Detailed description or objectives..."
-                    value={t.description}
+                    placeholder={t("sow.desc_ph")}
+                    value={tp.description}
                     onChange={(e) => handleChange(index, 'description', e.target.value)}
                     rows={4}
                     className="w-full bg-transparent border-0 text-gray-600 text-sm focus:ring-0 p-0 placeholder-gray-400 min-h-[120px] resize-y"
@@ -359,7 +361,7 @@ export default function SchemeOfWorkPage() {
                 <button 
                   onClick={() => handleRemoveTopic(index)}
                   className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors mt-2"
-                  title="Remove Week"
+                  title={t("sow.remove_week")}
                 >
                   <Trash2 className="w-5 h-5" />
                 </button>
@@ -376,7 +378,7 @@ export default function SchemeOfWorkPage() {
               className="flex items-center gap-2 px-8 py-3.5 bg-[#053d26] hover:bg-[#042c1b] text-white rounded-xl font-bold transition-all disabled:opacity-50"
             >
               {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              {isSaving ? "Saving..." : existingId ? "Update Scheme" : "Publish Scheme"}
+              {isSaving ? t("common.saving") : existingId ? t("sow.update") : t("sow.publish")}
             </button>
           </div>
         )}

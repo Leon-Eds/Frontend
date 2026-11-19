@@ -6,8 +6,10 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { studentApi, schoolApi } from "@/lib/api";
 import IdCard from "@/components/shared/IdCard";
+import { useLanguage, localeFor } from "@/components/LanguageProvider";
 
 export default function StudentProfile({ studentInfo }: { studentInfo: any }) {
+  const { t, tv, language } = useLanguage();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '', phone: '', logo: '', theme: '#053d26' });
@@ -38,7 +40,7 @@ export default function StudentProfile({ studentInfo }: { studentInfo: any }) {
   };
 
   const handleDownloadFromPreview = async () => {
-    const toastId = toast.loading('Downloading PDF...');
+    const toastId = toast.loading(t("common.downloading_pdf"));
     try {
       const blob = await studentApi.downloadMyIdCardPdf();
       const url = window.URL.createObjectURL(blob);
@@ -49,9 +51,9 @@ export default function StudentProfile({ studentInfo }: { studentInfo: any }) {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      toast.success('Downloaded successfully!', { id: toastId });
+      toast.success(t("common.downloaded"), { id: toastId });
     } catch (err: any) {
-      toast.error('Failed to download PDF', { id: toastId });
+      toast.error(t("common.download_failed"), { id: toastId });
       console.error(err);
     }
   };
@@ -71,8 +73,8 @@ export default function StudentProfile({ studentInfo }: { studentInfo: any }) {
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Personal Details</h2>
-            <p className="text-gray-500 text-sm mt-1 font-medium">Your official school records and information</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">{t("spr.title")}</h2>
+            <p className="text-gray-500 text-sm mt-1 font-medium">{t("spr.subtitle")}</p>
           </div>
           <button 
             onClick={handlePreviewId}
@@ -81,18 +83,18 @@ export default function StudentProfile({ studentInfo }: { studentInfo: any }) {
             <div className="w-6 h-6 rounded-md bg-[#053d26]/10 text-[#053d26] flex items-center justify-center group-hover:bg-[#053d26] group-hover:text-white transition-colors duration-300">
               <Eye className="w-3.5 h-3.5" />
             </div>
-            Preview ID Card
+            {t("spr.preview_id")}
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Profile Items */}
           {[
-            { icon: User, label: "Full Name", value: studentInfo.fullName || studentInfo.name },
-            { icon: Hash, label: "Admission Number", value: studentInfo.admissionNumber || studentInfo.studentId || "—" },
-            { icon: BookOpen, label: "Form Class", value: studentInfo.className || studentInfo.formClass || "—" },
-            ...(studentInfo.dateOfBirth ? [{ icon: Calendar, label: "Date of Birth", value: new Date(studentInfo.dateOfBirth).toLocaleDateString() }] : []),
-            ...(studentInfo.gender ? [{ icon: ShieldCheck, label: "Gender", value: studentInfo.gender, capitalize: true }] : [])
+            { icon: User, label: t("stu.full_name"), value: studentInfo.fullName || studentInfo.name },
+            { icon: Hash, label: t("stu.admission_number"), value: studentInfo.admissionNumber || studentInfo.studentId || "—" },
+            { icon: BookOpen, label: t("spr.form_class"), value: studentInfo.className || studentInfo.formClass || "—" },
+            ...(studentInfo.dateOfBirth ? [{ icon: Calendar, label: t("stu.dob"), value: new Date(studentInfo.dateOfBirth).toLocaleDateString(localeFor(language)) }] : []),
+            ...(studentInfo.gender ? [{ icon: ShieldCheck, label: t("stu.gender"), value: tv("gender", studentInfo.gender), capitalize: true }] : [])
           ].map((item, idx) => (
             <div 
               key={idx} 
@@ -117,19 +119,19 @@ export default function StudentProfile({ studentInfo }: { studentInfo: any }) {
       {(studentInfo.parentEmail || studentInfo.parentPhone) && (
         <div className="relative bg-white/80 backdrop-blur-xl rounded-[2rem] p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#b05e1c]/20 to-transparent" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Guardian / Contact Info</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">{t("spr.guardian")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/50">
               <div className="flex items-center gap-3 mb-2 text-amber-700">
                 <Mail className="w-5 h-5" />
-                <span className="text-xs font-bold uppercase tracking-wider">Guardian Email</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t("stu.guardian_email")}</span>
               </div>
               <p className="font-bold text-gray-900 text-lg">{studentInfo.parentEmail || "N/A"}</p>
             </div>
             <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/50">
               <div className="flex items-center gap-3 mb-2 text-amber-700">
                 <Hash className="w-5 h-5" />
-                <span className="text-xs font-bold uppercase tracking-wider">Guardian Phone</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t("stu.guardian_phone")}</span>
               </div>
               <p className="font-bold text-gray-900 text-lg">{studentInfo.parentPhone || "N/A"}</p>
             </div>
@@ -142,16 +144,16 @@ export default function StudentProfile({ studentInfo }: { studentInfo: any }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 print:bg-white print:p-0 print:z-auto print:static">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 print:shadow-none print:p-0 print:m-0 print:bg-white">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-gray-100 bg-gray-50 shrink-0 gap-4 print:hidden">
-              <h3 className="font-bold text-lg text-gray-800">ID Card Preview</h3>
+              <h3 className="font-bold text-lg text-gray-800">{t("stu.id_preview")}</h3>
               <div className="flex items-center gap-2 self-end sm:self-auto">
-                <button onClick={() => window.print()} className="p-2 bg-white rounded-lg border border-gray-200 text-gray-600 hover:text-[#053d26] shadow-sm hover:bg-gray-50 transition-all" title="Print ID Card">
+                <button onClick={() => window.print()} className="p-2 bg-white rounded-lg border border-gray-200 text-gray-600 hover:text-[#053d26] shadow-sm hover:bg-gray-50 transition-all" title={t("stu.print_id")}>
                   <Printer className="h-4 w-4" />
                 </button>
                 <button 
                   onClick={handleDownloadFromPreview}
                   className="flex items-center gap-2 px-4 py-2 bg-[#053d26] hover:bg-[#042c1b] text-white rounded-lg font-bold text-sm transition-colors"
                 >
-                  <Download className="w-4 h-4" /> Download PDF
+                  <Download className="w-4 h-4" /> {t("common.download_pdf")}
                 </button>
                 <button 
                   onClick={closePreview}
@@ -168,7 +170,7 @@ export default function StudentProfile({ studentInfo }: { studentInfo: any }) {
                   ref={idCardRef}
                   student={studentInfo}
                   schoolInfo={schoolInfo}
-                  principalName="Principal / Admin"
+                  principalName={t("spr.principal")}
                 />
               </div>
             </div>

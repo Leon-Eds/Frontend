@@ -24,7 +24,7 @@ function ResetPasswordForm() {
 
   useEffect(() => {
     if (!token) {
-      setError("Invalid or missing reset token.");
+      setError("auth.bad_token");
     }
   }, [token]);
 
@@ -33,17 +33,17 @@ function ResetPasswordForm() {
     setError("");
 
     if (!token) {
-      setError("Invalid or missing reset token.");
+      setError(t("auth.bad_token"));
       return;
     }
 
     if (!newPassword || newPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(t("fac.pw_len"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t("fac.pw_match"));
       return;
     }
 
@@ -55,7 +55,7 @@ function ResetPasswordForm() {
         router.push("/login");
       }, 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to reset password. Please try again.");
+      setError(err instanceof Error ? err.message : t("auth.reset_failed"));
     } finally {
       setIsLoading(false);
     }
@@ -78,10 +78,10 @@ function ResetPasswordForm() {
             priority
           />
           <h2 className="mt-4 text-2xl font-black text-gray-900 tracking-tight text-center">
-            Reset Password
+            {t("stu.reset_pw")}
           </h2>
           <p className="mt-1.5 text-sm font-semibold text-gray-500 text-center max-w-xs leading-relaxed">
-            {isSuccess ? "Your password has been successfully reset." : "Enter your new password below."}
+            {isSuccess ? t("auth.reset_done") : t("auth.reset_d")}
           </p>
         </div>
 
@@ -98,21 +98,21 @@ function ResetPasswordForm() {
               className="w-full flex justify-center items-center gap-2 py-4 px-4 border border-transparent rounded-xl shadow-sm text-lg font-bold text-white bg-[#053d26] hover:bg-[#042c1b] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#053d26] transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
-              <span>Back to login</span>
+              <span>{t("forgot.back_login")}</span>
             </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm font-semibold text-center animate-pulse">
-                {error}
+                {t(error)}
               </div>
             )}
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  New Password
+                  {t("stu.new_pw")}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -132,7 +132,7 @@ function ResetPasswordForm() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Confirm Password
+                  {t("fac.confirm_pw")}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -159,15 +159,15 @@ function ResetPasswordForm() {
               {isLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Resetting...</span>
+                  <span>{t("common.resetting")}</span>
                 </>
               ) : (
-                <span>Reset Password</span>
+                <span>{t("stu.reset_pw")}</span>
               )}
             </button>
             
             <Link href="/login" className="block text-center text-sm font-bold text-gray-500 hover:text-gray-900 mt-4 transition-colors">
-              Return to Login
+              {t("auth.return_login")}
             </Link>
           </form>
         )}

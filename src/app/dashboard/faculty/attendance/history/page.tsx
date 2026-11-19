@@ -17,9 +17,11 @@ import { attendanceApi, teacherPortalApi } from "@/lib/api";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { useLanguage, localeFor } from "@/components/LanguageProvider";
 
 function AttendanceHistoryInner() {
   const router = useRouter();
+  const { t, tv, language } = useLanguage();
   const searchParams = useSearchParams();
   const initialClassId = searchParams.get("classId") || "";
   
@@ -61,7 +63,7 @@ function AttendanceHistoryInner() {
     return `${year}-${month}-${day}`;
   };
   const formatShortDay = (d: Date) =>
-    d.toLocaleDateString("en-US", { weekday: "short" });
+    d.toLocaleDateString(localeFor(language), { weekday: "short" });
   const formatDayNum = (d: Date) => d.getDate();
   const formatMonthRange = () => {
     const days = getWeekDays();
@@ -69,9 +71,9 @@ function AttendanceHistoryInner() {
     const last = days[4];
     const opts: Intl.DateTimeFormatOptions = { month: "long", year: "numeric" };
     if (first.getMonth() === last.getMonth()) {
-      return `${first.getDate()} – ${last.getDate()} ${first.toLocaleDateString("en-US", opts)}`;
+      return `${first.getDate()} – ${last.getDate()} ${first.toLocaleDateString(localeFor(language), opts)}`;
     }
-    return `${first.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${last.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    return `${first.toLocaleDateString(localeFor(language), { month: "short", day: "numeric" })} – ${last.toLocaleDateString(localeFor(language), { month: "short", day: "numeric", year: "numeric" })}`;
   };
 
   const isToday = (d: Date) => {
@@ -204,7 +206,7 @@ function AttendanceHistoryInner() {
         setWeekRecords(records);
       } catch (err) {
         console.error("Failed to fetch attendance history:", err);
-        toast.error("Failed to load attendance records.");
+        toast.error(t("ah.load_failed"));
       } finally {
         setLoadingRecords(false);
       }
@@ -266,9 +268,9 @@ function AttendanceHistoryInner() {
 
   const getStatusLabel = (status: string | undefined) => {
     switch (status) {
-      case "Present": return "P";
-      case "Absent": return "A";
-      case "Late": return "L";
+      case "Present": return t("att.p");
+      case "Absent": return t("att.a");
+      case "Late": return t("att.l");
       default: return "–";
     }
   };
@@ -290,9 +292,9 @@ function AttendanceHistoryInner() {
         <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center">
           <AlertCircle className="h-8 w-8 text-amber-500" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">No Classes Found</h2>
+        <h2 className="text-xl font-bold text-gray-900">{t("ah.no_classes")}</h2>
         <p className="text-sm text-gray-500 max-w-md mx-auto">
-          No form classes were found for your account. Attendance history will appear here once you are assigned as a form teacher.
+          {t("ah.no_classes_d")}
         </p>
       </div>
     );
@@ -310,9 +312,9 @@ function AttendanceHistoryInner() {
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-[#053d26]">Attendance History</h1>
+            <h1 className="text-3xl font-bold text-[#053d26]">{t("hub.history")}</h1>
             <p className="text-gray-600 text-sm mt-1">
-              View past attendance records for your form classes.
+              {t("ah.subtitle")}
             </p>
           </div>
         </div>
@@ -322,7 +324,7 @@ function AttendanceHistoryInner() {
             href={`/dashboard/faculty/attendance?classId=${selectedClassId}`}
             className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#053d26]/5 text-[#053d26] hover:bg-[#053d26] hover:text-white transition-colors border border-[#053d26]/10"
           >
-            Mark Today
+            {t("ah.mark_today")}
           </Link>
           {/* Class selector */}
           {formClasses.length > 1 && (
@@ -375,7 +377,7 @@ function AttendanceHistoryInner() {
           <span className="group-hover:text-[#053d26] transition-colors">{formatMonthRange()}</span>
           {isToday(weekStart) && (
             <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600 font-bold uppercase tracking-wide">
-              This Week
+              {t("ah.this_week")}
             </span>
           )}
         </div>
@@ -391,19 +393,19 @@ function AttendanceHistoryInner() {
       {/* Week Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Total Marked</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{t("ah.total_marked")}</p>
           <p className="text-2xl font-black text-gray-900">{stats.totalMarked}</p>
         </div>
         <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-4 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mb-1">Present</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mb-1">{tv("att", "Present")}</p>
           <p className="text-2xl font-black text-emerald-700">{stats.totalPresent}</p>
         </div>
         <div className="bg-red-50 rounded-2xl border border-red-100 p-4 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">Absent</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">{tv("att", "Absent")}</p>
           <p className="text-2xl font-black text-red-600">{stats.totalAbsent}</p>
         </div>
         <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500 mb-1">Late</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500 mb-1">{tv("att", "Late")}</p>
           <p className="text-2xl font-black text-amber-600">{stats.totalLate}</p>
         </div>
       </div>
@@ -423,7 +425,7 @@ function AttendanceHistoryInner() {
                 <th className="py-4 px-5 text-[10px] font-black uppercase tracking-wider text-gray-400 sticky left-0 bg-gray-50 min-w-[180px]">
                   <div className="flex items-center gap-2">
                     <Users className="w-3.5 h-3.5" />
-                    Student
+                    {t("stu.student")}
                   </div>
                 </th>
                 {weekDays.map((day) => (
@@ -461,7 +463,7 @@ function AttendanceHistoryInner() {
                   </th>
                 ))}
                 <th className="py-4 px-4 text-center text-[10px] font-black uppercase tracking-wider text-gray-400 min-w-[80px]">
-                  Summary
+                  {t("ah.summary")}
                 </th>
               </tr>
             </thead>
@@ -470,7 +472,7 @@ function AttendanceHistoryInner() {
                 <tr>
                   <td colSpan={7} className="py-16 text-center">
                     <p className="text-sm font-semibold text-gray-400">
-                      No students found in this class.
+                      {t("ah.empty")}
                     </p>
                   </td>
                 </tr>
@@ -497,7 +499,7 @@ function AttendanceHistoryInner() {
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-[#053d26] flex items-center justify-center text-white text-[10px] font-black shrink-0 relative overflow-hidden">
                             {student.profilePictureUrl ? (
-                              <img src={student.profilePictureUrl} alt={student.fullName || student.name || "Student"} className="w-full h-full object-cover" />
+                              <img src={student.profilePictureUrl} alt={student.fullName || student.name || t("stu.student")} className="w-full h-full object-cover" />
                             ) : (
                               (student.fullName || student.name || "?")
                                 .split(" ")
@@ -531,9 +533,9 @@ function AttendanceHistoryInner() {
                               <Link 
                                 href={`/dashboard/faculty/attendance?classId=${selectedClassId}&date=${dateStr}`}
                                 className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 bg-[#053d26]/10 transition-opacity z-10 rounded-lg m-1"
-                                title="Edit Attendance"
+                                title={t("ah.edit_title")}
                               >
-                                <span className="text-[10px] font-bold text-[#053d26] uppercase tracking-wider bg-white px-2 py-0.5 rounded-md shadow-sm">Edit</span>
+                                <span className="text-[10px] font-bold text-[#053d26] uppercase tracking-wider bg-white px-2 py-0.5 rounded-md shadow-sm">{t("ah.edit")}</span>
                               </Link>
                             ) : null}
                             <div className={`flex flex-col items-center gap-0.5 transition-opacity ${!isFuture(day) ? 'group-hover:opacity-30' : ''}`}>
@@ -570,7 +572,7 @@ function AttendanceHistoryInner() {
                               {attendanceRate}%
                             </span>
                             <span className="text-[9px] text-gray-400 font-semibold">
-                              {pCount}P {aCount}A {lCount}L
+                              {pCount}{t("att.p")} {aCount}{t("att.a")} {lCount}{t("att.l")}
                             </span>
                           </div>
                         ) : (
@@ -589,16 +591,16 @@ function AttendanceHistoryInner() {
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 text-xs font-semibold text-gray-500">
         <div className="flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Present
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> {tv("att", "Present")}
         </div>
         <div className="flex items-center gap-1.5">
-          <XCircle className="w-3.5 h-3.5 text-red-500" /> Absent
+          <XCircle className="w-3.5 h-3.5 text-red-500" /> {tv("att", "Absent")}
         </div>
         <div className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-amber-500" /> Late
+          <Clock className="w-3.5 h-3.5 text-amber-500" /> {tv("att", "Late")}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3.5 h-3.5 block rounded-full border-2 border-dashed border-gray-300" /> Not Recorded
+          <span className="w-3.5 h-3.5 block rounded-full border-2 border-dashed border-gray-300" /> {t("ah.not_recorded")}
         </div>
       </div>
     </div>
@@ -606,11 +608,12 @@ function AttendanceHistoryInner() {
 }
 
 export default function AttendanceHistory() {
+  const { t } = useLanguage();
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[50vh] text-gray-400 font-semibold text-sm">
         <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        Loading...
+        {t("common.loading")}
       </div>
     }>
       <AttendanceHistoryInner />

@@ -6,9 +6,11 @@ import { teacherPortalApi, dashboardApi, attendanceApi } from "@/lib/api";
 import toast from "react-hot-toast";
 import QRScanner from "@/components/dashboard/QRScanner";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useLanguage } from "@/components/LanguageProvider";
 
 function FacultyAttendanceInner() {
   const router = useRouter();
+  const { t, tv } = useLanguage();
   const searchParams = useSearchParams();
   const initialClassId = searchParams.get("classId") || "";
   const initialDate = searchParams.get("date") || (() => {
@@ -144,7 +146,7 @@ function FacultyAttendanceInner() {
         setAttendance(defaultAtt);
       } catch (err) {
         console.error("Failed to fetch attendance sheet", err);
-        toast.error("Failed to fetch attendance sheet");
+        toast.error(t("att.fetch_failed"));
       } finally {
         setLoading(false);
       }
@@ -158,7 +160,7 @@ function FacultyAttendanceInner() {
 
   const handleSave = async () => {
     if (!selectedClassId) {
-      toast.error("You are not assigned to any class.");
+      toast.error(t("att.not_assigned"));
       return;
     }
     setIsSaving(true);
@@ -170,10 +172,10 @@ function FacultyAttendanceInner() {
         };
       });
       const saveResult = await attendanceApi.recordDailyAttendance(selectedClassId, date, records);
-      toast.success("Attendance saved successfully!");
+      toast.success(t("att.saved"));
     } catch (err) {
       console.error("[ATTENDANCE SAVE] Failed to save attendance:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to save attendance.");
+      toast.error(err instanceof Error ? err.message : t("att.save_failed"));
     } finally {
       setIsSaving(false);
     }
@@ -193,10 +195,9 @@ function FacultyAttendanceInner() {
         <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center">
           <AlertCircle className="h-8 w-8 text-amber-500" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">Form Teacher Access Only</h2>
+        <h2 className="text-xl font-bold text-gray-900">{t("att.ft_only")}</h2>
         <p className="text-sm text-gray-500 max-w-md mx-auto">
-          Attendance marking is restricted to form teachers. You are not currently assigned as a form teacher for any class. 
-          If you believe this is an error, please contact administration.
+          {t("att.ft_only_d")}
         </p>
       </div>
     );
@@ -213,8 +214,8 @@ function FacultyAttendanceInner() {
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-[#053d26]">Daily Attendance</h1>
-            <p className="text-gray-600 text-sm mt-1">Mark students present, absent, or late for your form classes.</p>
+            <h1 className="text-3xl font-bold text-[#053d26]">{t("att.title")}</h1>
+            <p className="text-gray-600 text-sm mt-1">{t("att.subtitle")}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -242,7 +243,7 @@ function FacultyAttendanceInner() {
             }`}
           >
             <QrCode className="h-4 w-4" />
-            {isScanning ? "Close Scanner" : "Scan ID"}
+            {isScanning ? t("att.close_scanner") : t("att.scan_id")}
           </button>
           <button 
             onClick={handleSave}
@@ -250,14 +251,14 @@ function FacultyAttendanceInner() {
             className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm disabled:opacity-70"
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save Register
+            {t("att.save_register")}
           </button>
         </div>
       </div>
 
       {isScanning && (
         <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm animate-in zoom-in duration-300">
-          <h3 className="text-lg font-bold text-center mb-4">Scan Student ID Card</h3>
+          <h3 className="text-lg font-bold text-center mb-4">{t("att.scan_title")}</h3>
           <QRScanner 
             onScanSuccess={(decodedText) => {
               // Extract student ID from QR text
@@ -282,19 +283,19 @@ function FacultyAttendanceInner() {
                   .then((result) => {
                     const name = student.fullName || student.name;
                     // Schools with check-out enabled check students in on the first scan and out on the next
-                    if (result?.event === 'CheckIn') toast.success(`${name} checked in`);
-                    else if (result?.event === 'CheckOut') toast.success(`${name} checked out`);
-                    else if (result?.event === 'AlreadyCheckedIn') toast(`${name} is already checked in`);
-                    else if (result?.event === 'AlreadyCheckedOut') toast(`${name} has already checked out today`);
-                    else toast.success(`${name} marked present!`);
+                    if (result?.event === 'CheckIn') toast.success(t("att.checked_in", { name }));
+                    else if (result?.event === 'CheckOut') toast.success(t("att.checked_out", { name }));
+                    else if (result?.event === 'AlreadyCheckedIn') toast(t("att.already_in", { name }));
+                    else if (result?.event === 'AlreadyCheckedOut') toast(t("att.already_out", { name }));
+                    else toast.success(t("att.marked_present", { name }));
                   })
                   .catch((err) => {
                      console.error("QR Scan Sync Error:", err);
                      // Note: We still marked them present locally, so they can hit "Save Register" later as a fallback
-                     toast.success(`${student.fullName || student.name} marked present locally. (Sync failed)`);
+                     toast.success(t("att.local_present", { name: student.fullName || student.name }));
                   });
               } else {
-                toast.error(`Student ${studentId} not found in this class.`);
+                toast.error(t("att.not_found", { id: studentId }));
               }
             }}
           />
@@ -304,7 +305,7 @@ function FacultyAttendanceInner() {
       {!selectedClassId && !loading && (
         <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100 flex items-center gap-4 text-orange-800 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-orange-500 shrink-0" />
-          <p className="text-sm font-medium">You have not been assigned to any class.</p>
+          <p className="text-sm font-medium">{t("att.no_class")}</p>
         </div>
       )}
 
@@ -319,8 +320,8 @@ function FacultyAttendanceInner() {
             <table className="w-full text-left border-collapse min-w-max">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100 text-[10px] font-black uppercase tracking-wider text-gray-400">
-                  <th className="py-4 px-6">Student Name</th>
-                  <th className="py-4 px-6 text-center">Status</th>
+                  <th className="py-4 px-6">{t("att.student_name")}</th>
+                  <th className="py-4 px-6 text-center">{t("stu.status")}</th>
                 </tr>
               </thead>
             <tbody className="divide-y divide-gray-50">
@@ -332,7 +333,7 @@ function FacultyAttendanceInner() {
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-[#053d26] flex items-center justify-center text-white text-[10px] font-black shrink-0 relative overflow-hidden">
                         {student.profilePictureUrl ? (
-                          <img src={student.profilePictureUrl} alt={student.fullName || student.name || "Student"} className="w-full h-full object-cover" />
+                          <img src={student.profilePictureUrl} alt={student.fullName || student.name || t("stu.student")} className="w-full h-full object-cover" />
                         ) : (
                           (student.fullName || student.name || "?")
                             .split(" ")
@@ -344,7 +345,7 @@ function FacultyAttendanceInner() {
                       </div>
                       <div>
                         {student.fullName || student.name}
-                        <div className="text-xs text-gray-400 font-medium">{student.admissionNumber || "N/A"}</div>
+                        <div className="text-xs text-gray-400 font-medium">{student.admissionNumber || t("common.na")}</div>
                       </div>
                     </div>
                   </td>
@@ -358,7 +359,7 @@ function FacultyAttendanceInner() {
                             : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                         }`}
                       >
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Present
+                        <CheckCircle2 className="h-3.5 w-3.5" /> {tv("att", "Present")}
                       </button>
                       <button 
                         onClick={() => handleMark(sId, 'Absent')}
@@ -368,7 +369,7 @@ function FacultyAttendanceInner() {
                             : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                         }`}
                       >
-                        <XCircle className="h-3.5 w-3.5" /> Absent
+                        <XCircle className="h-3.5 w-3.5" /> {tv("att", "Absent")}
                       </button>
                       <button 
                         onClick={() => handleMark(sId, 'Late')}
@@ -378,7 +379,7 @@ function FacultyAttendanceInner() {
                             : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                         }`}
                       >
-                        <AlertCircle className="h-3.5 w-3.5" /> Late
+                        <AlertCircle className="h-3.5 w-3.5" /> {tv("att", "Late")}
                       </button>
                     </div>
                   </td>
@@ -387,7 +388,7 @@ function FacultyAttendanceInner() {
               {students.length === 0 && !loading && (
                 <tr>
                   <td colSpan={2} className="py-12 text-center text-sm text-gray-500">
-                    No students found in your assigned form class.
+                    {t("att.empty")}
                   </td>
                 </tr>
               )}
@@ -401,11 +402,12 @@ function FacultyAttendanceInner() {
 }
 
 export default function FacultyAttendance() {
+  const { t } = useLanguage();
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[50vh] text-gray-400 font-semibold text-sm">
         <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        Loading...
+        {t("common.loading")}
       </div>
     }>
       <FacultyAttendanceInner />

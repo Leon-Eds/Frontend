@@ -18,8 +18,10 @@ import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 import toast from "react-hot-toast";
+import { useLanguage, interpolate } from "@/components/LanguageProvider";
 
 export default function RegisterNewSchool() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -37,7 +39,7 @@ export default function RegisterNewSchool() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t("fac.pw_match"));
       return;
     }
     setIsLoading(true);
@@ -58,8 +60,8 @@ export default function RegisterNewSchool() {
         <div className="h-20 w-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
           <CheckCircle2 className="h-10 w-10" />
         </div>
-        <h2 className="text-3xl font-bold text-gray-900">Institution Registered</h2>
-        <p className="text-gray-500 max-w-md mx-auto">The school has been successfully onboarded to <LeonEdLogoText />. Redirecting to registry...</p>
+        <h2 className="text-3xl font-bold text-gray-900">{t("snw.registered")}</h2>
+        <p className="text-gray-500 max-w-md mx-auto">{interpolate(t("snw.registered_d"), { brand: <LeonEdLogoText /> })}</p>
         <Loader2 className="h-6 w-6 animate-spin text-[#053d26]" />
       </div>
     );
@@ -69,12 +71,12 @@ export default function RegisterNewSchool() {
     <div className="max-w-4xl mx-auto space-y-8">
       <Link href="/super-admin/schools" className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors">
         <ArrowLeft className="h-4 w-4" />
-        Back to Registry
+        {t("snw.back")}
       </Link>
 
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Register New Institution</h1>
-        <p className="text-gray-600">Onboard a new school to the <LeonEdLogoText /> ecosystem.</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t("snw.title")}</h1>
+        <p className="text-gray-600">{interpolate(t("snw.subtitle"), { brand: <LeonEdLogoText /> })}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -84,27 +86,27 @@ export default function RegisterNewSchool() {
             <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-[#053d26]">
               <School className="h-5 w-5" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Institutional Profile</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("snw.profile")}</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">School Name</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">{t("set.school_name")}</label>
               <input 
                 type="text" 
                 required
-                placeholder="Ex: LeonEd Academy"
+                placeholder={t("snw.school_ph")}
                 className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-4 focus:ring-2 focus:ring-[#053d26] transition-all"
                 value={formData.schoolName}
                 onChange={(e) => setFormData({...formData, schoolName: e.target.value})}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Primary Admin Name</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">{t("snw.admin_name")}</label>
               <input 
                 type="text" 
                 required
-                placeholder="Ex: Joshua Uzoigwe"
+                placeholder={t("snw.admin_ph")}
                 className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-4 focus:ring-2 focus:ring-[#053d26] transition-all"
                 value={formData.adminName}
                 onChange={(e) => setFormData({...formData, adminName: e.target.value})}
@@ -119,12 +121,12 @@ export default function RegisterNewSchool() {
             <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
               <Lock className="h-5 w-5" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Access & Security</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("snw.access")}</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Admin Email</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">{t("snw.admin_email")}</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input 
@@ -138,7 +140,7 @@ export default function RegisterNewSchool() {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">System Password</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">{t("snw.password")}</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input 
@@ -152,7 +154,7 @@ export default function RegisterNewSchool() {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Confirm Password</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">{t("fac.confirm_pw")}</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input 
@@ -174,7 +176,7 @@ export default function RegisterNewSchool() {
             <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
               <CreditCard className="h-5 w-5" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Subscription Plan</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("snw.plan")}</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -201,7 +203,7 @@ export default function RegisterNewSchool() {
 
         <div className="flex justify-end gap-4">
           <Link href="/super-admin/schools" className="px-8 py-4 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 transition-all">
-            Discard
+            {t("snw.discard")}
           </Link>
           <button 
             type="submit"
@@ -209,7 +211,7 @@ export default function RegisterNewSchool() {
             className="px-10 py-4 rounded-2xl bg-[#053d26] text-white font-bold text-lg shadow-xl hover:bg-[#042c1b] transition-all flex items-center gap-3 disabled:opacity-70"
           >
             {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <ShieldCheck className="h-6 w-6" />}
-            Register Institution
+            {t("snw.register")}
           </button>
         </div>
       </form>

@@ -10,9 +10,11 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { studentApi, schoolApi, promotionApi, classApi, classLabel, Student, UpdateStudentRequest, formatDate } from '@/lib/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function StudentsPage() {
   const router = useRouter();
+  const { t, tv } = useLanguage();
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -124,7 +126,7 @@ export default function StudentsPage() {
       const clsData = await classApi.getAll().catch(() => []);
       setClasses(Array.isArray(clsData) ? clsData : []);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to load students";
+      const message = err instanceof Error ? err.message : t("stu.load_failed");
       setError(message);
     } finally {
       setIsLoading(false);
@@ -163,9 +165,9 @@ export default function StudentsPage() {
       setEditStudent(null);
       fetchStudents();
     } catch (err) {
-      let msg = err instanceof Error ? err.message : "Failed to save changes";
+      let msg = err instanceof Error ? err.message : t("stu.save_failed");
       if (msg.toLowerCase().includes("session") || msg.toLowerCase().includes("promot")) {
-        msg = `Cannot change class across sessions: ${msg}. Please use the Promotions flow to move a student to a new session.`;
+        msg = t("stu.cross_session", { msg });
       }
       setSaveError(msg);
     } finally {
@@ -178,12 +180,12 @@ export default function StudentsPage() {
     setIsResetting(true);
     try {
       await studentApi.resetPassword(resetPasswordId, newPassword);
-      toast.success("Password reset successfully.");
+      toast.success(t("stu.pw_reset_ok"));
       setResetPasswordId(null);
       setNewPassword("");
       await fetchStudents();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to reset password";
+      const message = err instanceof Error ? err.message : t("stu.pw_reset_failed");
       toast.error(message);
     } finally {
       setIsResetting(false);
@@ -192,15 +194,15 @@ export default function StudentsPage() {
 
   const [isMarkingLeft, setIsMarkingLeft] = useState(false);
   const handleMarkLeft = async (id: string) => {
-    if (!window.confirm("Are you sure you want to mark this student as LEFT? They will lose access to the portal immediately.")) return;
+    if (!window.confirm(t("stu.left_confirm"))) return;
     setIsMarkingLeft(true);
     try {
       await promotionApi.markLeft(id);
-      toast.success("Student marked as LEFT successfully.");
+      toast.success(t("stu.left_ok"));
       setViewStudent(null);
       fetchStudents();
     } catch (err: any) {
-      toast.error(err.message || "Failed to mark student as LEFT.");
+      toast.error(err.message || t("stu.left_failed"));
     } finally {
       setIsMarkingLeft(false);
     }
@@ -213,7 +215,7 @@ export default function StudentsPage() {
 
   const handleDownloadFromPreview = async () => {
     if (!idCardStudent) return;
-    const toastId = toast.loading('Downloading PDF...');
+    const toastId = toast.loading(t("common.downloading_pdf"));
     try {
       const blob = await studentApi.downloadIdCardPdf(idCardStudent.id || (idCardStudent as any)._id);
       const url = window.URL.createObjectURL(blob);
@@ -224,9 +226,9 @@ export default function StudentsPage() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      toast.success('Downloaded successfully!', { id: toastId });
+      toast.success(t("common.downloaded"), { id: toastId });
     } catch (err: any) {
-      toast.error('Failed to download PDF', { id: toastId });
+      toast.error(t("common.download_failed"), { id: toastId });
       console.error(err);
     }
   };
@@ -243,7 +245,7 @@ export default function StudentsPage() {
       setDeleteId(null);
       fetchStudents();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete student");
+      toast.error(err instanceof Error ? err.message : t("stu.delete_failed"));
     } finally {
       setIsDeleting(false);
     }
@@ -251,13 +253,13 @@ export default function StudentsPage() {
 
   const handleExportCSV = () => {
     if (students.length === 0) return;
-    const headers = ['Full Name', 'Admission Number', 'Gender', 'Class', 'Status'];
+    const headers = [t("stu.full_name"), t("stu.admission_number"), t("stu.gender"), t("stu.class"), t("stu.status")];
     const rows = students.map(s => [
       s.fullName,
       s.admissionNumber || '',
-      s.gender,
-      s.className || 'Unassigned',
-      s.status,
+      tv("gender", s.gender),
+      s.className || t("common.unassigned"),
+      tv("status", s.status),
     ]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -271,7 +273,7 @@ export default function StudentsPage() {
 
   const columns: Column<Student>[] = [
     {
-      header: 'Student',
+      header: t("stu.student"),
       accessor: (student) => {
         const initials = student.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         return (
@@ -285,7 +287,7 @@ export default function StudentsPage() {
             )}
             <div>
               <div className="font-bold text-gray-900 text-sm leading-tight">{student.fullName}</div>
-              <div className="text-xs text-gray-500 mt-1">{student.admissionNumber || 'No ID'}</div>
+              <div className="text-xs text-gray-500 mt-1">{student.admissionNumber || t("stu.no_id")}</div>
             </div>
           </div>
         );
@@ -293,26 +295,26 @@ export default function StudentsPage() {
       className: 'w-1/3'
     },
     {
-      header: 'Class',
+      header: t("stu.class"),
       accessor: (student) => (
         <div className="text-sm font-bold text-gray-900">
-          {student.className || 'Unassigned'}
+          {student.className || t("common.unassigned")}
         </div>
       ),
       className: 'w-1/5'
     },
     {
-      header: 'Gender',
+      header: t("stu.gender"),
       accessor: (student) => (
         <div className="text-sm text-gray-600">
-          {student.gender}
+          {tv("gender", student.gender)}
         </div>
       ),
       className: 'w-1/6'
     },
 
     {
-      header: 'Enrolled',
+      header: t("stu.enrolled"),
       accessor: (student) => (
         <div className="text-sm text-gray-600">
           {formatDate(student.enrolledAt)}
@@ -321,7 +323,7 @@ export default function StudentsPage() {
       className: 'w-1/6'
     },
     {
-      header: 'Status',
+      header: t("stu.status"),
       accessor: (student) => {
         const statusColors: Record<string, string> = {
           Active: 'bg-green-100 text-[#053d26]',
@@ -331,7 +333,7 @@ export default function StudentsPage() {
         };
         return (
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusColors[student.status] || 'bg-gray-100 text-gray-600'}`}>
-            {student.status}
+            {tv("status", student.status)}
           </span>
         );
       },
@@ -357,9 +359,9 @@ export default function StudentsPage() {
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="max-w-2xl">
-          <h1 className="text-4xl font-bold text-[#053d26] mb-3">Student Registry</h1>
+          <h1 className="text-4xl font-bold text-[#053d26] mb-3">{t("stu.title")}</h1>
           <p className="text-gray-600 text-sm leading-relaxed">
-            Manage student records, enrollment, and academic placements.
+            {t("stu.subtitle")}
           </p>
         </div>
         <Link
@@ -367,43 +369,43 @@ export default function StudentsPage() {
           className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm shrink-0"
         >
           <UserPlus className="h-5 w-5" />
-          Add New Student
+          {t("stu.add")}
         </Link>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Total Students</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">{t("stu.total")}</p>
           <div className="text-5xl font-bold text-[#053d26] mb-4">{students.length.toLocaleString()}</div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500 font-semibold">
-            <TrendingUp className="h-4 w-4 text-[#20c997]" /> All registered students
+            <TrendingUp className="h-4 w-4 text-[#20c997]" /> {t("stu.all_registered")}
           </div>
         </div>
         
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between border-b-4 border-b-[#053d26]">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Active</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">{t("stu.active")}</p>
           <div className="text-5xl font-bold text-[#053d26] mb-4">{activeCount}</div>
           <div>
             <span className="inline-block px-3 py-1 rounded-full bg-green-100 text-[#053d26] text-[10px] font-bold uppercase tracking-wider">
-              Currently Active
+              {t("stu.currently_active")}
             </span>
           </div>
         </div>
 
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Loaded</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">{t("stu.loaded")}</p>
           <div className="text-5xl font-bold text-gray-700 mb-4">{students.length}</div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500 font-semibold">
-            Students loaded
+            {t("stu.students_loaded")}
           </div>
         </div>
 
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Graduated</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">{t("stu.graduated")}</p>
           <div className="text-5xl font-bold text-gray-700 mb-4">{graduatedCount}</div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500 font-semibold">
-            <GraduationCap className="h-4 w-4 text-[#20c997]" /> Completed program
+            <GraduationCap className="h-4 w-4 text-[#20c997]" /> {t("stu.completed_program")}
           </div>
         </div>
       </div>
@@ -412,18 +414,18 @@ export default function StudentsPage() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
-          <span className="ml-3 text-gray-500 font-medium">Loading students...</span>
+          <span className="ml-3 text-gray-500 font-medium">{t("stu.loading")}</span>
         </div>
       ) : error ? (
         <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-12 text-center">
           <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Failed to load students</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">{t("stu.load_failed")}</h3>
           <p className="text-sm text-gray-500 mb-6">{error}</p>
           <button
             onClick={fetchStudents}
             className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       ) : students.length === 0 ? (
@@ -431,13 +433,13 @@ export default function StudentsPage() {
           <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
             <UserPlus className="h-8 w-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">No students yet</h3>
-          <p className="text-sm text-gray-500 mb-6">Enroll your first student to get started.</p>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">{t("stu.empty")}</h3>
+          <p className="text-sm text-gray-500 mb-6">{t("stu.empty_desc")}</p>
           <Link
             href="/dashboard/students/new"
             className="inline-block px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
           >
-            Add New Student
+            {t("stu.add")}
           </Link>
         </div>
       ) : (
@@ -445,15 +447,15 @@ export default function StudentsPage() {
           {/* Filters Header */}
           <div className="flex flex-col md:flex-row justify-between items-center p-6 border-b border-gray-50 gap-4">
             <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Filter By:</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{t("common.filter_by")}</span>
               <select className="bg-gray-100 rounded-full px-4 py-2 text-xs font-bold text-gray-600 focus:outline-none appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234B5563%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:8px_8px] bg-[right_12px_center]">
-                <option>Status: All</option>
+                <option>{t("stu.status_all")}</option>
               </select>
               <select 
                 value={selectedClass}
                 onChange={(e) => { setSelectedClass(e.target.value); setCurrentPage(1); }}
                 className="bg-gray-100 rounded-full px-4 py-2 text-xs font-bold text-gray-600 focus:outline-none appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234B5563%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:8px_8px] bg-[right_12px_center]">
-                <option value="All">Class: All</option>
+                <option value="All">{t("stu.class_all")}</option>
                 {classes.map(c => (
                   <option key={c.id || c._id} value={c.id || c._id}>{classLabel(c)}</option>
                 ))}
@@ -464,7 +466,7 @@ export default function StudentsPage() {
                   type="search"
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  placeholder="Search name, admission no. or parent"
+                  placeholder={t("stu.search")}
                   className="w-full bg-gray-100 rounded-full pl-9 pr-4 py-2 text-xs font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
                 />
               </div>
@@ -473,7 +475,7 @@ export default function StudentsPage() {
               onClick={handleExportCSV}
               className="flex items-center gap-2 text-xs font-bold text-gray-700 hover:text-gray-900 transition-colors"
             >
-              <Download className="h-4 w-4" /> Export CSV
+              <Download className="h-4 w-4" /> {t("common.export_csv")}
             </button>
           </div>
 
@@ -487,28 +489,28 @@ export default function StudentsPage() {
                   <button
                     onClick={() => handlePreviewIdCard(student)}
                     className="hover:text-blue-500 transition-colors p-1.5 rounded-lg hover:bg-gray-100"
-                    title="View ID Card"
+                    title={t("stu.view_id")}
                   >
                     <CreditCard className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setViewStudent(student)}
                     className="hover:text-[#053d26] transition-colors p-1.5 rounded-lg hover:bg-gray-100"
-                    title="View details"
+                    title={t("stu.view_details")}
                   >
                     <Eye className="h-5 w-5" />
                   </button>
                   <button
                     onClick={() => openEdit(student)}
                     className="hover:text-[#b05e1c] transition-colors p-1.5 rounded-lg hover:bg-gray-100"
-                    title="Edit student"
+                    title={t("stu.edit")}
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setDeleteId(student.id)}
                     className="hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-gray-100"
-                    title="Delete student"
+                    title={t("stu.delete")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -521,7 +523,7 @@ export default function StudentsPage() {
           {filteredStudents.length > itemsPerPage && (
             <div className="flex items-center justify-between p-6 border-t border-gray-50">
               <span className="text-xs font-medium text-gray-500">
-                Showing {Math.min(filteredStudents.length, (currentPage - 1) * itemsPerPage + 1)} to {Math.min(filteredStudents.length, currentPage * itemsPerPage)} of {filteredStudents.length} students
+                {t("stu.showing", { from: Math.min(filteredStudents.length, (currentPage - 1) * itemsPerPage + 1), to: Math.min(filteredStudents.length, currentPage * itemsPerPage), total: filteredStudents.length })}
               </span>
               <div className="flex gap-2">
                 <button
@@ -529,17 +531,17 @@ export default function StudentsPage() {
                   disabled={currentPage === 1}
                   className="px-4 py-2 text-xs font-bold text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Previous
+                  {t("common.previous")}
                 </button>
                 <span className="px-4 py-2 text-xs font-bold text-gray-900">
-                  Page {currentPage} of {Math.ceil(filteredStudents.length / itemsPerPage)}
+                  {t("common.page_of", { page: currentPage, total: Math.ceil(filteredStudents.length / itemsPerPage) })}
                 </span>
                 <button
                   onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredStudents.length / itemsPerPage), p + 1))}
                   disabled={currentPage === Math.ceil(filteredStudents.length / itemsPerPage)}
                   className="px-3 py-1 rounded-md text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Next
+                  {t("common.next")}
                 </button>
               </div>
             </div>
@@ -552,7 +554,7 @@ export default function StudentsPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={() => setViewStudent(null)}>
           <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">Student Details</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t("stu.details")}</h2>
               <button onClick={() => setViewStudent(null)} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
                 <X className="h-6 w-6" />
               </button>
@@ -568,25 +570,25 @@ export default function StudentsPage() {
               )}
               <div>
                 <h3 className="text-xl font-bold text-gray-900">{viewStudent.fullName}</h3>
-                <p className="text-sm text-gray-500">{viewStudent.admissionNumber || 'No Admission Number'}</p>
+                <p className="text-sm text-gray-500">{viewStudent.admissionNumber || t("stu.no_adm")}</p>
               </div>
             </div>
 
             <div className="space-y-4">
               {[
-                ['Gender', viewStudent.gender],
-                ['Date of Birth', formatDate(viewStudent.dateOfBirth)],
-                ['Class', viewStudent.className || 'Unassigned'],
-                ['Status', viewStudent.status],
-                ['Guardian', viewStudent.parentName || '—'],
-                ['Relationship', viewStudent.parentRelationship || '—'],
-                ['Guardian Phone', viewStudent.parentPhone || '—'],
-                ['Guardian Email', viewStudent.parentEmail || '—'],
-                ['Home Address', viewStudent.parentAddress || '—'],
-                ['Guardian ID', viewStudent.parent?.passportUrl
-                  ? <a href={viewStudent.parent.passportUrl} target="_blank" rel="noopener noreferrer" className="text-[#053d26] underline">View document</a>
+                [t("stu.gender"), tv("gender", viewStudent.gender)],
+                [t("stu.dob"), formatDate(viewStudent.dateOfBirth)],
+                [t("stu.class"), viewStudent.className || t("common.unassigned")],
+                [t("stu.status"), tv("status", viewStudent.status)],
+                [t("stu.guardian"), viewStudent.parentName || '—'],
+                [t("stu.relationship"), tv("rel", viewStudent.parentRelationship) || '—'],
+                [t("stu.guardian_phone"), viewStudent.parentPhone || '—'],
+                [t("stu.guardian_email"), viewStudent.parentEmail || '—'],
+                [t("stu.address"), viewStudent.parentAddress || '—'],
+                [t("stu.guardian_id"), viewStudent.parent?.passportUrl
+                  ? <a href={viewStudent.parent.passportUrl} target="_blank" rel="noopener noreferrer" className="text-[#053d26] underline">{t("common.view_document")}</a>
                   : '—'],
-                ['Enrolled', formatDate(viewStudent.enrolledAt)],
+                [t("stu.enrolled"), formatDate(viewStudent.enrolledAt)],
               ].map(([label, val]) => (
                 <div key={String(label)} className="flex justify-between items-center py-2 border-b border-gray-50">
                   <span className="text-sm text-gray-500">{label}</span>
@@ -597,7 +599,7 @@ export default function StudentsPage() {
 
             {/* Academic History */}
             <div className="mt-6 border-t border-gray-100 pt-6">
-              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">Academic History</h4>
+              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">{t("stu.history")}</h4>
               {isLoadingHistory ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="h-5 w-5 animate-spin text-[#053d26]" />
@@ -607,8 +609,8 @@ export default function StudentsPage() {
                   {studentHistory.map((hist, idx) => (
                     <div key={hist.id || idx} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
                       <div>
-                        <div className="font-bold text-sm text-gray-900">{hist.className || 'Unknown Class'}</div>
-                        <div className="text-xs text-gray-500">{hist.sessionName || 'Unknown Session'}</div>
+                        <div className="font-bold text-sm text-gray-900">{hist.className || t("stu.unknown_class")}</div>
+                        <div className="text-xs text-gray-500">{hist.sessionName || t("stu.unknown_session")}</div>
                       </div>
                       <div className="text-xs font-semibold text-[#053d26] bg-green-50 px-2 py-1 rounded-md">
                         {new Date(hist.createdAt).getFullYear()}
@@ -617,7 +619,7 @@ export default function StudentsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4 text-sm text-gray-500">No historical records found.</div>
+                <div className="text-center py-4 text-sm text-gray-500">{t("stu.no_history")}</div>
               )}
             </div>
 
@@ -626,26 +628,26 @@ export default function StudentsPage() {
                 onClick={() => handlePreviewIdCard(viewStudent)}
                 className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 transition-colors text-sm border border-blue-100/50 shadow-sm"
               >
-                <CreditCard className="h-4 w-4" /> View ID Card
+                <CreditCard className="h-4 w-4" /> {t("stu.view_id")}
               </button>
               <button
                 onClick={() => setResetPasswordId(viewStudent.id)}
                 className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-rose-50 text-rose-600 font-bold hover:bg-rose-100 transition-colors text-sm border border-rose-100/50 shadow-sm"
               >
-                <Power className="h-4 w-4" /> Reset Password
+                <Power className="h-4 w-4" /> {t("stu.reset_pw")}
               </button>
               <button
                 onClick={() => handleMarkLeft(viewStudent.id)}
                 disabled={isMarkingLeft || viewStudent.status === 'Left'}
                 className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-orange-50 text-orange-600 font-bold hover:bg-orange-100 transition-colors text-sm border border-orange-100/50 shadow-sm disabled:opacity-50"
               >
-                <AlertCircle className="h-4 w-4" /> {isMarkingLeft ? "Updating..." : "Mark as Left"}
+                <AlertCircle className="h-4 w-4" /> {isMarkingLeft ? t("common.updating") : t("stu.mark_left")}
               </button>
               <button
                 onClick={() => { setViewStudent(null); openEdit(viewStudent); }}
                 className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-sm shadow-md"
               >
-                <Edit2 className="h-4 w-4" /> Edit Student
+                <Edit2 className="h-4 w-4" /> {t("stu.edit_title")}
               </button>
             </div>
           </div>
@@ -657,7 +659,7 @@ export default function StudentsPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEditStudent(null)}>
           <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">Edit Student</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t("stu.edit_title")}</h2>
               <button onClick={() => setEditStudent(null)} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
                 <X className="h-6 w-6" />
               </button>
@@ -671,7 +673,7 @@ export default function StudentsPage() {
 
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Full Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("stu.full_name")}</label>
                 <input
                   value={editForm.fullName || ''}
                   onChange={e => setEditForm(f => ({ ...f, fullName: e.target.value }))}
@@ -680,33 +682,31 @@ export default function StudentsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Gender</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("stu.gender")}</label>
                   <select
                     value={editForm.gender || ''}
                     onChange={e => setEditForm(f => ({ ...f, gender: e.target.value as 'Male' | 'Female' }))}
                     className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors appearance-none"
                   >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
+                    <option value="Male">{tv("gender", "Male")}</option>
+                    <option value="Female">{tv("gender", "Female")}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Status</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("stu.status")}</label>
                   <select
                     value={editForm.status || ''}
                     onChange={e => setEditForm(f => ({ ...f, status: e.target.value as 'Active' | 'Graduated' | 'Archived' | 'Suspended' | 'Left' }))}
                     className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors appearance-none"
                   >
-                    <option value="Active">Active</option>
-                    <option value="Graduated">Graduated</option>
-                    <option value="Archived">Archived</option>
-                    <option value="Suspended">Suspended</option>
-                    <option value="Left">Left</option>
+                    {["Active", "Graduated", "Archived", "Suspended", "Left"].map(s => (
+                      <option key={s} value={s}>{tv("status", s)}</option>
+                    ))}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Guardian Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("stu.guardian_name")}</label>
                 <input
                   value={editForm.parentName || ''}
                   onChange={e => setEditForm(f => ({ ...f, parentName: e.target.value }))}
@@ -715,7 +715,7 @@ export default function StudentsPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Guardian Phone</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("stu.guardian_phone")}</label>
                   <input
                     value={editForm.parentPhone || ''}
                     onChange={e => setEditForm(f => ({ ...f, parentPhone: e.target.value }))}
@@ -723,7 +723,7 @@ export default function StudentsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Guardian Email</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("stu.guardian_email")}</label>
                   <input
                     value={editForm.parentEmail || ''}
                     onChange={e => setEditForm(f => ({ ...f, parentEmail: e.target.value }))}
@@ -733,20 +733,20 @@ export default function StudentsPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Relationship</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("stu.relationship")}</label>
                   <select
                     value={editForm.parentRelationship || ''}
                     onChange={e => setEditForm(f => ({ ...f, parentRelationship: e.target.value }))}
                     className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
                   >
-                    <option value="">Select relationship</option>
+                    <option value="">{t("stu.select_rel")}</option>
                     {['Mother', 'Father', 'Guardian', 'Grandparent', 'Sibling', 'Other'].map(r => (
-                      <option key={r} value={r}>{r}</option>
+                      <option key={r} value={r}>{tv("rel", r)}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Home Address</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("stu.address")}</label>
                   <input
                     value={editForm.parentAddress || ''}
                     onChange={e => setEditForm(f => ({ ...f, parentAddress: e.target.value }))}
@@ -761,7 +761,7 @@ export default function StudentsPage() {
                 onClick={() => setEditStudent(null)}
                 className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleSaveEdit}
@@ -769,7 +769,7 @@ export default function StudentsPage() {
                 className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {isSaving ? 'Saving...' : 'Save Changes'}
+                {isSaving ? t("common.saving") : t("common.save_changes")}
               </button>
             </div>
           </div>
@@ -785,19 +785,19 @@ export default function StudentsPage() {
                 <Trash2 className="h-6 w-6 text-red-500" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Delete Student</h3>
-                <p className="text-sm text-gray-500">This action cannot be undone.</p>
+                <h3 className="text-lg font-bold text-gray-900">{t("stu.delete_title")}</h3>
+                <p className="text-sm text-gray-500">{t("common.cannot_undo")}</p>
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-8">
-              Are you sure you want to permanently remove this student record from the system? All associated academic data will be lost.
+              {t("stu.delete_desc")}
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteId(null)}
                 className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleDelete}
@@ -805,7 +805,7 @@ export default function StudentsPage() {
                 className="px-6 py-3 rounded-full bg-red-600 text-white font-bold hover:bg-red-700 transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                {isDeleting ? 'Deleting...' : 'Delete'}
+                {isDeleting ? t("common.deleting") : t("common.delete")}
               </button>
             </div>
           </div>
@@ -818,17 +818,17 @@ export default function StudentsPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-gray-100 bg-gray-50 shrink-0 gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <h3 className="font-bold text-lg text-gray-800">ID Card Preview</h3>
+                <h3 className="font-bold text-lg text-gray-800">{t("stu.id_preview")}</h3>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-auto">
-                <button onClick={() => window.print()} className="p-2 bg-white rounded-lg border border-gray-200 text-gray-600 hover:text-[#053d26] shadow-sm hover:bg-gray-50 transition-all" title="Print ID Card">
+                <button onClick={() => window.print()} className="p-2 bg-white rounded-lg border border-gray-200 text-gray-600 hover:text-[#053d26] shadow-sm hover:bg-gray-50 transition-all" title={t("stu.print_id")}>
                   <Printer className="h-4 w-4" />
                 </button>
                 <button 
                   onClick={handleDownloadFromPreview}
                   className="flex items-center gap-2 px-4 py-2 bg-[#053d26] hover:bg-[#042c1b] text-white rounded-lg font-bold text-sm transition-colors"
                 >
-                  <Download className="w-4 h-4" /> Download PDF
+                  <Download className="w-4 h-4" /> {t("common.download_pdf")}
                 </button>
                 <button 
                   onClick={closePreview}
@@ -880,15 +880,15 @@ export default function StudentsPage() {
                 <Power className="h-6 w-6 text-orange-500" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Reset Password</h3>
-                <p className="text-sm text-gray-500">Set a new password for this student</p>
+                <h3 className="text-lg font-bold text-gray-900">{t("stu.reset_pw")}</h3>
+                <p className="text-sm text-gray-500">{t("stu.reset_desc")}</p>
               </div>
             </div>
             <div className="mb-8">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">New Password</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("stu.new_pw")}</label>
               <input
                 type="text"
-                placeholder="Enter new password (min 6 chars)"
+                placeholder={t("stu.new_pw_ph")}
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
@@ -899,7 +899,7 @@ export default function StudentsPage() {
                 onClick={() => setResetPasswordId(null)}
                 className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 font-bold hover:bg-gray-300 transition-colors text-sm"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleResetPassword}
@@ -907,7 +907,7 @@ export default function StudentsPage() {
                 className="px-6 py-3 rounded-full bg-orange-600 text-white font-bold hover:bg-orange-700 transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
               >
                 {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
-                {isResetting ? 'Resetting...' : 'Reset'}
+                {isResetting ? t("common.resetting") : t("common.reset")}
               </button>
             </div>
           </div>

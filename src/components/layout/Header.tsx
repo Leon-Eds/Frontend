@@ -77,7 +77,7 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
           <button
             onClick={onMenuToggle}
             className="lg:hidden text-gray-600 hover:text-gray-900 transition-colors p-1.5 -ml-1"
-            aria-label="Open menu"
+            aria-label={t("layout.open_menu")}
           >
             <MenuIcon className="h-6 w-6" />
           </button>
@@ -87,12 +87,12 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
             className="text-gray-600 hover:text-[#053d26] transition-colors p-1.5 -ml-1 flex items-center gap-2 font-bold text-sm"
           >
             <Home className="h-5 w-5" />
-            <span className="hidden sm:inline">Dashboard</span>
+            <span className="hidden sm:inline">{t("layout.nav.dashboard")}</span>
           </Link>
         )}
 
         <div className="hidden xl:block shrink-0">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#053d26]">Welcome,</span>
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#053d26]">{t("layout.welcome")}</span>
           <br />
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#053d26] truncate max-w-[150px] inline-block align-bottom">{userName}</span>
         </div>
@@ -109,7 +109,7 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
               <input
                 type="text"
                 className="block w-44 xl:w-56 rounded-full border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
-                placeholder={t("header.search")}
+                placeholder={t("layout.search")}
               />
             </div>
 
@@ -137,7 +137,7 @@ export default function Header({ onMenuToggle, isStudent }: HeaderProps) {
             className="flex items-center gap-2 text-red-500 hover:text-red-700 transition-colors px-2 py-1 text-sm font-semibold"
           >
             <LogOut className="h-4 w-4" />
-            Logout
+            {t("layout.logout")}
           </button>
         )}
 

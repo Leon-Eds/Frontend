@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Bell, Check, Info, AlertTriangle, XCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { notificationsApi, NotificationPayload } from "@/lib/notifications";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function NotificationsPopover() {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationPayload[]>([]);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -57,18 +59,19 @@ export default function NotificationsPopover() {
     const date = new Date(dateStr);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
-    if (diffMs < 60000) return "Just now";
+    if (diffMs < 60000) return t("layout.notif.just_now");
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 60) return t("layout.notif.minutes", { n: diffMins });
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${Math.floor(diffHours / 24)}d ago`;
+    if (diffHours < 24) return t("layout.notif.hours", { n: diffHours });
+    return t("layout.notif.days", { n: Math.floor(diffHours / 24) });
   };
 
   return (
     <div className="relative" ref={popoverRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={t("layout.notif.open")}
         className="relative text-gray-500 hover:text-gray-900 transition-colors p-1 flex items-center justify-center"
       >
         <Bell className="h-5 w-5" />
@@ -80,13 +83,13 @@ export default function NotificationsPopover() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden flex flex-col max-h-[85vh]">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50 shrink-0">
-            <h3 className="font-semibold text-gray-900">Notifications</h3>
+            <h3 className="font-semibold text-gray-900">{t("layout.notif.title")}</h3>
             {unreadCount > 0 && (
               <button 
                 onClick={handleMarkAllAsRead}
                 className="text-xs text-[#053d26] hover:underline font-medium flex items-center gap-1"
               >
-                <Check className="h-3 w-3" /> Mark all read
+                <Check className="h-3 w-3" /> {t("layout.notif.mark_all")}
               </button>
             )}
           </div>
@@ -94,7 +97,7 @@ export default function NotificationsPopover() {
           <div className="overflow-y-auto flex-1 p-2">
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-gray-500 text-sm">
-                No notifications right now.
+                {t("layout.notif.empty")}
               </div>
             ) : (
               <div className="space-y-1">
@@ -124,7 +127,7 @@ export default function NotificationsPopover() {
                           onClick={() => setIsOpen(false)}
                           className="text-xs text-[#053d26] font-medium hover:underline inline-block mt-2"
                         >
-                          View Details
+                          {t("layout.notif.view")}
                         </Link>
                       )}
                     </div>
@@ -132,7 +135,7 @@ export default function NotificationsPopover() {
                       <button 
                         onClick={(e) => handleMarkAsRead(notif.id, e)}
                         className="shrink-0 text-gray-400 hover:text-gray-600 p-1"
-                        title="Mark as read"
+                        title={t("layout.notif.mark_one")}
                       >
                         <div className="h-2 w-2 rounded-full bg-[#b05e1c]"></div>
                       </button>
@@ -149,7 +152,7 @@ export default function NotificationsPopover() {
               onClick={() => setIsOpen(false)}
               className="text-xs text-gray-500 hover:text-gray-900 font-medium"
             >
-              Notification Preferences
+              {t("layout.notif.prefs")}
             </Link>
           </div>
         </div>

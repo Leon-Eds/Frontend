@@ -23,6 +23,7 @@ import {
   Briefcase
 } from "lucide-react";
 import Link from "next/link";
+import { useLanguage, interpolate } from "@/components/LanguageProvider";
 
 const getSeededGradient = (name: string) => {
   const gradients = [
@@ -42,6 +43,7 @@ const getSeededGradient = (name: string) => {
 };
 
 export default function SuperAdminDashboard() {
+  const { t, tv } = useLanguage();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [schools, setSchools] = useState<any[]>([]);
@@ -153,7 +155,7 @@ export default function SuperAdminDashboard() {
             setSchools(enriched);
           }
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : "Failed to load dashboard";
+          const message = err instanceof Error ? err.message : "dash.load_failed";
           setError(message);
         } finally {
           setIsLoading(false);
@@ -180,8 +182,8 @@ export default function SuperAdminDashboard() {
             <Activity className="h-6 w-6 text-[#053d26] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-extrabold text-gray-900 uppercase tracking-widest">Establishing Trust Channel</p>
-            <p className="text-xs text-gray-400 mt-1">Synchronizing Academic Architecture Core...</p>
+            <p className="text-sm font-extrabold text-gray-900 uppercase tracking-widest">{t("sao.establishing")}</p>
+            <p className="text-xs text-gray-400 mt-1">{t("sao.syncing_core")}</p>
           </div>
         </div>
       </div>
@@ -198,14 +200,14 @@ export default function SuperAdminDashboard() {
           <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mx-auto mb-6 text-rose-500 shadow-sm">
             <ShieldAlert className="h-8 w-8" />
           </div>
-          <h2 className="text-2xl font-black mb-2 tracking-tight text-gray-900">Connection Interrupted</h2>
-          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-3">Service Gateway Timeout</p>
-          <p className="text-sm text-gray-500 mb-8 leading-relaxed">{error}</p>
+          <h2 className="text-2xl font-black mb-2 tracking-tight text-gray-900">{t("sao.interrupted")}</h2>
+          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-3">{t("sao.timeout")}</p>
+          <p className="text-sm text-gray-500 mb-8 leading-relaxed">{t(error)}</p>
           <button
             onClick={() => window.location.reload()}
             className="w-full py-4 rounded-xl bg-gradient-to-r from-[#053d26] to-[#0a5737] text-white font-extrabold text-xs uppercase tracking-widest hover:shadow-[0_8px_20px_rgba(5,61,38,0.25)] transition-all duration-300 transform active:scale-[0.98]"
           >
-            Retry Connection Protocol
+            {t("sao.retry")}
           </button>
         </div>
       </div>
@@ -263,7 +265,7 @@ export default function SuperAdminDashboard() {
 
   const activeSubscriptions = overviewData?.totalSubscribers ?? computedActiveSubs;
   const totalRevenue = overviewData?.totalRevenue ?? computedTotalRev;
-  const platformGrowth = s?.platformGrowth || "Live";
+  const platformGrowth = s?.platformGrowth || t("sao.live");
 
   // Data Reconciliation: If count > 0 but list is empty, we flag it as "Syncing"
   const isSyncingSchools = reportedTotalSchools > 0 && schools.length === 0;
@@ -290,17 +292,17 @@ export default function SuperAdminDashboard() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#053d26] opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-[#053d26]"></span>
               </span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#053d26]">Root Command Center</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#053d26]">{t("sao.badge")}</span>
             </div>
             <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight flex items-center gap-4">
-              Platform Overview
+              {t("layout.nav.platform_overview")}
             </h1>
             <p className="text-sm text-gray-500 font-medium mt-3 flex items-center gap-2">
-              Welcome back, <span className="font-extrabold text-gray-800">{user?.name}</span>
+              {interpolate(t("sao.welcome"), { name: <span className="font-extrabold text-gray-800">{user?.name}</span> })}
               <span className="text-gray-300">•</span>
               <span className="inline-flex items-center gap-1.5 font-extrabold text-rose-700 bg-rose-50 border border-rose-100/50 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider shadow-sm">
                 <ShieldAlert className="h-3 w-3" />
-                Root Administrator
+                {t("sao.root")}
               </span>
             </p>
           </div>
@@ -311,7 +313,7 @@ export default function SuperAdminDashboard() {
             >
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
               <Plus className="h-5 w-5 relative z-10" />
-              <span className="relative z-10">Register School</span>
+              <span className="relative z-10">{t("sao.register")}</span>
             </Link>
           </div>
         </div>
@@ -329,19 +331,19 @@ export default function SuperAdminDashboard() {
                 </div>
                 {isSyncingSchools ? (
                   <span className="rounded-full bg-amber-500/20 px-3 py-1.5 text-[10px] font-black text-amber-200 uppercase tracking-widest border border-amber-500/30 animate-pulse backdrop-blur-md">
-                    Syncing
+                    {t("sao.syncing")}
                   </span>
                 ) : (
                   <span className="rounded-full bg-emerald-500/20 px-3 py-1.5 text-[10px] font-black text-emerald-200 uppercase tracking-widest border border-emerald-500/30 backdrop-blur-md">
-                    Network Online
+                    {t("sao.online")}
                   </span>
                 )}
               </div>
               <div className="mt-8">
-                <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[#053d26] mb-2 bg-emerald-400 inline-block px-2 py-0.5 rounded-md">Total Institutions</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[#053d26] mb-2 bg-emerald-400 inline-block px-2 py-0.5 rounded-md">{t("sao.total")}</p>
                 <div className="flex items-baseline gap-3">
                   <p className="text-6xl font-black text-white tracking-tighter drop-shadow-lg">{displayTotalSchools}</p>
-                  <span className="text-xs text-emerald-200/80 font-bold uppercase tracking-widest">onboarded</span>
+                  <span className="text-xs text-emerald-200/80 font-bold uppercase tracking-widest">{t("sao.onboarded")}</span>
                 </div>
               </div>
             </div>
@@ -349,8 +351,8 @@ export default function SuperAdminDashboard() {
 
           {/* Regular Stats */}
           {[
-            { label: "Total Students", value: totalStudents.toLocaleString(), unit: "learners", icon: Briefcase, color: "emerald", trend: "Growth" },
-            { label: "Total Teachers", value: totalTeachers.toLocaleString(), unit: "staff", icon: CreditCard, color: "purple", trend: "Faculty" }
+            { label: t("dash.total_students"), value: totalStudents.toLocaleString(), unit: t("sao.learners"), icon: Briefcase, color: "emerald", trend: t("sao.growth") },
+            { label: t("fac.total"), value: totalTeachers.toLocaleString(), unit: t("sao.staff_unit"), icon: CreditCard, color: "purple", trend: t("sao.faculty") }
           ].map((stat, i) => (
             <div key={i} className={`lg:col-span-2 md:col-span-1 col-span-1 group relative overflow-hidden rounded-[2rem] bg-white/60 backdrop-blur-xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-white/80 transition-all duration-300 hover:bg-white hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)] hover:-translate-y-1`}>
               <div className={`absolute -right-10 -top-10 h-32 w-32 bg-${stat.color}-500/5 rounded-full blur-2xl transition-transform duration-500 group-hover:scale-150 group-hover:bg-${stat.color}-500/10`} />
@@ -381,12 +383,12 @@ export default function SuperAdminDashboard() {
             <div>
               <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                 <Database className="h-6 w-6 text-[#b05e1c]" />
-                Institution Registry
+                {t("sao.registry")}
               </h2>
-              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mt-1">Real-time cluster node monitoring</p>
+              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mt-1">{t("sao.registry_d")}</p>
             </div>
             <Link href="/super-admin/schools" className="group text-[11px] font-black uppercase tracking-widest text-[#053d26] flex items-center gap-2 bg-[#053d26]/5 hover:bg-[#053d26]/10 px-5 py-2.5 rounded-full transition-all duration-300 border border-[#053d26]/10">
-              View Entire Registry
+              {t("sao.view_all")}
               <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
@@ -398,11 +400,11 @@ export default function SuperAdminDashboard() {
               <table className="w-full text-left border-separate border-spacing-y-4 min-w-[800px]">
                 <thead>
                   <tr className="text-gray-400">
-                    <th className="pb-2 pl-4 font-black text-[10px] uppercase tracking-[0.25em]">School Identity</th>
-                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] px-4">Cluster Owner</th>
-                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] px-4">Usage Matrix</th>
-                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] px-4">Service Plan</th>
-                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] pr-4 text-right">Node Status</th>
+                    <th className="pb-2 pl-4 font-black text-[10px] uppercase tracking-[0.25em]">{t("sao.th_identity")}</th>
+                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] px-4">{t("sao.th_owner")}</th>
+                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] px-4">{t("sao.th_usage")}</th>
+                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] px-4">{t("sao.th_plan")}</th>
+                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.25em] pr-4 text-right">{t("sao.th_status")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -435,7 +437,7 @@ export default function SuperAdminDashboard() {
                             </div>
                             <div>
                               <div className="text-sm font-black text-gray-800 leading-tight">{school.adminName || 'ROOT'}</div>
-                              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Admin Node</div>
+                              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">{t("sao.admin_node")}</div>
                             </div>
                           </div>
                         </td>
@@ -445,11 +447,11 @@ export default function SuperAdminDashboard() {
                           <div className="flex flex-col gap-1.5">
                             <span className="inline-flex items-center gap-2 text-[11px] font-bold text-gray-700">
                               <GraduationCap className="h-4 w-4 text-blue-500" />
-                              {studentCount} <span className="text-gray-400 font-medium">Students</span>
+                              {studentCount} <span className="text-gray-400 font-medium">{t("sao.students_w")}</span>
                             </span>
                             <span className="inline-flex items-center gap-2 text-[11px] font-bold text-gray-700">
                               <Briefcase className="h-4 w-4 text-emerald-500" />
-                              {staffCount} <span className="text-gray-400 font-medium">Staff</span>
+                              {staffCount} <span className="text-gray-400 font-medium">{t("sao.staff_w")}</span>
                             </span>
                           </div>
                         </td>
@@ -472,7 +474,7 @@ export default function SuperAdminDashboard() {
                                 <span className="relative flex h-2.5 w-2.5">
                                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
                                 </span>
-                                OFFLINE
+                                {t("sao.offline")}
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-emerald-600">
@@ -480,7 +482,7 @@ export default function SuperAdminDashboard() {
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                                 </span>
-                                ACTIVE
+                                {t("fac.active_up")}
                               </span>
                             )}
                             <Link href={`/super-admin/schools?search=${encodeURIComponent(school.name || '')}`} className="h-9 w-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 group-hover:text-white group-hover:bg-[#053d26] group-hover:border-[#053d26] group-hover:shadow-[0_4px_12px_rgba(5,61,38,0.3)] transition-all duration-300">
@@ -499,8 +501,8 @@ export default function SuperAdminDashboard() {
                             <Activity className="h-6 w-6 text-[#053d26] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                           </div>
                           <div className="space-y-1">
-                            <p className="text-base font-black text-gray-900 tracking-tight">Synchronizing Registry</p>
-                            <p className="text-xs text-gray-500 font-medium">Fetching node statuses from <LeonEdLogoText /> clusters...</p>
+                            <p className="text-base font-black text-gray-900 tracking-tight">{t("sao.sync_registry")}</p>
+                            <p className="text-xs text-gray-500 font-medium">{interpolate(t("sao.fetching"), { brand: <LeonEdLogoText /> })}</p>
                           </div>
                         </div>
                       </td>
@@ -511,8 +513,8 @@ export default function SuperAdminDashboard() {
                         <div className="flex flex-col items-center gap-4 opacity-40">
                           <School className="h-16 w-16 text-gray-400" />
                           <div className="space-y-1">
-                            <p className="text-sm font-black text-gray-500 uppercase tracking-widest">Zero Records Found</p>
-                            <p className="text-xs text-gray-400 font-medium">No institutions have been onboarded to the system yet.</p>
+                            <p className="text-sm font-black text-gray-500 uppercase tracking-widest">{t("sao.zero")}</p>
+                            <p className="text-xs text-gray-400 font-medium">{t("sao.zero_d")}</p>
                           </div>
                         </div>
                       </td>
@@ -525,7 +527,7 @@ export default function SuperAdminDashboard() {
             {schools.length > itemsPerPage && (
               <div className="flex items-center justify-between px-4 pt-6 mt-4 border-t border-gray-100/50">
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                  Page <span className="text-[#053d26]">{currentPage}</span> of <span className="text-[#053d26]">{Math.ceil(schools.length / itemsPerPage)}</span>
+                  {interpolate(t("common.page_of"), { page: <span className="text-[#053d26]">{currentPage}</span>, total: <span className="text-[#053d26]">{Math.ceil(schools.length / itemsPerPage)}</span> })}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -533,14 +535,14 @@ export default function SuperAdminDashboard() {
                     disabled={currentPage === 1}
                     className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-[10px] font-bold text-gray-600 uppercase tracking-widest disabled:opacity-50 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm active:scale-95"
                   >
-                    Previous
+                    {t("common.previous")}
                   </button>
                   <button
                     onClick={() => setCurrentPage(p => Math.min(Math.ceil(schools.length / itemsPerPage), p + 1))}
                     disabled={currentPage === Math.ceil(schools.length / itemsPerPage)}
                     className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-[10px] font-bold text-gray-600 uppercase tracking-widest disabled:opacity-50 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm active:scale-95"
                   >
-                    Next
+                    {t("common.next")}
                   </button>
                 </div>
               </div>

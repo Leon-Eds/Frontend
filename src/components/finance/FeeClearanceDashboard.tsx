@@ -6,6 +6,7 @@ import { Eye, Search, Filter, Download, MoreVertical, CreditCard, Wallet, ArrowU
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { studentApi, sessionApi, bursarApi, dashboardApi, uploadToCloudinary, feeStructureApi, FeeTermSummary } from "@/lib/api";
+import { useLanguage, localeFor, interpolate, termLabel } from "@/components/LanguageProvider";
 
 interface StudentRegistry {
   id: string;
@@ -20,6 +21,7 @@ interface StudentRegistry {
 }
 
 export default function FeeClearanceDashboard() {
+  const { t, tv, language } = useLanguage();
   const router = useRouter();
 
   const [registry, setRegistry] = useState<StudentRegistry[]>([]);
@@ -132,7 +134,7 @@ export default function FeeClearanceDashboard() {
       setHistoryRecords(flattenedRecords);
     } catch (err) {
       console.error("Failed to fetch history:", err);
-      toast.error("Failed to fetch payment history");
+      toast.error(t("fee.history_failed"));
     } finally {
       setIsFetchingHistory(false);
     }
@@ -181,10 +183,10 @@ export default function FeeClearanceDashboard() {
       ));
       setDetailStudent({ ...detailStudent, amountDue: computedDue });
       
-      toast.success("Custom fees assigned successfully");
+      toast.success(t("fee.custom_ok"));
       setIsManagingCustomFees(false);
     } catch (err) {
-      toast.error("Failed to assign custom fees");
+      toast.error(t("fee.custom_failed"));
     }
   };
 
@@ -214,12 +216,12 @@ export default function FeeClearanceDashboard() {
           description: "System generated (Amount Paid updated)",
           receiptImageUrl: ""
         });
-        toast.success("Amount paid updated on server");
+        toast.success(t("fee.paid_synced"));
       } catch (err) {
-        toast.error("Failed to sync amount paid with server");
+        toast.error(t("fee.paid_sync_failed"));
       }
     } else {
-      toast.success("Amount paid updated locally");
+      toast.success(t("fee.paid_local"));
     }
   };
 
@@ -243,7 +245,7 @@ export default function FeeClearanceDashboard() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    toast.success(`Payment batch/voucher "${file.name}" uploaded successfully! Reconciling transaction records...`);
+    toast.success(t("fee.batch_uploaded", { name: file.name }));
   };
 
   const fetchStudents = useCallback(async () => {
@@ -387,7 +389,7 @@ export default function FeeClearanceDashboard() {
           id: student.id,
           name: student.fullName,
           avatarUrl: student.profilePictureUrl || (student as any).avatarUrl,
-          program: student.className || "Unassigned",
+          program: student.className || "",
           classLevel: (student as any).classLevel || undefined,
           refId: student.admissionNumber || student.id,
           status: finalStatus as "Cleared" | "Unpaid" | "Pending Verification",
@@ -395,14 +397,14 @@ export default function FeeClearanceDashboard() {
           amountPaid: finalAmountPaid,
           receiptImageUrl: fee?.receiptImageUrl || fee?.receiptUrl || fee?.imageUrl || fee?.receipt || fee?.paymentReceipt || fee?.proofOfPayment || null,
           // Description and date come from the payment record on the server
-          paymentDescription: fee?.description || "Tuition Fee",
+          paymentDescription: fee?.description || "",
           paymentDate: fee?.updatedAt || fee?.clearedAt || undefined,
         };
       });
       
       setRegistry(mapped);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch students");
+      setError(err instanceof Error ? err.message : "fee.load_failed");
     } finally {
       setIsLoading(false);
     }
@@ -434,7 +436,7 @@ export default function FeeClearanceDashboard() {
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudentId || !selectedTermId || !currentSessionId) {
-      toast.error("Please select a student and term.");
+      toast.error(t("fee.select_req"));
       return;
     }
 
@@ -449,7 +451,7 @@ export default function FeeClearanceDashboard() {
         description: paymentDescription,
         receiptImageUrl: receiptImageUrl
       });
-      toast.success("Payment recorded successfully!");
+      toast.success(t("fee.recorded"));
       setIsPaymentModalOpen(false);
       
       const pPaid = parseFloat(amountPaid);
@@ -470,7 +472,7 @@ export default function FeeClearanceDashboard() {
         return s;
       }));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to record payment";
+      const msg = err instanceof Error ? err.message : t("fee.record_failed");
       toast.error(msg);
     } finally {
       setIsSubmittingPayment(false);
@@ -532,7 +534,7 @@ export default function FeeClearanceDashboard() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-[#053d26] border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-semibold text-gray-500">Loading student registry…</p>
+          <p className="text-sm font-semibold text-gray-500">{t("fee.loading")}</p>
         </div>
       </div>
     );
@@ -545,12 +547,12 @@ export default function FeeClearanceDashboard() {
           <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
             <span className="text-xl font-bold">!</span>
           </div>
-          <p className="text-sm font-semibold text-red-700">{error}</p>
+          <p className="text-sm font-semibold text-red-700">{t(error)}</p>
           <button
             onClick={fetchStudents}
             className="px-5 py-2.5 rounded-full bg-[#053d26] hover:bg-[#042c1b] text-white font-bold text-xs transition-colors shadow-md"
           >
-            Try Again
+            {t("stf.try_again")}
           </button>
         </div>
       </div>
@@ -562,10 +564,10 @@ export default function FeeClearanceDashboard() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-gray-900 leading-tight">Fee Clearance</h1>
+          <h1 className="text-3xl font-bold text-gray-900 leading-tight">{t("dash.sc.fee_clearance")}</h1>
           <div className="flex items-center gap-4">
             <p className="text-gray-500 leading-relaxed text-sm">
-              Manage academic access & payment verification
+              {t("fee.subtitle")}
             </p>
             <div className="h-4 w-px bg-gray-300 hidden md:block"></div>
             <Link 
@@ -573,7 +575,7 @@ export default function FeeClearanceDashboard() {
               className="text-[#053d26] text-sm font-bold hover:underline flex items-center gap-1"
             >
               <Settings2 className="w-4 h-4" />
-              Fee Structures Setup
+              {t("fee.setup")}
             </Link>
           </div>
         </div>
@@ -588,7 +590,7 @@ export default function FeeClearanceDashboard() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="block w-full rounded-full border border-gray-200 bg-white py-2.5 pl-12 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
-            placeholder="Search student name or ID..."
+            placeholder={t("fee.search_ph")}
           />
         </div>
       </div>
@@ -599,10 +601,10 @@ export default function FeeClearanceDashboard() {
       {termSummary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Expected this term", value: `₦${termSummary.totalExpected.toLocaleString()}`, tone: "text-gray-900" },
-            { label: "Collected", value: `₦${termSummary.totalCollected.toLocaleString()}`, tone: "text-[#053d26]" },
-            { label: "Outstanding", value: `₦${termSummary.totalOutstanding.toLocaleString()}`, tone: "text-amber-600" },
-            { label: "Collected so far", value: `${termSummary.collectionRate}%`, tone: "text-gray-900" },
+            { label: t("fee.expected"), value: `₦${termSummary.totalExpected.toLocaleString()}`, tone: "text-gray-900" },
+            { label: t("fee.collected"), value: `₦${termSummary.totalCollected.toLocaleString()}`, tone: "text-[#053d26]" },
+            { label: t("fee.outstanding"), value: `₦${termSummary.totalOutstanding.toLocaleString()}`, tone: "text-amber-600" },
+            { label: t("fee.rate"), value: `${termSummary.collectionRate}%`, tone: "text-gray-900" },
           ].map(card => (
             <div key={card.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">{card.label}</p>
@@ -610,7 +612,7 @@ export default function FeeClearanceDashboard() {
             </div>
           ))}
           <p className="col-span-2 lg:col-span-4 text-xs text-gray-400 -mt-2">
-            {termSummary.termName} Term, {termSummary.sessionName} · {termSummary.clearedCount} of {termSummary.studentsCount} active students cleared
+            {t("fee.summary_line", { term: termLabel(t, termSummary.termName), session: termSummary.sessionName, cleared: termSummary.clearedCount, total: termSummary.studentsCount })}
           </p>
         </div>
       )}
@@ -619,7 +621,7 @@ export default function FeeClearanceDashboard() {
         {/* Table Toolbar Header */}
         <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Active Students Registry</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("fee.registry")}</h2>
             <p className="text-xs text-gray-400 font-semibold mt-0.5">Showing {filteredStudents.length} of {registry.length} students</p>
           </div>
 
@@ -628,32 +630,32 @@ export default function FeeClearanceDashboard() {
               onClick={() => setStatusFilter("All")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${statusFilter === "All" ? "bg-gray-800 text-white" : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"}`}
             >
-              All ({stats.total})
+              {t("fee.all", { n: stats.total })}
             </button>
             <button 
               onClick={() => setStatusFilter("Cleared")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${statusFilter === "Cleared" ? "bg-green-600 text-white" : "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"}`}
             >
-              Cleared ({stats.cleared})
+              {t("fee.cleared_n", { n: stats.cleared })}
             </button>
             <button 
               onClick={() => setStatusFilter("Unpaid")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${statusFilter === "Unpaid" ? "bg-red-600 text-white" : "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"}`}
             >
-              Unpaid ({stats.unpaid})
+              {t("fee.unpaid_n", { n: stats.unpaid })}
             </button>
             <button 
               onClick={() => setStatusFilter("Pending Verification")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${statusFilter === "Pending Verification" ? "bg-orange-500 text-white" : "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200"}`}
             >
-              Pending ({stats.pending})
+              {t("fee.pending_n", { n: stats.pending })}
             </button>
 
             <div className="h-6 w-px bg-gray-200 mx-1"></div>
 
 
             <button className="px-3.5 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-600 transition-colors">
-              {currentSessionName || "No Active Session"}{currentTermName ? ` — ${currentTermName} Term` : ""}
+              {currentSessionName || t("enr.s1.no_session")}{currentTermName ? t("fee.term_suffix", { term: currentTermName }) : ""}
             </button>
           </div>
         </div>
@@ -663,10 +665,10 @@ export default function FeeClearanceDashboard() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-wider text-gray-400 border-b border-gray-100">
-                <th className="py-4 px-8">Student Identity</th>
-                <th className="py-4 px-6 text-center">Reference ID</th>
-                <th className="py-4 px-6 text-center">Payment Status</th>
-                <th className="py-4 px-8 text-right">Actions</th>
+                <th className="py-4 px-8">{t("fee.th_identity")}</th>
+                <th className="py-4 px-6 text-center">{t("fee.th_ref")}</th>
+                <th className="py-4 px-6 text-center">{t("fee.th_status")}</th>
+                <th className="py-4 px-8 text-right">{t("common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -683,7 +685,7 @@ export default function FeeClearanceDashboard() {
                       </div>
                       <div>
                         <p className="font-bold text-gray-900 text-sm">{student.name}</p>
-                        <p className="text-xs text-gray-400 font-semibold">{student.program}</p>
+                        <p className="text-xs text-gray-400 font-semibold">{student.program || t("common.unassigned")}</p>
                       </div>
                     </div>
                   </td>
@@ -697,7 +699,7 @@ export default function FeeClearanceDashboard() {
                           ? "bg-red-100 text-red-700"
                           : "bg-orange-100 text-orange-700"
                       }`}>
-                        {student.status}
+                        {tv("fee", student.status)}
                       </span>
                     </div>
                   </td>
@@ -706,7 +708,7 @@ export default function FeeClearanceDashboard() {
                       <button 
                         onClick={() => handleViewHistory(student)}
                         className="p-2 rounded-xl text-gray-400 hover:text-blue-600 transition-colors"
-                        title="Payment History"
+                        title={t("fee.history")}
                       >
                         <History className="w-5 h-5" />
                       </button>
@@ -715,28 +717,28 @@ export default function FeeClearanceDashboard() {
                           <button 
                             onClick={() => handleOpenDetails(student)}
                             className="p-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
-                            title="View Details"
+                            title={t("stu.view_details")}
                           >
                             <Eye className="w-5 h-5" />
                           </button>
                           <button 
                             onClick={() => {
                               setReceiptStudent(student);
-                              toast.success(`Preparing receipt for ${student.name}...`);
+                              toast.success(t("fee.preparing", { name: student.name }));
                               setTimeout(() => {
                                 window.print();
                                 setTimeout(() => setReceiptStudent(null), 1000);
                               }, 800);
                             }}
                             className="p-2 rounded-xl text-gray-400 hover:text-[#053d26] transition-colors"
-                            title="Print Receipt"
+                            title={t("fee.print_receipt")}
                           >
                             <Printer className="w-5 h-5" />
                           </button>
                           <button 
                             onClick={async () => {
                               setReceiptStudent(student);
-                              toast.success(`Preparing PDF receipt for ${student.name}...`);
+                              toast.success(t("fee.preparing_pdf", { name: student.name }));
                               setTimeout(async () => {
                                 const element = document.getElementById("receipt-container");
                                 if (element) {
@@ -759,7 +761,7 @@ export default function FeeClearanceDashboard() {
                               }, 800);
                             }}
                             className="p-2 rounded-xl text-gray-400 hover:text-[#b05e1c] transition-colors"
-                            title="Download PDF"
+                            title={t("common.download_pdf")}
                           >
                             <Download className="w-5 h-5" />
                           </button>
@@ -771,7 +773,7 @@ export default function FeeClearanceDashboard() {
                           <button 
                             onClick={() => handleOpenClearModal(student.id)}
                             className="p-1.5 rounded-xl bg-green-100 text-[#053d26] hover:bg-green-200 transition-colors"
-                            title={student.status === "Pending Verification" ? "Verify & Approve" : "Clear Payment"}
+                            title={student.status === "Pending Verification" ? t("fee.verify") : t("fee.clear")}
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -780,7 +782,7 @@ export default function FeeClearanceDashboard() {
                             <button 
                               onClick={() => setDropdownOpenId(dropdownOpenId === student.id ? null : student.id)}
                               className="p-2 rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
-                              title="More Options"
+                              title={t("fee.more")}
                             >
                               <MoreVertical className="w-5 h-5" />
                             </button>
@@ -796,7 +798,7 @@ export default function FeeClearanceDashboard() {
                                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left font-bold"
                                   >
                                     <XCircle className="w-4 h-4" />
-                                    Reject / Mark Unpaid
+                                    {t("fee.reject")}
                                   </button>
                                 )}
                                 <button 
@@ -807,7 +809,7 @@ export default function FeeClearanceDashboard() {
                                   className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
                                 >
                                   <CheckCircle className="w-4 h-4" />
-                                  Force Clear Student
+                                  {t("fee.force")}
                                 </button>
                                 {student.status === "Unpaid" && (
                                   <button 
@@ -818,7 +820,7 @@ export default function FeeClearanceDashboard() {
                                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
                                   >
                                     <RotateCw className="w-4 h-4" />
-                                    Trigger Re-Verification
+                                    {t("fee.reverify")}
                                   </button>
                                 )}
                                 <button 
@@ -828,16 +830,16 @@ export default function FeeClearanceDashboard() {
                                   }}
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                                 >
-                                  View Details
+                                  {t("stu.view_details")}
                                 </button>
                                 <button 
                                   onClick={() => {
-                                    toast.success("Contact feature coming soon");
+                                    toast.success(t("fee.contact_soon"));
                                     setDropdownOpenId(null);
                                   }}
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                                 >
-                                  Contact Student
+                                  {t("fee.contact")}
                                 </button>
                               </div>
                             )}
@@ -853,7 +855,7 @@ export default function FeeClearanceDashboard() {
         </div>
 
         <div className="p-6 bg-gray-50/60 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-gray-500">
-          <span>Showing {filteredStudents.length} of {registry.length} students</span>
+          <span>{t("fee.showing", { n: filteredStudents.length, total: registry.length })}</span>
         </div>
       </div>
 
@@ -873,7 +875,7 @@ export default function FeeClearanceDashboard() {
             className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100 space-y-6 animate-in fade-in zoom-in duration-200"
           >
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <h3 className="text-xl font-bold text-gray-900">Record Fee Payment</h3>
+              <h3 className="text-xl font-bold text-gray-900">{t("fee.record_title")}</h3>
               <button 
                 type="button"
                 onClick={() => setIsPaymentModalOpen(false)}
@@ -886,7 +888,7 @@ export default function FeeClearanceDashboard() {
             <div className="space-y-4">
               {/* Student Select */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Student</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("fee.select_student")}</label>
                 <select
                   required
                   value={selectedStudentId}
@@ -902,10 +904,10 @@ export default function FeeClearanceDashboard() {
                   }}
                   className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
                 >
-                  <option value="">-- Choose a Student --</option>
+                  <option value="">{t("fee.choose_student")}</option>
                   {studentsList.map((std) => (
                     <option key={std.id} value={std.id}>
-                      {std.fullName} ({std.className || "Unassigned"})
+                      {std.fullName} ({std.className || t("common.unassigned")})
                     </option>
                   ))}
                 </select>
@@ -913,17 +915,17 @@ export default function FeeClearanceDashboard() {
 
               {/* Term Select */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Term</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("fee.select_term")}</label>
                 <select
                   required
                   value={selectedTermId}
                   onChange={(e) => setSelectedTermId(e.target.value)}
                   className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
                 >
-                  <option value="">-- Choose a Term --</option>
-                  {termsList.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.termNumber} Term
+                  <option value="">{t("fee.choose_term")}</option>
+                  {termsList.map((tm) => (
+                    <option key={tm.id} value={tm.id}>
+                      {termLabel(t, tm.termNumber)}
                     </option>
                   ))}
                 </select>
@@ -931,7 +933,7 @@ export default function FeeClearanceDashboard() {
 
               {/* Amount Due */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Amount Due (₦)</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("fee.amount_due_n")}</label>
                 <input
                   type="number"
                   required
@@ -940,12 +942,12 @@ export default function FeeClearanceDashboard() {
                   onChange={(e) => setAmountDue(e.target.value)}
                   className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
                 />
-                <p className="text-[11px] text-gray-400">Filled from the student's fee structures. Change it for discounts or extra charges.</p>
+                <p className="text-[11px] text-gray-400">{t("fee.amount_due_hint")}</p>
               </div>
 
               {/* Amount Paid */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Amount Paid (₦)</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("fee.amount_paid_n")}</label>
                 <input
                   type="number"
                   required
@@ -958,11 +960,11 @@ export default function FeeClearanceDashboard() {
 
               {/* Description / Notes */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Description/Notes</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("fee.notes")}</label>
                 <textarea
                   value={paymentDescription}
                   onChange={(e) => setPaymentDescription(e.target.value)}
-                  placeholder="e.g. Cleared via Bank Transfer"
+                  placeholder={t("fee.notes_ph")}
                   rows={2}
                   className="block w-full rounded-2xl border border-gray-200 bg-white py-3 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors resize-none"
                 />
@@ -977,14 +979,14 @@ export default function FeeClearanceDashboard() {
                 onClick={() => setIsPaymentModalOpen(false)}
                 className="px-5 py-2.5 rounded-full bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 transition-all"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="submit"
                 disabled={isSubmittingPayment}
                 className="px-6 py-2.5 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
               >
-                {isSubmittingPayment ? "Recording..." : "Record Payment"}
+                {isSubmittingPayment ? t("fee.recording") : t("fee.record")}
               </button>
             </div>
           </form>
@@ -997,7 +999,7 @@ export default function FeeClearanceDashboard() {
           <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-[#053d26]" /> Student Financial Profile
+                <FileText className="h-5 w-5 text-[#053d26]" /> {t("fee.profile")}
               </h3>
               <button 
                 onClick={() => setIsDetailsModalOpen(false)}
@@ -1014,17 +1016,17 @@ export default function FeeClearanceDashboard() {
                 </div>
                 <div>
                   <h4 className="text-xl font-black text-gray-900">{detailStudent.name}</h4>
-                  <p className="text-sm font-semibold text-gray-500">{detailStudent.program}</p>
+                  <p className="text-sm font-semibold text-gray-500">{detailStudent.program || t("common.unassigned")}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Reference ID</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t("fee.th_ref")}</p>
                   <p className="font-bold text-gray-900">{detailStudent.refId}</p>
                 </div>
                 <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Status</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t("stu.status")}</p>
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                     detailStudent.status === "Cleared"
                       ? "bg-green-100 text-[#053d26]"
@@ -1032,12 +1034,12 @@ export default function FeeClearanceDashboard() {
                       ? "bg-red-100 text-red-700"
                       : "bg-orange-100 text-orange-700"
                   }`}>
-                    {detailStudent.status}
+                    {tv("fee", detailStudent.status)}
                   </span>
                 </div>
                 <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 relative">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex justify-between items-center">
-                    Amount Due
+                    {t("fee.due")}
                     <button 
                       onClick={() => {
                         setTempSelectedCustomFees(studentCustomFeesMap[detailStudent.id] || []);
@@ -1045,15 +1047,15 @@ export default function FeeClearanceDashboard() {
                       }}
                       className="text-[#053d26] hover:text-green-700 underline text-[10px]"
                     >
-                      {isManagingCustomFees ? "Cancel" : "Manage Fees"}
+                      {isManagingCustomFees ? t("common.cancel") : t("fee.manage")}
                     </button>
                   </p>
                   {isManagingCustomFees && (
                     <div className="absolute top-full right-0 mt-2 w-64 bg-white shadow-2xl border border-gray-200 rounded-xl p-4 z-20">
-                      <h4 className="text-xs font-bold text-gray-900 mb-2 border-b pb-1">Assign Custom Fees</h4>
+                      <h4 className="text-xs font-bold text-gray-900 mb-2 border-b pb-1">{t("fee.assign_custom")}</h4>
                       <div className="space-y-2 mb-3 max-h-40 overflow-y-auto">
                         {allFeeStructures.filter(s => s.type === 'custom').length === 0 && (
-                           <p className="text-xs text-gray-500 italic">No custom fees defined.</p>
+                           <p className="text-xs text-gray-500 italic">{t("fee.no_custom")}</p>
                         )}
                         {allFeeStructures.filter(s => s.type === 'custom').map(fee => (
                           <label key={fee.id} className="flex items-center gap-2 cursor-pointer text-sm">
@@ -1075,7 +1077,7 @@ export default function FeeClearanceDashboard() {
                         onClick={handleSaveCustomFees}
                         className="w-full py-1.5 bg-[#053d26] text-white text-xs font-bold rounded-lg hover:bg-[#042c1b]"
                       >
-                        Save Assignment
+                        {t("fee.save_assign")}
                       </button>
                     </div>
                   )}
@@ -1083,13 +1085,13 @@ export default function FeeClearanceDashboard() {
                 </div>
                 <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex justify-between items-center">
-                    Amount Paid
+                    {t("fee.paid")}
                     {!isEditingPaid && (
                       <button 
                         onClick={() => setIsEditingPaid(true)}
                         className="text-[#053d26] hover:text-green-700 underline text-[10px]"
                       >
-                        Edit
+                        {t("ah.edit")}
                       </button>
                     )}
                   </p>
@@ -1119,7 +1121,7 @@ export default function FeeClearanceDashboard() {
               {detailStudent.receiptImageUrl && (
                 <div className="mt-4 bg-gray-50 rounded-2xl p-4 border border-gray-100">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex justify-between items-center">
-                    Uploaded Payment Receipt
+                    {t("fee.receipt_uploaded")}
                     <a 
                       href={detailStudent.receiptImageUrl} 
                       target="_blank" 
@@ -1127,13 +1129,13 @@ export default function FeeClearanceDashboard() {
                       className="text-[#053d26] hover:text-green-700 underline flex items-center gap-1 normal-case tracking-normal"
                     >
                       <ExternalLink className="w-3 h-3" />
-                      View Full Size
+                      {t("fee.full_size")}
                     </a>
                   </p>
                   <div className="rounded-xl overflow-hidden border border-gray-200 bg-white flex items-center justify-center p-2">
                     <img 
                       src={detailStudent.receiptImageUrl} 
-                      alt="Payment Receipt" 
+                      alt={t("fee.receipt_alt")} 
                       className="w-full max-h-64 object-contain rounded-lg"
                     />
                   </div>
@@ -1146,7 +1148,7 @@ export default function FeeClearanceDashboard() {
                 onClick={() => setIsDetailsModalOpen(false)}
                 className="px-6 py-2.5 rounded-xl font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm"
               >
-                Close Profile
+                {t("fee.close_profile")}
               </button>
             </div>
           </div>
@@ -1162,7 +1164,7 @@ export default function FeeClearanceDashboard() {
           <div className="border-b border-gray-800 pb-3 mb-4 mt-2 flex justify-between items-end">
             <div className="flex items-center gap-3">
               {currentUser?.logoUrl && (
-                <img src={currentUser.logoUrl} alt="School Logo" className="h-12 w-12 object-contain" />
+                <img src={currentUser.logoUrl} alt={t("layout.school_logo")} className="h-12 w-12 object-contain" />
               )}
               <div>
                 <h1 
@@ -1171,61 +1173,61 @@ export default function FeeClearanceDashboard() {
                 >
                   {currentUser?.schoolName || currentUser?.name || 'LEONED'}
                 </h1>
-                <p className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">Official Fee Clearance Receipt</p>
+                <p className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">{t("fee.receipt_title")}</p>
               </div>
             </div>
             <div className="text-right">
               <p className="text-xs font-bold text-gray-800">
-                Date: {new Date(receiptStudent.paymentDate || Date.now()).toLocaleDateString()}
+                {t("fee.date", { date: new Date(receiptStudent.paymentDate || Date.now()).toLocaleDateString(localeFor(language)) })}
               </p>
               <p className="text-xs font-bold text-gray-500">Ref: {receiptStudent.refId}</p>
             </div>
           </div>
           
           <div className="mb-4">
-            <h2 className="text-sm font-bold text-gray-900 mb-2">Student Details</h2>
+            <h2 className="text-sm font-bold text-gray-900 mb-2">{t("fee.details")}</h2>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Name</p>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{t("fee.name")}</p>
                 <p className="text-sm font-bold text-gray-900">{receiptStudent.name}</p>
               </div>
               <div>
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Program / Class</p>
-                <p className="text-sm font-bold text-gray-900">{receiptStudent.program}</p>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{t("fee.program")}</p>
+                <p className="text-sm font-bold text-gray-900">{receiptStudent.program || t("common.unassigned")}</p>
               </div>
             </div>
           </div>
 
           <div className="mb-4">
-            <h2 className="text-sm font-bold text-gray-900 mb-2">Financial Summary</h2>
+            <h2 className="text-sm font-bold text-gray-900 mb-2">{t("fee.summary")}</h2>
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               <div className="flex justify-between mb-2">
-                <span className="text-xs font-bold text-gray-600">Payment Description</span>
-                <span className="text-xs font-bold text-gray-900">{receiptStudent.paymentDescription || "Tuition Fee"}</span>
+                <span className="text-xs font-bold text-gray-600">{t("fee.pay_desc")}</span>
+                <span className="text-xs font-bold text-gray-900">{receiptStudent.paymentDescription || t("fee.tuition")}</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="text-xs font-bold text-gray-600">Amount Due</span>
+                <span className="text-xs font-bold text-gray-600">{t("fee.due")}</span>
                 <span className="text-sm font-black text-gray-900">₦{(Number(receiptStudent.amountDue) || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="text-xs font-bold text-gray-600">Amount Paid</span>
+                <span className="text-xs font-bold text-gray-600">{t("fee.paid")}</span>
                 <span className="text-sm font-black text-gray-900">₦{(Number(receiptStudent.amountPaid) || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-200">
-                <span className="text-xs font-bold text-gray-900">Clearance Status</span>
+                <span className="text-xs font-bold text-gray-900">{t("fee.clearance_status")}</span>
                 <span 
                   className="text-sm font-black uppercase tracking-wider"
                   style={{ color: receiptStudent.status === 'Cleared' ? (currentUser?.themeColor || '#053d26') : '#dc2626' }}
                 >
-                  {receiptStudent.status}
+                  {tv("fee", receiptStudent.status)}
                 </span>
               </div>
             </div>
           </div>
           
           <div className="mt-8 pt-4 border-t border-gray-200 text-center">
-            <p className="text-[10px] font-bold text-gray-400">This is a system-generated receipt and does not require a physical signature.</p>
-            <p className="text-[9px] font-black text-gray-300 mt-1">© {new Date().getFullYear()} {currentUser?.schoolName || currentUser?.name || 'LeonEd'}. School Management System.</p>
+            <p className="text-[10px] font-bold text-gray-400">{t("fee.system_receipt")}</p>
+            <p className="text-[9px] font-black text-gray-300 mt-1">© {new Date().getFullYear()} {currentUser?.schoolName || currentUser?.name || 'LeonEd'}. {t("layout.footer.tagline")}</p>
           </div>
         </div>
       )}
@@ -1240,7 +1242,7 @@ export default function FeeClearanceDashboard() {
                   <History className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-gray-900">Payment History</h3>
+                  <h3 className="font-bold text-lg text-gray-900">{t("fee.history")}</h3>
                   <p className="text-xs text-gray-500 font-medium">{historyStudent.name || historyStudent.fullName}</p>
                 </div>
               </div>
@@ -1253,12 +1255,12 @@ export default function FeeClearanceDashboard() {
               {isFetchingHistory ? (
                 <div className="flex flex-col items-center justify-center h-40 text-gray-400 gap-3">
                   <Loader2 className="w-8 h-8 animate-spin text-[#053d26]" />
-                  <p className="text-sm font-medium">Fetching history records...</p>
+                  <p className="text-sm font-medium">{t("fee.fetching")}</p>
                 </div>
               ) : historyRecords.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 text-gray-400">
                   <History className="w-12 h-12 mb-3 opacity-20" />
-                  <p className="text-sm font-bold">No past payment records found.</p>
+                  <p className="text-sm font-bold">{t("fee.no_history")}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1276,14 +1278,14 @@ export default function FeeClearanceDashboard() {
                         </div>
                         <div>
                           <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                            {record.term?.termNumber || 'Unknown'} Term
+                            {t("rc.term_n", { n: record.term?.termNumber || t("fee.unknown") })}
                             <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
-                              {record.session?.name || record.term?.session?.name || 'Unknown Session'}
+                              {record.session?.name || record.term?.session?.name || t("stu.unknown_session")}
                             </span>
                           </h4>
                           <p className="text-sm text-gray-500 mt-1 flex items-center gap-4">
-                            <span>Amount Due: <strong className="text-gray-900">₦{(record.amountDue || 0).toLocaleString()}</strong></span>
-                            <span>Amount Paid: <strong className="text-gray-900">₦{(record.amountPaid || 0).toLocaleString()}</strong></span>
+                            <span>{interpolate(t("fee.due_line"), { v: <strong className="text-gray-900">₦{(record.amountDue || 0).toLocaleString()}</strong> })}</span>
+                            <span>{interpolate(t("fee.paid_line"), { v: <strong className="text-gray-900">₦{(record.amountPaid || 0).toLocaleString()}</strong> })}</span>
                           </p>
                         </div>
                       </div>
@@ -1294,11 +1296,11 @@ export default function FeeClearanceDashboard() {
                           record.status === 'Pending Verification' ? 'bg-amber-100 text-amber-700' :
                           'bg-red-100 text-red-700'
                         }`}>
-                          {record.status}
+                          {tv("fee", record.status)}
                         </span>
                         {record.updatedAt && (
                           <span className="text-[10px] text-gray-400 font-medium">
-                            {new Date(record.updatedAt).toLocaleDateString()}
+                            {new Date(record.updatedAt).toLocaleDateString(localeFor(language))}
                           </span>
                         )}
                       </div>

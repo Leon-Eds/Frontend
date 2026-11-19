@@ -6,12 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isStudent, setIsStudent] = useState(false);
   const pathname = usePathname();
@@ -78,11 +80,11 @@ export default function DashboardLayout({
             <footer className="border-t border-gray-200 dark:border-white/10 bg-white/60 dark:bg-black/20 backdrop-blur-sm px-4 sm:px-8 py-6 mt-auto shrink-0 transition-colors print:hidden">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4 max-w-7xl mx-auto">
                 <p className="text-xs text-black dark:text-white font-black uppercase tracking-wider">
-                  © 2026 <LeonEdLogoText />. School Management System.
+                  © 2026 <LeonEdLogoText />. {t("layout.footer.tagline")}
                 </p>
                 <div className="flex gap-6 text-xs text-black dark:text-white font-black">
-                  <Link href="/privacy" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors uppercase tracking-wider">Privacy Protocol</Link>
-                  <Link href="/support" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors uppercase tracking-wider">System Support</Link>
+                  <Link href="/privacy" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors uppercase tracking-wider">{t("layout.footer.privacy")}</Link>
+                  <Link href="/support" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors uppercase tracking-wider">{t("layout.footer.support")}</Link>
                 </div>
               </div>
             </footer>

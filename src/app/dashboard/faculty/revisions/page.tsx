@@ -5,6 +5,7 @@ import { AlertCircle, ArrowLeft, ArrowRight, Loader2, MessageSquare, CheckCircle
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { resultApi, sessionApi, teacherPortalApi, attendanceApi } from "@/lib/api";
+import { useLanguage, localeFor } from "@/components/LanguageProvider";
 
 interface RevisionItem {
   classId: string;
@@ -17,6 +18,7 @@ interface RevisionItem {
 
 export default function FacultyRevisions() {
   const router = useRouter();
+  const { t, language } = useLanguage();
   const [revisions, setRevisions] = useState<RevisionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +76,7 @@ export default function FacultyRevisions() {
         const activeTerm = activeSession?.terms?.find(t => t.isCurrent);
 
         if (!activeTerm) {
-          setError("No active academic term found.");
+          setError("rev.no_term");
           setIsLoading(false);
           return;
         }
@@ -92,24 +94,17 @@ export default function FacultyRevisions() {
             const rawStatus = String((classResults as any)?.status || rData?.status || rData?.approvalStatus || "").trim().toLowerCase();
 
             if (rawStatus === "revision requested" || rawStatus === "revision_requested") {
-              const adminComment = (classResults as any)?.adminComment || rData?.adminComment || (classResults as any)?.comment || rData?.comment || "Admin requested a revision.";
+              const adminComment = (classResults as any)?.adminComment || rData?.adminComment || (classResults as any)?.comment || rData?.comment || "";
               
               const updatedAt = (classResults as any)?.updatedAt || rData?.updatedAt || (classResults as any)?.createdAt || rData?.createdAt || new Date().toISOString();
-              let formattedDate = "";
-              try {
-                const d = new Date(updatedAt);
-                formattedDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-              } catch {
-                formattedDate = "Recently";
-              }
 
               revisionItems.push({
                 classId,
                 className,
                 termId: activeTerm.id,
-                termName: (activeTerm as any).name || (activeTerm as any).term || "Current Term",
+                termName: (activeTerm as any).name || (activeTerm as any).term || "",
                 adminComment,
-                date: formattedDate,
+                date: updatedAt,
               });
             }
           } catch (err) {
@@ -120,7 +115,7 @@ export default function FacultyRevisions() {
         setRevisions(revisionItems);
       } catch (err) {
         console.error("[Revisions] Failed to fetch:", err);
-        setError(err instanceof Error ? err.message : "Failed to load revisions.");
+        setError(err instanceof Error ? err.message : "rev.load_failed");
       } finally {
         setIsLoading(false);
       }
@@ -134,7 +129,7 @@ export default function FacultyRevisions() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 text-[#053d26] animate-spin" />
-          <p className="text-sm font-semibold text-gray-500">Checking for revision requests…</p>
+          <p className="text-sm font-semibold text-gray-500">{t("rev.checking")}</p>
         </div>
       </div>
     );
@@ -145,7 +140,7 @@ export default function FacultyRevisions() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4 text-center max-w-md">
           <AlertCircle className="h-10 w-10 text-red-500" />
-          <p className="text-sm font-semibold text-gray-700">{error}</p>
+          <p className="text-sm font-semibold text-gray-700">{t(error)}</p>
         </div>
       </div>
     );
@@ -164,14 +159,14 @@ export default function FacultyRevisions() {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-black uppercase tracking-wider rounded-full">
-              Action Required
+              {t("fac.action_req")}
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
-            Revision Requests
+            {t("rev.title")}
           </h1>
           <p className="text-sm text-gray-500 font-medium max-w-2xl">
-            The School Admin has reviewed your submitted results and requested changes on the following classes. Please review the feedback, make corrections, and resubmit.
+            {t("rev.subtitle")}
           </p>
         </div>
       </div>
@@ -180,8 +175,8 @@ export default function FacultyRevisions() {
       {revisions.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-gray-100">
           <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-          <h3 className="font-bold text-gray-900 text-lg mb-1">No Pending Revisions</h3>
-          <p className="text-sm text-gray-400 font-semibold">All your submitted results are either approved or still awaiting review. Nothing to fix!</p>
+          <h3 className="font-bold text-gray-900 text-lg mb-1">{t("rev.none")}</h3>
+          <p className="text-sm text-gray-400 font-semibold">{t("rev.none_d")}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -200,18 +195,18 @@ export default function FacultyRevisions() {
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-bold text-gray-900 text-base">{rev.className}</h3>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800">
-                        Revision Requested
+                        {t("rev.status")}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 font-semibold">
-                      {rev.termName} • Requested on {rev.date}
+                      {t("rev.requested_on", { term: rev.termName || t("rev.current_term"), date: new Date(rev.date).toLocaleDateString(localeFor(language), { month: "short", day: "numeric", year: "numeric" }) })}
                     </p>
 
                     {/* Admin comment */}
                     <div className="mt-3 p-3 bg-amber-50 border border-amber-100/50 rounded-xl">
-                      <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">Admin Feedback</p>
+                      <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">{t("rev.feedback")}</p>
                       <p className="text-sm text-amber-900 font-medium leading-relaxed whitespace-pre-wrap">
-                        {rev.adminComment}
+                        {rev.adminComment || t("fac.rev_default")}
                       </p>
                     </div>
                   </div>
@@ -221,7 +216,7 @@ export default function FacultyRevisions() {
                   href={`/dashboard/faculty/form-class-results?classId=${rev.classId}`}
                   className="px-5 py-2.5 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow-md flex items-center gap-2 self-end sm:self-center shrink-0"
                 >
-                  Review & Edit
+                  {t("rev.review_edit")}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>

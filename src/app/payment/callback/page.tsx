@@ -7,8 +7,10 @@ import Link from "next/link";
 import { schoolApi } from "@/lib/api";
 
 import { Suspense } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 function PaymentCallbackContent() {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -63,18 +65,18 @@ function PaymentCallbackContent() {
         {status === "verifying" && (
           <div className="animate-in fade-in zoom-in duration-500 flex flex-col items-center justify-center space-y-4">
             <Loader2 className="h-16 w-16 text-[#053d26] animate-spin" />
-            <h1 className="text-2xl font-bold text-gray-900">Verifying Payment</h1>
-            <p className="text-gray-500">Please wait while we confirm your subscription transaction with the payment provider.</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t("pay.verifying")}</h1>
+            <p className="text-gray-500">{t("pay.verifying_d")}</p>
           </div>
         )}
         
         {status === "success" && (
           <div className="animate-in fade-in zoom-in duration-500 flex flex-col items-center justify-center space-y-4">
             <CheckCircle2 className="h-16 w-16 text-green-500" />
-            <h1 className="text-2xl font-bold text-gray-900">Payment Successful!</h1>
-            <p className="text-gray-500">Your subscription has been activated successfully. The dashboard is now fully unlocked.</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t("pay.success")}</h1>
+            <p className="text-gray-500">{t("pay.success_d")}</p>
             <Link href="/dashboard" className="mt-4 px-6 py-3 bg-[#053d26] text-white rounded-full font-bold hover:bg-[#042c1b] transition-colors w-full">
-              Proceed to Dashboard
+              {t("pay.proceed")}
             </Link>
           </div>
         )}
@@ -82,10 +84,10 @@ function PaymentCallbackContent() {
         {status === "error" && (
           <div className="animate-in fade-in zoom-in duration-500 flex flex-col items-center justify-center space-y-4">
             <XCircle className="h-16 w-16 text-red-500" />
-            <h1 className="text-2xl font-bold text-gray-900">Payment Failed</h1>
-            <p className="text-gray-500">We could not verify your payment. It may have been cancelled or failed processing.</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t("pay.failed")}</h1>
+            <p className="text-gray-500">{t("pay.failed_d")}</p>
             <Link href="/dashboard/settings/billing" className="mt-4 px-6 py-3 bg-gray-100 text-gray-700 rounded-full font-bold hover:bg-gray-200 transition-colors w-full">
-              Return to Billing
+              {t("pay.return")}
             </Link>
           </div>
         )}

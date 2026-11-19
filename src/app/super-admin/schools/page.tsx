@@ -22,8 +22,10 @@ import {
 import Link from "next/link";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 import toast from "react-hot-toast";
+import { useLanguage, interpolate } from "@/components/LanguageProvider";
 
 export default function SchoolsManagement() {
+  const { t, tv } = useLanguage();
   const [schools, setSchools] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,7 +53,7 @@ export default function SchoolsManagement() {
         headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         cache: 'no-store'
       });
-      if (!res.ok) throw new Error("Failed to load global data");
+      if (!res.ok) throw new Error("sas.load_failed");
       
       const data = await res.json();
       const { schools = [], teachers = [], students = [] } = data;
@@ -99,7 +101,7 @@ export default function SchoolsManagement() {
         console.error("Failed to fetch plans", err);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load schools");
+      setError(err instanceof Error ? err.message : "sas.load_failed");
     } finally {
       setIsLoading(false);
     }
@@ -148,9 +150,9 @@ export default function SchoolsManagement() {
       const targetActive = !currentlyActive;
       
       await schoolApi.toggleStatus(schoolId, targetActive);
-      toast.success("Status updated successfully");
+      toast.success(t("sas.status_ok"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to change status");
+      toast.error(err instanceof Error ? err.message : t("sas.status_failed"));
       // Optionally revert UI here
     }
   };
@@ -166,18 +168,18 @@ export default function SchoolsManagement() {
   const handleManualUpgrade = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSchool || !selectedPlanId || !durationMonths) {
-      toast.error("Please fill all fields");
+      toast.error(t("sas.fill_all"));
       return;
     }
     setIsUpgrading(true);
     try {
       const { paymentApi } = await import('@/lib/api');
       await paymentApi.manualUpgrade(selectedSchool.id, selectedPlanId, parseInt(durationMonths));
-      toast.success("School upgraded successfully");
+      toast.success(t("sas.upgraded"));
       setIsSettingsModalOpen(false);
       fetchSchools();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to upgrade school");
+      toast.error(err instanceof Error ? err.message : t("sas.upgrade_failed"));
     } finally {
       setIsUpgrading(false);
     }
@@ -186,11 +188,11 @@ export default function SchoolsManagement() {
   const handleResetPassword = async () => {
     if (!selectedSchool) return;
     if (newAdminPassword.length < 6) {
-      toast.error("New password must be at least 6 characters.");
+      toast.error(t("set.pw_len"));
       return;
     }
     if (newAdminPassword !== confirmAdminPassword) {
-      toast.error("Passwords do not match.");
+      toast.error(t("fac.pw_match"));
       return;
     }
     
@@ -198,14 +200,14 @@ export default function SchoolsManagement() {
     try {
       const { schoolApi } = await import('@/lib/api');
       await schoolApi.resetAdminPassword(selectedSchool.id, newAdminPassword);
-      toast.success("Admin password reset successfully");
+      toast.success(t("sas.pw_reset"));
       setNewAdminPassword("");
       setConfirmAdminPassword("");
       setIsResetConfirmOpen(false);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to reset password";
+      const message = err instanceof Error ? err.message : t("stu.pw_reset_failed");
       if (message.includes("404")) {
-        toast.error("Endpoint unavailable (HTTP 404): Backend implementation missing.");
+        toast.error(t("sas.endpoint"));
       } else {
         toast.error(message);
       }
@@ -221,13 +223,13 @@ export default function SchoolsManagement() {
         <div className="h-16 w-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
           <Shield className="h-8 w-8" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">Error Loading Schools</h2>
-        <p className="text-gray-500 mb-6">{error}</p>
+        <h2 className="text-xl font-bold text-gray-900">{t("sas.error_title")}</h2>
+        <p className="text-gray-500 mb-6">{t(error)}</p>
         <button 
           onClick={() => { setError(""); fetchSchools(); }}
           className="px-6 py-2 bg-[#053d26] text-white rounded-full font-bold"
         >
-          Retry
+          {t("common.retry")}
         </button>
       </div>
     );
@@ -261,21 +263,21 @@ export default function SchoolsManagement() {
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Institutional Registry</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t("sas.title")}</h1>
           <p className="text-gray-600">
-            Manage all schools onboarded on the <LeonEdLogoText /> platform.
+            {interpolate(t("sas.subtitle"), { brand: <LeonEdLogoText /> })}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold hover:bg-gray-50 transition-all shadow-sm">
             <Filter className="h-4 w-4" />
-            Filter
+            {t("sas.filter")}
           </button>
           <Link 
             href="/super-admin/schools/new"
             className="flex items-center gap-2 bg-[#053d26] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#042c1b] transition-all shadow-md"
           >
-            Add New School
+            {t("sas.add")}
           </Link>
         </div>
       </div>
@@ -285,7 +287,7 @@ export default function SchoolsManagement() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input 
             type="text" 
-            placeholder="Search institutions by name, email, or ID..."
+            placeholder={t("sas.search_ph")}
             className="w-full bg-gray-50 border-none rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-[#053d26] transition-all"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
@@ -297,18 +299,18 @@ export default function SchoolsManagement() {
         {isLoading ? (
           <div className="py-20 flex flex-col items-center gap-4">
             <Loader2 className="h-10 w-10 animate-spin text-[#053d26]" />
-            <p className="text-gray-500 font-medium">Retrieving school records...</p>
+            <p className="text-gray-500 font-medium">{t("sas.retrieving")}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50/50 border-b border-gray-100">
-                  <th className="py-5 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider">Institution</th>
-                  <th className="py-5 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Contact Info</th>
-                  <th className="py-5 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Plan & Billing</th>
-                  <th className="py-5 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">Users</th>
-                  <th className="py-5 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">Actions</th>
+                  <th className="py-5 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider">{t("sas.th_institution")}</th>
+                  <th className="py-5 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">{t("sas.th_contact")}</th>
+                  <th className="py-5 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">{t("sas.th_plan")}</th>
+                  <th className="py-5 px-4 font-bold text-gray-400 text-xs uppercase tracking-wider">{t("sas.th_users")}</th>
+                  <th className="py-5 px-8 font-bold text-gray-400 text-xs uppercase tracking-wider text-right">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -339,14 +341,14 @@ export default function SchoolsManagement() {
                           <div className="font-bold text-gray-900 group-hover:text-[#053d26] transition-colors">{school.name}</div>
                           <div className="text-xs font-medium text-gray-400 flex items-center gap-1 mt-1">
                             <Calendar className="h-3 w-3" />
-                            Joined {formatDate(school.createdAt)}
+                            {t("sas.joined", { date: formatDate(school.createdAt) })}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="py-6 px-4">
                       <div className="space-y-1">
-                        <div className="text-sm font-semibold text-gray-900">{school.adminName || 'Admin User'}</div>
+                        <div className="text-sm font-semibold text-gray-900">{school.adminName || t("sas.admin_user")}</div>
                         {school.email && (
                           <div className="text-xs text-gray-500 flex items-center gap-1">
                             <Mail className="h-3 w-3" />
@@ -379,29 +381,29 @@ export default function SchoolsManagement() {
                           <span className="font-bold text-gray-900">
                             {school.computedCounts?.students || 0}
                           </span>
-                          <span className="text-gray-400 ml-1">Students</span>
+                          <span className="text-gray-400 ml-1">{t("sao.students_w")}</span>
                         </div>
                         <div className="text-xs">
                           <span className="font-bold text-gray-900">
                             {school.computedCounts?.teachers || 0}
                           </span>
-                          <span className="text-gray-400 ml-1">Staff</span>
+                          <span className="text-gray-400 ml-1">{t("sao.staff_w")}</span>
                         </div>
                       </div>
                     </td>
                     <td className="py-6 px-8 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleOpenSettingsModal(school)} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all" title="School Settings">
+                        <button onClick={() => handleOpenSettingsModal(school)} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all" title={t("sas.settings_title")}>
                           <Settings className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleToggleStatus(school.id)}
-                          title={isSchoolActive ? "Suspend School" : "Activate School"}
+                          title={isSchoolActive ? t("sas.suspend") : t("sas.activate")}
                           className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:ring-offset-2 ${
                             isSchoolActive ? 'bg-[#053d26]' : 'bg-gray-300'
                           }`}
                         >
-                          <span className="sr-only">Toggle school status</span>
+                          <span className="sr-only">{t("sas.toggle")}</span>
                           <span
                             aria-hidden="true"
                             className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -417,7 +419,7 @@ export default function SchoolsManagement() {
                     <td colSpan={5} className="py-20 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <SchoolIcon className="h-12 w-12 text-gray-200" />
-                        <p className="text-gray-500 font-medium">No schools found matching your criteria.</p>
+                        <p className="text-gray-500 font-medium">{t("sas.empty")}</p>
                       </div>
                     </td>
                   </tr>
@@ -430,7 +432,7 @@ export default function SchoolsManagement() {
         {!isLoading && filteredSchools.length > 0 && (
           <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Showing <span className="font-bold text-gray-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredSchools.length)}</span> of <span className="font-bold text-gray-900">{filteredSchools.length}</span> institutions
+              {interpolate(t("sas.showing"), { range: <span className="font-bold text-gray-900">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredSchools.length)}</span>, total: <span className="font-bold text-gray-900">{filteredSchools.length}</span> })}
             </p>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
@@ -439,7 +441,7 @@ export default function SchoolsManagement() {
                   disabled={currentPage === 1}
                   className="px-4 py-2 text-sm font-bold rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Previous
+                  {t("common.previous")}
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                   <button
@@ -459,7 +461,7 @@ export default function SchoolsManagement() {
                   disabled={currentPage === totalPages}
                   className="px-4 py-2 text-sm font-bold rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t("common.next")}
                 </button>
               </div>
             )}
@@ -492,7 +494,7 @@ export default function SchoolsManagement() {
                       : "text-gray-500 hover:bg-gray-100/80"
                   }`}
                 >
-                  <Building2 className="h-4 w-4" /> Overview
+                  <Building2 className="h-4 w-4" /> {t("layout.nav.overview")}
                 </button>
                 <button
                   onClick={() => setActiveTab("billing")}
@@ -502,7 +504,7 @@ export default function SchoolsManagement() {
                       : "text-gray-500 hover:bg-gray-100/80"
                   }`}
                 >
-                  <CreditCard className="h-4 w-4" /> Subscription & Billing
+                  <CreditCard className="h-4 w-4" /> {t("sas.tab_billing")}
                 </button>
               </nav>
             </div>
@@ -511,7 +513,7 @@ export default function SchoolsManagement() {
             <div className="flex-1 p-8 flex flex-col overflow-y-auto">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-gray-900">
-                  {activeTab === "overview" ? "School Profile" : "Plan Management"}
+                  {activeTab === "overview" ? t("set.sec.school") : t("sas.plan_mgmt")}
                 </h2>
                 <button 
                   onClick={() => setIsSettingsModalOpen(false)}
@@ -525,8 +527,8 @@ export default function SchoolsManagement() {
                 <div className="space-y-8">
                   <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Administrator</label>
-                      <p className="font-semibold text-gray-900">{selectedSchool.adminName || 'Admin User'}</p>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">{t("sas.administrator")}</label>
+                      <p className="font-semibold text-gray-900">{selectedSchool.adminName || t("sas.admin_user")}</p>
                       {selectedSchool.email && (
                         <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                           <Mail className="h-3 w-3" /> {selectedSchool.email}
@@ -534,33 +536,33 @@ export default function SchoolsManagement() {
                       )}
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Date Onboarded</label>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">{t("sas.onboarded_date")}</label>
                       <p className="font-semibold text-gray-900">{formatDate(selectedSchool.createdAt)}</p>
                     </div>
                   </div>
 
                   <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
                     <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <Users className="h-4 w-4 text-[#053d26]" /> Platform Usage
+                      <Users className="h-4 w-4 text-[#053d26]" /> {t("sas.usage")}
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                         <p className="text-2xl font-black text-gray-900">{selectedSchool.computedCounts?.students || 0}</p>
-                        <p className="text-xs text-gray-500 font-medium">Active Students</p>
+                        <p className="text-xs text-gray-500 font-medium">{t("sas.active_students")}</p>
                       </div>
                       <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                         <p className="text-2xl font-black text-gray-900">{selectedSchool.computedCounts?.teachers || 0}</p>
-                        <p className="text-xs text-gray-500 font-medium">Faculty Members</p>
+                        <p className="text-xs text-gray-500 font-medium">{t("dash.faculty_members")}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="bg-rose-50 rounded-2xl p-6 border border-rose-100">
                     <h4 className="text-sm font-bold text-rose-900 mb-2 flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-rose-600" /> Security
+                      <Shield className="h-4 w-4 text-rose-600" /> {t("set.sec.security")}
                     </h4>
                     <p className="text-xs text-rose-700 mb-4">
-                      Force resetting the password will invalidate the current administrator's session and generate a new password.
+                      {t("sas.force_d")}
                     </p>
                     <button 
                       onClick={() => setIsResetConfirmOpen(true)}
@@ -568,7 +570,7 @@ export default function SchoolsManagement() {
                       className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
                     >
                       <Power className="h-4 w-4" />
-                      Force Reset Password
+                      {t("sas.force")}
                     </button>
                   </div>
                 </div>
@@ -578,7 +580,7 @@ export default function SchoolsManagement() {
                 <form onSubmit={handleManualUpgrade} className="space-y-6 flex flex-col h-full">
                   <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-bold text-orange-800 uppercase tracking-wider mb-1">Current Plan</p>
+                      <p className="text-xs font-bold text-orange-800 uppercase tracking-wider mb-1">{t("sas.current_plan")}</p>
                       <p className="text-lg font-black text-gray-900">{selectedSchool.subscriptionPlan || 'Free'}</p>
                     </div>
                     <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center shadow-sm">
@@ -588,14 +590,14 @@ export default function SchoolsManagement() {
 
                   <div className="space-y-4 flex-1">
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Upgrade / Downgrade Plan</label>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("sas.change_plan")}</label>
                       <select
                         required
                         value={selectedPlanId}
                         onChange={(e) => setSelectedPlanId(e.target.value)}
                         className="block w-full rounded-2xl border border-gray-200 bg-gray-50 py-3.5 px-4 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:bg-white transition-colors"
                       >
-                        <option value="">-- Choose a Plan --</option>
+                        <option value="">{t("sas.choose_plan")}</option>
                         {plans.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name} - ₦{(p.amount ?? p.price)?.toLocaleString() || 0}/mo
@@ -605,7 +607,7 @@ export default function SchoolsManagement() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Duration (Months)</label>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("sas.duration")}</label>
                       <input
                         type="number"
                         required
@@ -625,10 +627,10 @@ export default function SchoolsManagement() {
                     >
                       {isUpgrading ? (
                         <>
-                          <Loader2 className="h-5 w-5 animate-spin" /> Processing...
+                          <Loader2 className="h-5 w-5 animate-spin" /> {t("acr.processing")}
                         </>
                       ) : (
-                        "Process Manual Override"
+                        t("sas.override")
                       )}
                     </button>
                   </div>
@@ -647,25 +649,25 @@ export default function SchoolsManagement() {
             <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <Power className="h-8 w-8" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Reset Password?</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{t("sas.reset_title")}</h3>
             <p className="text-sm text-gray-500 mb-4">
-              Are you sure you want to reset the admin password for <span className="font-bold text-gray-700">{selectedSchool.name}</span>? This will invalidate their current session.
+              {interpolate(t("sas.reset_d"), { name: <span className="font-bold text-gray-700">{selectedSchool.name}</span> })}
             </p>
             <div className="mb-6 text-left">
-              <label className="block text-xs font-bold text-gray-700 mb-1">New Password</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">{t("stu.new_pw")}</label>
               <input
                 type="password"
                 value={newAdminPassword}
                 onChange={(e) => setNewAdminPassword(e.target.value)}
-                placeholder="Enter at least 6 characters"
+                placeholder={t("sas.new_pw_ph")}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-all text-sm text-gray-900 mb-3"
               />
-              <label className="block text-xs font-bold text-gray-700 mb-1">Confirm Password</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">{t("fac.confirm_pw")}</label>
               <input
                 type="password"
                 value={confirmAdminPassword}
                 onChange={(e) => setConfirmAdminPassword(e.target.value)}
-                placeholder="Confirm password"
+                placeholder={t("fac.confirm_pw_ph")}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-all text-sm text-gray-900"
               />
             </div>
@@ -675,14 +677,14 @@ export default function SchoolsManagement() {
                 disabled={isResettingPassword}
                 className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleResetPassword}
                 disabled={isResettingPassword}
                 className="flex-1 py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isResettingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : "Yes, Reset"}
+                {isResettingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : t("sas.yes_reset")}
               </button>
             </div>
           </div>

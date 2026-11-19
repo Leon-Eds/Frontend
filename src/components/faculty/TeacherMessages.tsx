@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { Megaphone, Calendar, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import { announcementApi } from "@/lib/api";
 import toast from 'react-hot-toast';
+import { useLanguage, localeFor } from "@/components/LanguageProvider";
 
 export default function TeacherMessages() {
+  const { t, language } = useLanguage();
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +20,7 @@ export default function TeacherMessages() {
         setMessages(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error(err);
-        setError("Failed to load messages.");
+        setError("msg.load_failed");
       } finally {
         setIsLoading(false);
       }
@@ -28,14 +30,14 @@ export default function TeacherMessages() {
   }, []);
 
   const handleDeleteAnnouncement = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this announcement?")) return;
+    if (!confirm(t("msg.delete_confirm"))) return;
     try {
       await announcementApi.delete(id);
       setMessages(prev => prev.filter(msg => (msg.id || msg._id) !== id));
-      toast.success("Announcement deleted successfully");
+      toast.success(t("msg.deleted"));
     } catch (err) {
       console.error(err);
-      toast.error("Failed to delete announcement");
+      toast.error(t("msg.delete_failed"));
     }
   };
 
@@ -43,7 +45,7 @@ export default function TeacherMessages() {
     return (
       <div className="flex items-center justify-center min-h-[20vh] text-gray-400 bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
         <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        Loading announcements...
+        {t("msg.loading_ann")}
       </div>
     );
   }
@@ -52,7 +54,7 @@ export default function TeacherMessages() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[20vh] text-red-500 gap-2 bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
         <AlertCircle className="w-8 h-8" />
-        <p>{error}</p>
+        <p>{t(error)}</p>
       </div>
     );
   }
@@ -62,29 +64,29 @@ export default function TeacherMessages() {
       <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3 mb-8 border-b border-gray-50 pb-5">
           <Megaphone className="w-6 h-6 text-[#053d26]" />
-          <h2 className="text-xl font-black text-gray-900">School Bulletins & Announcements</h2>
+          <h2 className="text-xl font-black text-gray-900">{t("msg.bulletins")}</h2>
         </div>
 
         {messages.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <Megaphone className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p>No new announcements at the moment.</p>
+            <p>{t("msg.empty_ann")}</p>
           </div>
         ) : (
           <div className="space-y-4">
             {messages.map((msg, idx) => (
               <div key={idx} className="p-6 rounded-3xl bg-gray-50 border border-gray-100 hover:shadow-md transition-shadow group relative">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3 gap-2">
-                  <h3 className="font-extrabold text-gray-900 text-lg tracking-tight group-hover:text-[#053d26] transition-colors">{msg.title || "Announcement"}</h3>
+                  <h3 className="font-extrabold text-gray-900 text-lg tracking-tight group-hover:text-[#053d26] transition-colors">{msg.title || t("msg.announcement")}</h3>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-bold uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-gray-200 w-fit">
                       <Calendar className="w-3.5 h-3.5" />
-                      {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString() : "Recent"}
+                      {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString(localeFor(language)) : t("msg.recent")}
                     </div>
                     <button
                       onClick={() => handleDeleteAnnouncement(msg.id || msg._id)}
                       className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                      title="Delete announcement"
+                      title={t("msg.delete_title")}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -93,7 +95,7 @@ export default function TeacherMessages() {
                 <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">{msg.content || msg.message}</p>
                 {msg.senderName && (
                   <p className="text-[10px] text-gray-400 mt-4 font-bold uppercase tracking-widest">
-                    From: {msg.senderName}
+                    {t("msg.from", { name: msg.senderName })}
                   </p>
                 )}
               </div>

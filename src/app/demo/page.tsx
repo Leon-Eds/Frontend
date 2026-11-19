@@ -6,8 +6,10 @@ import Image from "next/image";
 import { Mail, User, Phone, Building2, ChevronLeft, CheckCircle2, Send, Loader2 } from "lucide-react";
 import { LeonEdLogoText } from "@/components/ui/LeonEdText";
 import { publicApi } from "@/lib/api";
+import { useLanguage, interpolate } from "@/components/LanguageProvider";
 
 export default function RequestDemoPage() {
+  const { t } = useLanguage();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -29,10 +31,10 @@ export default function RequestDemoPage() {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.name.trim()) newErrors.name = "Your name is required";
-    if (!formData.email.trim()) newErrors.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Enter a valid email";
-    if (!formData.schoolName.trim()) newErrors.schoolName = "School name is required";
+    if (!formData.name.trim()) newErrors.name = t("dmo.e_name");
+    if (!formData.email.trim()) newErrors.email = t("reg.e_email");
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = t("reg.e_email_bad");
+    if (!formData.schoolName.trim()) newErrors.schoolName = t("reg.e_school");
     return newErrors;
   };
 
@@ -51,7 +53,7 @@ export default function RequestDemoPage() {
       });
       setSubmitted(true);
     } catch (error: any) {
-      setErrors({ submit: error.message || "Failed to submit request." });
+      setErrors({ submit: error.message || t("dmo.failed") });
     } finally {
       setLoading(false);
     }
@@ -68,13 +70,13 @@ export default function RequestDemoPage() {
             </Link>
 
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/#architecture" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">System Architecture</Link>
-              <Link href="/#why-leoned" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">Why Leoned?</Link>
+              <Link href="/#architecture" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">{t("mk.nav.architecture")}</Link>
+              <Link href="/#why-leoned" className="text-sm font-semibold text-gray-500 hover:text-[#053d26] transition-colors">{t("nav.schedule")}</Link>
             </div>
 
             <div className="flex items-center gap-6">
               <Link href="/login" className="px-6 py-2.5 rounded-full bg-[#053d26] text-white text-sm font-bold hover:bg-[#042c1b] transition-colors">
-                Login
+                {t("mk.nav.login")}
               </Link>
             </div>
           </div>
@@ -88,20 +90,20 @@ export default function RequestDemoPage() {
             <>
               <div className="text-center mb-10">
                 <div className="inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold text-[#053d26] bg-green-100 mb-4">
-                  CONTACT SALES
+                  {t("mk.contact.eyebrow")}
                 </div>
                 <h1 className="text-3xl lg:text-4xl font-bold text-[#053d26] mb-2">
-                  Contact Sales
+                  {t("mk.footer.sales")}
                 </h1>
                 <p className="text-gray-600 max-w-md mx-auto">
-                  See how LeonEd can transform your school&apos;s academic management. Our team will walk you through the platform.
+                  {t("mk.contact.desc")}
                 </p>
               </div>
 
               <div className="bg-white rounded-[2rem] p-8 md:p-10 shadow-xl border border-gray-100">
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Your Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("mk.form.name")}</label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <User className="h-5 w-5 text-gray-400" />
@@ -119,7 +121,7 @@ export default function RequestDemoPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("mk.form.email")}</label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <Mail className="h-5 w-5 text-gray-400" />
@@ -137,7 +139,7 @@ export default function RequestDemoPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("mk.form.phone")}</label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <Phone className="h-5 w-5 text-gray-400" />
@@ -154,7 +156,7 @@ export default function RequestDemoPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">School / Institution Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("mk.form.school")}</label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <Building2 className="h-5 w-5 text-gray-400" />
@@ -172,20 +174,20 @@ export default function RequestDemoPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Message (Optional)</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("mk.form.message")}</label>
                     <textarea
                       name="message"
                       value={formData.message}
                       onChange={handleChange}
                       rows={3}
                       className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors resize-none"
-                      placeholder="Tell us about your school's needs..."
+                      placeholder={t("mk.form.messagePh")}
                     />
                   </div>
                   
                   {/* Honeypot field for bot spam prevention */}
                   <div style={{ display: 'none' }} aria-hidden="true">
-                    <label>Website</label>
+                    <label>{t("dmo.website")}</label>
                     <input type="text" name="website" value={formData.website} onChange={handleChange} tabIndex={-1} autoComplete="off" />
                   </div>
                   
@@ -198,7 +200,7 @@ export default function RequestDemoPage() {
                     className="flex items-center gap-2 px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    Home
+                    {t("sal.home")}
                   </Link>
                   <button
                     type="button"
@@ -207,7 +209,7 @@ export default function RequestDemoPage() {
                     className="flex items-center gap-2 px-8 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] transition-all shadow-lg shadow-orange-900/20 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    {loading ? "Submitting..." : "Submit Request"}
+                    {loading ? t("mk.form.sending") : t("mk.form.submit")}
                   </button>
                 </div>
               </div>
@@ -217,22 +219,22 @@ export default function RequestDemoPage() {
               <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-6">
                 <CheckCircle2 className="h-8 w-8 text-[#053d26]" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">Request Received!</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">{t("dmo.received")}</h2>
               <p className="text-gray-500 mb-8 max-w-sm mx-auto">
-                Thank you, {formData.name}. Our team will contact you at <span className="font-semibold text-gray-700">{formData.email}</span> within 24 hours to discuss your needs.
+                {interpolate(t("dmo.thanks"), { name: formData.name, email: <span className="font-semibold text-gray-700">{formData.email}</span> })}
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Link
                   href="/"
                   className="px-6 py-3 rounded-full bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
                 >
-                  Back to Home
+                  {t("mk.nf.home")}
                 </Link>
                 <Link
                   href="/register"
                   className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
                 >
-                  Register Now
+                  {t("dmo.register_now")}
                 </Link>
               </div>
             </div>

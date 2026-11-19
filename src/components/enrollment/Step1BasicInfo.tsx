@@ -7,6 +7,7 @@ import { Select } from '../ui/form/Select';
 import { Camera, X } from 'lucide-react';
 import { CreateStudentRequest, sessionApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface Step1Props {
   data: Partial<CreateStudentRequest>;
@@ -16,10 +17,11 @@ interface Step1Props {
 }
 
 export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext, onCancel }) => {
+  const { t, tv } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFileName, setPhotoFileName] = useState<string>("");
-  const [sessionName, setSessionName] = useState("Loading...");
+  const [sessionName, setSessionName] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -29,7 +31,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
         if (current) {
           setSessionName(current.name);
         } else {
-          setSessionName("No Active Session");
+          setSessionName("");
         }
       } catch {
         setSessionName("2024/2025");
@@ -44,13 +46,13 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
 
     // Validate type
     if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-      toast.error('Please upload a JPG or PNG image.');
+      toast.error(t("enr.s1.bad_type"));
       return;
     }
 
     // Validate size (2MB max)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image must be smaller than 2MB.');
+      toast.error(t("enr.s1.too_big"));
       return;
     }
 
@@ -75,13 +77,13 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
     <div className="bg-white rounded-3xl p-10 shadow-sm">
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Step 1: Primary Information</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t("enr.s1.title")}</h2>
           <p className="text-gray-500 max-w-2xl">
-            Please provide the foundational details of the applicant as they appear on official identity documentation.
+            {t("enr.s1.desc")}
           </p>
         </div>
         <div className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-[#053d26]">
-          ACADEMIC YEAR {sessionName}
+          {t("enr.s1.year", { name: sessionName === null ? t("common.loading") : sessionName || t("enr.s1.no_session") })}
         </div>
       </div>
 
@@ -89,7 +91,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
         {/* Photo Upload Area */}
         <div className="lg:col-span-4">
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
-            Profile Portrait
+            {t("enr.s1.portrait")}
           </label>
 
           {/* Hidden file input */}
@@ -105,7 +107,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
             <div className="relative rounded-[2rem] overflow-hidden h-72 bg-gray-100 group">
               <img
                 src={photoPreview}
-                alt="Student portrait preview"
+                alt={t("enr.s1.preview_alt")}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
@@ -114,14 +116,14 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
                   onClick={() => fileInputRef.current?.click()}
                   className="px-4 py-2 rounded-full bg-white text-gray-900 text-xs font-bold hover:bg-gray-100 transition-colors"
                 >
-                  Change Photo
+                  {t("enr.s1.change_photo")}
                 </button>
                 <button
                   type="button"
                   onClick={removePhoto}
                   className="px-4 py-2 rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-colors flex items-center gap-1"
                 >
-                  <X className="h-3 w-3" /> Remove
+                  <X className="h-3 w-3" /> {t("common.remove")}
                 </button>
               </div>
               <p className="absolute bottom-3 left-3 right-3 text-[10px] text-white bg-black/50 rounded-full px-3 py-1 truncate text-center">
@@ -134,8 +136,8 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
               className="border-2 border-dashed border-gray-300 rounded-[2rem] bg-gray-50 h-72 flex flex-col items-center justify-center text-center p-6 cursor-pointer hover:bg-gray-100 hover:border-gray-400 transition-colors"
             >
               <Camera className="h-10 w-10 text-gray-400 mb-4" />
-              <span className="font-bold text-gray-700">Click to Upload</span>
-              <span className="text-xs text-gray-500 mt-2">Standard passport size image, JPG or PNG (max 2MB)</span>
+              <span className="font-bold text-gray-700">{t("enr.s1.upload")}</span>
+              <span className="text-xs text-gray-500 mt-2">{t("enr.s1.upload_hint")}</span>
             </div>
           )}
         </div>
@@ -143,23 +145,23 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
         {/* Form Fields */}
         <div className="lg:col-span-8 space-y-6">
           <Input
-            label="Full Name (Legal)"
+            label={t("enr.s1.full_name")}
             autoComplete="off"
-            placeholder="Enter student's full name"
+            placeholder={t("enr.s1.full_name_ph")}
             value={data.fullName || ''}
             onChange={(e) => updateData({ fullName: e.target.value })}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DatePicker
-              label="Date of Birth"
+              label={t("stu.dob")}
               value={data.dateOfBirth || ''}
               onChange={(e) => updateData({ dateOfBirth: e.target.value })}
             />
             <Select
-              label="Blood Group"
+              label={t("enr.s1.blood")}
               options={[
-                { label: 'Select blood group', value: '' },
+                { label: t("enr.s1.blood_ph"), value: '' },
                 { label: 'A+', value: 'A+' },
                 { label: 'A-', value: 'A-' },
                 { label: 'B+', value: 'B+' },
@@ -176,8 +178,8 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
 
           <div>
             <Input
-              label="Nationality"
-              placeholder="e.g. Nigerian"
+              label={t("enr.s1.nationality")}
+              placeholder={t("enr.s1.nationality_ph")}
               value={data.nationality || ''}
               onChange={(e) => updateData({ nationality: e.target.value })}
             />
@@ -185,8 +187,8 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
 
           <div>
             <Input
-              label="Student Portal Password"
-              placeholder="Set a password for the student (min 6 chars)"
+              label={t("enr.s1.pw")}
+              placeholder={t("enr.s1.pw_ph")}
               type="text"
               value={data.password || ''}
               onChange={(e) => updateData({ password: e.target.value })}
@@ -195,7 +197,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
-              Gender Identity
+              {t("enr.s1.gender")}
             </label>
             <div className="flex gap-4">
               {['Male', 'Female', 'Other'].map((gender) => (
@@ -209,7 +211,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
                       : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
                   }`}
                 >
-                  {gender}
+                  {tv("gender", gender)}
                 </button>
               ))}
             </div>
@@ -222,7 +224,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
           onClick={onCancel}
           className="font-bold text-gray-600 hover:text-gray-900 transition-colors"
         >
-          &larr; Cancel
+          &larr; {t("common.cancel")}
         </button>
         <div className="flex gap-4">
           <button
@@ -230,7 +232,7 @@ export const Step1BasicInfo: React.FC<Step1Props> = ({ data, updateData, onNext,
             disabled={!data.fullName || !data.dateOfBirth || !data.gender}
             className="px-8 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Continue to Step 2 &rarr;
+            {t("enr.s1.continue")} &rarr;
           </button>
         </div>
       </div>

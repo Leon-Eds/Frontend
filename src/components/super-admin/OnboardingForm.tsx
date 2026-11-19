@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { ShieldAlert, Lock, User, Mail, Key, Loader2, CheckCircle2 } from "lucide-react";
 import { authApi } from "@/lib/api";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface OnboardingFormProps {
   onSuccess: () => void;
 }
 
 export default function OnboardingForm({ onSuccess }: OnboardingFormProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -24,7 +26,7 @@ export default function OnboardingForm({ onSuccess }: OnboardingFormProps) {
     setError("");
     
     if (!formData.name || !formData.email || !formData.password || !formData.secretKey) {
-      setError("All fields are required to verify platform authority.");
+      setError(t("sob.all_required"));
       return;
     }
 
@@ -34,7 +36,7 @@ export default function OnboardingForm({ onSuccess }: OnboardingFormProps) {
       setIsSuccess(true);
       setTimeout(onSuccess, 2000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Authorization failed. Check your secret key.");
+      setError(err instanceof Error ? err.message : t("sob.auth_failed"));
     } finally {
       setIsLoading(false);
     }
@@ -46,9 +48,9 @@ export default function OnboardingForm({ onSuccess }: OnboardingFormProps) {
         <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle2 className="h-10 w-10" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Authority Granted</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{t("sob.granted")}</h2>
         <p className="text-gray-500 mb-8">
-          Super Admin initialized. Redirecting to terminal...
+          {t("sob.form_d")}
         </p>
         <Loader2 className="h-6 w-6 animate-spin text-[#053d26] mx-auto" />
       </div>
@@ -60,10 +62,10 @@ export default function OnboardingForm({ onSuccess }: OnboardingFormProps) {
       <div className="bg-[#053d26] p-8 text-white">
         <div className="flex items-center gap-3 mb-2">
           <ShieldAlert className="h-6 w-6 text-orange-400" />
-          <h2 className="text-2xl font-bold">Initialize Authority</h2>
+          <h2 className="text-2xl font-bold">{t("sob.form_title")}</h2>
         </div>
         <p className="text-green-100/70 text-sm">
-          Master key required for platform architect enrollment.
+          {t("sob.form_desc")}
         </p>
       </div>
 
@@ -77,7 +79,7 @@ export default function OnboardingForm({ onSuccess }: OnboardingFormProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Full Name</label>
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">{t("stu.full_name")}</label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input 
@@ -92,7 +94,7 @@ export default function OnboardingForm({ onSuccess }: OnboardingFormProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Work Email</label>
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">{t("sob.work_email")}</label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input 
@@ -108,7 +110,7 @@ export default function OnboardingForm({ onSuccess }: OnboardingFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Master Password</label>
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">{t("sob.master_pw")}</label>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input 
@@ -123,13 +125,13 @@ export default function OnboardingForm({ onSuccess }: OnboardingFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-bold text-orange-600 uppercase tracking-wider ml-1">System Secret Key</label>
+          <label className="text-xs font-bold text-orange-600 uppercase tracking-wider ml-1">{t("sob.secret")}</label>
           <div className="relative">
             <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-400" />
             <input 
               type="password"
               required
-              placeholder="Master Decryption Key"
+              placeholder={t("sob.key_ph")}
               className="w-full bg-orange-50/50 border-orange-100 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-orange-500 transition-all font-mono text-gray-900"
               value={formData.secretKey}
               onChange={(e) => setFormData({...formData, secretKey: e.target.value})}
@@ -145,10 +147,10 @@ export default function OnboardingForm({ onSuccess }: OnboardingFormProps) {
           {isLoading ? (
             <>
               <Loader2 className="h-6 w-6 animate-spin" />
-              Verifying...
+              {t("sob.verifying_short")}
             </>
           ) : (
-            "Grant Authority"
+            t("sob.grant")
           )}
         </button>
       </form>

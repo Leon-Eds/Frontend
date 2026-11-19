@@ -8,9 +8,11 @@ import { Step1BasicInfo } from './Step1BasicInfo';
 import { Step2GuardianInfo } from './Step2GuardianInfo';
 import { Step3AcademicPlacement } from './Step3AcademicPlacement';
 import { Step4Success } from './Step4Success';
+import { useLanguage } from "@/components/LanguageProvider";
 
 export const StudentEnrollmentWizard = () => {
   const router = useRouter();
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<CreateStudentRequest>>({
@@ -54,7 +56,7 @@ export const StudentEnrollmentWizard = () => {
         setCurrentStep(4);
       } catch (error) {
         console.error("Failed to submit student", error);
-        toast.error(error instanceof Error ? error.message : "Failed to enroll student. Please try again.");
+        toast.error(error instanceof Error ? error.message : t("enr.failed"));
       } finally {
         setIsSubmitting(false);
       }
@@ -68,7 +70,7 @@ export const StudentEnrollmentWizard = () => {
   };
 
   const handleCancel = () => {
-    if (window.confirm('Are you sure you want to cancel? All unsaved data will be lost.')) {
+    if (window.confirm(t("enr.cancel_confirm"))) {
       router.push('/dashboard/students');
     }
   };
@@ -95,13 +97,13 @@ export const StudentEnrollmentWizard = () => {
       {/* Top Header Section inside the page (optional, matches design) */}
       <div className="mb-8">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-          <button onClick={() => router.push('/dashboard')} className="hover:text-gray-900 transition-colors">Dashboard</button>
+          <button onClick={() => router.push('/dashboard')} className="hover:text-gray-900 transition-colors">{t("layout.nav.dashboard")}</button>
           <span>&rsaquo;</span>
-          <button onClick={() => router.push('/dashboard/students')} className="font-semibold text-gray-900 hover:text-[#b05e1c] transition-colors">Students</button>
+          <button onClick={() => router.push('/dashboard/students')} className="font-semibold text-gray-900 hover:text-[#b05e1c] transition-colors">{t("layout.nav.students")}</button>
           <span>&rsaquo;</span>
-          <span>Add New Student</span>
+          <span>{t("stu.add")}</span>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Student Enrollment</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t("enr.title")}</h1>
       </div>
 
       {/* Progress Indicator (Global) */}
@@ -110,9 +112,9 @@ export const StudentEnrollmentWizard = () => {
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-200 -z-10" />
           
           {[
-            { step: 1, label: 'BASIC INFO' },
-            { step: 2, label: 'GUARDIAN' },
-            { step: 3, label: 'ACADEMIC' },
+            { step: 1, label: t("enr.step_basic") },
+            { step: 2, label: t("enr.step_guardian") },
+            { step: 3, label: t("enr.step_academic") },
           ].map((item) => (
             <div key={item.step} className="flex flex-col items-center gap-2 bg-[#f8f9fa] px-4">
               <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm transition-colors ${

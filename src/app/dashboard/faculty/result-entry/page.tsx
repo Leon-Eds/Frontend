@@ -5,6 +5,7 @@ import { Search, Save, Send, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Clock
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { scoreApi, classApi, subjectApi, sessionApi, dashboardApi, teacherPortalApi } from "@/lib/api";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface StudentScore {
   id: string;
@@ -61,13 +62,14 @@ function calculatePositions(students: StudentScore[]): StudentScore[] {
 
 function ResultEntryContent() {
   const router = useRouter();
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const urlClassId = searchParams.get("classId");
   const urlSubjectId = searchParams.get("subjectId");
   
   const [students, setStudents] = useState<StudentScore[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [saveStatus, setSaveStatus] = useState("All changes saved");
+  const [saveStatus, setSaveStatus] = useState("re.saved_all");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -107,7 +109,7 @@ function ResultEntryContent() {
           } catch (e) {
             retries++;
             if (retries >= 5) {
-              throw new Error("Unable to connect to server after multiple attempts.");
+              throw new Error("re.load_failed");
             }
             // Wait 2 seconds before retrying to allow backend to spin up
             await new Promise(r => setTimeout(r, 2000));
@@ -171,7 +173,7 @@ function ResultEntryContent() {
         }
       } catch (err) {
         console.error("[Result Entry] Failed to load initial data:", err);
-        setError("Failed to load classes and subjects.");
+        setError("re.load_failed");
         setIsLoading(false);
       }
     };
@@ -216,7 +218,7 @@ function ResultEntryContent() {
         
         setClassStatus(derivedStatus);
         if (derivedStatus === "Revision Requested") {
-          const aComment = (classResultsRes as any)?.adminComment || crData?.adminComment || (classResultsRes as any)?.comment || crData?.comment || "Admin requested a revision but didn't provide a specific comment.";
+          const aComment = (classResultsRes as any)?.adminComment || crData?.adminComment || (classResultsRes as any)?.comment || crData?.comment || "";
           setAdminComment(aComment);
         } else {
           setAdminComment("");
@@ -322,7 +324,7 @@ function ResultEntryContent() {
       });
       setStudents(calculatePositions(mapped));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to load scoresheet";
+      const message = err instanceof Error ? err.message : "re.sheet_failed";
       console.error("[Result Entry] Scoresheet error:", err);
       setError(message);
       setStudents([]);
@@ -337,7 +339,7 @@ function ResultEntryContent() {
 
   const handleScoreChange = (id: string, field: "ca1" | "ca2" | "exam", value: string) => {
     if (isEditingLocked) return;
-    setSaveStatus("Unsaved changes...");
+    setSaveStatus("re.unsaved");
     setIsSaving(true);
 
     setStudents(prev => {
@@ -393,11 +395,11 @@ function ResultEntryContent() {
 
   const handleSaveDraft = async () => {
     if (!selectedClass || !selectedSubject || !currentTermId || !currentSessionId) {
-      setError("Please select a class and subject, and ensure the current session is active.");
+      setError("re.select_req");
       return;
     }
 
-    setSaveStatus("Saving draft...");
+    setSaveStatus("re.saving_draft");
     setIsSaving(true);
     setError("");
     try {
@@ -416,13 +418,13 @@ function ResultEntryContent() {
       };
 
       await scoreApi.bulkEnter(payload);
-      setSaveStatus("Draft saved successfully");
-      setTimeout(() => setSaveStatus("All changes saved"), 3000);
+      setSaveStatus("re.draft_saved");
+      setTimeout(() => setSaveStatus("re.saved_all"), 3000);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to save draft";
+      const message = err instanceof Error ? err.message : "re.draft_failed";
       console.error("[Result Entry] Save draft error:", err);
       setError(message);
-      setSaveStatus("Save failed");
+      setSaveStatus("re.save_failed_status");
     } finally {
       setIsSaving(false);
     }
@@ -430,11 +432,11 @@ function ResultEntryContent() {
 
   const handleSubmitScores = async () => {
     if (!selectedClass || !selectedSubject || !currentTermId || !currentSessionId) {
-      setError("Please select a class and subject, and ensure the current session is active.");
+      setError("re.select_req");
       return;
     }
 
-    setSaveStatus("Submitting ledger...");
+    setSaveStatus("re.submitting");
     setIsSaving(true);
     setError("");
     try {
@@ -453,7 +455,7 @@ function ResultEntryContent() {
       };
 
       await scoreApi.bulkEnter(payload);
-      setSaveStatus("Ledger submitted successfully");
+      setSaveStatus("re.submitted");
       
       // Trigger notification to Admin
       try {
@@ -471,14 +473,14 @@ function ResultEntryContent() {
         console.error("Failed to send notification", e);
       }
 
-      setTimeout(() => setSaveStatus("All changes saved"), 3000);
+      setTimeout(() => setSaveStatus("re.saved_all"), 3000);
       // Optionally refresh scoresheet
       fetchScoresheet();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to submit scores";
+      const message = err instanceof Error ? err.message : "re.submit_failed";
       console.error("[Result Entry] Score submission error:", err);
       setError(message);
-      setSaveStatus("Submission failed");
+      setSaveStatus("re.submit_failed_status");
     } finally {
       setIsSaving(false);
     }
@@ -498,15 +500,15 @@ function ResultEntryContent() {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="bg-orange-100 text-[#b05e1c] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                {currentSessionName || "Current Session"}
+                {currentSessionName || t("sow.current_session")}
               </span>
               <span className="bg-green-100 text-[#053d26] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                 {selectedClassName} {selectedSubjectName}
               </span>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 leading-tight">Teacher Score Entry Ledger</h1>
+            <h1 className="text-3xl font-bold text-gray-900 leading-tight">{t("re.title")}</h1>
             <p className="text-gray-500 max-w-2xl leading-relaxed text-sm">
-              Enter and verify results for the selected class and subject. Auto-saves changes securely.
+              {t("re.subtitle")}
             </p>
           </div>
         </div>
@@ -517,16 +519,16 @@ function ResultEntryContent() {
             disabled={isEditingLocked || isSaving || isLoading || students.length === 0}
             className="flex items-center gap-2 px-5 py-3 rounded-full bg-white border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSaving && saveStatus === "Saving draft..." ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save Draft
+            {isSaving && saveStatus === "re.saving_draft" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {t("re.save_draft")}
           </button>
           <button 
             onClick={handleSubmitScores}
             disabled={isEditingLocked || isSaving || isLoading || students.length === 0}
             className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSaving && saveStatus === "Submitting ledger..." ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {isSaving && saveStatus === "Submitting ledger..." ? "Submitting..." : "Submit Ledger"}
+            {isSaving && saveStatus === "re.submitting" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isSaving && saveStatus === "re.submitting" ? t("re.submitting_btn") : t("re.submit")}
           </button>
         </div>
       </div>
@@ -538,7 +540,7 @@ function ResultEntryContent() {
           onChange={(e) => setSelectedClass(e.target.value)}
           className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
         >
-          <option value="">Select Class</option>
+          <option value="">{t("re.select_class")}</option>
           {classes.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
@@ -549,7 +551,7 @@ function ResultEntryContent() {
           onChange={(e) => setSelectedSubject(e.target.value)}
           className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#053d26]"
         >
-          <option value="">Select Subject</option>
+          <option value="">{t("re.select_subject")}</option>
           {subjects.map(s => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
@@ -557,7 +559,7 @@ function ResultEntryContent() {
 
         <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold ${isSaving ? "bg-amber-50 text-amber-600" : "bg-green-50 text-green-700"}`}>
           {isSaving ? <Clock className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-          {saveStatus}
+          {t(saveStatus)}
         </div>
       </div>
 
@@ -565,14 +567,14 @@ function ResultEntryContent() {
       {isLoading && (
         <div className="flex items-center justify-center py-16 text-gray-400 font-semibold text-sm">
           <Loader2 className="h-6 w-6 animate-spin mr-2" />
-          Loading scoresheet...
+          {t("re.loading")}
         </div>
       )}
 
       {error && (
         <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-semibold">
           <AlertCircle className="h-5 w-5 shrink-0" />
-          {error}
+          {t(error)}
         </div>
       )}
 
@@ -581,9 +583,9 @@ function ResultEntryContent() {
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 mt-4">
           <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-sm font-bold text-amber-900">Revision Requested by Admin</h3>
+            <h3 className="text-sm font-bold text-amber-900">{t("re.rev_title")}</h3>
             <p className="mt-1 text-sm text-amber-800 font-medium whitespace-pre-wrap">
-              {adminComment || "The School Admin has reviewed the class results and requested some changes. Please review and edit the scores below, then submit again."}
+              {adminComment || t("re.rev_default")}
             </p>
           </div>
         </div>
@@ -602,7 +604,7 @@ function ResultEntryContent() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="block w-full rounded-full border border-gray-200 bg-white py-2.5 pl-12 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors"
-              placeholder="Search by name or admission no..."
+              placeholder={t("re.search_ph")}
             />
           </div>
 
@@ -612,15 +614,15 @@ function ResultEntryContent() {
                 <thead>
                   <tr className="bg-gray-50/80 text-[10px] font-black uppercase tracking-wider text-gray-400 border-b border-gray-100">
                     <th className="py-4 pl-6 pr-2 w-10">#</th>
-                    <th className="py-4 px-4">Student</th>
-                    <th className="py-4 px-4 w-20">Adm No</th>
-                    <th className="py-4 px-4 text-center w-20">CA 1 (20)</th>
-                    <th className="py-4 px-4 text-center w-20">CA 2 (20)</th>
-                    <th className="py-4 px-4 text-center w-20">Exam (60)</th>
-                    <th className="py-4 px-4 text-center w-20">Total</th>
-                    <th className="py-4 px-4 text-center w-16">Grade</th>
-                    <th className="py-4 px-4 text-center w-16">Pos</th>
-                    <th className="py-4 pr-6 pl-4 w-20">Status</th>
+                    <th className="py-4 px-4">{t("stu.student")}</th>
+                    <th className="py-4 px-4 w-20">{t("re.adm")}</th>
+                    <th className="py-4 px-4 text-center w-20">{t("re.ca1")}</th>
+                    <th className="py-4 px-4 text-center w-20">{t("re.ca2")}</th>
+                    <th className="py-4 px-4 text-center w-20">{t("re.exam")}</th>
+                    <th className="py-4 px-4 text-center w-20">{t("re.total")}</th>
+                    <th className="py-4 px-4 text-center w-16">{t("re.grade")}</th>
+                    <th className="py-4 px-4 text-center w-16">{t("re.pos")}</th>
+                    <th className="py-4 pr-6 pl-4 w-20">{t("stu.status")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -671,16 +673,16 @@ function ResultEntryContent() {
                       <td className="py-4 px-4 text-center text-xs font-bold text-gray-500">{s.pos}</td>
                       <td className="py-4 pr-6 pl-4">
                         {s.isMissingExam ? (
-                          <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded-full uppercase">Missing</span>
+                          <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded-full uppercase">{t("re.missing")}</span>
                         ) : (
-                          <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase">Complete</span>
+                          <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase">{t("re.complete")}</span>
                         )}
                       </td>
                     </tr>
                   )) : (
                     <tr>
                       <td colSpan={10} className="py-16 text-center text-gray-400 font-semibold text-sm">
-                        {searchTerm ? "No students match your search." : "No scoresheet data available. Select a class and subject."}
+                        {searchTerm ? t("re.no_match") : t("re.no_data")}
                       </td>
                     </tr>
                   )}
@@ -695,11 +697,12 @@ function ResultEntryContent() {
 }
 
 export default function FacultyResultEntry() {
+  const { t } = useLanguage();
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center py-16 text-gray-400 font-semibold text-sm">
         <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        Initializing ledger...
+        {t("re.init")}
       </div>
     }>
       <ResultEntryContent />

@@ -38,56 +38,56 @@ import {
 } from "lucide-react";
 
 const schoolNavigation = [
-  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Student Registry", href: "/dashboard/students", icon: GraduationCap },
-  { name: "Academic Flow", href: "/dashboard/classes", icon: BookOpen },
-  { name: "Financials", href: "/dashboard/finance", icon: Banknote },
-  { name: "Staff Directory", href: "/dashboard/faculty", icon: Users },
-  { name: "Session Rollover", href: "/dashboard/rollover", icon: CalendarClock },
-  { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
+  { name: "Overview", key: "layout.nav.overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Student Registry", key: "layout.nav.student_registry", href: "/dashboard/students", icon: GraduationCap },
+  { name: "Academic Flow", key: "layout.nav.academic_flow", href: "/dashboard/classes", icon: BookOpen },
+  { name: "Financials", key: "layout.nav.financials", href: "/dashboard/finance", icon: Banknote },
+  { name: "Staff Directory", key: "layout.nav.staff_directory", href: "/dashboard/faculty", icon: Users },
+  { name: "Session Rollover", key: "layout.nav.session_rollover", href: "/dashboard/rollover", icon: CalendarClock },
+  { name: "Reports Hub", key: "layout.nav.reports_hub", href: "/dashboard/reports", icon: FileText },
 ];
 
 const adminNavigation = [
-  { name: "Academic overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Students", href: "/dashboard/students", icon: GraduationCap },
-  { name: "Classes", href: "/dashboard/classes", icon: BookOpen },
-  { name: "Teachers", href: "/dashboard/faculty", icon: Users },
-  { name: "Support Staff", href: "/dashboard/staff", icon: UserPlus },
-  { name: "Fee clearance", href: "/dashboard/finance", icon: DollarSign },
-  { name: "Admin approval", href: "/dashboard/approvals", icon: FileCheck },
-  { name: "Reports Hub", href: "/dashboard/reports", icon: FileText },
-  { name: "Broadcast hub", href: "/dashboard/communications", icon: Megaphone },
+  { name: "Academic overview", key: "layout.nav.academic_overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Students", key: "layout.nav.students", href: "/dashboard/students", icon: GraduationCap },
+  { name: "Classes", key: "layout.nav.classes", href: "/dashboard/classes", icon: BookOpen },
+  { name: "Teachers", key: "layout.nav.teachers", href: "/dashboard/faculty", icon: Users },
+  { name: "Support Staff", key: "layout.nav.support_staff", href: "/dashboard/staff", icon: UserPlus },
+  { name: "Fee clearance", key: "layout.nav.fee_clearance", href: "/dashboard/finance", icon: DollarSign },
+  { name: "Admin approval", key: "layout.nav.admin_approval", href: "/dashboard/approvals", icon: FileCheck },
+  { name: "Reports Hub", key: "layout.nav.reports_hub", href: "/dashboard/reports", icon: FileText },
+  { name: "Broadcast hub", key: "layout.nav.broadcast_hub", href: "/dashboard/communications", icon: Megaphone },
 ];
 
 const facultyNavigation = [
-  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "My Classes", href: "/dashboard/faculty/classes", icon: FolderKanban },
-  { name: "Revisions", href: "/dashboard/faculty/revisions", icon: AlertCircle },
-  { name: "Scheme of Work", href: "/dashboard/faculty/scheme-of-work", icon: FileText },
+  { name: "Overview", key: "layout.nav.overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "My Classes", key: "layout.nav.my_classes", href: "/dashboard/faculty/classes", icon: FolderKanban },
+  { name: "Revisions", key: "layout.nav.revisions", href: "/dashboard/faculty/revisions", icon: AlertCircle },
+  { name: "Scheme of Work", key: "layout.nav.scheme_of_work", href: "/dashboard/faculty/scheme-of-work", icon: FileText },
 ];
 
 const studentNavigation = [
-  { name: "Dashboard", href: "/dashboard/student-portal", icon: LayoutDashboard },
-  { name: "My Results", href: "/dashboard/student-portal", icon: GraduationCap },
-  { name: "Fee Clearance", href: "/dashboard/student-portal", icon: Banknote },
-  { name: "Attendance", href: "/dashboard/student-portal", icon: UserCheck },
+  { name: "Dashboard", key: "layout.nav.dashboard", href: "/dashboard/student-portal", icon: LayoutDashboard },
+  { name: "My Results", key: "layout.nav.my_results", href: "/dashboard/student-portal", icon: GraduationCap },
+  { name: "Fee Clearance", key: "layout.nav.fee_clearance", href: "/dashboard/student-portal", icon: Banknote },
+  { name: "Attendance", key: "layout.nav.attendance", href: "/dashboard/student-portal", icon: UserCheck },
 ];
 
 const attendanceOfficerNavigation = [
-  { name: "Scan Attendance", href: "/dashboard/scanner", icon: UserCheck },
+  { name: "Scan Attendance", key: "layout.nav.scan_attendance", href: "/dashboard/scanner", icon: UserCheck },
 ];
 
 const bursarNavigation = [
-  { name: "Fee Approvals", href: "/dashboard/bursar", icon: DollarSign },
-  { name: "Fee Structures", href: "/dashboard/finance/setup", icon: Settings },
+  { name: "Fee Approvals", key: "layout.nav.fee_approvals", href: "/dashboard/bursar", icon: DollarSign },
+  { name: "Fee Structures", key: "layout.nav.fee_structures", href: "/dashboard/finance/setup", icon: Settings },
 ];
 
 const superAdminNavigation = [
-  { name: "Platform Overview", href: "/super-admin", icon: ShieldCheck },
-  { name: "Manage Schools", href: "/super-admin/schools", icon: School },
-  { name: "Global Users", href: "/super-admin/users", icon: Users },
-  { name: "Billing & Plans", href: "/super-admin/plans", icon: CreditCard },
-  { name: "Payment Logs", href: "/super-admin/payments", icon: Banknote },
+  { name: "Platform Overview", key: "layout.nav.platform_overview", href: "/super-admin", icon: ShieldCheck },
+  { name: "Manage Schools", key: "layout.nav.manage_schools", href: "/super-admin/schools", icon: School },
+  { name: "Global Users", key: "layout.nav.global_users", href: "/super-admin/users", icon: Users },
+  { name: "Billing & Plans", key: "layout.nav.billing_plans", href: "/super-admin/plans", icon: CreditCard },
+  { name: "Payment Logs", key: "layout.nav.payment_logs", href: "/super-admin/payments", icon: Banknote },
 ];
 
 interface SidebarProps {
@@ -303,7 +303,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <div className={`relative bg-white overflow-hidden shrink-0 flex items-center justify-center border-2 border-white/10 shadow-sm ${schoolName === "LeonEd" ? "w-32 h-10 rounded-lg" : "w-10 h-10 rounded-full"}`}>
             <Image
               src={logoUrl || "/logo.png"}
-              alt="School Logo"
+              alt={t("layout.school_logo")}
               fill
               sizes="150px"
               className="object-contain p-1"
@@ -312,12 +312,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <div className="min-w-0">
             {schoolName !== "LeonEd" && (
               <h1 className="text-sm font-bold leading-tight tracking-tight max-w-[150px] truncate" title={schoolName}>
-                {schoolName}
+                {role === "superadmin" ? t("layout.platform_admin") : schoolName}
               </h1>
             )}
             {role === "superadmin" ? (
               <p className="text-[10px] uppercase tracking-wider text-green-200 mt-0.5">
-                {t("sidebar.super_admin")}
+                {t("layout.super_admin")}
               </p>
             ) : role !== "student" && role !== "parent" && role !== "teacher" && role !== "faculty" && plan ? (
               <div className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
@@ -331,7 +331,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 ) : (
                   <Sparkles className="w-2.5 h-2.5" />
                 )}
-                <span>{plan} Plan</span>
+                <span>{t("layout.plan", { plan })}</span>
               </div>
             ) : null}
           </div>
@@ -340,7 +340,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         <button
           onClick={onClose}
           className="lg:hidden text-green-200 hover:text-white transition-colors p-1"
-          aria-label="Close sidebar"
+          aria-label={t("layout.close_sidebar")}
         >
           <X className="h-5 w-5" />
         </button>
@@ -368,11 +368,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             >
               <item.icon className={`h-5 w-5 ${isActive ? "text-white" : "text-green-300"}`} />
               <span className="flex-1 text-left">
-                {(() => {
-                  const key = "sidebar." + item.name.toLowerCase().replace(/['\s&]+/g, "_");
-                  const translated = t(key);
-                  return translated === key ? item.name : translated;
-                })()}
+                {t(item.key)}
               </span>
               {item.href === "/dashboard/approvals" && pendingApprovalsCount > 0 && (
                 <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)] ${isActive ? "bg-white text-[#095838] shadow-white/60" : "bg-red-500 text-white"}`}>
@@ -404,7 +400,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[#b05e1c] text-white font-bold text-sm hover:bg-[#965017] transition-colors shadow-sm"
           >
             <School className="h-5 w-5" />
-            {t("sidebar.register_new_school")}
+            {t("layout.register_new_school")}
           </Link>
         </div>
       )}
@@ -412,13 +408,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Upgrade CTA card for Free tier schools */}
       {role !== "superadmin" && role !== "teacher" && role !== "faculty" && role !== "student" && role !== "parent" && role !== "guardian" && role !== "attendanceofficer" && plan === "Free" && (
         <div className="mx-4 mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-center shrink-0">
-          <p className="text-xs text-amber-200 font-bold mb-2">{t("sidebar.free_plan_msg")}</p>
+          <p className="text-xs text-amber-200 font-bold mb-2">{t("layout.free_plan_msg")}</p>
           <Link
             href="/dashboard/settings/billing"
             onClick={handleNavClick}
             className="block w-full py-2 bg-[#b05e1c] hover:bg-[#965017] text-white font-bold text-xs rounded-xl transition-colors shadow-sm"
           >
-            {t("sidebar.upgrade_plan")}
+            {t("layout.upgrade_plan")}
           </Link>
         </div>
       )}
@@ -432,7 +428,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
           >
             <Settings className="h-5 w-5 text-green-300" />
-            {t("nav.settings")}
+            {t("layout.settings")}
           </Link>
         )}
         <Link
@@ -441,14 +437,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
           className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors"
         >
           <HelpCircle className="h-5 w-5 text-green-300" />
-          {t("footer.support.item1")}
+          {t("layout.help_center")}
         </Link>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-green-100 hover:bg-white/5 hover:text-white transition-colors w-full text-left"
         >
           <LogOut className="h-5 w-5 text-green-300" />
-          {t("nav.logout")}
+          {t("layout.logout")}
         </button>
       </div>
     </div>

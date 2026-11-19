@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { Eraser, Check } from 'lucide-react';
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface SignaturePadProps {
   onSave: (dataUrl: string) => void;
@@ -8,6 +9,7 @@ interface SignaturePadProps {
 }
 
 export default function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
+  const { t } = useLanguage();
   const sigCanvas = useRef<SignatureCanvas>(null);
   const [isEmpty, setIsEmpty] = useState(true);
 
@@ -44,7 +46,7 @@ export default function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
         />
         {isEmpty && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-400 font-medium">
-            Sign here
+            {t("sig.sign_here")}
           </div>
         )}
       </div>
@@ -56,7 +58,7 @@ export default function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
           className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
         >
           <Eraser className="w-4 h-4" />
-          Clear
+          {t("sig.clear")}
         </button>
         <div className="flex gap-2">
           <button 
@@ -64,7 +66,7 @@ export default function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
             onClick={onCancel} 
             className="px-4 py-2 bg-gray-100 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-200 transition-colors"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button 
             type="button" 
@@ -73,7 +75,7 @@ export default function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
             className="flex items-center gap-2 px-4 py-2 bg-[#053d26] text-white rounded-lg text-sm font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50"
           >
             <Check className="w-4 h-4" />
-            Save Signature
+            {t("sig.save")}
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { CheckCircle2, AlertCircle, RefreshCw, Eye, Calendar, Sparkles, TrendingUp, ArrowRight, Clock, FileText, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { resultApi, classApi, sessionApi } from "@/lib/api";
+import { useLanguage, localeFor, interpolate } from "@/components/LanguageProvider";
 
 interface PendingSubmission {
   id: string;
@@ -41,6 +42,7 @@ function formatActivityTime(dateStr: string) {
 
 export default function ResultsApproval() {
   const router = useRouter();
+  const { t, tv, language } = useLanguage();
   const [submissions, setSubmissions] = useState<PendingSubmission[]>([]);
   const [activeFilter, setActiveFilter] = useState("All");
   const [isLoading, setIsLoading] = useState(true);
@@ -140,7 +142,7 @@ export default function ResultsApproval() {
             if (dateRaw) {
               try {
                 const d = new Date(dateRaw);
-                formattedDate = `${d.getDate()} ${d.toLocaleString("en-US", { month: "short" })}`;
+                formattedDate = isNaN(d.getTime()) ? dateRaw : d.toISOString();
               } catch {
                 formattedDate = dateRaw;
               }
@@ -148,10 +150,10 @@ export default function ResultsApproval() {
 
             allSubmissions.push({
               id: `${cls.id}-${currentTerm.id}`,
-              subject: "Overall Class Results",
+              subject: "",
               date: formattedDate,
-              teacher: rData?.formTeacherName || rData?.teacherName || "Form Teacher",
-              className: cls.name || "Unknown Class",
+              teacher: rData?.formTeacherName || rData?.teacherName || "",
+              className: cls.name || "",
               status,
               classId: cls.id,
               termId: currentTerm.id,
@@ -171,7 +173,7 @@ export default function ResultsApproval() {
       setApprovedResultsCount(approvedResults);
     } catch (err) {
       console.error("[Approvals] Failed to fetch submissions:", err);
-      setError(err instanceof Error ? err.message : "Failed to load pending submissions.");
+      setError(err instanceof Error ? err.message : "apr.load_failed");
     } finally {
       setIsLoading(false);
     }
@@ -222,9 +224,9 @@ export default function ResultsApproval() {
 
       setSubmissions(prev => prev.filter(item => item.classId !== sub.classId));
       setApprovedResultsCount(prev => prev + submissions.filter(item => item.classId === sub.classId).length);
-      toast.success("Results approved successfully!");
+      toast.success(t("apr.approved"));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to approve results";
+      const message = err instanceof Error ? err.message : t("apr.approve_failed");
       toast.error(message);
     }
   };
@@ -265,12 +267,12 @@ export default function ResultsApproval() {
         console.error("Failed to send revision notification", e);
       }
 
-      toast.success("Revision requested successfully");
+      toast.success(t("apr.rev_ok"));
       setIsRejectModalOpen(false);
       setSelectedSubmission(null);
       setRejectComment("");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to request revision";
+      const message = err instanceof Error ? err.message : t("apr.rev_failed");
       toast.error(message);
     }
   };
@@ -291,13 +293,13 @@ export default function ResultsApproval() {
       <div className="flex items-start gap-4">
         {/* Calendar Badge */}
         <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col items-center justify-center shrink-0">
-          <span className="text-lg font-black text-gray-900 leading-none">{sub.date.split(" ")[0]}</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">{sub.date.split(" ")[1] || ""}</span>
+          <span className="text-lg font-black text-gray-900 leading-none">{isNaN(new Date(sub.date).getTime()) ? sub.date : new Date(sub.date).getDate()}</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">{isNaN(new Date(sub.date).getTime()) ? "" : new Date(sub.date).toLocaleString(localeFor(language), { month: "short" })}</span>
         </div>
 
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-bold text-gray-900 text-base">{sub.subject}</h3>
+            <h3 className="font-bold text-gray-900 text-base">{sub.subject || t("apr.overall")}</h3>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
               sub.status === "Pending" 
                 ? "bg-yellow-100 text-yellow-800" 
@@ -305,11 +307,11 @@ export default function ResultsApproval() {
                 ? "bg-orange-100 text-orange-800"
                 : "bg-green-100 text-green-800"
             }`}>
-              {sub.status}
+              {tv("approval", sub.status)}
             </span>
           </div>
           <p className="text-xs text-gray-500 font-semibold">
-            Teacher: <span className="text-gray-700">{sub.teacher}</span> • Class: <span className="text-gray-700">{sub.className}</span>
+            {interpolate(t("apr.teacher_line"), { t: <span className="text-gray-700">{sub.teacher || t("rc.ft")}</span>, c: <span className="text-gray-700">{sub.className || t("stu.unknown_class")}</span> })}
           </p>
         </div>
       </div>
@@ -323,7 +325,7 @@ export default function ResultsApproval() {
             }}
             className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all"
           >
-            View Details
+            {t("apr.view_details")}
           </button>
         ) : sub.status === "Approved" || sub.status === "Published" ? (
           <button 
@@ -331,7 +333,7 @@ export default function ResultsApproval() {
             className="px-4 py-2.5 rounded-full bg-green-50 text-green-700 text-xs font-bold border border-green-200 hover:bg-green-100 transition-all flex items-center gap-2"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            View Details
+            {t("apr.view_details")}
           </button>
         ) : (
           <>
@@ -340,19 +342,19 @@ export default function ResultsApproval() {
               className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all flex items-center gap-2"
             >
               <Eye className="w-3.5 h-3.5" />
-              View Results
+              {t("apr.view_results")}
             </button>
             <button 
               onClick={() => handleRequestRevision(sub.id)}
               className="px-4 py-2.5 rounded-full bg-gray-50 text-gray-700 text-xs font-bold border border-gray-200 hover:bg-gray-100 transition-all"
             >
-              Request Revision
+              {t("apr.request_rev")}
             </button>
             <button 
               onClick={() => handleApprove(sub.id)}
               className="px-5 py-2.5 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow"
             >
-              Approve
+              {t("apr.approve")}
             </button>
           </>
         )}
@@ -365,7 +367,7 @@ export default function ResultsApproval() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 text-[#053d26] animate-spin" />
-          <p className="text-sm font-semibold text-gray-500">Loading pending submissions…</p>
+          <p className="text-sm font-semibold text-gray-500">{t("apr.loading")}</p>
         </div>
       </div>
     );
@@ -376,12 +378,12 @@ export default function ResultsApproval() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4 text-center max-w-md">
           <AlertCircle className="h-10 w-10 text-red-500" />
-          <p className="text-sm font-semibold text-gray-700">{error}</p>
+          <p className="text-sm font-semibold text-gray-700">{t(error)}</p>
           <button
             onClick={fetchSubmissions}
             className="px-5 py-2.5 rounded-full bg-[#053d26] text-white text-xs font-bold hover:bg-[#042c1b] transition-all shadow"
           >
-            Try Again
+            {t("stf.try_again")}
           </button>
         </div>
       </div>
@@ -392,9 +394,9 @@ export default function ResultsApproval() {
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header Section */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Results Approval</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t("apr.title")}</h1>
         <p className="text-gray-500 max-w-3xl leading-relaxed text-sm">
-          Review and authorize final academic performance records before they are released to the student portal. Ensure all grade distributions meet institutional standards.
+          {t("apr.subtitle")}
         </p>
       </div>
 
@@ -406,9 +408,9 @@ export default function ResultsApproval() {
             <Clock className="w-32 h-32" />
           </div>
           <div className="space-y-2 relative z-10">
-            <p className="text-xs font-bold uppercase tracking-wider text-green-200">Urgent Attention</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-green-200">{t("apr.urgent")}</p>
             <p className="text-5xl font-black">{urgentCount}</p>
-            <p className="text-xs text-green-100/70 font-semibold pt-2">Pending results require your review today.</p>
+            <p className="text-xs text-green-100/70 font-semibold pt-2">{t("apr.urgent_d")}</p>
           </div>
         </div>
       </div>
@@ -416,7 +418,7 @@ export default function ResultsApproval() {
       {/* Main Content */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Pending Submissions</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t("apr.pending_subs")}</h2>
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setActiveFilter("All")}
@@ -424,7 +426,7 @@ export default function ResultsApproval() {
                 activeFilter === "All" ? "bg-gray-900 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              All Records
+              {t("apr.all_records")}
             </button>
             <button 
               onClick={() => setActiveFilter("Pending")}
@@ -432,7 +434,7 @@ export default function ResultsApproval() {
                 activeFilter === "Pending" ? "bg-gray-900 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              Urgent First
+              {t("apr.urgent_first")}
             </button>
           </div>
         </div>
@@ -443,15 +445,15 @@ export default function ResultsApproval() {
           {filteredPendingRecords.length === 0 && (
             <div className="bg-white rounded-3xl p-12 text-center border border-gray-100">
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="font-bold text-gray-900 text-lg mb-1">All Caught Up!</h3>
-              <p className="text-sm text-gray-400 font-semibold">There are no pending submissions awaiting approval.</p>
+              <h3 className="font-bold text-gray-900 text-lg mb-1">{t("apr.caught_up")}</h3>
+              <p className="text-sm text-gray-400 font-semibold">{t("apr.caught_up_d")}</p>
             </div>
           )}
         </div>
 
         {publishedRecords.length > 0 && (
           <div className="pt-8 mt-8 border-t border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Published Results</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-6">{t("apr.published")}</h2>
             <div className="space-y-4">
               {publishedRecords.map(renderSubmissionCard)}
             </div>
@@ -464,7 +466,7 @@ export default function ResultsApproval() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-gray-100 space-y-6 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <h3 className="text-xl font-bold text-gray-900">Revision Details</h3>
+              <h3 className="text-xl font-bold text-gray-900">{t("apr.rev_details")}</h3>
               <button 
                 onClick={() => {
                   setIsDetailsOpen(false);
@@ -478,25 +480,25 @@ export default function ResultsApproval() {
             
             <div className="space-y-4">
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Class & Subject</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t("apr.class_subject")}</p>
                 <p className="text-sm font-bold text-gray-900">{selectedSubmission.className} — {selectedSubmission.subject}</p>
               </div>
 
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Submitted By</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t("apr.submitted_by")}</p>
                 <p className="text-sm font-semibold text-gray-700">{selectedSubmission.teacher} on {selectedSubmission.date}</p>
               </div>
 
               <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100/50 space-y-1">
-                <p className="text-[10px] font-bold text-orange-800 uppercase tracking-wider">Administrator Feedback</p>
+                <p className="text-[10px] font-bold text-orange-800 uppercase tracking-wider">{t("apr.feedback")}</p>
                 <p className="text-xs text-orange-900 font-medium leading-relaxed">
-                  {selectedSubmission.adminComment || "Please review the entered scores and resubmit for approval."}
+                  {selectedSubmission.adminComment || t("apr.feedback_default")}
                 </p>
               </div>
 
               {selectedSubmission.teacherComment && (
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-1">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Teacher's Remark</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t("apr.teacher_remark")}</p>
                   <p className="text-xs text-gray-700 font-medium leading-relaxed">
                     {selectedSubmission.teacherComment}
                   </p>
@@ -512,7 +514,7 @@ export default function ResultsApproval() {
                 }}
                 className="px-6 py-2.5 rounded-full bg-gray-950 text-white text-xs font-bold hover:bg-gray-800 transition-all shadow"
               >
-                Close Details
+                {t("apr.close_details")}
               </button>
             </div>
           </div>
@@ -526,7 +528,7 @@ export default function ResultsApproval() {
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-orange-500" />
-                Request Revision
+                {t("apr.request_rev")}
               </h3>
               <button 
                 onClick={() => {
@@ -541,15 +543,15 @@ export default function ResultsApproval() {
             
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-                You are requesting a revision for <strong>{selectedSubmission.className} — {selectedSubmission.subject}</strong> submitted by {selectedSubmission.teacher}.
+                {interpolate(t("apr.rev_intro"), { what: <strong>{selectedSubmission.className} — {selectedSubmission.subject || t("apr.overall")}</strong>, teacher: selectedSubmission.teacher || t("rc.ft") })}
               </p>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Administrator Feedback</label>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">{t("apr.feedback")}</label>
                 <textarea
                   value={rejectComment}
                   onChange={(e) => setRejectComment(e.target.value)}
-                  placeholder="Explain why this submission is being rejected and what the teacher needs to correct..."
+                  placeholder={t("apr.feedback_ph")}
                   className="w-full rounded-xl border border-gray-200 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 min-h-[120px] resize-none"
                 />
               </div>
@@ -563,14 +565,14 @@ export default function ResultsApproval() {
                 }}
                 className="px-6 py-2.5 rounded-full bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 transition-all"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={submitRevision}
                 disabled={!rejectComment.trim()}
                 className="px-6 py-2.5 rounded-full bg-orange-600 text-white text-xs font-bold hover:bg-orange-700 transition-all shadow disabled:opacity-50"
               >
-                Send to Teacher
+                {t("apr.send")}
               </button>
             </div>
           </div>

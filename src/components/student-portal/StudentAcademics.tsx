@@ -5,8 +5,10 @@ import { BookOpen, FileText, Loader2, AlertCircle, Download, Award, TrendingUp, 
 import { resultApi, sessionApi, reportCardApi, schemeOfWorkApi, schoolApi } from "@/lib/api";
 import toast from "react-hot-toast";
 import { show, subjectPosition, formatAverage, ordinal } from "@/lib/result-display";
+import { useLanguage, localeFor } from "@/components/LanguageProvider";
 
 export default function StudentAcademics({ studentInfo }: { studentInfo: any }) {
+  const { t, tv, language } = useLanguage();
   const [grades, setGrades] = useState<any[]>([]);
   const [resultMetadata, setResultMetadata] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -225,15 +227,15 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             else grade = "F";
           }
           let remarkText = "";
-          if (grade.includes("A")) remarkText = "Excellent";
-          else if (grade.includes("B")) remarkText = "Very Good";
-          else if (grade.includes("C")) remarkText = "Good";
-          else if (grade.includes("D")) remarkText = "Fair";
-          else if (grade.includes("E")) remarkText = "Poor";
-          else remarkText = "Fail";
+          if (grade.includes("A")) remarkText = "rc.excellent";
+          else if (grade.includes("B")) remarkText = "rc.very_good";
+          else if (grade.includes("C")) remarkText = "rc.good";
+          else if (grade.includes("D")) remarkText = "rc.fair";
+          else if (grade.includes("E")) remarkText = "rc.poor";
+          else remarkText = "rc.fail";
 
           return {
-            name: r.subjectName || r.subject?.name || "Unknown Subject",
+            name: r.subjectName || r.subject?.name || "—",
             ca1: r.firstCA ?? r.ca1 ?? 0,
             ca2: r.secondCA ?? r.ca2 ?? 0,
             exam: r.examScore ?? r.exam ?? 0,
@@ -250,7 +252,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
         setGrades(mappedGrades);
       } catch (err) {
         console.error(err);
-        setError("Failed to load term results. They may not be published yet.");
+        setError("sac.load_failed");
       } finally {
         setIsLoading(false);
       }
@@ -261,7 +263,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
 
   const handleDownloadResults = async () => {
     if (!selectedTermId) return;
-    const toastId = toast.loading('Downloading Report Card PDF...');
+    const toastId = toast.loading(t("sac.downloading"));
     setIsDownloading(true);
     try {
       const blob = await reportCardApi.downloadMyPdf(selectedTermId);
@@ -273,18 +275,18 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      toast.success('Downloaded successfully!', { id: toastId });
+      toast.success(t("common.downloaded"), { id: toastId });
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || 'Failed to download PDF', { id: toastId });
+      toast.error(err.message || t("common.download_failed"), { id: toastId });
     } finally {
       setIsDownloading(false);
     }
   };
 
   const selectedTerm = terms.find(t => (t.id || t._id) === selectedTermId);
-  const termName = selectedTerm?.termNumber === 1 || selectedTerm?.termNumber === "First" ? "First Term" : selectedTerm?.termNumber === 2 || selectedTerm?.termNumber === "Second" ? "Second Term" : selectedTerm?.termNumber === 3 || selectedTerm?.termNumber === "Third" ? "Third Term" : `${selectedTerm?.termNumber || ""} Term`;
-  const termLabel = selectedTerm ? `${termName} (${selectedTerm.sessionName})` : "Selected Term";
+  const termName = selectedTerm?.termNumber === 1 || selectedTerm?.termNumber === "First" ? t("rc.term_first") : selectedTerm?.termNumber === 2 || selectedTerm?.termNumber === "Second" ? t("rc.term_second") : selectedTerm?.termNumber === 3 || selectedTerm?.termNumber === "Third" ? t("rc.term_third") : t("rc.term_n", { n: selectedTerm?.termNumber || "" });
+  const termLabel = selectedTerm ? `${termName} (${selectedTerm.sessionName})` : t("aar.selected_term");
 
   const totalStudentScore = grades.reduce((sum, g) => sum + (Number(g.total) || 0), 0);
   const maxPossibleScore = grades.length * 100;
@@ -297,20 +299,20 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full sm:w-auto">
           <div className="flex items-center gap-3">
             <BookOpen className="w-6 h-6 text-[#b05e1c]" />
-            <h2 className="text-xl font-bold text-gray-900">Academic Records</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t("sac.title")}</h2>
           </div>
           <div className="flex w-full sm:w-auto bg-gray-100 p-1 rounded-xl">
             <button
               onClick={() => setViewMode('results')}
               className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${viewMode === 'results' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
             >
-              Results
+              {t("sac.results")}
             </button>
             <button
               onClick={() => setViewMode('sow')}
               className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${viewMode === 'sow' ? 'bg-white text-[#053d26] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
             >
-              Scheme of Work
+              {t("layout.nav.scheme_of_work")}
             </button>
           </div>
         </div>
@@ -320,9 +322,9 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             onChange={(e) => setSelectedTermId(e.target.value)}
             className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#053d26] focus:border-[#053d26] block w-full sm:w-auto p-2.5 font-semibold"
           >
-            {terms.map((t, idx) => (
-              <option key={idx} value={t.id || t._id}>
-                {t.termNumber === 1 || t.termNumber === "First" ? "First Term" : t.termNumber === 2 || t.termNumber === "Second" ? "Second Term" : t.termNumber === 3 || t.termNumber === "Third" ? "Third Term" : `${t.termNumber || t.name} Term`} ({t.sessionName})
+            {terms.map((tm, idx) => (
+              <option key={idx} value={tm.id || tm._id}>
+                {tm.termNumber === 1 || tm.termNumber === "First" ? t("rc.term_first") : tm.termNumber === 2 || tm.termNumber === "Second" ? t("rc.term_second") : tm.termNumber === 3 || tm.termNumber === "Third" ? t("rc.term_third") : t("rc.term_n", { n: tm.termNumber || tm.name })} ({tm.sessionName})
               </option>
             ))}
           </select>
@@ -332,7 +334,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             className="flex items-center gap-2 px-4 py-2.5 bg-[#053d26] hover:bg-[#042c1b] text-white rounded-xl font-bold text-sm transition-all disabled:opacity-50 shrink-0"
           >
             {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span className="hidden sm:inline">{isDownloading ? "Preparing..." : "Print PDF"}</span>
+            <span className="hidden sm:inline">{isDownloading ? t("sac.preparing") : t("sac.print_pdf")}</span>
           </button>
         </div>
       </div>
@@ -342,21 +344,21 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           {isLoading ? (
         <div className="flex items-center justify-center min-h-[30vh] text-gray-400 print:hidden">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
-          Loading academic records...
+          {t("sac.loading")}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center min-h-[30vh] text-amber-500 bg-amber-50 rounded-3xl border border-amber-100 p-8 text-center gap-4 print:hidden">
           <AlertCircle className="w-10 h-10" /> 
           <div>
-            <h3 className="font-bold text-lg mb-1">Results Unavailable</h3>
-            <p className="text-amber-700 text-sm max-w-md">{error}</p>
+            <h3 className="font-bold text-lg mb-1">{t("sac.unavailable")}</h3>
+            <p className="text-amber-700 text-sm max-w-md">{t(error)}</p>
           </div>
         </div>
       ) : grades.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[30vh] text-gray-400 bg-white rounded-3xl border border-gray-100 p-8 text-center gap-4 print:hidden">
           <FileText className="w-12 h-12 opacity-20" /> 
           <div>
-            <h3 className="font-bold text-gray-900 text-lg mb-1">No Results Yet</h3>
+            <h3 className="font-bold text-gray-900 text-lg mb-1">{t("sac.none")}</h3>
             <p className="text-sm">Results for {termLabel} have not been published by the school yet.</p>
           </div>
         </div>
@@ -368,7 +370,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
             <div className="flex justify-between items-center border-b-2 border-[#053d26] pb-4 mb-3">
               <div className="w-20 h-20 shrink-0 rounded-full border-4 border-[#b45309] bg-[#053d26] text-white flex items-center justify-center overflow-hidden flex-col">
                 {schoolLogo ? (
-                  <img src={schoolLogo} alt="School Logo" className="w-full h-full object-cover rounded-full" />
+                  <img src={schoolLogo} alt={t("layout.school_logo")} className="w-full h-full object-cover rounded-full" />
                 ) : (
                   <>
                     <Award className="w-6 h-6 text-[#b45309]" />
@@ -380,52 +382,52 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 <h1 className="text-2xl sm:text-3xl font-black text-[#053d26] uppercase tracking-wide">
                   {schoolName.toUpperCase()}
                 </h1>
-                <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || "Empowering the Future"}</p>
+                <p className="text-[#b45309] font-bold italic tracking-widest text-sm mt-1">{schoolAddress || t("rc.motto")}</p>
               </div>
             </div>
             
             <div className="text-center py-2 mb-4 border-b border-gray-300 mx-16">
-              <h2 className="text-xl font-bold text-[#053d26] tracking-[0.2em] uppercase">Terminal Academic Report</h2>
+              <h2 className="text-xl font-bold text-[#053d26] tracking-[0.2em] uppercase">{t("rc.title")}</h2>
               <p className="text-[#b45309] text-xs font-bold uppercase tracking-widest italic mt-1">{termLabel}</p>
             </div>
 
             {/* Student Details */}
             <div className="bg-[#f8fafc] p-4 sm:p-6 mb-6 border border-gray-100 flex flex-col sm:flex-row items-start justify-between gap-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-8 text-xs flex-1">
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Student's Name:</span> <span className="font-medium text-gray-800">{studentInfo.fullName || `${studentInfo.firstName || ""} ${studentInfo.lastName || ""}`.trim() || studentInfo.name}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Admission No.:</span> <span className="font-medium text-gray-800">{studentInfo.admissionNumber || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class:</span> <span className="font-medium text-gray-800">{studentInfo.class?.className || studentInfo.className || studentInfo.class?.name || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Gender:</span> <span className="font-medium text-gray-800">{studentInfo.gender || studentInfo.student?.gender || resultMetadata?.gender || resultMetadata?.student?.gender || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Term:</span> <span className="font-medium text-gray-800">{termLabel}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Session:</span> <span className="font-medium text-gray-800">{terms.find(t => String(t.id || t._id) === String(selectedTermId))?.sessionName || resultMetadata?.sessionName || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">No. in Class:</span> <span className="font-medium text-gray-800">{resultMetadata?.classSize || studentInfo.class?.size || studentInfo.classSize || "-"}</span></div>
-                <div className="flex"><span className="w-32 font-bold text-[#053d26]">Position in Class:</span> <span className="font-medium text-gray-800">{typeof resultMetadata?.position === "number" ? ordinal(resultMetadata.position) : show(resultMetadata?.position, resultMetadata?.pos)}</span></div>
-                {resultMetadata?.classAverage != null ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Class Average:</span> <span className="font-medium text-gray-800">{formatAverage(resultMetadata.classAverage)}%</span></div> : null}
-                {resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days School Opened:</span> <span className="font-medium text-gray-800">{resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened}</span></div> : null}
-                {resultMetadata?.daysPresent != null ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Days Present:</span> <span className="font-medium text-gray-800">{resultMetadata.daysPresent}</span></div> : null}
-                {resultMetadata?.nextTermBegins && !isNaN(new Date(resultMetadata.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">Next Term Begins:</span> <span className="font-medium text-gray-800">{new Date(resultMetadata.nextTermBegins).toLocaleDateString()}</span></div> : null}
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.name")}</span> <span className="font-medium text-gray-800">{studentInfo.fullName || `${studentInfo.firstName || ""} ${studentInfo.lastName || ""}`.trim() || studentInfo.name}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.adm")}</span> <span className="font-medium text-gray-800">{studentInfo.admissionNumber || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.class")}</span> <span className="font-medium text-gray-800">{studentInfo.class?.className || studentInfo.className || studentInfo.class?.name || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.gender")}</span> <span className="font-medium text-gray-800">{tv("gender", studentInfo.gender || studentInfo.student?.gender || resultMetadata?.gender || resultMetadata?.student?.gender) || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.term")}</span> <span className="font-medium text-gray-800">{termLabel}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.session")}</span> <span className="font-medium text-gray-800">{terms.find(t => String(t.id || t._id) === String(selectedTermId))?.sessionName || resultMetadata?.sessionName || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.class_size")}</span> <span className="font-medium text-gray-800">{resultMetadata?.classSize || studentInfo.class?.size || studentInfo.classSize || "-"}</span></div>
+                <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.position")}</span> <span className="font-medium text-gray-800">{typeof resultMetadata?.position === "number" ? ordinal(resultMetadata.position) : show(resultMetadata?.position, resultMetadata?.pos)}</span></div>
+                {resultMetadata?.classAverage != null ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("sac.class_avg")}</span> <span className="font-medium text-gray-800">{formatAverage(resultMetadata.classAverage)}%</span></div> : null}
+                {resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.days_opened")}</span> <span className="font-medium text-gray-800">{resultMetadata?.daysOpened || resultMetadata?.daysSchoolOpened}</span></div> : null}
+                {resultMetadata?.daysPresent != null ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.days_present")}</span> <span className="font-medium text-gray-800">{resultMetadata.daysPresent}</span></div> : null}
+                {resultMetadata?.nextTermBegins && !isNaN(new Date(resultMetadata.nextTermBegins).getTime()) ? <div className="flex"><span className="w-32 font-bold text-[#053d26]">{t("rc.next_term")}</span> <span className="font-medium text-gray-800">{new Date(resultMetadata.nextTermBegins).toLocaleDateString(localeFor(language))}</span></div> : null}
               </div>
               <div className="hidden sm:flex w-24 h-24 shrink-0 rounded-md border-4 border-white shadow-sm bg-gray-100 items-center justify-center overflow-hidden relative self-start">
-                <span className="text-gray-400 text-[10px] font-bold absolute z-0 text-center opacity-30">NO<br/>PHOTO</span>
-                <img src={studentInfo?.profilePictureUrl || studentInfo?.imageUrl || studentInfo?.student?.profilePictureUrl || studentInfo?.avatar || '/placeholder-user.jpg'} alt="Student Passport" className="w-full h-full object-cover z-10 relative bg-white" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <span className="text-gray-400 text-[10px] font-bold absolute z-0 text-center opacity-30">{t("rc.no_photo")}</span>
+                <img src={studentInfo?.profilePictureUrl || studentInfo?.imageUrl || studentInfo?.student?.profilePictureUrl || studentInfo?.avatar || '/placeholder-user.jpg'} alt={t("rc.passport_alt")} className="w-full h-full object-cover z-10 relative bg-white" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             </div>
 
             {/* Academic Performance */}
-            <h3 className="text-[13px] font-black text-[#053d26] tracking-widest uppercase mb-2">Academic Performance</h3>
+            <h3 className="text-[13px] font-black text-[#053d26] tracking-widest uppercase mb-2">{t("rc.academic")}</h3>
             <div className="border-t-[3px] border-[#053d26]">
               <table className="w-full text-xs text-center border-collapse mb-4">
                 <thead>
                   <tr className="bg-[#053d26] text-white">
-                    <th className="py-2.5 px-3 text-left w-[25%] border border-[#053d26] font-bold">SUBJECT</th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CA 1<br/><span className="text-[9px] font-normal">(20)</span></th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CA 2<br/><span className="text-[9px] font-normal">(20)</span></th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">EXAM<br/><span className="text-[9px] font-normal">(60)</span></th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">TOTAL<br/><span className="text-[9px] font-normal">(100)</span></th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">GRADE</th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">CLASS<br/>AVG</th>
-                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">POS</th>
-                    <th className="py-2.5 px-2 border border-[#053d26] w-[20%] font-bold">REMARK</th>
+                    <th className="py-2.5 px-3 text-left w-[25%] border border-[#053d26] font-bold">{t("rc.subject")}</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">{t("rc.ca1")}<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">{t("rc.ca2")}<br/><span className="text-[9px] font-normal">(20)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">{t("rc.exam")}<br/><span className="text-[9px] font-normal">(60)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">{t("rc.total")}<br/><span className="text-[9px] font-normal">(100)</span></th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">{t("rc.grade")}</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold leading-tight">{t("rc.class_avg")}</th>
+                    <th className="py-2.5 px-1 border border-[#053d26] font-bold">{t("rc.pos")}</th>
+                    <th className="py-2.5 px-2 border border-[#053d26] w-[20%] font-bold">{t("rc.remark")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -439,7 +441,7 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                       <td className="py-2 px-1 border border-gray-300 font-bold text-[#053d26]">{g.grade}</td>
                       <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(g.classAvg)}</td>
                       <td className="py-2 px-1 border border-gray-300 text-gray-700">{show(g.pos)}</td>
-                      <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{g.remark}</td>
+                      <td className="py-2 px-2 border border-gray-300 text-gray-700 text-xs">{t(g.remark)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -455,14 +457,14 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
 
             {/* Grading Key */}
             <div className="mt-4 pb-4">
-              <h4 className="text-xs font-bold text-[#053d26] mb-2">Grading Key</h4>
+              <h4 className="text-xs font-bold text-[#053d26] mb-2">{t("rc.key")}</h4>
               <div className="flex flex-wrap gap-x-8 gap-y-2 text-[11px] text-gray-600 font-medium">
-                <div><span className="font-bold text-[#053d26]">A</span> 70-100 (Excellent)</div>
-                <div><span className="font-bold text-[#053d26]">B</span> 60-69 (Very Good)</div>
-                <div><span className="font-bold text-[#053d26]">C</span> 50-59 (Good)</div>
-                <div><span className="font-bold text-[#053d26]">D</span> 45-49 (Fair)</div>
-                <div><span className="font-bold text-[#053d26]">E</span> 40-44 (Poor)</div>
-                <div><span className="font-bold text-[#053d26]">F</span> 0-39 (Fail)</div>
+                <div><span className="font-bold text-[#053d26]">A</span> 70-100 ({t("rc.excellent")})</div>
+                <div><span className="font-bold text-[#053d26]">B</span> 60-69 ({t("rc.very_good")})</div>
+                <div><span className="font-bold text-[#053d26]">C</span> 50-59 ({t("rc.good")})</div>
+                <div><span className="font-bold text-[#053d26]">D</span> 45-49 ({t("rc.fair")})</div>
+                <div><span className="font-bold text-[#053d26]">E</span> 40-44 ({t("rc.poor")})</div>
+                <div><span className="font-bold text-[#053d26]">F</span> 0-39 ({t("rc.fail")})</div>
               </div>
             </div>
           </div>
@@ -477,22 +479,22 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
               <span>Adm. No: {studentInfo.admissionNumber || "-"}</span>
             </div>
 
-            <h3 className="text-sm font-bold text-[#053d26] tracking-widest uppercase mb-1 border-b-[2.5px] border-[#b45309] pb-1 inline-block w-full">Affective & Psychomotor Domains</h3>
-            <p className="text-[11px] text-gray-500 italic mb-4">Non-academic assessment of behaviour, character and practical skills.</p>
+            <h3 className="text-sm font-bold text-[#053d26] tracking-widest uppercase mb-1 border-b-[2.5px] border-[#b45309] pb-1 inline-block w-full">{t("rc.domains")}</h3>
+            <p className="text-[11px] text-gray-500 italic mb-4">{t("rc.domains_d")}</p>
 
             <div className="flex flex-col sm:flex-row gap-6 mb-2">
               <div className="flex-1">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="bg-[#053d26] text-white">
-                      <th className="py-2 px-3 border border-[#053d26]">BEHAVIOUR (AFFECTIVE)</th>
-                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">RATING</th>
+                      <th className="py-2 px-3 border border-[#053d26]">{t("rc.behaviour")}</th>
+                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">{t("rc.rating")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {['Punctuality', 'Neatness', 'Politeness', 'Honesty', 'Cooperation', 'Peer Relationship'].map((b, i) => (
+                    {['punctuality', 'neatness', 'politeness', 'honesty', 'cooperation', 'peerRelationship'].map((dk, i) => (
                       <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
-                        <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{b}</td>
+                        <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{t(`rc.d.${dk}`)}</td>
                         <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{show(resultMetadata?.affectiveDomains?.[['punctuality', 'neatness', 'politeness', 'honesty', 'cooperation', 'peerRelationship'][i]])}</td>
                       </tr>
                     ))}
@@ -503,14 +505,14 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
                     <tr className="bg-[#053d26] text-white">
-                      <th className="py-2 px-3 border border-[#053d26]">SKILLS (PSYCHOMOTOR)</th>
-                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">RATING</th>
+                      <th className="py-2 px-3 border border-[#053d26]">{t("rc.skills")}</th>
+                      <th className="py-2 px-3 border border-[#053d26] text-center w-20">{t("rc.rating")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {['Handwriting', 'Public Speaking', 'Sports & Athletics', 'Club Participation', 'Craft / Lab Skills', 'Musical Skill'].map((s, i) => (
+                    {['handwriting', 'publicSpeaking', 'sports', 'clubParticipation', 'craftSkills', 'musicalSkill'].map((dk, i) => (
                       <tr key={i} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
-                        <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{s}</td>
+                        <td className="py-2.5 px-3 border border-gray-300 text-gray-700 font-medium">{t(`rc.d.${dk}`)}</td>
                         <td className="py-2.5 px-3 border border-gray-300 text-center font-bold text-[#053d26]">{show(resultMetadata?.psychomotorDomains?.[['handwriting', 'publicSpeaking', 'sports', 'clubParticipation', 'craftSkills', 'musicalSkill'][i]])}</td>
                       </tr>
                     ))}
@@ -518,26 +520,26 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                 </table>
               </div>
             </div>
-            <p className="text-[10px] text-gray-500 italic mb-8 border-b border-gray-200 pb-4">Rating scale: 5 = Excellent, 4 = Good, 3 = Fair, 2 = Weak, 1 = Poor</p>
+            <p className="text-[10px] text-gray-500 italic mb-8 border-b border-gray-200 pb-4">{t("rc.scale")}</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 flex-1">
               <div className="flex flex-col justify-between">
                 <div>
-                  <h4 className="text-sm font-bold text-[#053d26] mb-2">Form Teacher's Remark</h4>
+                  <h4 className="text-sm font-bold text-[#053d26] mb-2">{t("rc.ft_remark")}</h4>
                   <div className="pl-4 border-l-4 border-[#b45309] text-sm text-gray-700 italic mb-4 min-h-[40px]">
                     {resultMetadata?.teacherComment || resultMetadata?.formTeacherRemark || resultMetadata?.teacherRemark || resultMetadata?.remark || "-"}
                   </div>
                 </div>
                 <div className="flex flex-col items-center mt-4">
                   {resultMetadata?.formTeacherSignatureUrl ? (
-                    <img src={resultMetadata?.formTeacherSignatureUrl} alt="Teacher Signature" className="h-10 mb-1 object-contain mix-blend-multiply" crossOrigin="anonymous" />
+                    <img src={resultMetadata?.formTeacherSignatureUrl} alt={t("rc.teacher_sig")} className="h-10 mb-1 object-contain mix-blend-multiply" crossOrigin="anonymous" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
-                    <span className="font-bold">Form Teacher</span><br/>
-                    <span>Teacher's Name: {resultMetadata?.formTeacherName || resultMetadata?.teacherName || studentInfo?.formTeacherName || studentInfo?.class?.formTeacherName || studentInfo?.class?.teacher?.name || (studentInfo?.class?.teacher?.firstName ? `${studentInfo?.class?.teacher?.firstName || ""} ${studentInfo?.class?.teacher?.lastName || ""}`.trim() : "_________________")}</span>
+                    <span className="font-bold">{t("rc.ft")}</span><br/>
+                    <span>{t("rc.teacher_name", { name: resultMetadata?.formTeacherName || resultMetadata?.teacherName || studentInfo?.formTeacherName || studentInfo?.class?.formTeacherName || studentInfo?.class?.teacher?.name || (studentInfo?.class?.teacher?.firstName ? `${studentInfo?.class?.teacher?.firstName || ""} ${studentInfo?.class?.teacher?.lastName || ""}`.trim() : "_________________") })}</span>
                   </div>
                 </div>
               </div>
@@ -545,35 +547,35 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
               <div className="flex flex-col justify-end">
                 <div className="flex flex-col items-center mt-4">
                   {resultMetadata?.principalSignatureUrl ? (
-                    <img src={resultMetadata.principalSignatureUrl} alt="Principal Signature" className="h-10 mb-1 object-contain mix-blend-multiply" crossOrigin="anonymous" />
+                    <img src={resultMetadata.principalSignatureUrl} alt={t("rc.principal_sig")} className="h-10 mb-1 object-contain mix-blend-multiply" crossOrigin="anonymous" />
                   ) : (
                     <div className="h-10 mb-1"></div>
                   )}
                   <div className="w-48 border-t border-gray-400 mb-2"></div>
                   <div className="text-center text-xs">
-                    <span className="font-bold">Principal / Head of School</span><br/>
-                    <span>Principal's Name: {resultMetadata?.principalName || principalName || "_________________"}</span>
+                    <span className="font-bold">{t("rc.principal")}</span><br/>
+                    <span>{t("rc.principal_name", { name: resultMetadata?.principalName || principalName || "_________________" })}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="mt-8 mb-4 border border-blue-200 bg-[#f0fdf4] flex justify-between p-3 px-4 text-xs font-bold text-[#053d26]">
-              <span>PROMOTED TO: {resultMetadata?.promotedTo || "-"}</span>
-              <span>NEXT TERM BEGINS: {resultMetadata?.nextTermBegins || "-"}</span>
+              <span>{t("rc.promoted", { v: resultMetadata?.promotedTo || "-" })}</span>
+              <span>{t("rc.next_term_up", { v: resultMetadata?.nextTermBegins || "-" })}</span>
             </div>
 
             <div className="flex justify-between items-start mt-4 relative">
               <div className="text-[10px] text-gray-500 italic max-w-sm pt-4">
-                <strong className="block text-[#053d26] mb-1 font-bold">Authentication</strong>
-                This report is official only when it bears the school's embossed stamp and the Principal's original signature above.
+                <strong className="block text-[#053d26] mb-1 font-bold">{t("rc.auth")}</strong>
+                {t("rc.auth_d")}
               </div>
               <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#053d26] flex items-center justify-center text-center p-2 opacity-60 shrink-0 right-4 top-2 relative overflow-hidden">
                 {schoolStampUrl ? (
-                  <img src={schoolStampUrl} alt="School Stamp" className="w-full h-full object-contain mix-blend-multiply" crossOrigin="anonymous" />
+                  <img src={schoolStampUrl} alt={t("rc.stamp_alt")} className="w-full h-full object-contain mix-blend-multiply" crossOrigin="anonymous" />
                 ) : (
                   <span className="text-[9px] font-bold text-[#053d26] leading-tight flex flex-col gap-1">
-                    OFFICIAL<br/>SCHOOL STAMP
+                    {t("rc.stamp")}
                     <span className="text-[6px] font-normal leading-[1] mt-1 text-[#b45309] uppercase">{schoolName}</span>
                   </span>
                 )}
@@ -588,13 +590,13 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
           {isLoadingSow ? (
             <div className="flex items-center justify-center min-h-[30vh] text-gray-400">
               <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              Loading Scheme of Work...
+              {t("sac.loading_sow")}
             </div>
           ) : schemes.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[30vh] text-gray-400 bg-white rounded-3xl border border-gray-100 p-8 text-center gap-4">
               <FileText className="w-12 h-12 opacity-20" /> 
               <div>
-                <h3 className="font-bold text-gray-900 text-lg mb-1">No Scheme of Work</h3>
+                <h3 className="font-bold text-gray-900 text-lg mb-1">{t("sac.no_sow")}</h3>
                 <p className="text-sm">Schemes of work for {termLabel} have not been published yet.</p>
               </div>
             </div>
@@ -610,23 +612,23 @@ export default function StudentAcademics({ studentInfo }: { studentInfo: any }) 
                     <h3 className="font-bold text-gray-900 text-lg">{subjectName}</h3>
                   </div>
                   <div className="divide-y divide-gray-100">
-                    {topics.map((t: any, i: number) => (
+                    {topics.map((tp: any, i: number) => (
                       <div key={i} className="p-6 flex gap-6 hover:bg-gray-50/50 transition-colors">
                         <div className="w-16 shrink-0">
-                          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Week</span>
-                          <span className="text-2xl font-bold text-[#053d26]">{t.week}</span>
+                          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">{t("cls.week")}</span>
+                          <span className="text-2xl font-bold text-[#053d26]">{tp.week}</span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-bold text-gray-900 text-lg">{t.topic}</h4>
-                            {t.isCompleted && (
+                            <h4 className="font-bold text-gray-900 text-lg">{tp.topic}</h4>
+                            {tp.isCompleted && (
                               <span className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-bold uppercase">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                Completed
+                                {t("common.completed")}
                               </span>
                             )}
                           </div>
-                          <p className="text-gray-600 text-sm leading-relaxed">{t.description}</p>
+                          <p className="text-gray-600 text-sm leading-relaxed">{tp.description}</p>
                         </div>
                       </div>
                     ))}

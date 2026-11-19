@@ -2,12 +2,14 @@
 
 import { DashboardActivity } from "@/lib/api";
 import { ArrowRight, Clock } from "lucide-react";
+import { useLanguage, localeFor } from "@/components/LanguageProvider";
 
 interface DataTableProps {
   activities?: DashboardActivity[];
 }
 
 export default function DataTable({ activities }: DataTableProps) {
+  const { t, language } = useLanguage();
   const hasActivities = activities && activities.length > 0;
 
   return (
@@ -16,11 +18,11 @@ export default function DataTable({ activities }: DataTableProps) {
 
       <div className="flex justify-between items-center mb-8 relative z-10">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activities</h2>
-          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">Real-time system actions ledger</p>
+          <h2 className="text-xl font-bold text-gray-900 tracking-tight">{t("dash.act.title")}</h2>
+          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">{t("dash.act.subtitle")}</p>
         </div>
         <button className="text-xs font-bold text-[#b05e1c] flex items-center gap-1.5 hover:underline bg-[#b05e1c]/5 hover:bg-[#b05e1c]/10 px-3.5 py-2 rounded-full transition-all duration-300">
-          View All History <ArrowRight className="h-3.5 w-3.5" />
+          {t("dash.act.view_all")} <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
       
@@ -28,10 +30,10 @@ export default function DataTable({ activities }: DataTableProps) {
         <div className="min-w-[600px]">
           {/* Header Row */}
           <div className="grid grid-cols-12 gap-4 pb-4 border-b border-gray-100 text-[9px] font-bold uppercase tracking-[0.25em] text-gray-400">
-            <div className="col-span-2 pl-2">Timestamp</div>
-            <div className="col-span-5">Activity Details</div>
-            <div className="col-span-3">Domain Category</div>
-            <div className="col-span-2 text-right pr-2">Ledger Status</div>
+            <div className="col-span-2 pl-2">{t("dash.act.time")}</div>
+            <div className="col-span-5">{t("dash.act.details")}</div>
+            <div className="col-span-3">{t("dash.act.category")}</div>
+            <div className="col-span-2 text-right pr-2">{t("dash.act.status")}</div>
           </div>
           
           {/* Rows List */}
@@ -60,7 +62,7 @@ export default function DataTable({ activities }: DataTableProps) {
                       <div className="flex items-center gap-1.5">
                         <Clock className="h-3 w-3 text-gray-400 group-hover:text-[#053d26] transition-colors" />
                         <span className="text-xs font-extrabold text-gray-900 leading-none">
-                          {new Date(activity.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {new Date(activity.date).toLocaleDateString(localeFor(language), { month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                       <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1 pl-4.5">
@@ -74,7 +76,7 @@ export default function DataTable({ activities }: DataTableProps) {
                         {initials}
                       </div>
                       <span className="text-xs font-extrabold text-gray-900 leading-snug group-hover:text-[#053d26] transition-colors">
-                        {activity.description || activity.userName || 'Activity'}
+                        {activity.description || activity.userName || t("dash.act.fallback")}
                       </span>
                     </div>
                     
@@ -105,8 +107,8 @@ export default function DataTable({ activities }: DataTableProps) {
                 <div className="flex flex-col items-center gap-3 opacity-30">
                   <Clock className="h-8 w-8 text-gray-400" />
                   <div>
-                    <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">No activities recorded</p>
-                    <p className="text-[9px] text-gray-400 mt-0.5">Activities will register automatically on ledger changes.</p>
+                    <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">{t("dash.act.empty")}</p>
+                    <p className="text-[9px] text-gray-400 mt-0.5">{t("dash.act.empty_desc")}</p>
                   </div>
                 </div>
               </div>

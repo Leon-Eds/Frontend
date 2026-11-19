@@ -8,7 +8,9 @@ import { teacherApi, Teacher, CreateTeacherRequest, UpdateTeacherRequest, classA
 import toast from 'react-hot-toast';
 import { useAnnouncementsRefresh } from "@/hooks/useAnnouncementsRefresh";
 import TeacherMessages from '@/components/faculty/TeacherMessages';
+import { useLanguage, localeFor, interpolate } from "@/components/LanguageProvider";
 export function FacultyDirectory() {
+  const { t } = useLanguage();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -65,7 +67,7 @@ export function FacultyDirectory() {
       const validItems = Array.isArray(data) ? data : [];
       setTeachers(validItems);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to load teachers";
+      const message = err instanceof Error ? err.message : t("fac.load_failed");
       setError(message);
     } finally {
       setIsLoading(false);
@@ -82,17 +84,17 @@ export function FacultyDirectory() {
     setFormError("");
 
     if (!formData.fullName.trim() || !formData.email.trim() || !formData.password?.trim()) {
-      setFormError("Full name, email, and password are required.");
+      setFormError(t("fac.required"));
       return;
     }
 
     if (formData.password && formData.password.length < 6) {
-      setFormError("Password must be at least 6 characters.");
+      setFormError(t("fac.pw_len"));
       return;
     }
 
     if (formData.password !== confirmTeacherPassword) {
-      setFormError("Passwords do not match.");
+      setFormError(t("fac.pw_match"));
       return;
     }
 
@@ -122,7 +124,7 @@ export function FacultyDirectory() {
         ...formData,
         ...(profilePictureUrl ? { profilePictureUrl } : {})
       });
-      toast.success("Teacher created successfully!");
+      toast.success(t("fac.created"));
       setShowModal(false);
       setFormData({ fullName: '', email: '', phone: '', password: '' });
       setConfirmTeacherPassword('');
@@ -130,7 +132,7 @@ export function FacultyDirectory() {
       // Refresh the list
       await fetchTeachers();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to create teacher";
+      const message = err instanceof Error ? err.message : t("fac.create_failed");
       setFormError(message);
     } finally {
       setIsSubmitting(false);
@@ -143,7 +145,7 @@ export function FacultyDirectory() {
     setFormError("");
 
     if (!editFormData.fullName?.trim()) {
-      setFormError("Full name is required.");
+      setFormError(t("fac.name_required"));
       return;
     }
 
@@ -172,7 +174,7 @@ export function FacultyDirectory() {
         ...(profilePictureUrl ? { profilePictureUrl } : {})
       });
       
-      toast.success("Teacher updated successfully!");
+      toast.success(t("fac.updated"));
       setEditModal({isOpen: false, teacher: null});
       setImageFile(null);
       if (activeTeacher && activeTeacher.id === editModal.teacher.id) {
@@ -180,7 +182,7 @@ export function FacultyDirectory() {
       }
       await fetchTeachers();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to update teacher");
+      setFormError(err instanceof Error ? err.message : t("fac.update_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -190,18 +192,18 @@ export function FacultyDirectory() {
     e.preventDefault();
     setFormError("");
     if (bursarData.password !== confirmBursarPassword) {
-      setFormError("Passwords do not match.");
+      setFormError(t("fac.pw_match"));
       return;
     }
     setIsSubmitting(true);
     try {
       await bursarApi.create(bursarData);
-      toast.success("Bursar created successfully!");
+      toast.success(t("fac.bursar_created"));
       setShowBursarModal(false);
       setBursarData({ fullName: '', email: '', phone: '', password: '' });
       setConfirmBursarPassword('');
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to create bursar");
+      setFormError(err instanceof Error ? err.message : t("fac.bursar_failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -218,9 +220,9 @@ export function FacultyDirectory() {
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="max-w-2xl">
-          <h1 className="text-4xl font-bold text-[#053d26] mb-3">Teachers Directory</h1>
+          <h1 className="text-4xl font-bold text-[#053d26] mb-3">{t("fac.title")}</h1>
           <p className="text-gray-600 text-sm leading-relaxed">
-            Manage your intellectual capital. Coordinate teacher assignments, track performance indicators, and maintain pedagogical standards across all departments.
+            {t("fac.subtitle")}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -229,7 +231,7 @@ export function FacultyDirectory() {
             className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-sm shrink-0"
           >
             <UserPlus className="h-5 w-5" />
-            Add New Teacher
+            {t("fac.add")}
           </button>
         </div>
       </div>
@@ -237,12 +239,12 @@ export function FacultyDirectory() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Total Teachers</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">{t("fac.total")}</p>
           <div className="text-5xl font-bold text-[#053d26] mb-2">{teachers.length}</div>
-          <p className="text-xs text-[#20c997] font-semibold">All registered teachers</p>
+          <p className="text-xs text-[#20c997] font-semibold">{t("fac.all_registered")}</p>
         </div>
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Active Now</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">{t("fac.active_now")}</p>
           <div className="text-5xl font-bold text-[#053d26] mb-4">{activeCount}</div>
           <div className="flex gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[#20c997]"></span>
@@ -252,14 +254,14 @@ export function FacultyDirectory() {
           </div>
         </div>
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Inactive</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">{t("fac.inactive")}</p>
           <div className="text-5xl font-bold text-[#b05e1c] mb-2">{inactiveCount}</div>
-          <p className="text-xs text-gray-500 font-semibold">Currently inactive</p>
+          <p className="text-xs text-gray-500 font-semibold">{t("fac.currently_inactive")}</p>
         </div>
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">Displayed</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4">{t("fac.displayed")}</p>
           <div className="text-5xl font-bold text-[#053d26] mb-2">{teachers.length}</div>
-          <p className="text-xs text-gray-500">Currently showing</p>
+          <p className="text-xs text-gray-500">{t("fac.currently_showing")}</p>
         </div>
       </div>
 
@@ -267,18 +269,18 @@ export function FacultyDirectory() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
-          <span className="ml-3 text-gray-500 font-medium">Loading teachers...</span>
+          <span className="ml-3 text-gray-500 font-medium">{t("fac.loading")}</span>
         </div>
       ) : error ? (
         <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-12 text-center">
           <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Failed to load teachers</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">{t("fac.load_failed")}</h3>
           <p className="text-sm text-gray-500 mb-6">{error}</p>
           <button
             onClick={fetchTeachers}
             className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       ) : teachers.length === 0 ? (
@@ -286,13 +288,13 @@ export function FacultyDirectory() {
           <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
             <UserPlus className="h-8 w-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">No teachers yet</h3>
-          <p className="text-sm text-gray-500 mb-6">Add your first teacher to get started.</p>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">{t("fac.empty")}</h3>
+          <p className="text-sm text-gray-500 mb-6">{t("fac.empty_d")}</p>
           <button
             onClick={() => setShowModal(true)}
             className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
           >
-            Add New Teacher
+            {t("fac.add")}
           </button>
         </div>
       ) : (
@@ -301,14 +303,14 @@ export function FacultyDirectory() {
           <div className="flex flex-col md:flex-row justify-between items-center p-6 border-b border-gray-50 gap-4">
             <div className="flex flex-wrap gap-3 w-full md:w-auto">
               <select className="bg-gray-100 rounded-full px-4 py-2 text-xs font-bold text-gray-600 focus:outline-none appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234B5563%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:8px_8px] bg-[right_12px_center]">
-                <option>Status: All</option>
+                <option>{t("stu.status_all")}</option>
               </select>
               <select className="bg-gray-100 rounded-full px-4 py-2 text-xs font-bold text-gray-600 focus:outline-none appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234B5563%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:8px_8px] bg-[right_12px_center]">
-                <option>Sort: Name (A-Z)</option>
+                <option>{t("fac.sort")}</option>
               </select>
             </div>
             <div className="text-xs text-gray-500 font-medium">
-              Showing {teachers.length} Educators
+              {t("fac.showing", { n: teachers.length })}
             </div>
           </div>
 
@@ -340,13 +342,13 @@ export function FacultyDirectory() {
                       </div>
                     )}
                     <div>
-                      <div className="font-bold text-gray-900 text-base leading-tight group-hover:text-[#053d26] transition-colors">{teacher.fullName || 'Unnamed Teacher'}</div>
+                      <div className="font-bold text-gray-900 text-base leading-tight group-hover:text-[#053d26] transition-colors">{teacher.fullName || t("fac.unnamed")}</div>
                       <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-2">
                         <span>{teacher.email}</span>
                         {teacherFormClasses.length > 0 && (
                           <>
                             <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-gray-300"></span>
-                            <span className="text-[#b05e1c] font-bold">Form Teacher ({teacherFormClasses.map(c => c.name).join(', ')})</span>
+                            <span className="text-[#b05e1c] font-bold">{t("fac.form_teacher_of", { classes: teacherFormClasses.map(c => c.name).join(', ') })}</span>
                           </>
                         )}
                       </div>
@@ -359,7 +361,7 @@ export function FacultyDirectory() {
                         : 'bg-orange-100 text-orange-800'
                     }`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${teacher.isActive ? 'bg-green-600' : 'bg-orange-500'}`}></span>
-                      {teacher.isActive ? 'ACTIVE' : 'INACTIVE'}
+                      {teacher.isActive ? t("fac.active_up") : t("fac.inactive_up")}
                     </span>
                     <button 
                       onClick={(e) => {
@@ -377,7 +379,7 @@ export function FacultyDirectory() {
           </div>
 
           <div className="flex justify-between items-center p-6 border-t border-gray-50">
-            <span className="text-xs text-gray-500">Showing {teachers.length} educators</span>
+            <span className="text-xs text-gray-500">{t("fac.showing", { n: teachers.length })}</span>
           </div>
         </div>
       )}
@@ -385,10 +387,10 @@ export function FacultyDirectory() {
       {/* Setup Navigation Pointers (Eye-level) */}
       <div className="mt-6 flex justify-between items-center bg-white rounded-3xl p-4 sm:p-6 border border-gray-100 shadow-sm">
         <Link href="/dashboard/classes" className="flex items-center gap-2 text-gray-500 hover:text-[#053d26] font-semibold text-sm transition-colors px-4 py-2 rounded-xl hover:bg-gray-50">
-          <ArrowLeft className="w-4 h-4" /> Previous Step: Classes
+          <ArrowLeft className="w-4 h-4" /> {t("fac.prev")}
         </Link>
         <Link href="/dashboard/students" className="flex items-center gap-2 px-6 py-3 bg-[#053d26] text-white rounded-2xl font-bold text-sm hover:bg-[#042f1d] transition-colors shadow-sm">
-          Next Step: Students <ArrowRight className="w-4 h-4" />
+          {t("fac.next")} <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
 
@@ -403,8 +405,8 @@ export function FacultyDirectory() {
               <X className="h-5 w-5" />
             </button>
 
-            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Add New Teacher</h2>
-            <p className="text-sm text-gray-500 mb-8">Fill in the details to register a new teacher.</p>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">{t("fac.add")}</h2>
+            <p className="text-sm text-gray-500 mb-8">{t("fac.add_d")}</p>
 
             {formError && (
               <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -415,7 +417,7 @@ export function FacultyDirectory() {
             <form onSubmit={handleCreateTeacher} className="space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Profile Photo (Optional)
+                  {t("fac.photo")}
                 </label>
                 <input
                   type="file"
@@ -433,7 +435,7 @@ export function FacultyDirectory() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Full Name <span className="text-red-500">*</span>
+                  {t("stu.full_name")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -441,14 +443,14 @@ export function FacultyDirectory() {
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder="e.g. Dr. Aisha Johnson"
+                  placeholder={t("fac.name_ph")}
                   disabled={isSubmitting}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Email Address <span className="text-red-500">*</span>
+                  {t("enr.s2.email")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -463,7 +465,7 @@ export function FacultyDirectory() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Phone Number
+                  {t("enr.s2.phone")}
                 </label>
                 <input
                   type="tel"
@@ -478,7 +480,7 @@ export function FacultyDirectory() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Password <span className="text-red-500">*</span>
+                  {t("enr.s4.password")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -486,14 +488,14 @@ export function FacultyDirectory() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder="Min. 8 characters"
+                  placeholder={t("fac.pw_ph")}
                   disabled={isSubmitting}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Confirm Password <span className="text-red-500">*</span>
+                  {t("fac.confirm_pw")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -501,7 +503,7 @@ export function FacultyDirectory() {
                   value={confirmTeacherPassword}
                   onChange={(e) => setConfirmTeacherPassword(e.target.value)}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                  placeholder="Confirm password"
+                  placeholder={t("fac.confirm_pw_ph")}
                   disabled={isSubmitting}
                 />
               </div>
@@ -513,7 +515,7 @@ export function FacultyDirectory() {
                   className="flex-1 py-3 rounded-full border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors"
                   disabled={isSubmitting}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -523,12 +525,12 @@ export function FacultyDirectory() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Creating...
+                      {t("cls.creating")}
                     </>
                   ) : (
                     <>
                       <UserPlus className="h-4 w-4" />
-                      Create Teacher
+                      {t("fac.create")}
                     </>
                   )}
                 </button>
@@ -549,33 +551,33 @@ export function FacultyDirectory() {
               <X className="h-5 w-5" />
             </button>
 
-            <h2 className="text-2xl font-bold text-[#053d26] mb-2">Assign Teacher</h2>
-            <p className="text-sm text-gray-500 mb-8">Assign {assignModal.teacherName} to a class and subject.</p>
+            <h2 className="text-2xl font-bold text-[#053d26] mb-2">{t("fac.assign_title")}</h2>
+            <p className="text-sm text-gray-500 mb-8">{t("fac.assign_d", { name: assignModal.teacherName })}</p>
 
             <form onSubmit={async (e) => {
               e.preventDefault();
               try {
                 await teacherApi.assign(assignModal.teacherId, assignData);
                 setAssignModal({isOpen: false, teacherId: '', teacherName: ''});
-                toast.success("Teacher assigned successfully!");
+                toast.success(t("fac.assigned"));
                 fetchTeachers();
                 if (activeTeacher && activeTeacher.id === assignModal.teacherId) {
                   const updatedTeacher = await teacherApi.getAll().then(res => res.find((t: any) => t.id === activeTeacher.id));
                   if (updatedTeacher) setActiveTeacher(updatedTeacher as Teacher);
                 }
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to assign teacher");
+                toast.error(err instanceof Error ? err.message : t("fac.assign_failed"));
               }
             }} className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Class</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("stu.class")}</label>
                 <select
                   value={assignData.classId}
                   onChange={(e) => setAssignData({ ...assignData, classId: e.target.value })}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                   required
                 >
-                  <option value="">Select a Class</option>
+                  <option value="">{t("fac.select_class")}</option>
                   {classesList.map(c => (
                     <option key={c.id} value={c.id}>{c.name} {c.arm ? `(${c.arm})` : ''}</option>
                   ))}
@@ -583,14 +585,14 @@ export function FacultyDirectory() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subject</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t("fac.subject")}</label>
                 <select
                   value={assignData.subjectId}
                   onChange={(e) => setAssignData({ ...assignData, subjectId: e.target.value })}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                   required
                 >
-                  <option value="">Select a Subject</option>
+                  <option value="">{t("fac.select_subject")}</option>
                   {subjectsList.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
@@ -602,7 +604,7 @@ export function FacultyDirectory() {
                   type="submit"
                   className="w-full py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors flex items-center justify-center gap-2"
                 >
-                  Assign Subject & Class
+                  {t("fac.assign_btn")}
                 </button>
               </div>
             </form>
@@ -615,7 +617,7 @@ export function FacultyDirectory() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowBursarModal(false)}>
           <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Add New Bursar</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{t("fac.bursar_title")}</h2>
               <button onClick={() => setShowBursarModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
                 <X className="h-6 w-6" />
               </button>
@@ -630,30 +632,30 @@ export function FacultyDirectory() {
 
             <form onSubmit={handleBursarSubmit} className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Full Name</label>
-                <input required type="text" value={bursarData.fullName} onChange={e => setBursarData({...bursarData, fullName: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="E.g. Jane Doe" />
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("stu.full_name")}</label>
+                <input required type="text" value={bursarData.fullName} onChange={e => setBursarData({...bursarData, fullName: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder={t("fac.bursar_name_ph")} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("fac.email")}</label>
                 <input required type="email" value={bursarData.email} onChange={e => setBursarData({...bursarData, email: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="jane@school.com" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Phone</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("fac.phone")}</label>
                 <input type="tel" value={bursarData.phone} onChange={e => setBursarData({...bursarData, phone: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="+1234567890" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Password</label>
-                <input required type="password" value={bursarData.password} onChange={e => setBursarData({...bursarData, password: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="Min. 8 characters" />
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("enr.s4.password")}</label>
+                <input required type="password" value={bursarData.password} onChange={e => setBursarData({...bursarData, password: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder={t("fac.pw_ph")} />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Confirm Password</label>
-                <input required type="password" value={confirmBursarPassword} onChange={e => setConfirmBursarPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder="Confirm password" />
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("fac.confirm_pw")}</label>
+                <input required type="password" value={confirmBursarPassword} onChange={e => setConfirmBursarPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-all" placeholder={t("fac.confirm_pw_ph")} />
               </div>
               <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowBursarModal(false)} className="px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors">Cancel</button>
+                <button type="button" onClick={() => setShowBursarModal(false)} className="px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors">{t("common.cancel")}</button>
                 <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50">
                   {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {isSubmitting ? 'Creating...' : 'Create Bursar'}
+                  {isSubmitting ? t("cls.creating") : t("fac.create_bursar")}
                 </button>
               </div>
             </form>
@@ -673,7 +675,7 @@ export function FacultyDirectory() {
                   <div className="p-2.5 bg-green-50 text-[#053d26] rounded-xl">
                     <UserPlus className="h-6 w-6" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">Edit Teacher</h3>
+                  <h3 className="text-xl font-bold text-gray-900">{t("fac.edit_title")}</h3>
                 </div>
                 <button
                   onClick={() => setEditModal({isOpen: false, teacher: null})}
@@ -693,7 +695,7 @@ export function FacultyDirectory() {
               <form onSubmit={handleUpdateTeacher} className="space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Profile Photo (Optional)
+                    {t("fac.photo")}
                   </label>
                   <input
                     type="file"
@@ -711,7 +713,7 @@ export function FacultyDirectory() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Full Name <span className="text-red-500">*</span>
+                    {t("stu.full_name")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -719,14 +721,14 @@ export function FacultyDirectory() {
                     value={editFormData.fullName}
                     onChange={(e) => setEditFormData({ ...editFormData, fullName: e.target.value })}
                     className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                    placeholder="e.g. Dr. Aisha Johnson"
+                    placeholder={t("fac.name_ph")}
                     disabled={isSubmitting}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Phone Number
+                    {t("enr.s2.phone")}
                   </label>
                   <input
                     type="tel"
@@ -741,7 +743,7 @@ export function FacultyDirectory() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Staff Number
+                    {t("fac.staff_no")}
                   </label>
                   <input
                     type="text"
@@ -749,10 +751,10 @@ export function FacultyDirectory() {
                     value={editFormData.staffNumber || ''}
                     onChange={(e) => setEditFormData({ ...editFormData, staffNumber: e.target.value })}
                     className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:border-[#053d26] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
-                    placeholder="e.g. STF-0001"
+                    placeholder={t("fac.staff_no_ph")}
                     disabled={isSubmitting}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Printed on the staff ID card. Must be unique in your school.</p>
+                  <p className="text-xs text-gray-500 mt-1">{t("fac.staff_no_note")}</p>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -762,7 +764,7 @@ export function FacultyDirectory() {
                     className="w-full py-3 rounded-full bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
                     disabled={isSubmitting}
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                   <button
                     type="submit"
@@ -770,9 +772,9 @@ export function FacultyDirectory() {
                     className="w-full py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {isSubmitting ? (
-                      <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
+                      <><Loader2 className="h-4 w-4 animate-spin" /> {t("common.saving")}</>
                     ) : (
-                      "Save Changes"
+                      t("common.save_changes")
                     )}
                   </button>
                 </div>
@@ -788,7 +790,7 @@ export function FacultyDirectory() {
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity" onClick={() => setActiveTeacher(null)}></div>
           <div className="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900">Teacher Profile</h2>
+              <h2 className="text-lg font-bold text-gray-900">{t("fac.profile")}</h2>
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => {
@@ -797,7 +799,7 @@ export function FacultyDirectory() {
                   }}
                   className="px-4 py-1.5 rounded-full text-xs font-bold text-[#053d26] bg-green-50 hover:bg-green-100 transition-colors"
                 >
-                  Edit Profile
+                  {t("fac.edit_profile")}
                 </button>
                 <button onClick={() => setActiveTeacher(null)} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
                   <X className="h-5 w-5" />
@@ -808,7 +810,7 @@ export function FacultyDirectory() {
               {/* Profile Header */}
               <div className="flex items-center gap-4">
                 {activeTeacher.profilePictureUrl || activeTeacher.imageUrl || activeTeacher.image ? (
-                  <img src={activeTeacher.profilePictureUrl || activeTeacher.imageUrl || activeTeacher.image} className="w-20 h-20 rounded-full object-cover shadow-sm" alt="Teacher" />
+                  <img src={activeTeacher.profilePictureUrl || activeTeacher.imageUrl || activeTeacher.image} className="w-20 h-20 rounded-full object-cover shadow-sm" alt={t("cls.th_teacher")} />
                 ) : (
                   <div className="w-20 h-20 rounded-full bg-[#053d26] text-white flex items-center justify-center text-2xl font-bold shadow-inner">
                      {activeTeacher.fullName ? activeTeacher.fullName.split(' ').filter(Boolean).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() : 'T'}
@@ -816,13 +818,13 @@ export function FacultyDirectory() {
                 )}
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">{activeTeacher.fullName}</h3>
-                  <p className="text-sm text-gray-500 font-medium">Faculty Member</p>
+                  <p className="text-sm text-gray-500 font-medium">{t("fac.faculty_member")}</p>
                   <div className="mt-2">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${
                       activeTeacher.isActive ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
                     }`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${activeTeacher.isActive ? 'bg-green-600' : 'bg-orange-500'}`}></span>
-                      {activeTeacher.isActive ? 'ACTIVE' : 'INACTIVE'}
+                      {activeTeacher.isActive ? t("fac.active_up") : t("fac.inactive_up")}
                     </span>
                   </div>
                 </div>
@@ -831,23 +833,23 @@ export function FacultyDirectory() {
               {/* Contact Info */}
               <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Email</span>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t("fac.email")}</span>
                   <span className="text-sm font-semibold text-gray-700">{activeTeacher.email}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Phone</span>
-                  <span className="text-sm font-semibold text-gray-700">{activeTeacher.phone || 'N/A'}</span>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t("fac.phone")}</span>
+                  <span className="text-sm font-semibold text-gray-700">{activeTeacher.phone || t("common.na")}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Staff ID</span>
-                  <span className="text-sm font-semibold text-gray-700">{activeTeacher.staffNumber || 'Assigned on first card'}</span>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t("fac.staff_id")}</span>
+                  <span className="text-sm font-semibold text-gray-700">{activeTeacher.staffNumber || t("fac.staff_id_pending")}</span>
                 </div>
               </div>
 
               {/* Form Class Assignments */}
               <div>
                 <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#b05e1c]" /> Form Class Responsibilities
+                  <Users className="w-4 h-4 text-[#b05e1c]" /> {t("fac.form_resp")}
                 </h4>
                 <div className="space-y-2">
                   {classesList.filter(c => {
@@ -860,11 +862,11 @@ export function FacultyDirectory() {
                     }).map(c => (
                       <div key={c.id || c._id} className="flex items-center justify-between p-3 rounded-xl bg-orange-50/50 border border-orange-100">
                          <span className="font-bold text-[#b05e1c] text-sm">{c.name}</span>
-                         <span className="text-[10px] font-bold text-orange-600/70 uppercase tracking-wider bg-orange-100 px-2 py-0.5 rounded-md">Form Teacher</span>
+                         <span className="text-[10px] font-bold text-orange-600/70 uppercase tracking-wider bg-orange-100 px-2 py-0.5 rounded-md">{t("cls.ft")}</span>
                       </div>
                     ))
                   ) : (
-                    <div className="text-sm text-gray-400 italic bg-gray-50 p-4 rounded-xl text-center border border-dashed border-gray-200">No form class assigned</div>
+                    <div className="text-sm text-gray-400 italic bg-gray-50 p-4 rounded-xl text-center border border-dashed border-gray-200">{t("fac.no_form")}</div>
                   )}
                 </div>
               </div>
@@ -873,13 +875,13 @@ export function FacultyDirectory() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-[#053d26]" /> Subject Assignments
+                    <BookOpen className="w-4 h-4 text-[#053d26]" /> {t("fac.subj_assign")}
                   </h4>
                   <button 
-                    onClick={() => { setAssignModal({ isOpen: true, teacherId: activeTeacher.id, teacherName: activeTeacher.fullName || 'Teacher' }); }}
+                    onClick={() => { setAssignModal({ isOpen: true, teacherId: activeTeacher.id, teacherName: activeTeacher.fullName || t("cls.th_teacher") }); }}
                     className="text-xs font-bold text-[#053d26] hover:text-[#042c1b] bg-green-50 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
                   >
-                    <Plus className="w-3 h-3" /> Assign Subject
+                    <Plus className="w-3 h-3" /> {t("fac.assign_subject")}
                   </button>
                 </div>
                 <div className="space-y-2">
@@ -893,27 +895,27 @@ export function FacultyDirectory() {
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
-                            if (window.confirm(`Remove assignment: ${a.className} - ${a.subjectName}?`)) {
+                            if (window.confirm(t("fac.remove_confirm", { cls: a.className || "", subj: a.subjectName || "" }))) {
                               try {
                                 await teacherApi.removeAssignment(a.id);
-                                toast.success("Assignment removed successfully");
+                                toast.success(t("fac.removed"));
                                 const updatedTeacher = { ...activeTeacher, assignments: activeTeacher.assignments?.filter(asg => asg.id !== a.id) };
                                 setActiveTeacher(updatedTeacher as Teacher);
                                 fetchTeachers();
                               } catch (err) {
-                                toast.error(err instanceof Error ? err.message : "Failed to remove assignment");
+                                toast.error(err instanceof Error ? err.message : t("fac.remove_failed"));
                               }
                             }
                           }}
                           className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover/assignment:opacity-100"
-                          title="Remove Assignment"
+                          title={t("fac.remove_title")}
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                     ))
                   ) : (
-                    <div className="text-sm text-gray-400 italic bg-gray-50 p-4 rounded-xl text-center border border-dashed border-gray-200">No subjects assigned</div>
+                    <div className="text-sm text-gray-400 italic bg-gray-50 p-4 rounded-xl text-center border border-dashed border-gray-200">{t("cls.no_subjects")}</div>
                   )}
                 </div>
               </div>
@@ -937,23 +939,23 @@ export function FacultyDirectory() {
                       // A number is assigned the first time a card is made, so refresh to show it
                       if (!activeTeacher.staffNumber) await fetchTeachers();
                     } catch (err) {
-                      toast.error(err instanceof Error ? err.message : "Failed to download staff ID card");
+                      toast.error(err instanceof Error ? err.message : t("fac.id_failed"));
                     }
                   }}
                   className="w-full py-3.5 rounded-xl font-bold bg-white text-[#053d26] hover:bg-green-50 border border-[#053d26]/20 shadow-sm transition-all flex items-center justify-center gap-2"
                 >
-                  <CreditCard className="w-4 h-4" /> Download Staff ID Card
+                  <CreditCard className="w-4 h-4" /> {t("fac.download_id")}
                 </button>
                <button
                   onClick={async () => {
-                    if (window.confirm(`Are you sure you want to ${activeTeacher.isActive ? 'deactivate' : 'activate'} this teacher?`)) {
+                    if (window.confirm(t(activeTeacher.isActive ? "fac.confirm_deactivate" : "fac.confirm_activate"))) {
                       try {
                         await teacherApi.updateStatus(activeTeacher.id, !activeTeacher.isActive);
                         await fetchTeachers();
                         setActiveTeacher(null);
-                        toast.success(`Status updated for ${activeTeacher.fullName || 'teacher'}`);
+                        toast.success(t("fac.status_updated", { name: activeTeacher.fullName || t("cls.th_teacher") }));
                       } catch (err) {
-                        toast.error(err instanceof Error ? err.message : "Failed to update status");
+                        toast.error(err instanceof Error ? err.message : t("fac.status_failed"));
                       }
                     }
                   }}
@@ -963,7 +965,7 @@ export function FacultyDirectory() {
                       : 'bg-[#053d26] text-white hover:bg-[#042c1b] shadow-md'
                   }`}
                 >
-                  {activeTeacher.isActive ? 'Deactivate Account' : 'Activate Account'}
+                  {activeTeacher.isActive ? t("fac.deactivate") : t("fac.activate")}
                 </button>
             </div>
           </div>
@@ -978,7 +980,7 @@ export function FacultyDirectory() {
 // ==========================================
 
 export function FacultyHomepage() {
-  const [currentDate, setCurrentDate] = useState("");
+  const { t, language } = useLanguage();
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [teacherName, setTeacherName] = useState("");
@@ -1001,8 +1003,6 @@ export function FacultyHomepage() {
   const [revisionClasses, setRevisionClasses] = useState<{classId: string, className: string, comment: string}[]>([]);
 
   useEffect(() => {
-    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    setCurrentDate(new Date().toLocaleDateString('en-US', options));
 
     const loadData = async () => {
       setLoading(true);
@@ -1141,7 +1141,7 @@ export function FacultyHomepage() {
                     revs.push({
                       classId: cId,
                       className: fc.className || fc.name || "Class",
-                      comment: (cRes as any)?.adminComment || rData?.adminComment || (cRes as any)?.comment || rData?.comment || "Admin requested a revision."
+                      comment: (cRes as any)?.adminComment || rData?.adminComment || (cRes as any)?.comment || rData?.comment || ""
                     });
                   }
                 }
@@ -1187,15 +1187,17 @@ export function FacultyHomepage() {
 
         const computedStats = [
           { 
-            title: "Assigned Classes", 
+            title: "fac.stat_classes", 
             value: String(assignedClassesCount), 
-            desc: uniqueClassesNames || "No assigned classes", 
+            desc: uniqueClassesNames, 
+            descKey: "fac.no_classes", 
             icon: BookOpen
           },
           { 
-            title: "Students Taught", 
+            title: "fac.stat_students", 
             value: String(totalStudentsCount), 
-            desc: "Across all class arms", 
+            desc: "", 
+            descKey: "fac.across", 
             icon: Users
           }
         ];
@@ -1230,7 +1232,7 @@ export function FacultyHomepage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-[#053d26]" />
-        <span className="ml-3 text-gray-500 font-medium">Loading teacher workspace...</span>
+        <span className="ml-3 text-gray-500 font-medium">{t("fac.loading_ws")}</span>
       </div>
     );
   }
@@ -1245,13 +1247,13 @@ export function FacultyHomepage() {
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse"></span>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{currentDate}</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{new Date().toLocaleDateString(localeFor(language), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-tight">
-            Welcome back, <span className="text-[#053d26]">{teacherName}</span>
+            {interpolate(t("fac.welcome"), { name: <span className="text-[#053d26]">{teacherName}</span> })}
           </h1>
           <p className="text-gray-500 text-sm mt-2 max-w-lg leading-relaxed">
-            Manage your classes, view schedules, and enter student results with ease.
+            {t("fac.welcome_d")}
           </p>
         </div>
         
@@ -1272,7 +1274,7 @@ export function FacultyHomepage() {
           </div>
           <div className="pr-2 hidden sm:block">
             <p className="font-extrabold text-sm text-gray-900">{teacherName}</p>
-            <p className="text-[11px] text-[#b05e1c] font-bold uppercase tracking-widest mt-0.5">Faculty Member</p>
+            <p className="text-[11px] text-[#b05e1c] font-bold uppercase tracking-widest mt-0.5">{t("fac.faculty_member")}</p>
           </div>
         </div>
       </div>
@@ -1290,16 +1292,16 @@ export function FacultyHomepage() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-800">
-                        Action Required
+                        {t("fac.action_req")}
                       </span>
-                      <h3 className="text-base font-bold text-gray-900">Result Revision Requested</h3>
+                      <h3 className="text-base font-bold text-gray-900">{t("fac.rev_title")}</h3>
                     </div>
                     <p className="text-sm text-gray-600 font-medium mb-1">
-                      The School Admin has requested a revision for <span className="font-bold text-gray-900">{rev.className}</span> results.
+                      {interpolate(t("fac.rev_d"), { cls: <span className="font-bold text-gray-900">{rev.className}</span> })}
                     </p>
                     <div className="bg-white/60 border border-amber-100/50 rounded-xl p-3 mt-2 text-sm text-amber-900 font-medium whitespace-pre-wrap">
-                      <span className="text-xs font-bold uppercase tracking-wider text-amber-600/80 block mb-1">Admin Comment:</span>
-                      {rev.comment}
+                      <span className="text-xs font-bold uppercase tracking-wider text-amber-600/80 block mb-1">{t("fac.admin_comment")}</span>
+                      {rev.comment || t("fac.rev_default")}
                     </div>
                   </div>
                 </div>
@@ -1307,7 +1309,7 @@ export function FacultyHomepage() {
                   href={`/dashboard/faculty/form-class-results?classId=${rev.classId}`}
                   className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-colors shadow-sm text-sm"
                 >
-                  Review & Fix
+                  {t("fac.review_fix")}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -1333,11 +1335,11 @@ export function FacultyHomepage() {
               </div>
               
               <div className="space-y-1.5 relative z-10 pt-1">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">{stat.title}</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">{t(stat.title)}</p>
                 <div className="flex items-baseline gap-2">
                   <p className={`text-4xl font-black ${style.text} leading-none tracking-tight`}>{stat.value}</p>
                 </div>
-                <p className="text-xs text-gray-500 font-medium pt-1 line-clamp-1">{stat.desc}</p>
+                <p className="text-xs text-gray-500 font-medium pt-1 line-clamp-1">{stat.desc || t(stat.descKey)}</p>
               </div>
               
               <div className={`absolute -right-8 -bottom-8 opacity-[0.03] group-hover:scale-125 transition-transform duration-700 ${style.text} pointer-events-none`}>
@@ -1358,9 +1360,9 @@ export function FacultyHomepage() {
             <div className="flex justify-between items-center border-b border-gray-50 pb-5">
               <h2 className="text-xl font-black text-gray-900 flex items-center gap-3">
                 <BookText className="h-6 w-6 text-[#053d26]" />
-                Your Workload
+                {t("fac.workload")}
               </h2>
-              <span className="text-xs font-bold text-[#b05e1c] bg-[#b05e1c]/10 px-3 py-1.5 rounded-xl uppercase tracking-wider">Academic Responsibilities</span>
+              <span className="text-xs font-bold text-[#b05e1c] bg-[#b05e1c]/10 px-3 py-1.5 rounded-xl uppercase tracking-wider">{t("fac.resp")}</span>
             </div>
             
             <div className="space-y-6">
@@ -1375,20 +1377,20 @@ export function FacultyHomepage() {
                       <Award className="h-7 w-7" />
                     </div>
                     <div>
-                      <h4 className="font-black text-white text-xl tracking-tight">Form Teacher</h4>
+                      <h4 className="font-black text-white text-xl tracking-tight">{t("cls.ft")}</h4>
                       <p className="text-emerald-100/80 font-medium text-sm flex items-center gap-2 mt-0.5">
-                        Class: {fc.className || fc.name || "Assigned Class"} {fc.arm ? `(${fc.arm})` : ''}
+                        {t("fac.class_label", { name: fc.className || fc.name || t("fac.assigned_class") })} {fc.arm ? `(${fc.arm})` : ''}
                       </p>
                     </div>
                   </div>
                   <Link href="/dashboard/faculty/attendance" className="relative z-10 bg-white text-[#053d26] hover:bg-emerald-50 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:shadow transition-all flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4" />
-                    Mark Attendance
+                    {t("fac.mark_att")}
                   </Link>
                 </div>
               ))}
 
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pt-2">Subject Assignments</h3>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pt-2">{t("fac.subj_assign")}</h3>
               
               {assignedSubjects.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1401,7 +1403,7 @@ export function FacultyHomepage() {
                             {sub.className}
                           </span>
                           <span className="text-[11px] font-bold text-[#b05e1c] bg-[#b05e1c]/10 px-2 py-1 rounded-md uppercase tracking-wider">
-                            {sub.studentCount} Students
+                            {t("enr.s3.students", { n: sub.studentCount })}
                           </span>
                         </div>
                         <h4 className="font-extrabold text-gray-900 text-lg tracking-tight">{sub.subject}</h4>
@@ -1411,7 +1413,7 @@ export function FacultyHomepage() {
                           href={`/dashboard/faculty/result-entry?classId=${sub.classId}&subjectId=${sub.subjectId}`}
                           className="flex items-center justify-between w-full text-sm font-bold text-[#053d26] hover:text-[#0a6c4a] transition-colors group/btn"
                         >
-                          <span>Manage Grades</span>
+                          <span>{t("fac.manage_grades")}</span>
                           <div className="bg-emerald-100 p-1.5 rounded-lg group-hover/btn:bg-emerald-200 transition-colors">
                             <ArrowRight className="h-4 w-4 transform group-hover/btn:translate-x-0.5 transition-transform" />
                           </div>
@@ -1423,7 +1425,7 @@ export function FacultyHomepage() {
               ) : (
                 <div className="p-8 text-center bg-gray-50/50 border border-gray-100 rounded-3xl border-dashed">
                   <BookOpen className="h-8 w-8 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-medium text-sm">You haven't been assigned to any subjects yet.</p>
+                  <p className="text-gray-500 font-medium text-sm">{t("fac.no_subj_yet")}</p>
                 </div>
               )}
             </div>
@@ -1436,7 +1438,7 @@ export function FacultyHomepage() {
 
           <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest flex items-center gap-2 border-b border-gray-50 pb-5">
-              Teacher Hub
+              {t("fac.hub")}
             </h3>
 
             <div className="grid grid-cols-1 gap-4">
@@ -1448,8 +1450,8 @@ export function FacultyHomepage() {
                   <CheckSquare className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="font-extrabold text-sm text-gray-900 group-hover:text-white transition-colors">Submit Grades</div>
-                  <div className="text-[11px] text-gray-500 font-medium group-hover:text-emerald-100/80 transition-colors mt-0.5">Enter CA and Exam marks</div>
+                  <div className="font-extrabold text-sm text-gray-900 group-hover:text-white transition-colors">{t("fac.submit_grades")}</div>
+                  <div className="text-[11px] text-gray-500 font-medium group-hover:text-emerald-100/80 transition-colors mt-0.5">{t("fac.submit_grades_d")}</div>
                 </div>
               </Link>
 
@@ -1461,8 +1463,8 @@ export function FacultyHomepage() {
                   <BookOpen className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="font-extrabold text-sm text-gray-900 group-hover:text-white transition-colors">Class Rosters</div>
-                  <div className="text-[11px] text-gray-500 font-medium group-hover:text-orange-100/80 transition-colors mt-0.5">Review assigned student lists</div>
+                  <div className="font-extrabold text-sm text-gray-900 group-hover:text-white transition-colors">{t("fac.rosters")}</div>
+                  <div className="text-[11px] text-gray-500 font-medium group-hover:text-orange-100/80 transition-colors mt-0.5">{t("fac.rosters_d")}</div>
                 </div>
               </Link>
               

@@ -9,8 +9,10 @@ import StudentFinance from "@/components/student-portal/StudentFinance";
 import StudentAttendance from "@/components/student-portal/StudentAttendance";
 import StudentMessages from "@/components/student-portal/StudentMessages";
 import { studentApi, dashboardApi, announcementApi } from "@/lib/api";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function StudentPortal() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('profile');
   const [studentInfo, setStudentInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +67,7 @@ export default function StudentPortal() {
         };
         setStudentInfo(mergedInfo);
       } catch (err) {
-        setError("Failed to load user info");
+        setError("sp.load_failed");
       } finally {
         setIsLoading(false);
       }
@@ -74,14 +76,14 @@ export default function StudentPortal() {
   }, []);
 
   if (isLoading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  if (error) return <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4"><AlertCircle className="h-10 w-10 text-red-500" /><p className="text-red-500 font-bold">{error}</p></div>;
+  if (error) return <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4"><AlertCircle className="h-10 w-10 text-red-500" /><p className="text-red-500 font-bold">{t(error)}</p></div>;
 
   const tabs = [
-    { id: 'profile', label: 'My Profile', icon: User },
-    { id: 'academics', label: 'Academics', icon: BookOpen },
-    { id: 'finance', label: 'Finance & Receipts', icon: CreditCard },
-    { id: 'attendance', label: 'Attendance', icon: Clock },
-    { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { id: 'profile', label: t("sp.tab_profile"), icon: User },
+    { id: 'academics', label: t("sp.tab_academics"), icon: BookOpen },
+    { id: 'finance', label: t("sp.tab_finance"), icon: CreditCard },
+    { id: 'attendance', label: t("sp.tab_attendance"), icon: Clock },
+    { id: 'messages', label: t("sp.tab_messages"), icon: MessageSquare },
   ];
 
   return (
@@ -102,24 +104,24 @@ export default function StudentPortal() {
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs font-bold uppercase tracking-widest text-emerald-50">
-                Student Portal
+                {t("sp.badge")}
               </span>
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight drop-shadow-sm">
-              Welcome back, <br className="hidden sm:block" />
+              {t("sp.welcome")} <br className="hidden sm:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-emerald-200">
-                {studentInfo?.fullName?.split(' ')[0] || studentInfo?.name?.split(' ')[0] || 'Student'}
+                {studentInfo?.fullName?.split(' ')[0] || studentInfo?.name?.split(' ')[0] || t("stu.student")}
               </span>
             </h1>
             <p className="text-emerald-100/90 text-lg leading-relaxed max-w-xl font-medium">
-              Your academic hub is ready. View your latest results, track fee payments, and stay updated with school announcements.
+              {t("sp.welcome_d")}
             </p>
           </div>
 
           <div className="flex items-center gap-5 shrink-0 bg-white/10 backdrop-blur-xl px-6 py-5 rounded-[2rem] border border-white/20 shadow-2xl transform hover:scale-105 transition-transform duration-500 group/card">
             <div className="relative h-16 w-16 rounded-2xl bg-gradient-to-br from-[#b05e1c] to-[#8a4a16] text-white font-bold flex items-center justify-center text-xl shadow-inner overflow-hidden border border-white/30 group-hover/card:shadow-[0_0_20px_rgba(176,94,28,0.4)] transition-shadow duration-500">
               {studentInfo?.profilePictureUrl ? (
-                <img src={studentInfo.profilePictureUrl} alt="Profile" className="h-full w-full object-cover transform group-hover/card:scale-110 transition-transform duration-500" />
+                <img src={studentInfo.profilePictureUrl} alt={t("sp.profile_alt")} className="h-full w-full object-cover transform group-hover/card:scale-110 transition-transform duration-500" />
               ) : (
                 <User className="h-8 w-8" />
               )}

@@ -16,6 +16,7 @@ import {
 import { reportApi, classApi, sessionApi } from "@/lib/api";
 import toast from "react-hot-toast";
 import { DataTable, Column } from '@/components/ui/DataTable';
+import { useLanguage } from "@/components/LanguageProvider";
 
 // Where each report endpoint puts its rows
 const REPORT_LIST_KEYS: Record<string, string> = {
@@ -61,6 +62,7 @@ function extractSummary(payload: any): { label: string; value: string }[] {
 }
 
 export default function ReportsHub() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"academic" | "financial" | "admin">("academic");
   const [activeReport, setActiveReport] = useState<string>("enrollment");
   const [isLoading, setIsLoading] = useState(false);
@@ -77,14 +79,14 @@ export default function ReportsHub() {
   const [endDate, setEndDate] = useState<string>(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]);
 
   const reportTypes = [
-    { id: "enrollment", name: "Enrollment Status", icon: Users, desc: "Current student numbers" },
-    { id: "attendance", name: "Attendance Records", icon: Calendar, desc: "Daily & term attendance" },
-    { id: "performance", name: "Academic Performance", icon: TrendingUp, desc: "Grades and analytics" },
-    { id: "feepayment", name: "Fee Payments", icon: Banknote, desc: "Payment histories" },
-    { id: "revenue", name: "School Revenue", icon: Activity, desc: "Total income vs expected" },
-    { id: "studentstatus", name: "Student Status", icon: AlertCircle, desc: "Active vs inactive" },
-    { id: "staff", name: "Staff Directory", icon: Users, desc: "Teachers and roles" },
-    { id: "outstandingfees", name: "Outstanding Fees", icon: AlertCircle, desc: "Pending balances" },
+    { id: "enrollment", name: t("rpt.enrollment"), icon: Users, desc: t("rpt.enrollment_d") },
+    { id: "attendance", name: t("rpt.attendance"), icon: Calendar, desc: t("rpt.attendance_d") },
+    { id: "performance", name: t("rpt.performance"), icon: TrendingUp, desc: t("rpt.performance_d") },
+    { id: "feepayment", name: t("rpt.feepayment"), icon: Banknote, desc: t("rpt.feepayment_d") },
+    { id: "revenue", name: t("rpt.revenue"), icon: Activity, desc: t("rpt.revenue_d") },
+    { id: "studentstatus", name: t("rpt.studentstatus"), icon: AlertCircle, desc: t("rpt.studentstatus_d") },
+    { id: "staff", name: t("rpt.staff"), icon: Users, desc: t("rpt.staff_d") },
+    { id: "outstandingfees", name: t("rpt.outstandingfees"), icon: AlertCircle, desc: t("rpt.outstandingfees_d") },
   ];
 
   // Filters each report actually uses on the backend
@@ -160,7 +162,7 @@ export default function ReportsHub() {
       setReportData(extractRows(type, payload));
       setReportSummary(extractSummary(payload));
     } catch (e: any) {
-      toast.error(e.message || "Failed to load report");
+      toast.error(e.message || t("rpt.load_failed"));
     } finally {
       setIsLoading(false);
     }
@@ -173,7 +175,7 @@ export default function ReportsHub() {
   // The Excel and PDF libraries are large, so they load only when an export is requested
   const handleExportExcel = async () => {
     if (!reportData || reportData.length === 0) {
-      toast.error("No data to export");
+      toast.error(t("rpt.no_export"));
       return;
     }
     const rt = reportTypes.find(r => r.id === activeReport);
@@ -182,14 +184,14 @@ export default function ReportsHub() {
     
     const worksheet = XLSX.utils.json_to_sheet(reportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+    XLSX.utils.book_append_sheet(workbook, worksheet, t("rpt.sheet"));
     XLSX.writeFile(workbook, filename);
-    toast.success("Excel Export Downloaded");
+    toast.success(t("rpt.excel_done"));
   };
 
   const handleExportPDF = async () => {
     if (!reportData || reportData.length === 0) {
-      toast.error("No data to export");
+      toast.error(t("rpt.no_export"));
       return;
     }
     const rt = reportTypes.find(r => r.id === activeReport);
@@ -205,7 +207,7 @@ export default function ReportsHub() {
     }));
 
     doc.setFontSize(18);
-    doc.text(`LeonEd Official Report: ${rt?.name}`, 14, 22);
+    doc.text(t("rpt.pdf_title", { name: rt?.name || "" }), 14, 22);
     
     autoTable(doc, {
       head: [columns.map(key => key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()))],
@@ -217,12 +219,12 @@ export default function ReportsHub() {
     });
 
     doc.save(filename);
-    toast.success("PDF Export Downloaded");
+    toast.success(t("rpt.pdf_done"));
   };
 
   const handlePrint = () => {
     if (!reportData || reportData.length === 0) {
-      toast.error("No data to print");
+      toast.error(t("rpt.no_print"));
       return;
     }
     window.print();
@@ -246,8 +248,8 @@ export default function ReportsHub() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
         <div>
-          <h1 className="text-4xl font-bold text-[#053d26] mb-2">Reports Hub</h1>
-          <p className="text-gray-600">Comprehensive analytics and printable reports for all school operations.</p>
+          <h1 className="text-4xl font-bold text-[#053d26] mb-2">{t("rpt.title")}</h1>
+          <p className="text-gray-600">{t("rpt.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {allSessions.length > 0 && (
@@ -258,7 +260,7 @@ export default function ReportsHub() {
             >
               {allSessions.map(s => (
                 <option key={s.id || s._id} value={s.id || s._id}>
-                  {s.name || s.sessionName || "Session"} {s.isCurrent ? '(Current)' : ''}
+                  {s.name || s.sessionName || t("rpt.session")} {s.isCurrent ? t("cls.current") : ''}
                 </option>
               ))}
             </select>
@@ -271,7 +273,7 @@ export default function ReportsHub() {
             >
               {classes.map(c => (
                 <option key={c.id || c._id || c.classId} value={c.id || c._id || c.classId}>
-                  {c.name || c.className || "Class"}
+                  {c.name || c.className || t("stu.class")}
                 </option>
               ))}
             </select>
@@ -282,9 +284,9 @@ export default function ReportsHub() {
               onChange={(e) => setSelectedTermId(e.target.value)}
               className="px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] shadow-sm appearance-none min-w-[150px]"
             >
-              {terms.map(t => (
-                <option key={t.id || t._id || t.termId} value={t.id || t._id || t.termId}>
-                  {t.name || t.termName || (t.termNumber ? `${t.termNumber} Term` : "Term")}
+              {terms.map(tm => (
+                <option key={tm.id || tm._id || tm.termId} value={tm.id || tm._id || tm.termId}>
+                  {tm.name || tm.termName || (tm.termNumber ? t("rc.term_n", { n: tm.termNumber }) : t("rpt.term"))}
                 </option>
               ))}
             </select>
@@ -297,7 +299,7 @@ export default function ReportsHub() {
                 onChange={(e) => setStartDate(e.target.value)}
                 className="px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] shadow-sm"
               />
-              <span className="text-gray-400 font-bold">to</span>
+              <span className="text-gray-400 font-bold">{t("rpt.to")}</span>
               <input
                 type="date"
                 value={endDate}
@@ -311,14 +313,14 @@ export default function ReportsHub() {
             className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors shadow-sm"
           >
             <Printer className="h-5 w-5" />
-            Print
+            {t("common.print")}
           </button>
           <button 
             onClick={handleExportExcel}
             className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-200 text-[#053d26] font-bold hover:bg-[#053d26]/5 transition-colors shadow-sm"
           >
             <Download className="h-5 w-5" />
-            Excel
+            {t("rpt.excel")}
           </button>
           <button 
             onClick={handleExportPDF}
@@ -380,15 +382,15 @@ export default function ReportsHub() {
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-32 space-y-4 print:hidden">
                 <Loader2 className="h-10 w-10 animate-spin text-[#053d26]" />
-                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">Generating Report...</p>
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">{t("rpt.generating")}</p>
               </div>
             ) : !reportData || reportData.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-32 text-center print:hidden">
                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                   <AlertCircle className="h-8 w-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">No Data Available</h3>
-                <p className="text-gray-500 max-w-sm">There is currently no data to display for this report type in the active academic session.</p>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{t("rpt.no_data")}</h3>
+                <p className="text-gray-500 max-w-sm">{t("rpt.no_data_d")}</p>
               </div>
             ) : (
               <div className="overflow-x-auto print:overflow-visible">

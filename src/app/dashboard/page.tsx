@@ -8,18 +8,20 @@ import { dashboardApi, DashboardStats, sessionApi, schoolApi } from "@/lib/api";
 import StatCard from "@/components/dashboard/StatCard";
 import DataTable from "@/components/dashboard/DataTable";
 import SetupGuide from "@/components/dashboard/SetupGuide";
+import { useLanguage } from "@/components/LanguageProvider";
 import { GraduationCap, Users, FileText, UserPlus, FileOutput, Plus, Loader2, BookOpen, Calendar, Settings, CreditCard, X, Zap } from "lucide-react";
 
 const AVAILABLE_SHORTCUTS = [
-  { id: 'new-student', title: 'Add New Student', desc: 'Onboard a fresh learner profile', href: '/dashboard/students/new', color: 'bg-[#053d26]', iconBg: 'bg-white/10', iconColor: 'text-white', icon: UserPlus, titleColor: 'text-white', descColor: 'text-green-200' },
-  { id: 'report-cards', title: 'Generate Report Cards', desc: 'Bulk process academic summaries', href: '/dashboard/classes', color: 'bg-[#b05e1c]', iconBg: 'bg-white/20', iconColor: 'text-white', icon: FileOutput, titleColor: 'text-white', descColor: 'text-orange-100' },
-  { id: 'fee-clearance', title: 'Fee Clearance', desc: 'Process tuition and payments', href: '/dashboard/finance', color: 'bg-blue-600', iconBg: 'bg-white/20', iconColor: 'text-white', icon: CreditCard, titleColor: 'text-white', descColor: 'text-blue-100' },
-  { id: 'teachers', title: 'Manage Teachers', desc: 'View and assign faculty', href: '/dashboard/faculty', color: 'bg-purple-600', iconBg: 'bg-white/20', iconColor: 'text-white', icon: Users, titleColor: 'text-white', descColor: 'text-purple-100' },
-  { id: 'settings', title: 'System Settings', desc: 'Configure school preferences', href: '/dashboard/settings', color: 'bg-gray-800', iconBg: 'bg-white/20', iconColor: 'text-white', icon: Settings, titleColor: 'text-white', descColor: 'text-gray-300' }
+  { id: 'new-student', title: 'dash.sc.new_student', desc: 'dash.sc.new_student_d', href: '/dashboard/students/new', color: 'bg-[#053d26]', iconBg: 'bg-white/10', iconColor: 'text-white', icon: UserPlus, titleColor: 'text-white', descColor: 'text-green-200' },
+  { id: 'report-cards', title: 'dash.sc.report_cards', desc: 'dash.sc.report_cards_d', href: '/dashboard/classes', color: 'bg-[#b05e1c]', iconBg: 'bg-white/20', iconColor: 'text-white', icon: FileOutput, titleColor: 'text-white', descColor: 'text-orange-100' },
+  { id: 'fee-clearance', title: 'dash.sc.fee_clearance', desc: 'dash.sc.fee_clearance_d', href: '/dashboard/finance', color: 'bg-blue-600', iconBg: 'bg-white/20', iconColor: 'text-white', icon: CreditCard, titleColor: 'text-white', descColor: 'text-blue-100' },
+  { id: 'teachers', title: 'dash.sc.teachers', desc: 'dash.sc.teachers_d', href: '/dashboard/faculty', color: 'bg-purple-600', iconBg: 'bg-white/20', iconColor: 'text-white', icon: Users, titleColor: 'text-white', descColor: 'text-purple-100' },
+  { id: 'settings', title: 'dash.sc.settings', desc: 'dash.sc.settings_d', href: '/dashboard/settings', color: 'bg-gray-800', iconBg: 'bg-white/20', iconColor: 'text-white', icon: Settings, titleColor: 'text-white', descColor: 'text-gray-300' }
 ];
 
 export default function DashboardOverview() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,7 +46,7 @@ export default function DashboardOverview() {
     setShortcutIds(tempShortcuts);
     localStorage.setItem("leoned_shortcuts", JSON.stringify(tempShortcuts));
     setIsShortcutModalOpen(false);
-    toast.success("Shortcuts updated successfully!");
+    toast.success(t("dash.shortcuts_saved"));
   };
 
   const toggleShortcut = (id: string) => {
@@ -52,7 +54,7 @@ export default function DashboardOverview() {
       setTempShortcuts(tempShortcuts.filter(s => s !== id));
     } else {
       if (tempShortcuts.length >= 4) {
-        toast.error("You can pin a maximum of 4 shortcuts.");
+        toast.error(t("dash.shortcuts_max"));
         return;
       }
       setTempShortcuts([...tempShortcuts, id]);
@@ -180,7 +182,7 @@ export default function DashboardOverview() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-[#053d26]" />
-          <p className="text-gray-500 font-medium">Loading dashboard...</p>
+          <p className="text-gray-500 font-medium">{t("dash.loading")}</p>
         </div>
       </div>
     );
@@ -193,13 +195,13 @@ export default function DashboardOverview() {
           <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
             <FileText className="h-8 w-8 text-red-500" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Failed to load dashboard</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{t("dash.load_failed")}</h2>
           <p className="text-sm text-gray-500 mb-6">{error}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       </div>
@@ -214,18 +216,19 @@ export default function DashboardOverview() {
   
   const studentsDisplay = totalStudents.toLocaleString();
   const teachersDisplay = totalTeachers.toLocaleString();
-  const currentTerm = s?.currentTerm ?? "N/A";
+  const currentTerm = s?.currentTerm ?? t("common.na");
   const currentSession = s?.currentSession ?? "";
   const termProgress = s?.termProgress ?? 0;
   const termLabel = currentTerm + (currentSession ? ` ${currentSession}` : "");
+  const [welcomePre, welcomePost] = t("dash.welcome", { name: userName.split(' ')[0] }).split("{term}");
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Welcome Section */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">School Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t("dash.title")}</h1>
         <p className="text-gray-600">
-          Welcome back, {userName.split(' ')[0]}. Here is your campus overview for the <span className="text-[#b05e1c] font-semibold">{termLabel}</span>.
+          {welcomePre}<span className="text-[#b05e1c] font-semibold">{termLabel}</span>{welcomePost}
         </p>
       </div>
 
@@ -237,8 +240,8 @@ export default function DashboardOverview() {
               <Zap className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1">Unlock Premium Features</h3>
-              <p className="text-sm text-gray-600">You are currently on the Free plan. Upgrade to a premium plan to unlock unlimited students, teachers, and advanced analytics.</p>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">{t("dash.upgrade_title")}</h3>
+              <p className="text-sm text-gray-600">{t("dash.upgrade_desc")}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -249,13 +252,13 @@ export default function DashboardOverview() {
               }}
               className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-white/50 rounded-xl transition-colors"
             >
-              Dismiss
+              {t("common.dismiss")}
             </button>
             <Link
               href="/dashboard/settings/billing"
               className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md transition-all hover:shadow-lg text-sm"
             >
-              View Plans
+              {t("dash.view_plans")}
             </Link>
           </div>
         </div>
@@ -265,11 +268,11 @@ export default function DashboardOverview() {
       {user?.role !== "SuperAdmin" && totalTeachers === 0 && (
         <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-pulse">
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">No teachers registered yet</h3>
-            <p className="text-sm text-gray-600">Register your faculty members to assign them to classes and enable academic flow.</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">{t("dash.no_teachers")}</h3>
+            <p className="text-sm text-gray-600">{t("dash.no_teachers_desc")}</p>
           </div>
           <Link href="/dashboard/faculty" className="px-6 py-3 rounded-full bg-[#b05e1c] text-white font-bold hover:bg-[#965017] text-sm shrink-0 shadow-sm text-center">
-            Register a Teacher
+            {t("dash.register_teacher")}
           </Link>
         </div>
       )}
@@ -280,17 +283,17 @@ export default function DashboardOverview() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Total Students"
+          title={t("dash.total_students")}
           value={studentsDisplay}
           icon={<GraduationCap className="h-6 w-6" />}
         />
         <StatCard
-          title="Faculty Members"
+          title={t("dash.faculty_members")}
           value={teachersDisplay}
           icon={<Users className="h-6 w-6" />}
         />
         <StatCard
-          title="Total Classes"
+          title={t("dash.total_classes")}
           value={String(totalClasses)}
           icon={<BookOpen className="h-6 w-6" />}
           iconBgColor="bg-blue-100"
@@ -304,7 +307,7 @@ export default function DashboardOverview() {
           
           <div className="relative z-10">
             <p className="text-sm font-semibold uppercase tracking-wider text-green-200 mb-4">
-              Active Term
+              {t("dash.active_term")}
             </p>
             <p className="text-3xl font-bold mb-8 leading-tight">
               {termLabel.split(' ').map((word, i) => (
@@ -320,7 +323,7 @@ export default function DashboardOverview() {
                 />
               </div>
               <p className="text-xs text-green-200 font-medium">
-                {termProgress}% of term completed
+                {t("dash.term_progress", { n: termProgress })}
               </p>
             </div>
           </div>
@@ -337,7 +340,7 @@ export default function DashboardOverview() {
         <div className="space-y-8">
           {/* Quick Actions */}
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-6">{t("dash.quick_actions")}</h2>
             <div className="space-y-4">
               {shortcutIds.map(id => {
                 const shortcut = AVAILABLE_SHORTCUTS.find(s => s.id === id);
@@ -349,8 +352,8 @@ export default function DashboardOverview() {
                       <Icon className="h-6 w-6" />
                     </div>
                     <div>
-                      <div className={`font-bold ${shortcut.titleColor} text-lg`}>{shortcut.title}</div>
-                      <div className={`text-sm ${shortcut.descColor} leading-tight mt-1`}>{shortcut.desc}</div>
+                      <div className={`font-bold ${shortcut.titleColor} text-lg`}>{t(shortcut.title)}</div>
+                      <div className={`text-sm ${shortcut.descColor} leading-tight mt-1`}>{t(shortcut.desc)}</div>
                     </div>
                   </Link>
                 );
@@ -366,7 +369,7 @@ export default function DashboardOverview() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-300">
                   <Plus className="h-5 w-5" />
                 </div>
-                <div className="font-bold text-gray-700 dark:text-gray-300">Customize Shortcuts</div>
+                <div className="font-bold text-gray-700 dark:text-gray-300">{t("dash.customize")}</div>
               </button>
             </div>
           </div>
@@ -380,15 +383,15 @@ export default function DashboardOverview() {
             <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mb-6 text-orange-600 animate-bounce">
               <Calendar className="w-8 h-8" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Academic Session Required</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">{t("dash.session_required")}</h3>
             <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              You need an active academic session and term to use LeonEd. Most features (including grade entries, fee tracking, and reports) rely on this timeline.
+              {t("dash.session_required_desc")}
             </p>
             <Link 
               href="/dashboard/rollover" 
               className="w-full py-4 rounded-2xl bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all shadow-md text-center cursor-pointer"
             >
-              Set Up Session &amp; Term Now
+              {t("dash.session_setup")}
             </Link>
           </div>
         </div>
@@ -398,13 +401,13 @@ export default function DashboardOverview() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-[#1a1a1a] rounded-[2.5rem] max-w-lg w-full p-8 shadow-2xl border border-gray-100 dark:border-white/10 flex flex-col">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Customize Shortcuts</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t("dash.customize")}</h3>
               <button onClick={() => setIsShortcutModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors cursor-pointer rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Select up to 4 quick actions to pin to your dashboard for easy access.
+              {t("dash.customize_desc")}
             </p>
             <div className="space-y-3 mb-8 max-h-[50vh] overflow-y-auto no-scrollbar pr-2">
               {AVAILABLE_SHORTCUTS.map(shortcut => {
@@ -420,8 +423,8 @@ export default function DashboardOverview() {
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-bold text-gray-900 dark:text-white text-sm">{shortcut.title}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{shortcut.desc}</div>
+                      <div className="font-bold text-gray-900 dark:text-white text-sm">{t(shortcut.title)}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{t(shortcut.desc)}</div>
                     </div>
                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-[#053d26] bg-[#053d26] dark:border-green-500 dark:bg-green-500' : 'border-gray-300 dark:border-gray-600'}`}>
                       {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
@@ -435,13 +438,13 @@ export default function DashboardOverview() {
                 onClick={() => setIsShortcutModalOpen(false)}
                 className="px-6 py-3 rounded-full font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button 
                 onClick={handleSaveShortcuts}
                 className="px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors shadow-md cursor-pointer"
               >
-                Save Changes
+                {t("common.save_changes")}
               </button>
             </div>
           </div>

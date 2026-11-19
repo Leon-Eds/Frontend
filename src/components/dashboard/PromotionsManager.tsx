@@ -4,8 +4,10 @@ import React, { useState, useEffect } from "react";
 import { promotionApi, classApi, SchoolClass, AcademicSession } from "@/lib/api";
 import { Loader2, ArrowRight, GraduationCap, AlertCircle, Save } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function PromotionsManager({ currentSession, sessions }: { currentSession?: AcademicSession, sessions: AcademicSession[] }) {
+  const { t } = useLanguage();
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -58,21 +60,21 @@ export default function PromotionsManager({ currentSession, sessions }: { curren
     });
 
     if (toPromote.length === 0 && toGraduate.length === 0) {
-      toast.error("No mappings configured. Please map at least one class.");
+      toast.error(t("prm.no_mappings"));
       return;
     }
 
     toast(
-      (t) => (
+      (tst) => (
         <div className="flex flex-col gap-3 p-2">
           <div>
-            <p className="font-bold text-gray-900 text-base">Confirm Promotion</p>
-            <p className="text-sm text-gray-600 mt-1">Are you sure you want to run this promotion? This action is atomic and instant.</p>
+            <p className="font-bold text-gray-900 text-base">{t("prm.confirm_title")}</p>
+            <p className="text-sm text-gray-600 mt-1">{t("prm.confirm_d")}</p>
           </div>
           <div className="flex gap-3 mt-2">
             <button 
               onClick={async () => {
-                toast.dismiss(t.id);
+                toast.dismiss(tst.id);
                 setIsProcessing(true);
                 let successCount = 0;
             
@@ -86,23 +88,23 @@ export default function PromotionsManager({ currentSession, sessions }: { curren
                     await promotionApi.graduate({ classId });
                   }
                   
-                  toast.success(`Promotion successful!`);
+                  toast.success(t("prm.success"));
                   setMappings({});
                 } catch (e: any) {
-                  toast.error(e.message || "Failed to promote classes");
+                  toast.error(e.message || t("prm.failed"));
                 } finally {
                   setIsProcessing(false);
                 }
               }}
               className="bg-[#053d26] text-white px-5 py-2 rounded-xl text-sm font-bold flex-1 hover:bg-[#042c1b] transition-colors"
             >
-              Confirm
+              {t("prm.confirm")}
             </button>
             <button 
-              onClick={() => toast.dismiss(t.id)}
+              onClick={() => toast.dismiss(tst.id)}
               className="bg-gray-100 text-gray-700 px-5 py-2 rounded-xl text-sm font-bold flex-1 hover:bg-gray-200 transition-colors"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
         </div>
@@ -115,7 +117,7 @@ export default function PromotionsManager({ currentSession, sessions }: { curren
     return (
       <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex items-center gap-3">
         <AlertCircle className="w-5 h-5 text-amber-500" />
-        <p className="text-gray-600 font-medium">Please set an active academic session first to use the promotion tool.</p>
+        <p className="text-gray-600 font-medium">{t("prm.no_session")}</p>
       </div>
     );
   }
@@ -124,18 +126,18 @@ export default function PromotionsManager({ currentSession, sessions }: { curren
     <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
       <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h3 className="text-xl font-bold text-gray-900 mb-1">Bulk Class Promotion</h3>
-          <p className="text-sm text-gray-500">Map previous session classes to the new current session ({currentSession.name}).</p>
+          <h3 className="text-xl font-bold text-gray-900 mb-1">{t("prm.title")}</h3>
+          <p className="text-sm text-gray-500">{t("prm.subtitle", { name: currentSession.name })}</p>
         </div>
         
         <div className="w-full md:w-72">
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Source Session</label>
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">{t("prm.source")}</label>
           <select
             value={selectedSourceSessionId}
             onChange={(e) => setSelectedSourceSessionId(e.target.value)}
             className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-[#053d26]/20"
           >
-            <option value="">-- Select Old Session --</option>
+            <option value="">{t("prm.select_old")}</option>
             {otherSessions.map(s => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
@@ -149,18 +151,18 @@ export default function PromotionsManager({ currentSession, sessions }: { curren
         </div>
       ) : !selectedSourceSessionId ? (
         <div className="text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-300">
-          <p className="text-gray-500 font-medium">Select a source session to load classes for promotion.</p>
+          <p className="text-gray-500 font-medium">{t("prm.select_source")}</p>
         </div>
       ) : sourceClasses.length === 0 ? (
         <div className="text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-300">
-          <p className="text-gray-500 font-medium">No classes found in this session.</p>
+          <p className="text-gray-500 font-medium">{t("prm.no_classes")}</p>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 grid grid-cols-[1fr,auto,1fr] gap-4 items-center">
-            <div className="font-bold text-gray-700 uppercase tracking-wider text-xs px-2">Old Class (Source)</div>
+            <div className="font-bold text-gray-700 uppercase tracking-wider text-xs px-2">{t("prm.old")}</div>
             <div className="w-8"></div>
-            <div className="font-bold text-gray-700 uppercase tracking-wider text-xs px-2">New Class (Target)</div>
+            <div className="font-bold text-gray-700 uppercase tracking-wider text-xs px-2">{t("prm.new")}</div>
           </div>
           
           <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2">
@@ -183,9 +185,9 @@ export default function PromotionsManager({ currentSession, sessions }: { curren
                       mappings[sc.id] ? 'bg-[#053d26]/5 border-[#053d26]/30 text-[#053d26]' : 'bg-gray-50 border-gray-200'
                     }`}
                   >
-                    <option value="">-- Do Not Promote --</option>
-                    <option value="GRADUATE">🎓 Graduate Students</option>
-                    <optgroup label="Promote to Class:">
+                    <option value="">{t("prm.no_promote")}</option>
+                    <option value="GRADUATE">{t("prm.graduate")}</option>
+                    <optgroup label={t("prm.promote_to")}>
                       {currentClasses.map(cc => (
                         <option key={cc.id} value={cc.id}>{cc.name} {cc.arm || ''}</option>
                       ))}
@@ -203,7 +205,7 @@ export default function PromotionsManager({ currentSession, sessions }: { curren
               className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-all disabled:opacity-50 shadow-md"
             >
               {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-              Execute Promotion
+              {t("prm.execute")}
             </button>
           </div>
         </div>

@@ -22,6 +22,7 @@ import {
 import { dashboardApi, schoolApi, paymentPlanApi } from "@/lib/api";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const getPlanTheme = (name: string) => {
   const lowerName = (name || '').toLowerCase();
@@ -79,6 +80,7 @@ const getPlanTheme = (name: string) => {
 };
 
 export default function BillingPlansManagement() {
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
@@ -132,9 +134,9 @@ export default function BillingPlansManagement() {
     })();
     
     toast.promise(promise, {
-      loading: "Saving plan...",
-      success: "Plan saved successfully!",
-      error: (err) => `Failed: ${err.message || "Unknown error"}`
+      loading: t("spl.saving"),
+      success: t("spl.saved"),
+      error: (err) => t("spl.failed", { msg: err.message || t("fee.unknown") })
     });
   };
 
@@ -201,7 +203,7 @@ export default function BillingPlansManagement() {
     return (
       <div className="py-20 flex flex-col items-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-[#053d26]" />
-        <p className="text-gray-500 font-medium">Synchronizing Billing Records...</p>
+        <p className="text-gray-500 font-medium">{t("spl.syncing")}</p>
       </div>
     );
   }
@@ -221,13 +223,13 @@ export default function BillingPlansManagement() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#053d26] opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-[#053d26]"></span>
               </span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#053d26]">Root Billing Matrix</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#053d26]">{t("spl.badge")}</span>
             </div>
             <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight flex items-center gap-4">
-              Subscription Architecture
+              {t("spl.title")}
             </h1>
             <p className="text-sm text-gray-500 font-medium mt-3 flex items-center gap-2">
-              Monitor revenue streams and manage institutional subscription tiers.
+              {t("spl.subtitle")}
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -237,7 +239,7 @@ export default function BillingPlansManagement() {
             >
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
               <Plus className="h-5 w-5 relative z-10" />
-              <span className="relative z-10">Create New Plan</span>
+              <span className="relative z-10">{t("spl.create")}</span>
             </button>
           </div>
         </div>
@@ -253,11 +255,11 @@ export default function BillingPlansManagement() {
                   <TrendingUp className="h-6 w-6" />
                 </div>
                 <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700 uppercase tracking-widest border border-emerald-100/50 flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-green"></span> Live
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-green"></span> {t("sao.live")}
                 </span>
               </div>
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Total Platform Revenue</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">{t("spl.revenue")}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black text-gray-300">₦</span>
                   <h3 className="text-5xl font-black text-gray-900 tracking-tight">{(stats?.totalRevenue || 0).toLocaleString()}</h3>
@@ -274,14 +276,14 @@ export default function BillingPlansManagement() {
                   <CreditCard className="h-6 w-6" />
                 </div>
                 <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-black text-blue-700 uppercase tracking-widest border border-blue-100/50">
-                  Validated
+                  {t("spl.validated")}
                 </span>
               </div>
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Active Subscriptions</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">{t("spl.active_subs")}</p>
                 <div className="flex items-baseline gap-2">
                   <h3 className="text-5xl font-black text-gray-900 tracking-tight">{stats?.activeSubscriptions || 0}</h3>
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">licenses</span>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t("spl.licenses")}</span>
                 </div>
               </div>
             </div>
@@ -292,7 +294,7 @@ export default function BillingPlansManagement() {
         <div className="pt-6">
           <div className="flex items-center gap-3 mb-8">
             <Package className="h-6 w-6 text-[#b05e1c]" />
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight">Available Subscription Tiers</h2>
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight">{t("spl.tiers")}</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -329,23 +331,23 @@ export default function BillingPlansManagement() {
                         <h4 className={`text-5xl font-black tracking-tighter ${theme.price}`}>
                           {typeof (plan.amount ?? plan.price) === 'number' ? (plan.amount ?? plan.price) : (plan.amount ?? plan.price)?.toString().replace('$', '').replace('₦', '')}
                         </h4>
-                        <span className="text-sm font-bold text-gray-400">/mo</span>
+                        <span className="text-sm font-bold text-gray-400">{t("spl.per_mo")}</span>
                       </div>
                     </div>
 
                     <div className="space-y-4">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">Included Features</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">{t("spl.features")}</p>
                       
                       <div className="grid grid-cols-2 gap-3 mb-6">
                         <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
                           <Users className="h-4 w-4 text-blue-500 mb-2" />
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Students</p>
-                          <p className="text-sm font-black text-gray-900">{plan.maxStudents ?? plan.studentLimit ?? 'Unlimited'}</p>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{t("sao.students_w")}</p>
+                          <p className="text-sm font-black text-gray-900">{plan.maxStudents ?? plan.studentLimit ?? t("spl.unlimited")}</p>
                         </div>
                         <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
                           <Briefcase className="h-4 w-4 text-emerald-500 mb-2" />
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Teachers</p>
-                          <p className="text-sm font-black text-gray-900">{plan.maxTeachers ?? plan.teacherLimit ?? 'Unlimited'}</p>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{t("layout.nav.teachers")}</p>
+                          <p className="text-sm font-black text-gray-900">{plan.maxTeachers ?? plan.teacherLimit ?? t("spl.unlimited")}</p>
                         </div>
                       </div>
 
@@ -364,7 +366,7 @@ export default function BillingPlansManagement() {
 
                   <div className="p-6 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between">
                     <div>
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Subscribed Institutions</p>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">{t("spl.subscribed")}</p>
                       <div className="flex items-center gap-2">
                         <div className="flex -space-x-2">
                           {[...Array(Math.min(3, plan.schoolCount || 0))].map((_, i) => (
@@ -388,8 +390,8 @@ export default function BillingPlansManagement() {
             }) : (
               <div className="lg:col-span-3 py-24 text-center bg-white/60 backdrop-blur-xl rounded-[2.5rem] border border-dashed border-gray-300">
                  <Package className="h-16 w-16 text-gray-300 mx-auto mb-5" />
-                 <p className="text-gray-900 font-black text-lg tracking-tight mb-1">No subscription plans configured</p>
-                 <p className="text-gray-500 font-medium text-sm">Create a new subscription tier to offer your services.</p>
+                 <p className="text-gray-900 font-black text-lg tracking-tight mb-1">{t("spl.none")}</p>
+                 <p className="text-gray-500 font-medium text-sm">{t("spl.none_d")}</p>
               </div>
             )}
           </div>
@@ -402,8 +404,8 @@ export default function BillingPlansManagement() {
           <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-gray-100">
             <div className="p-6 sm:p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div>
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">{editingPlan ? "Update Subscription Plan" : "Create Subscription Plan"}</h2>
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mt-1">Tier Configuration Matrix</p>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">{editingPlan ? t("spl.update_title") : t("spl.create_title")}</h2>
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mt-1">{t("spl.config")}</p>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="h-10 w-10 rounded-full flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors shadow-sm">
                 <X className="h-5 w-5" />
@@ -411,19 +413,19 @@ export default function BillingPlansManagement() {
             </div>
             <form onSubmit={handleSavePlan} className="p-6 sm:p-8 space-y-6">
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2">Plan Name</label>
+                <label className="block text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2">{t("spl.name")}</label>
                 <input 
                   type="text" 
                   value={formData.name} 
                   onChange={e => setFormData({...formData, name: e.target.value})} 
                   className="w-full rounded-2xl border border-gray-200 py-3.5 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-[#053d26]/20 focus:border-[#053d26] transition-all bg-gray-50 focus:bg-white"
-                  placeholder="e.g. Premium Plus" 
+                  placeholder={t("spl.name_ph")} 
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2">Monthly Price (₦)</label>
+                  <label className="block text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2">{t("spl.price")}</label>
                   <input 
                     type="number" 
                     value={formData.price} 
@@ -434,41 +436,41 @@ export default function BillingPlansManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2">Student Limit</label>
+                  <label className="block text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2">{t("spl.student_limit")}</label>
                   <input 
                     type="number" 
                     value={formData.studentLimit} 
                     onChange={e => setFormData({...formData, studentLimit: e.target.value})} 
                     className="w-full rounded-2xl border border-gray-200 py-3.5 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-[#053d26]/20 focus:border-[#053d26] transition-all bg-gray-50 focus:bg-white"
-                    placeholder="Unlimited" 
+                    placeholder={t("spl.unlimited")} 
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2">Teacher Limit</label>
+                <label className="block text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2">{t("spl.teacher_limit")}</label>
                 <input 
                   type="number" 
                   value={formData.teacherLimit} 
                   onChange={e => setFormData({...formData, teacherLimit: e.target.value})} 
                   className="w-full rounded-2xl border border-gray-200 py-3.5 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-[#053d26]/20 focus:border-[#053d26] transition-all bg-gray-50 focus:bg-white"
-                  placeholder="Unlimited" 
+                  placeholder={t("spl.unlimited")} 
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2">Features Matrix</label>
+                <label className="block text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2">{t("spl.features_label")}</label>
                 <textarea 
                   value={formData.features} 
                   onChange={e => setFormData({...formData, features: e.target.value})} 
                   className="w-full rounded-2xl border border-gray-200 py-3.5 px-4 font-medium text-gray-900 focus:ring-2 focus:ring-[#053d26]/20 focus:border-[#053d26] transition-all bg-gray-50 focus:bg-white resize-none h-28"
-                  placeholder="e.g. Advanced analytics, Custom domains, Priority support (comma separated)" 
+                  placeholder={t("spl.features_ph")} 
                 />
               </div>
               <div className="pt-4 flex gap-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 px-6 rounded-2xl border border-gray-200 text-gray-600 font-black uppercase tracking-widest text-[11px] hover:bg-gray-50 transition-colors">
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button type="submit" className="flex-[2] py-4 px-6 rounded-2xl bg-gradient-to-r from-[#053d26] to-[#042c1b] text-white font-black uppercase tracking-widest text-[11px] hover:from-[#042c1b] hover:to-[#053d26] transition-all shadow-[0_8px_20px_rgba(5,61,38,0.25)] hover:shadow-[0_12px_25px_rgba(5,61,38,0.35)] transform hover:-translate-y-0.5 active:translate-y-0">
-                  {editingPlan ? "Deploy Changes" : "Create Plan"}
+                  {editingPlan ? t("spl.deploy") : t("spl.create_btn")}
                 </button>
               </div>
             </form>

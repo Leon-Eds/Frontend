@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { MoreVertical } from 'lucide-react';
+import { useLanguage } from "@/components/LanguageProvider";
 
 export interface Column<T> {
   header: string;
@@ -16,6 +17,7 @@ interface DataTableProps<T> {
 }
 
 export function DataTable<T extends { id: string; status?: string }>({ columns, data, actions }: DataTableProps<T>) {
+  const { t } = useLanguage();
 
   return (
     <div className="w-full overflow-hidden bg-white rounded-3xl shadow-sm border border-gray-100">
@@ -30,7 +32,7 @@ export function DataTable<T extends { id: string; status?: string }>({ columns, 
               ))}
               {actions && (
                 <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-gray-500 text-right">
-                  Actions
+                  {t("common.actions")}
                 </th>
               )}
             </tr>

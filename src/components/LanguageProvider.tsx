@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { marketingTranslations } from "@/i18n/marketing";
+import { appTranslations } from "@/i18n/app";
 
 export type Language = "ig" | "yo" | "ha" | "en" | "fr" | "es" | "de" | "pt" | "zh";
 
@@ -24,6 +25,30 @@ export const languages: LanguageInfo[] = [
   { code: "pt", name: "Portuguese", nativeName: "Português", flag: "🇵🇹" },
   { code: "zh", name: "Chinese", nativeName: "中文", flag: "🇨🇳" },
 ];
+
+/**
+ * Fills "{name}" placeholders with React nodes, e.g. bold text inside a translated sentence:
+ * interpolate(t("x.added", ...), { name: <b>{fullName}</b> }).
+ */
+export function interpolate(text: string, nodes: Record<string, React.ReactNode>): React.ReactNode[] {
+  return text.split(/(\{\w+\})/).map((part, i) => {
+    const m = part.match(/^\{(\w+)\}$/);
+    return m && m[1] in nodes ? <React.Fragment key={i}>{nodes[m[1]]}</React.Fragment> : part;
+  });
+}
+
+/** Translated name for a term number (1/"First" -> "First Term", ...). */
+export function termLabel(t: (key: string, vars?: Record<string, string | number>) => string, n: unknown): string {
+  if (n === 1 || n === "1" || n === "First") return t("rc.term_first");
+  if (n === 2 || n === "2" || n === "Second") return t("rc.term_second");
+  if (n === 3 || n === "3" || n === "Third") return t("rc.term_third");
+  return t("rc.term_n", { n: String(n ?? "") });
+}
+
+/** Locale used to format dates and numbers for a UI language. */
+export function localeFor(lang: Language): string {
+  return { en: "en-GB", ig: "en-NG", yo: "en-NG", ha: "en-NG", fr: "fr-FR", es: "es-ES", de: "de-DE", pt: "pt-BR", zh: "zh-CN" }[lang];
+}
 
 const translations: Record<string, Record<string, string>> = {
   en: {
@@ -138,9 +163,6 @@ const translations: Record<string, Record<string, string>> = {
     "demo.submit": "Submit Request",
     "demo.success": "Request submitted successfully!",
     // Layout headers
-    "header.academic_architect": "School Management System",
-    "header.search": "Search records...",
-    "header.logout": "Logout",
     // Setup Guide
     "guide.title": "School Setup Guide",
     "guide.subtitle": "Complete these steps to get your school fully operational.",
@@ -151,53 +173,7 @@ const translations: Record<string, Record<string, string>> = {
     "guide.step3": "Import Students",
     "guide.step3.desc": "Add students individually or import them via Excel.",
     "guide.step4": "Onboard Teachers",
-    "guide.step4.desc": "Invite teachers and assign them to classes.",
-    "sidebar.super_admin": "Super Admin",
-    "sidebar.academic_architect": "School Management System",
-    "sidebar.overview": "Overview",
-    "sidebar.student_registry": "Student Registry",
-    "sidebar.academic_flow": "Academic Flow",
-    "sidebar.financials": "Financials",
-    "sidebar.staff_directory": "Staff Directory",
-    "sidebar.session_rollover": "Session Rollover",
-    "sidebar.academic_overview": "Academic overview",
-    "sidebar.students": "Students",
-    "sidebar.teachers_overview": "Teachers' overview",
-    "sidebar.students_report": "Students' report",
-    "sidebar.fee_clearance": "Fee clearance",
-    "sidebar.fee_approvals": "Fee Approvals",
-    "sidebar.admin_approval": "Admin approval",
-    "sidebar.approved_results": "Approved Results",
-    "sidebar.scheme_of_work": "Scheme of Work",
-    "sidebar.broadcast_hub": "Broadcast hub",
-    "sidebar.my_classes": "My Classes",
-    "sidebar.result_entry": "Result Entry",
-    "sidebar.attendance": "Attendance",
-    "sidebar.attendance_history": "Attendance History",
-    "sidebar.schedule": "Schedule",
-    "sidebar.my_profile": "My Profile",
-    "sidebar.teachers": "Teachers",
-    "sidebar.staff": "Staff",
-    "sidebar.support_staff": "Support Staff",
-    "sidebar.classes": "Classes",
-    "sidebar.finance": "Finance",
-    "sidebar.reports": "Reports",
-    "sidebar.reports_hub": "Reports Hub",
-    "sidebar.revenue_reports": "Revenue Reports",
-    "sidebar.payment_logs": "Payment Logs",
-    "sidebar.form_class": "Form Class",
-    "sidebar.my_results": "My Results",
-    "sidebar.dashboard": "Dashboard",
-    "sidebar.pending_clearances": "Pending Clearances",
-    "sidebar.platform_overview": "Platform Overview",
-    "sidebar.manage_schools": "Manage Schools",
-    "sidebar.global_users": "Global Users",
-    "sidebar.billing_plans": "Billing & Plans",
-    "sidebar.enroll_new_student": "Enroll New Student",
-    "sidebar.register_new_school": "Register New School",
-    "sidebar.free_plan_msg": "You are on the Free Plan",
-    "sidebar.upgrade_plan": "Upgrade Plan",
-    "sidebar.revisions": "Revisions"
+    "guide.step4.desc": "Invite teachers and assign them to classes."
   },
   ig: {
     // Nav
@@ -311,9 +287,6 @@ const translations: Record<string, Record<string, string>> = {
     "demo.submit": "Nyefee Arịrịọ",
     "demo.success": "Arịrịọla ngosi nke ọma!",
     // Layout headers
-    "header.academic_architect": "Onye Mmepụta Agụmakwụkwọ",
-    "header.search": "Chọọ ndekọ...",
-    "header.logout": "Pụọ",
     // Setup Guide
     "guide.title": "Usoro Nhazi Ụlọ Akwụkwọ",
     "guide.subtitle": "Mechaa usoro ndị a iji mee ka ụlọ akwụkwọ gị na-arụ ọrụ nke ọma.",
@@ -438,9 +411,6 @@ const translations: Record<string, Record<string, string>> = {
     "demo.submit": "Firanṣẹ Ibere",
     "demo.success": "Beere for afihan ni aṣeyọri!",
     // Layout headers
-    "header.academic_architect": "Kọ Agbaye Ẹkọ",
-    "header.search": "Wa awọn igbasilẹ...",
-    "header.logout": "Jade",
     // Setup Guide
     "guide.title": "Itọsọna Eto Ile-iwe",
     "guide.subtitle": "Pari awọn igbesẹ wọnyi lati jẹ ki ile-iwe rẹ ṣiṣẹ ni kikun.",
@@ -565,9 +535,6 @@ const translations: Record<string, Record<string, string>> = {
     "demo.submit": "Tura Neman",
     "demo.success": "An nemi nunin gwaji cikin nasara!",
     // Layout headers
-    "header.academic_architect": "Masanin Ilimi",
-    "header.search": "Nemo bayanai...",
-    "header.logout": "Fita",
     // Setup Guide
     "guide.title": "Jagorar Tsarin Makaranta",
     "guide.subtitle": "Kammala waɗannan matakan don makarantarku ta fara aiki sosai.",
@@ -682,9 +649,6 @@ const translations: Record<string, Record<string, string>> = {
     "demo.subtitle": "Découvrez l'architecte académique en action",
     "demo.submit": "Soumettre la demande",
     "demo.success": "Démo demandée avec succès !",
-    "header.academic_architect": "Architecte Académique",
-    "header.search": "Rechercher des dossiers...",
-    "header.logout": "Déconnexion",
     "guide.title": "Guide de configuration de l'école",
     "guide.subtitle": "Suivez ces étapes pour rendre votre école opérationnelle.",
     "guide.step1": "Infos de l'école",
@@ -694,42 +658,7 @@ const translations: Record<string, Record<string, string>> = {
     "guide.step3": "Importer des élèves",
     "guide.step3.desc": "Ajoutez des élèves individuellement ou importez-les via Excel.",
     "guide.step4": "Intégrer les enseignants",
-    "guide.step4.desc": "Invitez des enseignants et affectez-les aux classes.",
-    "sidebar.super_admin": "Super Admin",
-    "sidebar.academic_architect": "Architecte Académique",
-    "sidebar.overview": "Aperçu",
-    "sidebar.student_registry": "Registre des Élèves",
-    "sidebar.academic_flow": "Flux Académique",
-    "sidebar.financials": "Finances",
-    "sidebar.staff_directory": "Répertoire du Personnel",
-    "sidebar.session_rollover": "Transfert de Session",
-    "sidebar.academic_overview": "Aperçu académique",
-    "sidebar.students": "Élèves",
-    "sidebar.teachers_overview": "Aperçu des enseignants",
-    "sidebar.students_report": "Rapport des élèves",
-    "sidebar.fee_clearance": "Paiement des frais",
-    "sidebar.fee_approvals": "Approbations des frais",
-    "sidebar.admin_approval": "Approbation de l'admin",
-    "sidebar.scheme_of_work": "Schéma de travail",
-    "sidebar.broadcast_hub": "Centre de diffusion",
-    "sidebar.my_classes": "Mes Classes",
-    "sidebar.result_entry": "Saisie des Résultats",
-    "sidebar.attendance": "Présence",
-    "sidebar.attendance_history": "Historique de Présence",
-    "sidebar.schedule": "Calendrier",
-    "sidebar.my_profile": "Mon Profil",
-    "sidebar.teachers": "Enseignants",
-    "sidebar.classes": "Classes",
-    "sidebar.finance": "Finances",
-    "sidebar.reports": "Rapports",
-    "sidebar.platform_overview": "Aperçu de la Plateforme",
-    "sidebar.manage_schools": "Gérer les Écoles",
-    "sidebar.global_users": "Utilisateurs Globaux",
-    "sidebar.billing_plans": "Facturation & Tarifs",
-    "sidebar.enroll_new_student": "Inscrire un Nouvel Élève",
-    "sidebar.register_new_school": "Enregistrer une Nouvelle École",
-    "sidebar.free_plan_msg": "Vous utilisez le forfait gratuit",
-    "sidebar.upgrade_plan": "Mettre à Niveau"
+    "guide.step4.desc": "Invitez des enseignants et affectez-les aux classes."
   },
   es: {
     "nav.overview": "Arquitectura del sistema",
@@ -833,9 +762,6 @@ const translations: Record<string, Record<string, string>> = {
     "demo.subtitle": "Vea al arquitecto académico en acción",
     "demo.submit": "Enviar solicitud",
     "demo.success": "¡Demo solicitada con éxito!",
-    "header.academic_architect": "Arquitecto Académico",
-    "header.search": "Buscar registros...",
-    "header.logout": "Cerrar sesión",
     "guide.title": "Guía de configuración escolar",
     "guide.subtitle": "Complete estos pasos para que su escuela esté operativa.",
     "guide.step1": "Información escolar",
@@ -949,9 +875,6 @@ const translations: Record<string, Record<string, string>> = {
     "demo.subtitle": "Erleben Sie den akademischen Architekten in Aktion",
     "demo.submit": "Anfrage absenden",
     "demo.success": "Demo erfolgreich angefordert !",
-    "header.academic_architect": "Akademischer Architekt",
-    "header.search": "Datensätze durchsuchen...",
-    "header.logout": "Abmelden",
     "guide.title": "Leitfaden zur Schuleinrichtung",
     "guide.subtitle": "Führen Sie diese Schritte aus, um Ihre Schule betriebsbereit zu machen.",
     "guide.step1": "Schulinformationen",
@@ -1065,9 +988,6 @@ const translations: Record<string, Record<string, string>> = {
     "demo.subtitle": "Veja o arquiteto académico em ação",
     "demo.submit": "Submeter Pedido",
     "demo.success": "Demonstração solicitada com sucesso !",
-    "header.academic_architect": "Arquiteto Académico",
-    "header.search": "Pesquisar registos...",
-    "header.logout": "Sair",
     "guide.title": "Guia de Configuração da Escola",
     "guide.subtitle": "Siga estes passos para colocar a sua escola em funcionamento.",
     "guide.step1": "Informações da Escola",
@@ -1181,9 +1101,6 @@ const translations: Record<string, Record<string, string>> = {
     "demo.subtitle": "亲身体验学术构建师的强大功能",
     "demo.submit": "提交请求",
     "demo.success": "成功提交演示请求！",
-    "header.academic_architect": "学术构建师",
-    "header.search": "搜索记录...",
-    "header.logout": "退出登录",
     "guide.title": "学校配置指南",
     "guide.subtitle": "完成以下步骤使您的学校管理系统开始运转。",
     "guide.step1": "配置学校信息",
@@ -1202,10 +1119,25 @@ for (const [lang, dict] of Object.entries(marketingTranslations)) {
   translations[lang] = { ...translations[lang], ...dict };
 }
 
+// Dashboard and portal copy lives in per-page dictionaries (src/i18n/app)
+for (const [lang, dict] of Object.entries(appTranslations)) {
+  translations[lang] = { ...translations[lang], ...dict };
+}
+
+type Vars = Record<string, string | number>;
+
+/** Fills "{name}" placeholders in a translated string. */
+function fill(text: string, vars?: Vars): string {
+  if (!vars) return text;
+  return text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+}
+
 interface LanguageContextProps {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, vars?: Vars) => string;
+  /** Translates a backend value (status, gender...) via `enum.<group>.<value>`, falling back to the value itself. */
+  tv: (group: string, value?: string | null) => string;
 }
 
 const LanguageContext = createContext<LanguageContextProps | undefined>(undefined);
@@ -1228,22 +1160,28 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("leoned_lang", lang);
   };
 
-  const t = (key: string): string => {
+  const t = (key: string, vars?: Vars): string => {
     const dict = translations[language] || translations["en"];
-    return dict[key] || translations["en"][key] || key;
+    return fill(dict[key] || translations["en"][key] || key, vars);
+  };
+  const tv = (group: string, value?: string | null): string => {
+    if (!value) return "";
+    const key = `enum.${group}.${value}`;
+    const dict = translations[language] || translations["en"];
+    return dict[key] || translations["en"][key] || value;
   };
 
   // Avoid hydrations mismatch by returning a placeholder or English content until mounted
   if (!mounted) {
     return (
-      <LanguageContext.Provider value={{ language: "en", setLanguage: () => {}, t: (key) => translations["en"][key] || key }}>
+      <LanguageContext.Provider value={{ language: "en", setLanguage: () => {}, t: (key, vars) => fill(translations["en"][key] || key, vars), tv: (group, value) => (value ? translations["en"][`enum.${group}.${value}`] || value : "") }}>
         {children}
       </LanguageContext.Provider>
     );
   }
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, tv }}>
       {children}
     </LanguageContext.Provider>
   );

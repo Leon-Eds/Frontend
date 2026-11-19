@@ -11,7 +11,7 @@ import { dashboardPathFor } from "@/lib/auth-redirect";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, tv } = useLanguage();
   const [selectedRole, setSelectedRole] = useState("Admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,7 +36,7 @@ export default function LoginPage() {
     setError("");
 
     if (!email.trim() || !password) {
-      setError("Please enter both email and password.");
+      setError(t("sal.both"));
       return;
     }
 
@@ -148,12 +148,12 @@ export default function LoginPage() {
       };
 
       if (returnedRole && !roleMatches(returnedRole, selectedRoleLower)) {
-        throw new Error(`This account is registered as ${returnedRole === 'schooladmin' ? 'a School Admin' : 'a ' + returnedRole.charAt(0).toUpperCase() + returnedRole.slice(1)}. Please select the correct role and try again.`);
+        throw new Error(t("auth.wrong_role", { role: returnedRole === 'schooladmin' ? tv("role", "SchoolAdmin") : tv("role", returnedRole.charAt(0).toUpperCase() + returnedRole.slice(1)) }));
       }
 
       if (!token) {
         console.error("[Login] No token found in response:", r);
-        throw new Error("Login succeeded but no security token was returned. Please contact support.");
+        throw new Error(t("sal.no_token"));
       }
 
       // Store auth data
@@ -211,7 +211,7 @@ export default function LoginPage() {
       // Redirect based on role — use selectedRole as primary since it's user intent
       router.push(dashboardPathFor(returnedRole || selectedRoleLower, selectedRoleLower));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Login failed. Please check your credentials.";
+      const message = err instanceof Error ? err.message : t("sal.failed");
       if (message.toLowerCase().includes('otp') || message.toLowerCase().includes('verification')) {
         // Redirect to OTP verification page if backend returns verification required
         router.push(`/verify-otp?email=${encodeURIComponent(email.trim())}`);
@@ -260,7 +260,7 @@ export default function LoginPage() {
         className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-black/60 border border-gray-200/60 dark:border-white/10 shadow-sm text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-[#053d26] dark:hover:text-white hover:bg-white dark:hover:bg-black transition-all backdrop-blur-sm"
       >
         <span className="text-lg leading-none">&larr;</span>
-        <span>Home</span>
+        <span>{t("sal.home")}</span>
       </Link>
 
       {/* Top Right Floating Language Switcher */}
@@ -294,7 +294,7 @@ export default function LoginPage() {
           )}
 
           <div className="mb-6">
-            <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Login As</p>
+            <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t("auth.login_as")}</p>
             <div className="grid grid-cols-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
               {["Admin", "Teacher", "Student", "Bursar"].map((r) => (
                 <button
@@ -307,7 +307,7 @@ export default function LoginPage() {
                       : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                   }`}
                 >
-                  {r === "Admin" ? "School Admin" : r === "Bursar" ? "Support Staff" : r}
+                  {r === "Admin" ? tv("role", "SchoolAdmin") : r === "Bursar" ? t("layout.nav.support_staff") : r === "Teacher" ? t("auth.role_teacher") : t("auth.role_student")}
                 </button>
               ))}
             </div>

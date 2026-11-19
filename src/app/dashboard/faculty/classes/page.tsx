@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { BookOpen, Users, Clock, ArrowRight, CheckCircle2, AlertCircle, ChevronRight, Search, Plus, Award, UserCheck, ShieldCheck, Loader2, FileSpreadsheet, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { teacherApi, classApi, dashboardApi, teacherPortalApi, attendanceApi } from "@/lib/api";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface ClassCardData {
   id: string;
@@ -17,6 +18,7 @@ interface ClassCardData {
 }
 
 export default function MyClasses() {
+  const { t, tv } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [classes, setClasses] = useState<ClassCardData[]>([]);
   const [formClasses, setFormClasses] = useState<any[]>([]);
@@ -38,7 +40,7 @@ export default function MyClasses() {
       try {
         const userStr = localStorage.getItem("leoned_user");
         if (!userStr) {
-          setError("No authenticated session found.");
+          setError("myc.no_session");
           setIsLoading(false);
           return;
         }
@@ -138,7 +140,7 @@ export default function MyClasses() {
         setClasses(teacherClasses);
       } catch (err) {
         console.error("Failed to load teacher classes", err);
-        setError("Could not load your classes. Please make sure assignments are set up by the Administrator.");
+        setError("myc.load_failed");
       } finally {
         setIsLoading(false);
       }
@@ -156,7 +158,7 @@ export default function MyClasses() {
     return (
       <div className="flex flex-col items-center justify-center py-20 min-h-[60vh]">
         <Loader2 className="h-10 w-10 animate-spin text-[#053d26] mb-4" />
-        <p className="text-gray-500 font-medium">Retrieving class rosters and schedules...</p>
+        <p className="text-gray-500 font-medium">{t("myc.loading")}</p>
       </div>
     );
   }
@@ -167,10 +169,10 @@ export default function MyClasses() {
         <div className="h-12 w-12 rounded-full bg-orange-100 text-[#b05e1c] flex items-center justify-center mx-auto">
           <AlertCircle className="h-6 w-6" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">Academic Overview Error</h2>
-        <p className="text-sm text-gray-500">{error}</p>
+        <h2 className="text-xl font-bold text-gray-900">{t("myc.error_title")}</h2>
+        <p className="text-sm text-gray-500">{t(error)}</p>
         <button onClick={() => window.location.reload()} className="px-6 py-2.5 bg-[#053d26] text-white rounded-full font-bold text-sm hover:bg-[#042c1b]">
-          Retry Sync
+          {t("myc.retry_sync")}
         </button>
       </div>
     );
@@ -183,12 +185,12 @@ export default function MyClasses() {
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="bg-[#053d26]/10 text-[#053d26] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              Teacher Portal
+              {t("myc.portal")}
             </span>
           </div>
-          <h1 className="text-4xl font-extrabold text-gray-900 leading-tight tracking-tight">My Classes</h1>
+          <h1 className="text-4xl font-extrabold text-gray-900 leading-tight tracking-tight">{t("myc.title")}</h1>
           <p className="text-gray-500 max-w-2xl leading-relaxed text-sm">
-            Manage your homeroom class and active teaching assignments. Track student metrics and access grading ledgers.
+            {t("myc.subtitle")}
           </p>
         </div>
       </div>
@@ -207,14 +209,14 @@ export default function MyClasses() {
                     <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-2xl">
                       <Award className="h-6 w-6 text-green-300" />
                     </div>
-                    <span className="text-green-300 font-bold uppercase tracking-widest text-xs">Form Teacher Assignment</span>
+                    <span className="text-green-300 font-bold uppercase tracking-widest text-xs">{t("myc.ft_assignment")}</span>
                   </div>
                   <h2 className="text-3xl sm:text-4xl font-black leading-none flex flex-wrap items-center gap-4">
                     <span>{fc.name || fc.className || "Class"} {fc.arm ? `(${fc.arm})` : ''}</span>
-                    <span className="text-lg font-bold bg-white/20 px-3 py-1 rounded-full whitespace-nowrap">{fc.studentsCount || fc.studentCount || 0} Students</span>
+                    <span className="text-lg font-bold bg-white/20 px-3 py-1 rounded-full whitespace-nowrap">{t("enr.s3.students", { n: fc.studentsCount || fc.studentCount || 0 })}</span>
                   </h2>
                   <p className="text-green-100 text-sm leading-relaxed max-w-lg">
-                    As the primary pastoral and administrative lead for this class, you are responsible for daily attendance, behavior monitoring, and general student welfare.
+                    {t("myc.ft_desc")}
                   </p>
                 </div>
                 
@@ -227,14 +229,14 @@ export default function MyClasses() {
                     className="group relative flex items-center justify-center gap-2 px-6 py-4 bg-transparent border-2 border-white/20 text-white rounded-2xl font-bold hover:bg-white/10 transition-all shadow-lg hover:-translate-y-0.5"
                   >
                     <Megaphone className="h-5 w-5" />
-                    <span>Broadcast</span>
+                    <span>{t("myc.broadcast")}</span>
                   </button>
                   <Link 
                     href={`/dashboard/faculty/classes/${fc.classId || fc.id || fc._id}`}
                     className="group relative flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#053d26] rounded-2xl font-bold hover:bg-green-50 transition-all shadow-lg hover:shadow-white/20 hover:-translate-y-0.5"
                   >
                     <BookOpen className="h-5 w-5" />
-                    <span>Open Class Hub</span>
+                    <span>{t("myc.open_hub")}</span>
                   </Link>
                 </div>
               </div>
@@ -247,7 +249,7 @@ export default function MyClasses() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-12 mb-6">
         <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
           <BookOpen className="h-6 w-6 text-[#b05e1c]" />
-          Subject Assignments
+          {t("fac.subj_assign")}
         </h2>
         <div className="relative flex-1 max-w-md">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
@@ -258,7 +260,7 @@ export default function MyClasses() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="block w-full rounded-2xl border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#053d26] focus:border-transparent transition-colors shadow-sm"
-            placeholder="Search assigned subjects..."
+            placeholder={t("myc.search_ph")}
           />
         </div>
       </div>
@@ -270,9 +272,9 @@ export default function MyClasses() {
             <div className="h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-400 border border-gray-100">
               <BookOpen className="h-8 w-8" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">No subject assignments</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t("myc.none")}</h3>
             <p className="text-sm text-gray-500 max-w-sm mx-auto">
-              You haven't been assigned any specific subjects to teach yet. Contact your administrator to update your teaching schedule.
+              {t("myc.none_d")}
             </p>
           </div>
         ) : (
@@ -294,7 +296,7 @@ export default function MyClasses() {
 
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold text-gray-900 leading-tight group-hover:text-[#053d26] transition-colors">{cls.subject}</h3>
-                  <p className="text-sm font-medium text-gray-500">Subject Class</p>
+                  <p className="text-sm font-medium text-gray-500">{t("myc.subject_class")}</p>
                 </div>
               </div>
 
@@ -303,7 +305,7 @@ export default function MyClasses() {
                   href={`/dashboard/faculty/classes/${cls.id}?subjectId=${cls.subjectId}`}
                   className="flex items-center justify-between w-full py-3.5 px-5 rounded-2xl bg-gray-50 group-hover:bg-[#053d26] border border-gray-100 group-hover:border-[#053d26] text-gray-700 group-hover:text-white font-bold text-sm transition-all duration-300 shadow-sm group-hover:shadow-md"
                 >
-                  <span>Open Class Hub</span>
+                  <span>{t("myc.open_hub")}</span>
                   <ChevronRight className="h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
@@ -318,9 +320,9 @@ export default function MyClasses() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative">
             <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
               <Megaphone className="h-6 w-6 text-[#053d26]" />
-              Class Broadcast
+              {t("myc.bc_title")}
             </h3>
-            <p className="text-sm text-gray-500 mb-6">Send an announcement to all students in this class.</p>
+            <p className="text-sm text-gray-500 mb-6">{t("myc.bc_desc")}</p>
             
             <form onSubmit={async (e) => {
               e.preventDefault();
@@ -344,40 +346,39 @@ export default function MyClasses() {
               }
             }} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Title</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">{t("myc.title_label")}</label>
                 <input
                   type="text"
                   required
                   value={broadcastTitle}
                   onChange={(e) => setBroadcastTitle(e.target.value)}
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#053d26] focus:border-[#053d26] outline-none"
-                  placeholder="E.g., Tomorrow's Assignment"
+                  placeholder={t("myc.bc_title_ph")}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Category</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">{t("myc.category")}</label>
                 <select
                   value={broadcastCategory}
                   onChange={(e) => setBroadcastCategory(e.target.value)}
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#053d26] focus:border-[#053d26] outline-none bg-white"
                 >
-                  <option value="ACADEMIC_NOTICE">Academic Notice</option>
-                  <option value="GENERAL">General</option>
-                  <option value="REMINDERS">Reminder</option>
-                  <option value="EMERGENCY">Emergency</option>
+                  {["ACADEMIC_NOTICE", "GENERAL", "REMINDERS", "EMERGENCY"].map(c => (
+                    <option key={c} value={c}>{tv("ann", c)}</option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Message Content</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">{t("myc.content")}</label>
                 <textarea
                   required
                   rows={4}
                   value={broadcastContent}
                   onChange={(e) => setBroadcastContent(e.target.value)}
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#053d26] focus:border-[#053d26] outline-none resize-none"
-                  placeholder="Write your announcement here..."
+                  placeholder={t("myc.content_ph")}
                 ></textarea>
               </div>
               
@@ -387,14 +388,14 @@ export default function MyClasses() {
                   onClick={() => setBroadcastModalOpen(false)}
                   className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isBroadcasting}
                   className="flex-1 py-3 bg-[#053d26] text-white font-bold rounded-xl hover:bg-[#042c1b] transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
                 >
-                  {isBroadcasting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Broadcast"}
+                  {isBroadcasting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("myc.send")}
                 </button>
               </div>
             </form>

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { announcementApi, studentApi, teacherApi, classApi } from "@/lib/api";
 import { useAnnouncementsRefresh } from "@/hooks/useAnnouncementsRefresh";
+import { useLanguage, localeFor, interpolate } from "@/components/LanguageProvider";
 
 interface Announcement {
   id: string;
@@ -49,6 +50,7 @@ interface DispatchLog {
 }
 
 export default function BroadcastHub() {
+  const { t, tv, language } = useLanguage();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"terminal" | "bulletin" | "logs">("terminal");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -100,7 +102,7 @@ export default function BroadcastHub() {
         content: ann.content,
         category: ann.audience === "All" ? "General" : ann.audience === "Teachers" ? "Academic" : "General",
         date: ann.createdAt || new Date().toISOString(),
-        author: "School Administration",
+        author: "",
         channels: ["megaphone"],
         views: 0,
         audience: ann.audience || "All",
@@ -147,7 +149,7 @@ export default function BroadcastHub() {
     setFormError("");
 
     if (!title.trim() || !content.trim()) {
-      setFormError("Broadcast Title and Content details are required.");
+      setFormError(t("com.required"));
       return;
     }
 
@@ -159,7 +161,7 @@ export default function BroadcastHub() {
         : "Teachers";
       
       if (targetGroup === "Class" && !targetClassId) {
-        setFormError("Please select a specific class to broadcast to.");
+        setFormError(t("com.class_req"));
         setIsSending(false);
         return;
       }
@@ -219,19 +221,19 @@ export default function BroadcastHub() {
       setTargetClassId("");
       fetchAnnouncements();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : "Failed to execute broadcast");
+      setFormError(err instanceof Error ? err.message : t("com.failed"));
     } finally {
       setIsSending(false);
     }
   };
 
   const handleDeleteAnnouncement = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this announcement?")) return;
+    if (!confirm(t("msg.delete_confirm"))) return;
     try {
       await announcementApi.delete(id);
       setAnnouncements(prev => prev.filter(a => a.id !== id));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete announcement");
+      toast.error(err instanceof Error ? err.message : t("msg.delete_failed"));
     }
   };
 
@@ -242,11 +244,11 @@ export default function BroadcastHub() {
         <div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-widest text-[#053d26] bg-[#053d26]/5 border border-[#053d26]/10 mb-3">
             <Megaphone className="h-3 w-3" />
-            LeonEd Communications
+            {t("com.badge")}
           </span>
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">Broadcast Hub</h1>
+          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">{t("layout.nav.broadcast_hub")}</h1>
           <p className="text-sm text-gray-500 font-medium mt-1">
-            Dispatch bulk notifications and bulletins to teachers using <span className="text-[#053d26] font-bold">Zero Fee</span> channels.
+            {interpolate(t("com.subtitle"), { zero: <span className="text-[#053d26] font-bold">{t("com.zero")}</span> })}
           </p>
         </div>
       </div>
@@ -261,7 +263,7 @@ export default function BroadcastHub() {
               : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
           }`}
         >
-          Broadcast Terminal
+          {t("com.tab_terminal")}
         </button>
         <button
           onClick={() => setActiveTab("bulletin")}
@@ -271,7 +273,7 @@ export default function BroadcastHub() {
               : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
           }`}
         >
-          Bulletin Board ({announcements.length})
+          {t("com.tab_board", { n: announcements.length })}
         </button>
         <button
           onClick={() => setActiveTab("logs")}
@@ -281,7 +283,7 @@ export default function BroadcastHub() {
               : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
           }`}
         >
-          Dispatch Logs
+          {t("com.tab_logs")}
         </button>
       </div>
 
@@ -293,8 +295,8 @@ export default function BroadcastHub() {
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#053d26]" />
             
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-gray-900">Compose Broadcast</h2>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">Specify recipients, channels and write content</p>
+              <h2 className="text-xl font-bold tracking-tight text-gray-900">{t("com.compose")}</h2>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">{t("com.compose_d")}</p>
             </div>
 
             {formError && (
@@ -308,22 +310,22 @@ export default function BroadcastHub() {
               {/* Target & Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Target Audience</label>
+                  <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">{t("com.audience")}</label>
                   <select 
                     value={targetGroup}
                     onChange={(e) => setTargetGroup(e.target.value)}
                     className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs font-bold text-gray-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                   >
-                    <option value="All">Everyone ({staffCount + studentCount})</option>
-                    <option value="Teachers">All School Staff ({staffCount})</option>
-                    <option value="Students">All Students ({studentCount})</option>
-                    <option value="Class">Specific Class</option>
+                    <option value="All">{t("com.everyone", { n: staffCount + studentCount })}</option>
+                    <option value="Teachers">{t("com.staff_all", { n: staffCount })}</option>
+                    <option value="Students">{t("com.students_all", { n: studentCount })}</option>
+                    <option value="Class">{t("com.specific_class")}</option>
                   </select>
                 </div>
                 
                 {targetGroup === "Class" && (
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Select Specific Class</label>
+                    <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">{t("com.select_class_label")}</label>
                     <div className="relative">
                       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                         <Users className="h-4 w-4 text-gray-400" />
@@ -333,7 +335,7 @@ export default function BroadcastHub() {
                         onChange={(e) => setTargetClassId(e.target.value)}
                         className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-10 pr-4 text-sm font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors appearance-none"
                       >
-                        <option value="" disabled>Select a class...</option>
+                        <option value="" disabled>{t("com.select_class_ph")}</option>
                         {classesList.map(c => (
                           <option key={c.id || c._id} value={c.id || c._id}>
                             {c.name || c.className} {c.section ? `(${c.section})` : ""}
@@ -345,31 +347,27 @@ export default function BroadcastHub() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Broadcast Category</label>
+                  <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">{t("com.category")}</label>
                   <select 
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs font-bold text-gray-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                   >
-                    <option value="General">General Memo</option>
-                    <option value="Academic">Academic Notice</option>
-                    <option value="Finance">Financial Info</option>
-                    <option value="Health">Health Alert</option>
-                    <option value="Reminder">Reminder</option>
-                    <option value="Summons">Summons</option>
-                    <option value="Emergency">Emergency</option>
+                    {["General", "Academic", "Finance", "Health", "Reminder", "Summons", "Emergency"].map(c => (
+                      <option key={c} value={c}>{tv("bc", c)}</option>
+                    ))}
                   </select>
                 </div>
               </div>
 
               {/* Title Input */}
               <div className="space-y-2">
-                <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider">Broadcast Title</label>
+                <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider">{t("com.title_label")}</label>
                 <input 
                   type="text" 
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Mandatory Staff Meeting: Rollout of Grade Guidelines"
+                  placeholder={t("com.title_ph")}
                   className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                 />
               </div>
@@ -377,13 +375,13 @@ export default function BroadcastHub() {
               {/* Content Textarea */}
               <div className="space-y-2">
                 <div className="flex justify-between items-baseline">
-                  <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider">Broadcast Body</label>
+                  <label className="block text-xs font-extrabold text-gray-400 uppercase tracking-wider">{t("com.body")}</label>
                   <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{content.length} characters</span>
                 </div>
                 <textarea 
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="Draft your announcement text here..."
+                  placeholder={t("com.body_ph")}
                   rows={6}
                   className="block w-full rounded-2xl border border-gray-200 bg-gray-50 py-3.5 px-4 text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#053d26] transition-colors"
                 />
@@ -398,12 +396,12 @@ export default function BroadcastHub() {
                 {isSending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Publishing...
+                    {t("com.publishing")}
                   </>
                 ) : (
                   <>
                     <Megaphone className="h-4 w-4" />
-                    Publish Announcement
+                    {t("com.publish")}
                   </>
                 )}
               </button>
@@ -415,7 +413,7 @@ export default function BroadcastHub() {
             <div className="bg-[#f8f9fa] rounded-[2.5rem] p-8 border border-gray-200/60 shadow-inner space-y-6 relative overflow-hidden">
               <div className="flex items-center gap-2 pb-4 border-b border-gray-200">
                 <Eye className="h-4.5 w-4.5 text-gray-400" />
-                <h3 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest">Teacher's View Preview</h3>
+                <h3 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest">{t("com.preview")}</h3>
               </div>
 
               {/* Bulletin Mock-Card */}
@@ -430,21 +428,21 @@ export default function BroadcastHub() {
                       category === "Reminder" ? "bg-blue-50 text-blue-700 border border-blue-100" :
                       "bg-gray-100 text-gray-500"
                     }`}>
-                      📢 {category} Announcement
+                      {t("com.cat_ann", { cat: tv("bc", category) })}
                     </span>
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Just Now</span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{t("layout.notif.just_now")}</span>
                   </div>
 
                   <div className="space-y-1.5">
-                    <h4 className="font-extrabold text-gray-900 text-sm leading-snug">{title || "Untitled Announcement"}</h4>
+                    <h4 className="font-extrabold text-gray-900 text-sm leading-snug">{title || t("com.untitled")}</h4>
                     <p className="text-[11px] text-gray-500 font-medium leading-relaxed whitespace-pre-wrap">
-                      {content || "Draft contents will automatically display in this preview card. Begin typing on the compose panel."}
+                      {content || t("com.preview_body")}
                     </p>
                   </div>
 
                   <div className="pt-2 border-t border-gray-50 flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase tracking-wider">
-                    <span>By: School Administration</span>
-                    <span className="text-emerald-600">● Live on bulletin</span>
+                    <span>{t("com.by", { name: t("com.admin") })}</span>
+                    <span className="text-emerald-600">{t("com.live")}</span>
                   </div>
                 </div>
             </div>
@@ -460,8 +458,8 @@ export default function BroadcastHub() {
           
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-gray-900">Bulletin Board Manager</h2>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">Manage administrative notices posted on teacher dashboards</p>
+              <h2 className="text-xl font-bold tracking-tight text-gray-900">{t("com.board")}</h2>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">{t("com.board_d")}</p>
             </div>
             <div className="text-xs font-bold text-gray-500">{announcements.length} notices active</div>
           </div>
@@ -481,10 +479,10 @@ export default function BroadcastHub() {
                         ann.category === "Emergency" ? "bg-rose-50 text-rose-700 border border-rose-100" :
                         "bg-gray-100 text-gray-500"
                       }`}>
-                        {ann.category}
+                        {tv("bc", ann.category)}
                       </span>
                       <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">
-                        {new Date(ann.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {new Date(ann.date).toLocaleDateString(localeFor(language), { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     </div>
 
@@ -494,16 +492,16 @@ export default function BroadcastHub() {
                     </div>
 
                     <div className="flex flex-wrap gap-4 pt-1 text-[9px] text-gray-400 font-bold uppercase tracking-wider">
-                      <span>By: {ann.author}</span>
+                      <span>{t("com.by", { name: ann.author || t("com.admin") })}</span>
                       <span>•</span>
-                      <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5 text-gray-400" /> {ann.views} Views</span>
+                      <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5 text-gray-400" /> {t("com.views", { n: ann.views })}</span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
-                        Channels: {ann.channels.map(c => c === "megaphone" ? "📢 Bulletin" : c === "email" ? "📧 Email" : "📱 Push").join(", ")}
+                        {t("com.channels", { list: ann.channels.map(c => c === "megaphone" ? t("com.ch_bulletin") : c === "email" ? t("com.ch_email") : t("com.ch_push")).join(", ") })}
                       </span>
                       <span>•</span>
                       <span className="flex items-center gap-1 text-[#053d26]">
-                        Target: {ann.audience === "SpecificUser" ? `Specific User (${ann.targetUserId})` : ann.audience}
+                        {t("com.target", { v: ann.audience === "SpecificUser" ? t("com.specific_user", { id: ann.targetUserId || "" }) : tv("aud", ann.audience) })}
                       </span>
                     </div>
                   </div>
@@ -511,7 +509,7 @@ export default function BroadcastHub() {
                   <button 
                     onClick={() => handleDeleteAnnouncement(ann.id)}
                     className="p-3 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 hover:border-rose-200 transition-colors shrink-0"
-                    title="Remove announcement"
+                    title={t("com.remove_title")}
                   >
                     <Trash2 className="h-4.5 w-4.5" />
                   </button>
@@ -522,8 +520,8 @@ export default function BroadcastHub() {
                 <div className="flex flex-col items-center gap-4 opacity-30">
                   <Megaphone className="h-12 w-12 text-gray-400" />
                   <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No Active Announcements</p>
-                    <p className="text-[10px] text-gray-400 mt-1">Post bulletins via the Broadcast Terminal tab.</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t("com.no_active")}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">{t("com.no_active_d")}</p>
                   </div>
                 </div>
               </div>
@@ -539,8 +537,8 @@ export default function BroadcastHub() {
           
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-gray-900">Broadcast Dispatch Logs</h2>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">History of broadcast transmissions and billing telemetry</p>
+              <h2 className="text-xl font-bold tracking-tight text-gray-900">{t("com.logs")}</h2>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">{t("com.logs_d")}</p>
             </div>
           </div>
 
@@ -548,12 +546,12 @@ export default function BroadcastHub() {
             <table className="w-full text-left border-separate border-spacing-y-3 min-w-[700px]">
               <thead>
                 <tr className="text-gray-400">
-                  <th className="pb-3 pl-4 font-bold text-[9px] uppercase tracking-[0.25em]">Timestamp</th>
-                  <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">Subject</th>
-                  <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">Recipients</th>
-                  <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">Channels</th>
-                  <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">Delivery Rate</th>
-                  <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] pr-4 text-right">Carrier Fees</th>
+                  <th className="pb-3 pl-4 font-bold text-[9px] uppercase tracking-[0.25em]">{t("dash.act.time")}</th>
+                  <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">{t("com.th_subject")}</th>
+                  <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">{t("com.th_recipients")}</th>
+                  <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">{t("com.th_channels")}</th>
+                  <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] px-4">{t("com.th_rate")}</th>
+                  <th className="pb-3 font-bold text-[9px] uppercase tracking-[0.25em] pr-4 text-right">{t("com.th_fees")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -563,7 +561,7 @@ export default function BroadcastHub() {
                     <td className="py-4 pl-4 rounded-l-2xl border-y border-l border-gray-100/40 text-xs font-bold text-gray-600">
                       <div className="flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 text-gray-400" />
-                        {new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {new Date(log.date).toLocaleDateString(localeFor(language), { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
                     </td>
 
@@ -576,7 +574,7 @@ export default function BroadcastHub() {
                     <td className="py-4 px-4 border-y border-gray-100/40 text-xs font-bold text-gray-600">
                       <div className="flex items-center gap-1.5">
                         <Users className="h-3.5 w-3.5 text-gray-400" />
-                        {log.recipientsCount} Teachers
+                        {t("com.teachers_n", { n: log.recipientsCount })}
                       </div>
                     </td>
 
@@ -622,45 +620,45 @@ export default function BroadcastHub() {
               <div className="h-16 w-16 bg-emerald-50 rounded-full border border-emerald-100 flex items-center justify-center text-emerald-600 mb-4 animate-bounce">
                 <CheckCircle2 className="h-9 w-9" />
               </div>
-              <h3 className="text-2xl font-black tracking-tight text-gray-900">Broadcast Dispatched Successfully</h3>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Transaction Receipt</p>
+              <h3 className="text-2xl font-black tracking-tight text-gray-900">{t("com.success")}</h3>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">{t("com.receipt")}</p>
             </div>
 
             {/* Receipt Parameters Grid */}
             <div className="mt-8 bg-gray-50 rounded-3xl p-6 border border-gray-100 space-y-4">
               <div className="flex justify-between items-baseline text-xs">
-                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Broadcast Subject</span>
+                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">{t("com.subject")}</span>
                 <span className="font-extrabold text-gray-900 text-right max-w-xs truncate">{receiptDetails.title}</span>
               </div>
               <div className="flex justify-between items-baseline text-xs">
-                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Recipient Target</span>
+                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">{t("com.target_label")}</span>
                 <span className="font-extrabold text-gray-900">
-                  {receiptDetails.targetGroup === "All" ? "All School Teachers" : receiptDetails.targetGroup === "Math" ? "Maths Dept" : "Sciences Dept"}
+                  {receiptDetails.targetGroup === "All" ? t("com.all_teachers") : receiptDetails.targetGroup === "Math" ? t("com.maths") : t("com.sciences")}
                 </span>
               </div>
               <div className="flex justify-between items-baseline text-xs">
-                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Delivered Nodes</span>
+                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">{t("com.nodes")}</span>
                 <span className="font-extrabold text-gray-900">{receiptDetails.recipientsCount} educators</span>
               </div>
               <div className="flex justify-between items-baseline text-xs border-t border-gray-200/60 pt-4">
-                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Gateway Carrier Fee</span>
-                <span className="font-black text-emerald-700 text-sm">₦0.00 (Free)</span>
+                <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">{t("com.fee")}</span>
+                <span className="font-black text-emerald-700 text-sm">{t("com.free")}</span>
               </div>
             </div>
 
             {/* Transmissions Details */}
             <div className="mt-6 space-y-3">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Gateway Dispatches</h4>
+              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t("com.dispatches")}</h4>
               <div className="grid grid-cols-1 gap-2.5">
-                {receiptDetails.transmissions.map((t: any, idx: number) => (
+                {receiptDetails.transmissions.map((tx: any, idx: number) => (
                   <div key={idx} className="flex justify-between items-center p-3 bg-gray-50/50 rounded-xl border border-gray-100/60 text-xs">
                     <span className="font-bold text-gray-700 capitalize flex items-center gap-1.5">
-                      {t.channel === "megaphone" ? <Megaphone className="h-3.5 w-3.5 text-gray-400" /> : t.channel === "email" ? <Mail className="h-3.5 w-3.5 text-gray-400" /> : <Bell className="h-3.5 w-3.5 text-gray-400" />}
-                      {t.channel === "megaphone" ? "Megaphone board" : t.channel === "email" ? "Email blast" : "Push Notification"}
+                      {tx.channel === "megaphone" ? <Megaphone className="h-3.5 w-3.5 text-gray-400" /> : tx.channel === "email" ? <Mail className="h-3.5 w-3.5 text-gray-400" /> : <Bell className="h-3.5 w-3.5 text-gray-400" />}
+                      {tx.channel === "megaphone" ? t("com.megaphone") : tx.channel === "email" ? t("com.email_blast") : t("com.push")}
                     </span>
                     <div className="flex gap-4 items-center">
-                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{t.successRate} Delivered</span>
-                      <span className="font-black text-gray-900">{t.cost}</span>
+                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{t("com.delivered", { v: tx.successRate })}</span>
+                      <span className="font-black text-gray-900">{tx.cost}</span>
                     </div>
                   </div>
                 ))}
@@ -672,7 +670,7 @@ export default function BroadcastHub() {
               onClick={() => setShowReceipt(false)}
               className="mt-8 w-full py-4 rounded-xl bg-gradient-to-r from-[#053d26] to-[#0a5737] text-white font-extrabold text-xs uppercase tracking-widest hover:shadow-lg transition-all duration-300"
             >
-              Acknowledge Receipt
+              {t("com.ack")}
             </button>
           </div>
         </div>

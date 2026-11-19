@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Settings, Bell, Lock, Palette, Globe, Building2, Save, Loader2, AlertCircle, CheckCircle2, X, Key, Download, Activity, Sun, Moon, RefreshCw, Check, CreditCard, Camera, Banknote, UserCircle, PenTool } from "lucide-react";
 import { authApi, studentApi, schoolApi, paymentApi, uploadToCloudinary, teacherPortalApi } from "@/lib/api";
-import { useLanguage, Language } from "@/components/LanguageProvider";
+import { useLanguage, Language, languages } from "@/components/LanguageProvider";
 import SignaturePad from "@/components/shared/SignaturePad";
 
 type SettingsSection = 'school' | 'profile' | 'notifications' | 'security' | 'appearance' | 'localization' | 'advanced' | 'billing' | 'financeSetup' | null;
@@ -76,7 +76,7 @@ export default function SettingsPage() {
   const [font, setFont] = useState('sans');
 
   // Localization state
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const [timezone, setTimezone] = useState('GMT+1');
   const [dateFormat, setDateFormat] = useState('dd/mm/yyyy');
 
@@ -235,27 +235,27 @@ export default function SettingsPage() {
     setPwError("");
     setPwSuccess("");
     if (!currentPassword || !newPassword) {
-      setPwError("Both fields are required.");
+      setPwError(t("set.pw_both"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPwError("New passwords do not match.");
+      setPwError(t("set.pw_mismatch"));
       return;
     }
     if (newPassword.length < 6) {
-      setPwError("New password must be at least 6 characters.");
+      setPwError(t("set.pw_len"));
       return;
     }
     setIsChangingPw(true);
     try {
       await authApi.changePassword({ currentPassword, newPassword });
-      setPwSuccess("Password changed successfully!");
+      setPwSuccess(t("set.pw_changed"));
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setToast({ message: "Password updated successfully", type: "success" });
+      setToast({ message: t("set.pw_updated"), type: "success" });
     } catch (err) {
-      setPwError(err instanceof Error ? err.message : "Failed to change password");
+      setPwError(err instanceof Error ? err.message : t("set.pw_failed"));
     } finally {
       setIsChangingPw(false);
     }
@@ -265,7 +265,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        setToast({ message: "Image must be less than 2MB", type: "error" });
+        setToast({ message: t("set.img_2mb"), type: "error" });
         return;
       }
       setSignatureFile(file);
@@ -294,11 +294,11 @@ export default function SettingsPage() {
   const handleSaveSchoolProfile = async () => {
     // The school phone is printed on student ID cards as the return contact
     if ((userRole === "Admin" || userRole === "SuperAdmin") && !schoolPhone.trim()) {
-      setToast({ message: "School contact phone is required", type: "error" });
+      setToast({ message: t("set.phone_req"), type: "error" });
       return;
     }
     if ((userRole === "Admin" || userRole === "SuperAdmin") && !schoolLoaded) {
-      setToast({ message: "School settings haven't finished loading. Please refresh and try again.", type: "error" });
+      setToast({ message: t("set.not_loaded"), type: "error" });
       return;
     }
     setIsSavingProfile(true);
@@ -307,14 +307,14 @@ export default function SettingsPage() {
       let finalSignatureUrl = signatureUrl;
       
       if (schoolLogoFile) {
-        setToast({ message: "Uploading logo to cloud storage...", type: "success" });
+        setToast({ message: t("set.up_logo"), type: "success" });
         finalLogoUrl = await uploadToCloudinary(schoolLogoFile);
         setSchoolLogo(finalLogoUrl);
         setSchoolLogoFile(null);
       }
       
       if (signatureFile) {
-        setToast({ message: "Uploading signature to cloud storage...", type: "success" });
+        setToast({ message: t("set.up_sig"), type: "success" });
         finalSignatureUrl = await uploadToCloudinary(signatureFile);
         setSignatureUrl(finalSignatureUrl);
         setSignatureFile(null);
@@ -322,7 +322,7 @@ export default function SettingsPage() {
 
       let finalStampUrl = schoolStampUrl;
       if (schoolStampFile) {
-        setToast({ message: "Uploading stamp to cloud storage...", type: "success" });
+        setToast({ message: t("set.up_stamp"), type: "success" });
         finalStampUrl = await uploadToCloudinary(schoolStampFile);
         setSchoolStampUrl(finalStampUrl);
         setSchoolStampFile(null);
@@ -356,10 +356,10 @@ export default function SettingsPage() {
           await teacherPortalApi.updateSignature(finalSignatureUrl);
         }
       }
-      setToast({ message: "Profile updated successfully", type: "success" });
+      setToast({ message: t("set.profile_ok"), type: "success" });
     } catch (err) {
       console.error(err);
-      setToast({ message: "Failed to update profile", type: "error" });
+      setToast({ message: t("set.profile_failed"), type: "error" });
     } finally {
       setIsSavingProfile(false);
     }
@@ -369,7 +369,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        setToast({ message: "Image must be less than 2MB", type: "error" });
+        setToast({ message: t("set.img_2mb"), type: "error" });
         return;
       }
       setSchoolLogoFile(file);
@@ -385,7 +385,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        setToast({ message: "Image must be less than 2MB", type: "error" });
+        setToast({ message: t("set.img_2mb"), type: "error" });
         return;
       }
       setSchoolStampFile(file);
@@ -407,7 +407,7 @@ export default function SettingsPage() {
         document.documentElement.classList.remove('dark');
       }
     } catch (_) {}
-    setToast({ message: `Dark mode ${checked ? 'enabled' : 'disabled'}`, type: 'success' });
+    setToast({ message: t(checked ? "set.dark_on" : "set.dark_off"), type: 'success' });
   };
 
   const handleThemeChangeLocal = (newTheme: string) => {
@@ -451,7 +451,7 @@ export default function SettingsPage() {
         });
       }
     } catch (_) {}
-    setToast({ message: `Branding theme updated to ${newTheme.toUpperCase()}`, type: 'success' });
+    setToast({ message: t("set.theme_ok", { name: newTheme.toUpperCase() }), type: 'success' });
   };
 
   const handleFontChange = async (newFont: string) => {
@@ -485,7 +485,7 @@ export default function SettingsPage() {
         });
       }
     } catch (_) {}
-    setToast({ message: `Typography updated to ${newFont.toUpperCase()}`, type: 'success' });
+    setToast({ message: t("set.font_ok", { name: newFont.toUpperCase() }), type: 'success' });
   };
 
   const handleSaveLocalization = () => {
@@ -493,7 +493,7 @@ export default function SettingsPage() {
       localStorage.setItem('leoned_timezone', timezone);
       localStorage.setItem('leoned_date_format', dateFormat);
     } catch (_) {}
-    setToast({ message: "Localization settings saved", type: "success" });
+    setToast({ message: t("set.loc_ok"), type: "success" });
   };
 
   const handleRotateApiKeys = async () => {
@@ -525,9 +525,9 @@ export default function SettingsPage() {
       link.download = `leoned_export_${Date.now()}.json`;
       link.click();
       URL.revokeObjectURL(url);
-      setToast({ message: "Data export successfully initiated", type: "success" });
+      setToast({ message: t("set.export_ok"), type: "success" });
     } catch (_) {
-      setToast({ message: "Failed to export data", type: "error" });
+      setToast({ message: t("set.export_failed"), type: "error" });
     }
   };
 
@@ -535,12 +535,12 @@ export default function SettingsPage() {
     setDiagnosticStatus('running');
     setDiagnosticLogs([]);
     const logs = [
-      "Initializing diagnostics suite...",
-      "Verifying host client integrity...",
-      "Resolving local cache databases...",
-      "Checking latency to API services...",
-      "Testing token session validation...",
-      "Diagnostics complete. All components verified."
+      t("set.diag1"),
+      t("set.diag2"),
+      t("set.diag3"),
+      t("set.diag4"),
+      t("set.diag5"),
+      t("set.diag6")
     ];
     for (let i = 0; i < logs.length; i++) {
       await new Promise(resolve => setTimeout(resolve, 400));
@@ -551,7 +551,7 @@ export default function SettingsPage() {
 
   const handleSubscribe = async () => {
     if (!selectedPlanId) {
-      setToast({ message: "Please select a plan to subscribe", type: "error" });
+      setToast({ message: t("set.plan_req"), type: "error" });
       return;
     }
     setIsSubscribing(true);
@@ -561,24 +561,24 @@ export default function SettingsPage() {
       if ((res as any)?.authorizationUrl || (res as any)?.authorization_url) {
         window.location.href = (res as any).authorizationUrl || (res as any).authorization_url;
       } else {
-        setToast({ message: "Subscription initiated successfully", type: "success" });
+        setToast({ message: t("set.sub_ok"), type: "success" });
       }
     } catch (err) {
-      setToast({ message: "Failed to initiate subscription", type: "error" });
+      setToast({ message: t("set.sub_failed"), type: "error" });
     } finally {
       setIsSubscribing(false);
     }
   };
 
   const allSections = [
-    { id: 'school' as const, icon: Building2, title: 'School Profile', description: 'Update school name, address, logo, and contact information.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
-    { id: 'profile' as const, icon: UserCircle, title: 'My Profile', description: 'Update your personal details, avatar, and digital signature.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
-    { id: 'billing' as const, icon: CreditCard, title: 'Billing & Plans', description: 'Manage your active subscription and payment methods.', color: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-900/20' },
-    { id: 'financeSetup' as const, href: '/dashboard/finance/setup', icon: Banknote, title: 'Finance Setup', description: 'Configure fee structures, custom fees, and bank account details.', color: 'bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-lg shadow-teal-900/20' },
-    { id: 'notifications' as const, icon: Bell, title: 'Notifications', description: 'Configure email alerts, SMS reminders, and in-app notifications.', color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
-    { id: 'security' as const, icon: Lock, title: 'Security', description: 'Manage passwords, two-factor authentication, and access logs.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
-    { id: 'appearance' as const, icon: Palette, title: 'Appearance', description: 'Customize branding colors, report card templates, and themes.', color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
-    { id: 'localization' as const, icon: Globe, title: 'Localization', description: 'Set timezone, language preferences, and regional formatting.', color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
+    { id: 'school' as const, icon: Building2, title: t('set.sec.school'), description: t('set.sec.school_d'), color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
+    { id: 'profile' as const, icon: UserCircle, title: t('set.sec.profile'), description: t('set.sec.profile_d'), color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
+    { id: 'billing' as const, icon: CreditCard, title: t('layout.nav.billing_plans'), description: t('set.sec.billing_d'), color: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-900/20' },
+    { id: 'financeSetup' as const, href: '/dashboard/finance/setup', icon: Banknote, title: t('set.sec.finance'), description: t('set.sec.finance_d'), color: 'bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-lg shadow-teal-900/20' },
+    { id: 'notifications' as const, icon: Bell, title: t('layout.notif.title'), description: t('set.sec.notifications_d'), color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
+    { id: 'security' as const, icon: Lock, title: t('set.sec.security'), description: t('set.sec.security_d'), color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
+    { id: 'appearance' as const, icon: Palette, title: t('set.sec.appearance'), description: t('set.sec.appearance_d'), color: 'bg-gradient-to-br from-amber-500 to-[#b05e1c] text-white shadow-lg shadow-orange-900/20' },
+    { id: 'localization' as const, icon: Globe, title: t('set.sec.localization'), description: t('set.sec.localization_d'), color: 'bg-gradient-to-br from-[#0a6642] to-[#053d26] text-white shadow-lg shadow-green-900/20' },
   ];
 
   const sections = userRole === "Student"
@@ -601,10 +601,10 @@ export default function SettingsPage() {
           {/* Header */}
           <div className="max-w-3xl mb-10">
             <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#053d26] to-[#b05e1c] dark:from-green-400 dark:to-orange-400 mb-4 tracking-tight">
-              Settings & Preferences
+              {t("set.title")}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 text-base leading-relaxed max-w-2xl">
-              Configure your school profile, manage notifications, and customize your completely premium LeonEd experience down to the finest detail.
+              {t("set.subtitle")}
             </p>
           </div>
 
@@ -645,7 +645,7 @@ export default function SettingsPage() {
               onClick={() => setActiveSection(null)}
               className="inline-flex items-center gap-2 text-sm font-bold text-[#053d26] hover:text-[#042c1b] transition-colors cursor-pointer"
             >
-              &larr; Back to Settings
+              &larr; {t("set.back")}
             </button>
           </div>
 
@@ -653,16 +653,16 @@ export default function SettingsPage() {
           {activeSection === 'school' && (
             <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">School Profile</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{t("set.sec.school")}</h2>
                 <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"><X className="h-5 w-5" /></button>
               </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">School Logo</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("layout.school_logo")}</label>
               <div className="flex items-center gap-4">
                 <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
                   {schoolLogo ? (
-                    <img src={schoolLogo} alt="School Logo" className="h-full w-full object-cover" />
+                    <img src={schoolLogo} alt={t("layout.school_logo")} className="h-full w-full object-cover" />
                   ) : (
                     <Building2 className="h-8 w-8 text-gray-400" />
                   )}
@@ -670,7 +670,7 @@ export default function SettingsPage() {
                 <div className="flex-1">
                   <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm cursor-pointer transition-colors">
                     <Camera className="h-4 w-4" />
-                    Upload Photo
+                    {t("set.upload_photo")}
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -678,18 +678,18 @@ export default function SettingsPage() {
                       onChange={handleLogoUpload}
                     />
                   </label>
-                  <p className="text-xs text-gray-500 mt-2">Recommended: Square image, max 2MB.</p>
+                  <p className="text-xs text-gray-500 mt-2">{t("set.logo_hint")}</p>
                 </div>
               </div>
             </div>
             
             {(userRole === "Admin" || userRole === "SuperAdmin") && (
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Principal's Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.principal")}</label>
                 <input
                   value={principalName}
                   onChange={e => setPrincipalName(e.target.value)}
-                  placeholder="e.g. Dr. John Doe"
+                  placeholder={t("set.principal_ph")}
                   className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
                 />
               </div>
@@ -698,14 +698,14 @@ export default function SettingsPage() {
             {(userRole === "Admin" || userRole === "SuperAdmin") && (
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
-                  Principal's Signature
+                  {t("set.principal_sig")}
                 </label>
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-32 bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200 rounded-lg">
                     {signatureUrl ? (
-                      <img src={signatureUrl} alt="Signature" className="h-full w-full object-contain" />
+                      <img src={signatureUrl} alt={t("set.sig_alt")} className="h-full w-full object-contain" />
                     ) : (
-                      <span className="text-xs text-gray-400">No Signature</span>
+                      <span className="text-xs text-gray-400">{t("set.no_sig")}</span>
                     )}
                   </div>
                   <div className="flex-1">
@@ -714,9 +714,9 @@ export default function SettingsPage() {
                       className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm transition-colors"
                     >
                       <PenTool className="h-4 w-4" />
-                      Draw Signature
+                      {t("set.draw_sig")}
                     </button>
-                    <p className="text-xs text-gray-500 mt-2">Will be used for stamping results. Freehand drawing ensures transparent background.</p>
+                    <p className="text-xs text-gray-500 mt-2">{t("set.sig_hint")}</p>
                   </div>
                 </div>
               </div>
@@ -724,19 +724,19 @@ export default function SettingsPage() {
 
             {(userRole === "Admin" || userRole === "SuperAdmin") && (
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">School Stamp</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("rc.stamp_alt")}</label>
                 <div className="flex items-center gap-4">
                   <div className="h-20 w-20 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200">
                     {schoolStampUrl ? (
-                      <img src={schoolStampUrl} alt="School Stamp" className="h-full w-full object-cover mix-blend-multiply" />
+                      <img src={schoolStampUrl} alt={t("rc.stamp_alt")} className="h-full w-full object-cover mix-blend-multiply" />
                     ) : (
-                      <span className="text-xs text-gray-400">No Stamp</span>
+                      <span className="text-xs text-gray-400">{t("set.no_stamp")}</span>
                     )}
                   </div>
                   <div className="flex-1">
                     <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm cursor-pointer transition-colors">
                       <Camera className="h-4 w-4" />
-                      Upload Stamp
+                      {t("set.upload_stamp")}
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -744,13 +744,13 @@ export default function SettingsPage() {
                         onChange={handleStampUpload}
                       />
                     </label>
-                    <p className="text-xs text-gray-500 mt-2">Recommended: Circular stamp with transparent background, max 2MB.</p>
+                    <p className="text-xs text-gray-500 mt-2">{t("set.stamp_hint")}</p>
                   </div>
                 </div>
               </div>
             )}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">School Name</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.school_name")}</label>
               <input
                 value={schoolName}
                 onChange={e => setSchoolName(e.target.value)}
@@ -758,16 +758,16 @@ export default function SettingsPage() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Address</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.address")}</label>
               <input
                 value={schoolAddress}
                 onChange={e => setSchoolAddress(e.target.value)}
-                placeholder="123 Education Ave, Lagos"
+                placeholder={t("set.address_ph")}
                 className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Phone <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("fac.phone")} <span className="text-red-500">*</span></label>
               <input
                 required
                 value={schoolPhone}
@@ -777,38 +777,38 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Account Name</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.account_name")}</label>
               <input
                 value={bankAccountName}
                 onChange={e => setBankAccountName(e.target.value)}
-                placeholder="e.g. LeonEd School Main Account"
+                placeholder={t("set.account_name_ph")}
                 className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Bank Name</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.bank")}</label>
               <input
                 value={bankName}
                 onChange={e => setBankName(e.target.value)}
-                placeholder="e.g. Access Bank PLC"
+                placeholder={t("set.bank_ph")}
                 className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Account Number</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.account_no")}</label>
               <input
                 value={bankAccountNumber}
                 onChange={e => setBankAccountNumber(e.target.value)}
-                placeholder="e.g. 0123456789"
+                placeholder={t("set.account_no_ph")}
                 className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors"
               />
             </div>
           </div>
           <div className="flex justify-end gap-3 mt-8">
-            <button onClick={() => setActiveSection(null)} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">Cancel</button>
+            <button onClick={() => setActiveSection(null)} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">{t("common.cancel")}</button>
             <button onClick={handleSaveSchoolProfile} disabled={isSavingProfile} className="px-5 py-2.5 rounded-xl bg-[#053d26] hover:bg-[#042c1b] text-white font-bold flex items-center gap-2 transition-colors">
               {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save Changes
+              {t("common.save_changes")}
             </button>
           </div>
         </div>
@@ -817,21 +817,21 @@ export default function SettingsPage() {
       {activeSection === 'profile' && (
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">My Profile</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("set.sec.profile")}</h2>
             <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"><X className="h-5 w-5" /></button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
             {userRole === "Faculty" && (
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
-                  My Digital Signature
+                  {t("set.my_sig")}
                 </label>
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-32 bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-200 rounded-lg">
                     {signatureUrl ? (
-                      <img src={signatureUrl} alt="Signature" className="h-full w-full object-contain" />
+                      <img src={signatureUrl} alt={t("set.sig_alt")} className="h-full w-full object-contain" />
                     ) : (
-                      <span className="text-xs text-gray-400">No Signature</span>
+                      <span className="text-xs text-gray-400">{t("set.no_sig")}</span>
                     )}
                   </div>
                   <div className="flex-1">
@@ -840,9 +840,9 @@ export default function SettingsPage() {
                       className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl font-bold text-sm transition-colors"
                     >
                       <PenTool className="h-4 w-4" />
-                      Draw Signature
+                      {t("set.draw_sig")}
                     </button>
-                    <p className="text-xs text-gray-500 mt-2">Will be used for stamping results. Freehand drawing ensures transparent background.</p>
+                    <p className="text-xs text-gray-500 mt-2">{t("set.sig_hint")}</p>
                   </div>
                 </div>
               </div>
@@ -851,12 +851,12 @@ export default function SettingsPage() {
             {userRole === "Faculty" && (
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">
-                  My Staff ID Card
+                  {t("set.my_id")}
                 </label>
                 <div className="flex flex-wrap items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
                   <div className="flex-1 min-w-[10rem]">
-                    <p className="text-xs text-gray-500">Staff ID</p>
-                    <p className="font-bold text-gray-900">{staffNumber || "Assigned when you download your card"}</p>
+                    <p className="text-xs text-gray-500">{t("fac.staff_id")}</p>
+                    <p className="font-bold text-gray-900">{staffNumber || t("set.staff_id_pending")}</p>
                   </div>
                   <button
                     onClick={async () => {
@@ -875,7 +875,7 @@ export default function SettingsPage() {
                           teacherPortalApi.getProfile().then((p: any) => p?.staffNumber && setStaffNumber(p.staffNumber)).catch(() => {});
                         }
                       } catch (err) {
-                        setToast({ message: err instanceof Error ? err.message : "Failed to download staff ID card", type: "error" });
+                        setToast({ message: err instanceof Error ? err.message : t("fac.id_failed"), type: "error" });
                       } finally {
                         setIsDownloadingCard(false);
                       }
@@ -884,17 +884,17 @@ export default function SettingsPage() {
                     className="inline-flex items-center gap-2 px-4 py-2 bg-[#053d26] hover:bg-[#042c1b] text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-60"
                   >
                     {isDownloadingCard ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                    Download ID Card
+                    {t("set.download_id")}
                   </button>
                 </div>
               </div>
             )}
 
             <div className="flex justify-end gap-3 mt-8 md:col-span-2">
-              <button onClick={() => setActiveSection(null)} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">Cancel</button>
+              <button onClick={() => setActiveSection(null)} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors">{t("common.cancel")}</button>
               <button onClick={handleSaveSchoolProfile} disabled={isSavingProfile} className="px-5 py-2.5 rounded-xl bg-[#053d26] hover:bg-[#042c1b] text-white font-bold flex items-center gap-2 transition-colors">
                 {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save Profile
+                {t("set.save_profile")}
               </button>
             </div>
           </div>
@@ -904,13 +904,13 @@ export default function SettingsPage() {
       {activeSection === 'billing' && (
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Billing & Subscription</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("set.billing_title")}</h2>
             <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"><X className="h-5 w-5" /></button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
             <div className="space-y-6">
-              <h3 className="text-lg font-bold text-gray-900">Select a Plan</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("set.select_plan")}</h3>
               <div className="space-y-4">
                 {paymentPlans.length > 0 ? paymentPlans.map((plan) => (
                   <label key={plan.id} className={`flex items-start gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${
@@ -927,9 +927,9 @@ export default function SettingsPage() {
                     <div className="flex-1">
                       <div className="flex justify-between items-center mb-1">
                         <span className="font-bold text-gray-900">{plan.name}</span>
-                        <span className="font-bold text-[#053d26]">₦{(plan.amount ?? plan.price ?? 0).toString().replace('$', '').replace('₦', '')}/{plan.billingCycle === 'annual' ? 'yr' : 'mo'}</span>
+                        <span className="font-bold text-[#053d26]">₦{(plan.amount ?? plan.price ?? 0).toString().replace('$', '').replace('₦', '')}/{plan.billingCycle === 'annual' ? t("set.per_yr") : t("set.per_mo")}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mb-2">Up to {plan.maxStudents || plan.studentLimit || 'unlimited'} students and {plan.maxTeachers || plan.teacherLimit || 'unlimited'} teachers</p>
+                      <p className="text-xs text-gray-500 mb-2">{t("set.plan_limits", { s: plan.maxStudents || plan.studentLimit || t("set.unlimited"), t: plan.maxTeachers || plan.teacherLimit || t("set.unlimited") })}</p>
                       <div className="flex flex-wrap gap-2">
                         {(plan.features || []).slice(0, 3).map((f: string, i: number) => (
                           <span key={i} className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded-md">{f}</span>
@@ -938,13 +938,13 @@ export default function SettingsPage() {
                     </div>
                   </label>
                 )) : (
-                  <p className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-xl">No plans available.</p>
+                  <p className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-xl">{t("set.no_plans")}</p>
                 )}
               </div>
             </div>
 
             <div className="space-y-6">
-              <h3 className="text-lg font-bold text-gray-900">Billing Cycle</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("set.cycle")}</h3>
               <div className="space-y-4">
                 <label className={`flex items-center gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${
                   billingCycle === 'monthly' ? 'border-[#053d26] bg-green-50/30' : 'border-gray-100 bg-white hover:border-gray-200'
@@ -958,8 +958,8 @@ export default function SettingsPage() {
                     className="h-5 w-5 text-[#053d26] focus:ring-[#053d26] accent-[#053d26]"
                   />
                   <div>
-                    <span className="font-bold text-gray-900 block">Monthly Billing</span>
-                    <span className="text-xs text-gray-500 block mt-0.5">Pay as you go each month</span>
+                    <span className="font-bold text-gray-900 block">{t("set.monthly")}</span>
+                    <span className="text-xs text-gray-500 block mt-0.5">{t("set.monthly_d")}</span>
                   </div>
                 </label>
                 <label className={`flex items-center gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all ${
@@ -975,10 +975,10 @@ export default function SettingsPage() {
                   />
                   <div className="flex-1 flex justify-between items-center">
                     <div>
-                      <span className="font-bold text-gray-900 block">Annual Billing</span>
-                      <span className="text-xs text-gray-500 block mt-0.5">Pay upfront for 12 months</span>
+                      <span className="font-bold text-gray-900 block">{t("set.annual")}</span>
+                      <span className="text-xs text-gray-500 block mt-0.5">{t("set.annual_d")}</span>
                     </div>
-                    <span className="bg-green-100 text-[#053d26] text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md">Save 20%</span>
+                    <span className="bg-green-100 text-[#053d26] text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md">{t("set.save20")}</span>
                   </div>
                 </label>
               </div>
@@ -996,12 +996,12 @@ export default function SettingsPage() {
                 >
                   {isSubscribing ? <Loader2 className="h-5 w-5 animate-spin" /> : <CreditCard className="h-5 w-5" />}
                   {isSubscribing 
-                    ? 'Initiating Checkout...' 
+                    ? t("set.checkout") 
                     : paymentPlans.find(p => p.id === selectedPlanId)?.name?.toLowerCase() === 'free' 
-                      ? 'Free Plan (Default)' 
+                      ? t("set.free_default") 
                       : paymentPlans.find(p => p.id === selectedPlanId)?.name?.toLowerCase() === activePlan?.toLowerCase() 
-                        ? 'Current Plan (Already Subscribed)' 
-                        : 'Proceed to Payment'
+                        ? t("set.current_plan") 
+                        : t("set.proceed")
                   }
                 </button>
               </div>
@@ -1013,7 +1013,7 @@ export default function SettingsPage() {
       {activeSection === 'security' && (
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Change Password</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("set.change_pw")}</h2>
             <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-5 w-5" /></button>
           </div>
 
@@ -1030,7 +1030,7 @@ export default function SettingsPage() {
 
           <div className="space-y-5 max-w-md">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Current Password</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.current_pw")}</label>
               <input
                 type="password"
                 value={currentPassword}
@@ -1039,7 +1039,7 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">New Password</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("stu.new_pw")}</label>
               <input
                 type="password"
                 value={newPassword}
@@ -1048,7 +1048,7 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Confirm New Password</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.confirm_new")}</label>
               <input
                 type="password"
                 value={confirmPassword}
@@ -1064,7 +1064,7 @@ export default function SettingsPage() {
               className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors disabled:opacity-50"
             >
               {isChangingPw ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-              {isChangingPw ? 'Updating...' : 'Update Password'}
+              {isChangingPw ? t("common.updating") : t("set.update_pw")}
             </button>
           </div>
         </div>
@@ -1073,19 +1073,19 @@ export default function SettingsPage() {
       {activeSection === 'notifications' && (
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Notification Preferences</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("layout.notif.prefs")}</h2>
             <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-5 w-5" /></button>
           </div>
           {isAdminView && (
             <div className="max-w-xl mb-8 rounded-2xl border border-gray-200 p-5 space-y-4">
               <div>
-                <h3 className="font-bold text-gray-900">Attendance</h3>
-                <p className="text-xs text-gray-500 mt-1">How attendance is taken and when parents are emailed.</p>
+                <h3 className="font-bold text-gray-900">{t("layout.nav.attendance")}</h3>
+                <p className="text-xs text-gray-500 mt-1">{t("set.att_d")}</p>
               </div>
               <label className="flex items-center justify-between gap-4 cursor-pointer">
                 <div>
-                  <h4 className="font-bold text-gray-900 text-sm">Email parents about attendance</h4>
-                  <p className="text-xs text-gray-500 mt-1">Sent when a student&apos;s attendance is marked or changes.</p>
+                  <h4 className="font-bold text-gray-900 text-sm">{t("set.email_parents")}</h4>
+                  <p className="text-xs text-gray-500 mt-1">{t("set.email_parents_d")}</p>
                 </div>
                 <input type="checkbox" checked={attendanceEmails} onChange={(e) => setAttendanceEmails(e.target.checked)} className="h-5 w-5 accent-[#053d26]" />
               </label>
@@ -1106,8 +1106,8 @@ export default function SettingsPage() {
               )}
               <label className="flex items-center justify-between gap-4 cursor-pointer border-t border-gray-100 pt-4">
                 <div>
-                  <h4 className="font-bold text-gray-900 text-sm">Check-in and check-out</h4>
-                  <p className="text-xs text-gray-500 mt-1">A student&apos;s first ID card scan of the day checks them in and the next checks them out. Parents are emailed both times.</p>
+                  <h4 className="font-bold text-gray-900 text-sm">{t("set.checkinout")}</h4>
+                  <p className="text-xs text-gray-500 mt-1">{t("set.checkinout_d")}</p>
                 </div>
                 <input type="checkbox" checked={checkOutEnabled} onChange={(e) => setCheckOutEnabled(e.target.checked)} className="h-5 w-5 accent-[#053d26]" />
               </label>
@@ -1116,7 +1116,7 @@ export default function SettingsPage() {
                   onClick={async () => {
                     const sId = JSON.parse(localStorage.getItem('leoned_user') || '{}').schoolId;
                     if (!sId || !schoolLoaded) {
-                      setToast({ message: "School settings haven't finished loading. Please refresh and try again.", type: "error" });
+                      setToast({ message: t("set.not_loaded"), type: "error" });
                       return;
                     }
                     setIsSavingAttendance(true);
@@ -1125,9 +1125,9 @@ export default function SettingsPage() {
                         notificationSettings: { attendance: { enabled: attendanceEmails, notifyOn: attendanceNotifyOn } },
                         attendanceCheckOutEnabled: checkOutEnabled,
                       });
-                      setToast({ message: "Attendance settings saved", type: "success" });
+                      setToast({ message: t("set.att_saved"), type: "success" });
                     } catch (err) {
-                      setToast({ message: err instanceof Error ? err.message : "Failed to save attendance settings", type: "error" });
+                      setToast({ message: err instanceof Error ? err.message : t("set.att_failed"), type: "error" });
                     } finally {
                       setIsSavingAttendance(false);
                     }
@@ -1136,17 +1136,17 @@ export default function SettingsPage() {
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] disabled:opacity-60"
                 >
                   {isSavingAttendance ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save attendance settings
+                  {t("set.save_att")}
                 </button>
               </div>
             </div>
           )}
           <div className="space-y-6 max-w-xl">
             {[
-              { label: 'Email Alerts', desc: 'Receive email notifications for important events', default: true },
-              { label: 'SMS Reminders', desc: 'Get text messages for upcoming deadlines', default: false },
-              { label: 'In-App Notifications', desc: 'Show notifications within the dashboard', default: true },
-              { label: 'Weekly Reports', desc: 'Receive a weekly summary of school activity', default: true },
+              { label: t("set.email_alerts"), desc: t("set.email_alerts_d"), default: true },
+              { label: t("set.sms"), desc: t("set.sms_d"), default: false },
+              { label: t("set.inapp"), desc: t("set.inapp_d"), default: true },
+              { label: t("set.weekly"), desc: t("set.weekly_d"), default: true },
             ].map((item) => (
               <label key={item.label} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
                 <div>
@@ -1163,10 +1163,10 @@ export default function SettingsPage() {
           </div>
           <div className="flex justify-end mt-8">
             <button
-              onClick={() => setToast({ message: "Notification preferences saved", type: "success" })}
+              onClick={() => setToast({ message: t("set.prefs_saved"), type: "success" })}
               className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
             >
-              <Save className="h-4 w-4" /> Save Preferences
+              <Save className="h-4 w-4" /> {t("set.save_prefs")}
             </button>
           </div>
         </div>
@@ -1175,20 +1175,20 @@ export default function SettingsPage() {
       {activeSection === 'appearance' && (
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Appearance Settings</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("set.appearance_title")}</h2>
             <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-5 w-5" /></button>
           </div>
           
           <div className="space-y-8 max-w-2xl">
             {/* Dark Mode toggle */}
             <div>
-              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Dark Mode</h3>
+              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">{t("set.dark")}</h3>
               <div className="flex items-center justify-between p-5 rounded-2xl bg-gray-50 border border-gray-100">
                 <div className="flex items-center gap-3">
                   {darkMode ? <Moon className="h-6 w-6 text-[#053d26]" /> : <Sun className="h-6 w-6 text-amber-500" />}
                   <div>
-                    <h4 className="font-bold text-sm text-gray-900">Enable Dark Mode</h4>
-                    <p className="text-xs text-gray-500 mt-0.5">Switch between light and dark backgrounds</p>
+                    <h4 className="font-bold text-sm text-gray-900">{t("set.enable_dark")}</h4>
+                    <p className="text-xs text-gray-500 mt-0.5">{t("set.dark_d")}</p>
                   </div>
                 </div>
                 <button 
@@ -1206,8 +1206,8 @@ export default function SettingsPage() {
 
             {/* Color Theme Selector */}
             <div>
-              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Color Theme</h3>
-              <p className="text-xs text-gray-500 mb-4">Choose a branding accent that reflects your school&apos;s identity</p>
+              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">{t("set.color_theme")}</h3>
+              <p className="text-xs text-gray-500 mb-4">{t("set.color_d")}</p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <div className="flex items-center gap-4">
                   <input
@@ -1217,7 +1217,7 @@ export default function SettingsPage() {
                     className="w-16 h-16 rounded-xl cursor-pointer bg-white p-1 shadow-sm border border-gray-200"
                   />
                   <div>
-                    <div className="text-sm font-bold text-gray-900">Custom Brand Color</div>
+                    <div className="text-sm font-bold text-gray-900">{t("set.custom_color")}</div>
                     <div className="text-xs text-gray-500 mt-1 uppercase font-mono">{theme}</div>
                   </div>
                 </div>
@@ -1225,15 +1225,15 @@ export default function SettingsPage() {
                   onClick={() => handleThemeChange(theme)}
                   className="sm:ml-auto px-6 py-2.5 bg-[#053d26] text-white text-sm font-bold rounded-xl hover:bg-[#042c1b] transition-colors shadow-sm"
                 >
-                  Save Theme
+                  {t("set.save_theme")}
                 </button>
               </div>
             </div>
 
             {/* Font Selector */}
             <div className="mt-8">
-              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Typography</h3>
-              <p className="text-xs text-gray-500 mb-4">Choose a font style that reflects your school&apos;s identity</p>
+              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">{t("set.typography")}</h3>
+              <p className="text-xs text-gray-500 mb-4">{t("set.typography_d")}</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {FONTS.map((f) => (
                   <button
@@ -1251,7 +1251,7 @@ export default function SettingsPage() {
                       </div>
                     )}
                     <span className={`text-2xl font-bold text-gray-900 ${f.class}`}>Aa</span>
-                    <span className="text-xs font-bold text-gray-700">{f.label}</span>
+                    <span className="text-xs font-bold text-gray-700">{t(`set.font.${f.id}`)}</span>
                   </button>
                 ))}
               </div>
@@ -1263,54 +1263,51 @@ export default function SettingsPage() {
       {activeSection === 'localization' && (
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Localization Settings</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("set.loc_title")}</h2>
             <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-5 w-5" /></button>
           </div>
 
           <div className="space-y-6 max-w-xl">
             {/* Language Selection */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Preferred Language</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.pref_lang")}</label>
               <select
                 value={language}
                 onChange={e => setLanguage(e.target.value as Language)}
                 className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors font-medium"
               >
-                <option value="en">English (Standard)</option>
-                <option value="fr">Français</option>
-                <option value="es">Español</option>
-                <option value="de">Deutsch</option>
-                <option value="pt">Português</option>
-                <option value="zh">中文</option>
+                {languages.map(l => (
+                  <option key={l.code} value={l.code}>{l.nativeName}{l.nativeName !== l.name ? ` (${l.name})` : ""}</option>
+                ))}
               </select>
             </div>
 
             {/* Timezone */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Timezone</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.timezone")}</label>
               <select
                 value={timezone}
                 onChange={e => setTimezone(e.target.value)}
                 className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors font-medium"
               >
-                <option value="GMT">Greenwich Mean Time (GMT)</option>
-                <option value="GMT+1">West Africa Time (GMT+1) - Lagos, Yaoundé</option>
-                <option value="GMT+2">Central Africa Time (GMT+2) - Kigali, Harare</option>
-                <option value="GMT+3">East Africa Time (GMT+3) - Nairobi, Kampala</option>
+                <option value="GMT">{t("set.tz_gmt")}</option>
+                <option value="GMT+1">{t("set.tz_wat")}</option>
+                <option value="GMT+2">{t("set.tz_cat")}</option>
+                <option value="GMT+3">{t("set.tz_eat")}</option>
               </select>
             </div>
 
             {/* Date Format */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Date Format</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("set.date_format")}</label>
               <select
                 value={dateFormat}
                 onChange={e => setDateFormat(e.target.value)}
                 className="w-full rounded-2xl bg-gray-100 py-4 px-5 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#053d26] transition-colors font-medium"
               >
-                <option value="dd/mm/yyyy">dd/mm/yyyy (Standard)</option>
-                <option value="mm/dd/yyyy">mm/dd/yyyy (US Format)</option>
-                <option value="yyyy-mm-dd">yyyy-mm-dd (ISO Format)</option>
+                <option value="dd/mm/yyyy">{t("set.df_std")}</option>
+                <option value="mm/dd/yyyy">{t("set.df_us")}</option>
+                <option value="yyyy-mm-dd">{t("set.df_iso")}</option>
               </select>
             </div>
 
@@ -1319,7 +1316,7 @@ export default function SettingsPage() {
                 onClick={handleSaveLocalization}
                 className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors"
               >
-                <Save className="h-4 w-4" /> Save Localization
+                <Save className="h-4 w-4" /> {t("set.save_loc")}
               </button>
             </div>
           </div>
@@ -1329,7 +1326,7 @@ export default function SettingsPage() {
       {activeSection === 'advanced' && (
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Advanced & Developer Settings</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("set.adv_title")}</h2>
             <button onClick={() => setActiveSection(null)} className="text-gray-400 hover:text-gray-600 p-1"><X className="h-5 w-5" /></button>
           </div>
 
@@ -1338,17 +1335,17 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Key className="h-5 w-5 text-[#b05e1c]" />
-                <h3 className="font-bold text-gray-900">School API Credentials</h3>
+                <h3 className="font-bold text-gray-900">{t("set.api")}</h3>
               </div>
-              <p className="text-xs text-gray-500">Generate access tokens to query school metrics programmatically via LeonEd Open API.</p>
+              <p className="text-xs text-gray-500">{t("set.api_d")}</p>
               
               <div className="p-5 bg-gray-50 border border-gray-100 rounded-2xl space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1">Client ID</label>
+                  <label className="block text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1">{t("set.client_id")}</label>
                   <code className="text-xs text-gray-900 font-mono bg-white p-2.5 rounded-xl border border-gray-150 block">{apiKey}</code>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1">Client Secret</label>
+                  <label className="block text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1">{t("set.client_secret")}</label>
                   <code className="text-xs text-gray-900 font-mono bg-white p-2.5 rounded-xl border border-gray-150 block">{apiSecret}</code>
                 </div>
                 <div className="flex justify-end pt-2">
@@ -1358,7 +1355,7 @@ export default function SettingsPage() {
                     className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
                   >
                     {isRotatingKeys ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                    Rotate Credentials
+                    {t("set.rotate")}
                   </button>
                 </div>
               </div>
@@ -1368,16 +1365,16 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Download className="h-5 w-5 text-[#b05e1c]" />
-                <h3 className="font-bold text-gray-900">Data Portability</h3>
+                <h3 className="font-bold text-gray-900">{t("set.portability")}</h3>
               </div>
               <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                Download a cryptographically signed JSON snapshot containing your institutional profile, academic session records, and student database slots for migration or archiving.
+                {t("set.portability_d")}
               </p>
               <button
                 onClick={handleExportData}
                 className="flex items-center gap-2 px-5 py-3 rounded-full bg-[#053d26] text-white font-bold hover:bg-[#042c1b] transition-colors text-xs"
               >
-                <Download className="h-4 w-4" /> Export School Dataset (JSON)
+                <Download className="h-4 w-4" /> {t("set.export_json")}
               </button>
             </div>
 
@@ -1385,9 +1382,9 @@ export default function SettingsPage() {
             <div className="space-y-4 border-t border-gray-100 pt-8">
               <div className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-gray-600" />
-                <h3 className="font-bold text-gray-900">System Diagnostics</h3>
+                <h3 className="font-bold text-gray-900">{t("set.diagnostics")}</h3>
               </div>
-              <p className="text-xs text-gray-500">Perform integrity checks to verify local cache database state, connection synchronization, and system configurations.</p>
+              <p className="text-xs text-gray-500">{t("set.diag_d")}</p>
               
               <div className="space-y-4">
                 <button
@@ -1396,7 +1393,7 @@ export default function SettingsPage() {
                   className="flex items-center gap-2 px-5 py-3 rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors font-bold text-xs"
                 >
                   {diagnosticStatus === 'running' ? <Loader2 className="h-4 w-4 animate-spin text-[#053d26]" /> : <Activity className="h-4 w-4" />}
-                  Execute Diagnostics Suite
+                  {t("set.run_diag")}
                 </button>
 
                 {diagnosticLogs.length > 0 && (
@@ -1429,9 +1426,9 @@ export default function SettingsPage() {
             </button>
             <h2 className="text-2xl font-bold text-[#053d26] mb-2 flex items-center gap-2">
               <PenTool className="w-6 h-6" />
-              Draw Signature
+              {t("set.draw_sig")}
             </h2>
-            <p className="text-sm text-gray-500 mb-6">Use your mouse or touch screen to draw your signature below.</p>
+            <p className="text-sm text-gray-500 mb-6">{t("set.draw_sig_d")}</p>
             
             <SignaturePad 
               onSave={handleSaveSignature} 

@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { CreditCard, Download, Search, AlertCircle, Loader2 } from "lucide-react";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { getAuthHeaders, API_BASE_URL } from "@/lib/api";
+import { useLanguage, localeFor } from "@/components/LanguageProvider";
 
 
 export default function PaymentsPage() {
+  const { t, tv, language } = useLanguage();
   const [logs, setLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -70,7 +72,7 @@ export default function PaymentsPage() {
           
           setLogs(uniqueLogs);
         } catch (err: any) {
-          setError(err.message || "Failed to load payment logs");
+          setError(err.message || "sap.load_failed");
         } finally {
           setIsLoading(false);
         }
@@ -80,32 +82,32 @@ export default function PaymentsPage() {
     }, []);
 
   const columns: Column<any>[] = [
-    { header: "School", accessor: (log: any) => log.school?.name || "Unknown School" },
-    { header: "Plan",
+    { header: t("sap.school"), accessor: (log: any) => log.school?.name || t("sap.unknown_school") },
+    { header: t("sap.plan"),
       accessor: (log: any) => (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#b05e1c]/10 text-[#b05e1c]">
-          {log.plan?.name || "Unknown"}
+          {log.plan?.name || t("fee.unknown")}
         </span>
       )
     },
-    { header: "Amount",
+    { header: t("sap.amount"),
       accessor: (log: any) => <span className="font-bold text-[#053d26]">₦{Number(log.amount || 0).toLocaleString()}</span>
     },
-    { header: "Status",
+    { header: t("stu.status"),
       accessor: (log: any) => (
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
           log.status === "PENDING" ? "bg-amber-100 text-amber-800" :
           log.status === "FAILED" ? "bg-red-100 text-red-800" :
           "bg-green-100 text-green-800"
         }`}>
-          {log.status || "COMPLETED"}
+          {tv("pay", log.status || "COMPLETED")}
         </span>
       )
     },
-    { header: "Date",
+    { header: t("sap.date"),
       accessor: (log: any) => {
         const d = new Date(log.paidAt || log.createdAt || Date.now());
-        return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        return `${d.toLocaleDateString(localeFor(language))} ${d.toLocaleTimeString(localeFor(language), { hour: '2-digit', minute: '2-digit' })}`;
       }
     }
   ];
@@ -119,12 +121,12 @@ export default function PaymentsPage() {
     <div className="max-w-7xl mx-auto space-y-8 pb-10 px-4 sm:px-6 lg:px-8 pt-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 mb-2">Payment Logs</h1>
-          <p className="text-gray-500 font-medium">Track all subscription payments and renewals across the platform.</p>
+          <h1 className="text-3xl font-black text-gray-900 mb-2">{t("layout.nav.payment_logs")}</h1>
+          <p className="text-gray-500 font-medium">{t("sap.subtitle")}</p>
         </div>
         <button className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors shadow-sm">
           <Download className="h-4 w-4" />
-          Export CSV
+          {t("common.export_csv")}
         </button>
       </div>
 
@@ -134,7 +136,7 @@ export default function PaymentsPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by school or plan..."
+              placeholder={t("sap.search_ph")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#053d26]/20 transition-all"
@@ -149,7 +151,7 @@ export default function PaymentsPage() {
         ) : error ? (
           <div className="text-center py-20 text-gray-500">
             <AlertCircle className="h-12 w-12 mx-auto mb-4 text-rose-400" />
-            <p>{error}</p>
+            <p>{t(error)}</p>
           </div>
         ) : (
           <div className="[&>div]:border-none [&>div]:shadow-none [&_table]:w-full">
@@ -159,10 +161,10 @@ export default function PaymentsPage() {
             />
             {filteredLogs.length === 0 && (
               <div className="text-center py-10 text-gray-500">
-                <p className="mb-4">No payment logs found.</p>
+                <p className="mb-4">{t("sap.empty")}</p>
                 {rawApiData && (
                   <div className="text-left mt-8 p-4 bg-gray-50 rounded-lg overflow-auto text-xs border border-gray-200">
-                    <p className="font-bold mb-2">Raw API Response (Debug):</p>
+                    <p className="font-bold mb-2">{t("sap.debug")}</p>
                     <pre className="whitespace-pre-wrap">{JSON.stringify(rawApiData, null, 2)}</pre>
                   </div>
                 )}

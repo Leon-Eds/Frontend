@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { CreditCard, UploadCloud, CheckCircle2, AlertCircle, Loader2, Download, Receipt } from "lucide-react";
 import { feeApi, sessionApi, schoolApi, uploadToCloudinary } from "@/lib/api";
 import toast from "react-hot-toast";
+import { useLanguage, localeFor, termLabel } from "@/components/LanguageProvider";
 
 export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
+  const { t, tv, language } = useLanguage();
   const [feesData, setFeesData] = useState<any>(null);
   const [feeBreakdown, setFeeBreakdown] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +65,7 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
       setFeesData(data);
     } catch (err) {
       console.error(err);
-      setError("Failed to load fee information.");
+      setError("sfi.load_failed");
     } finally {
       setIsLoading(false);
     }
@@ -101,11 +103,11 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
   const handleUploadReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!receiptFile) {
-      toast.error("Please select a receipt image to upload.");
+      toast.error(t("sfi.no_receipt"));
       return;
     }
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-      toast.error("Please enter a valid amount.");
+      toast.error(t("sfi.bad_amount"));
       return;
     }
 
@@ -128,14 +130,14 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
         status: "Pending" // Explicitly mark as pending for bursar approval
       } as any);
 
-      toast.success("Receipt uploaded successfully. Pending approval.");
+      toast.success(t("sfi.uploaded"));
       setReceiptFile(null);
       setDescription("");
       setAmount("");
       fetchFees();
     } catch (err) {
       console.error(err);
-      toast.error(err instanceof Error ? err.message : "Failed to upload receipt.");
+      toast.error(err instanceof Error ? err.message : t("sfi.upload_failed"));
     } finally {
       setIsUploading(false);
     }
@@ -155,7 +157,7 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
           status: feesData.status === 'NotRecorded' ? 'Unpaid' : feesData.status,
           method: feesData.paymentMethod || "Bank Transfer",
           receiptUrl: feesData.receiptImageUrl || feesData.receiptUrl,
-          notes: feesData.notes || feesData.description || "Tuition Payment"
+          notes: feesData.notes || feesData.description || ""
       }];
   }
   
@@ -177,16 +179,16 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-3">
           <CreditCard className="w-6 h-6 text-[#b05e1c]" />
-          <h2 className="text-xl font-bold text-gray-900">Finance & Fees</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t("sfi.title")}</h2>
         </div>
         <select
           value={selectedTermId}
           onChange={(e) => setSelectedTermId(e.target.value)}
           className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#053d26] focus:border-[#053d26] block w-full sm:w-auto p-2.5 font-semibold"
         >
-          {terms.map((t, idx) => (
-            <option key={idx} value={t.id || t._id}>
-              Term {t.termNumber || t.name} ({t.sessionName})
+          {terms.map((tm, idx) => (
+            <option key={idx} value={tm.id || tm._id}>
+              {t("sat.term_opt", { term: termLabel(t, tm.termNumber || tm.name), session: tm.sessionName })}
             </option>
           ))}
         </select>
@@ -195,11 +197,11 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[30vh] text-gray-400">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
-          Loading finance data...
+          {t("sfi.loading")}
         </div>
       ) : error ? (
         <div className="flex items-center justify-center min-h-[30vh] text-red-500">
-          <AlertCircle className="w-6 h-6 mr-2" /> {error}
+          <AlertCircle className="w-6 h-6 mr-2" /> {t(error)}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -208,24 +210,24 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
           <div className={showUploadForm ? "lg:col-span-8 space-y-6" : "lg:col-span-12 space-y-6"}>
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Term Fee Summary</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{t("sfi.summary")}</h3>
                 <div className="flex items-center gap-3">
                   <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                     status === 'Cleared' ? 'bg-emerald-100 text-emerald-700' :
                     status === 'Pending' ? 'bg-amber-100 text-amber-700' :
                     'bg-red-100 text-red-700'
                   }`}>
-                    {status === 'NotRecorded' ? 'Not Recorded' : status}
+                    {status === 'NotRecorded' ? t("sfi.not_recorded") : tv("fee", status)}
                   </span>
                 </div>
               </div>
               <div className="flex gap-8 text-right">
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Amount Due</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("fee.due")}</p>
                   <p className="text-2xl font-extrabold text-gray-900">₦{totalAmount.toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Balance</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("sfi.balance")}</p>
                   <p className={`text-2xl font-extrabold ${balance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                     ₦{balance.toLocaleString()}
                   </p>
@@ -236,19 +238,19 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
             {/* Fee Breakdown */}
             {feeBreakdown.length > 0 && (
               <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Fee Breakdown & Payment Details</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">{t("sfi.breakdown")}</h3>
                 
                 {bankDetails && (bankDetails.bankName || bankDetails.bankAccountNumber) && (
                   <div className="mb-6 p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl flex items-start gap-4">
                     <Receipt className="w-6 h-6 text-emerald-600 mt-1 shrink-0" />
                     <div>
-                      <h4 className="font-bold text-emerald-900 mb-2">School Payment Account</h4>
+                      <h4 className="font-bold text-emerald-900 mb-2">{t("sfi.account")}</h4>
                       <div className="text-sm text-emerald-800 space-y-1 bg-white/60 inline-block p-3 rounded-xl border border-emerald-50">
-                        {bankDetails.bankAccountName && <p><span className="font-bold uppercase tracking-wider text-xs text-emerald-600 mr-2">Account Name:</span> <span className="font-medium text-emerald-950">{bankDetails.bankAccountName}</span></p>}
-                        {bankDetails.bankName && <p><span className="font-bold uppercase tracking-wider text-xs text-emerald-600 mr-2">Bank:</span> <span className="font-medium text-emerald-950">{bankDetails.bankName}</span></p>}
-                        {bankDetails.bankAccountNumber && <p><span className="font-bold uppercase tracking-wider text-xs text-emerald-600 mr-2">Account No:</span> <span className="font-mono text-emerald-950 text-base">{bankDetails.bankAccountNumber}</span></p>}
+                        {bankDetails.bankAccountName && <p><span className="font-bold uppercase tracking-wider text-xs text-emerald-600 mr-2">{t("sfi.account_name")}</span> <span className="font-medium text-emerald-950">{bankDetails.bankAccountName}</span></p>}
+                        {bankDetails.bankName && <p><span className="font-bold uppercase tracking-wider text-xs text-emerald-600 mr-2">{t("sfi.bank")}</span> <span className="font-medium text-emerald-950">{bankDetails.bankName}</span></p>}
+                        {bankDetails.bankAccountNumber && <p><span className="font-bold uppercase tracking-wider text-xs text-emerald-600 mr-2">{t("sfi.account_no")}</span> <span className="font-mono text-emerald-950 text-base">{bankDetails.bankAccountNumber}</span></p>}
                       </div>
-                      <p className="text-xs text-emerald-600 mt-3 font-medium">Please use this account for all fee payments, and upload the receipt below.</p>
+                      <p className="text-xs text-emerald-600 mt-3 font-medium">{t("sfi.account_hint")}</p>
                     </div>
                   </div>
                 )}
@@ -260,8 +262,8 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
                         <p className="font-bold text-gray-900">{fee.name}</p>
                         {(fee.bankName || fee.accountNumber) && (
                           <div className="text-sm text-gray-600 mt-1 space-y-0.5">
-                            {fee.bankName && <p><span className="font-semibold text-gray-800">Bank:</span> {fee.bankName}</p>}
-                            {fee.accountNumber && <p><span className="font-semibold text-gray-800">Account No:</span> {fee.accountNumber}</p>}
+                            {fee.bankName && <p><span className="font-semibold text-gray-800">{t("sfi.bank")}</span> {fee.bankName}</p>}
+                            {fee.accountNumber && <p><span className="font-semibold text-gray-800">{t("sfi.account_no")}</span> {fee.accountNumber}</p>}
                           </div>
                         )}
                       </div>
@@ -276,9 +278,9 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
 
             {/* Payment History */}
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-              <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Payment History</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">{t("sfi.history")}</h3>
               {paymentHistory.length === 0 ? (
-                <p className="text-center text-gray-500 py-6">No payments recorded for this term.</p>
+                <p className="text-center text-gray-500 py-6">{t("sfi.no_payments")}</p>
               ) : (
                 <div className="space-y-4">
                   {paymentHistory.map((payment: any, idx: number) => (
@@ -294,7 +296,7 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
                         </div>
                         <div>
                           <p className="font-bold text-gray-900">₦{Number(payment.amountPaid || payment.amount || 0).toLocaleString()}</p>
-                          <p className="text-xs text-gray-500">{new Date(payment.date || payment.createdAt).toLocaleDateString()}</p>
+                          <p className="text-xs text-gray-500">{new Date(payment.date || payment.createdAt).toLocaleDateString(localeFor(language))}</p>
                           {payment.notes && <p className="text-xs text-gray-400 mt-1 max-w-[200px] truncate">{payment.notes}</p>}
                         </div>
                       </div>
@@ -303,13 +305,13 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
                           payment.status === 'Pending' ? 'text-amber-600' : 
                           payment.status === 'Rejected' ? 'text-red-600' : 'text-emerald-600'
                         }`}>
-                          {payment.status || 'Cleared'}
+                          {tv("fee", payment.status || 'Cleared')}
                         </span>
                         {payment.status === 'Cleared' && (payment.id || payment._id) && (
                           <button
                             onClick={async () => {
                               try {
-                                const toastId = toast.loading('Generating Receipt...');
+                                const toastId = toast.loading(t("sfi.generating"));
                                 const blob = await feeApi.downloadReceiptPdf(payment.id || payment._id);
                                 const url = window.URL.createObjectURL(blob);
                                 const a = document.createElement('a');
@@ -319,19 +321,19 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
                                 a.click();
                                 a.remove();
                                 window.URL.revokeObjectURL(url);
-                                toast.success('Receipt downloaded!', { id: toastId });
+                                toast.success(t("sfi.receipt_done"), { id: toastId });
                               } catch (e) {
-                                toast.error('Failed to download receipt');
+                                toast.error(t("sfi.receipt_failed"));
                               }
                             }}
                             className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:underline"
                           >
-                            <Download className="w-3 h-3" /> Download Receipt
+                            <Download className="w-3 h-3" /> {t("sfi.download_receipt")}
                           </button>
                         )}
                         {payment.receiptUrl && (
                           <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-bold text-[#053d26] hover:underline">
-                            <Receipt className="w-3 h-3" /> View Uploaded Image
+                            <Receipt className="w-3 h-3" /> {t("sfi.view_image")}
                           </a>
                         )}
                       </div>
@@ -345,21 +347,21 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
           {/* Upload Receipt Form */}
           {showUploadForm && (
             <div className="lg:col-span-4 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 h-fit">
-              <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Submit Payment</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">{t("sfi.submit_title")}</h3>
               <form onSubmit={handleUploadReceipt} className="space-y-5">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Amount Paid (₦)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("fee.amount_paid_n")}</label>
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="w-full border-gray-200 rounded-xl focus:ring-[#053d26] focus:border-[#053d26]"
-                    placeholder="e.g. 50000"
+                    placeholder={t("fs.amount_ph")}
                     min="1"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Receipt Image</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("sfi.receipt_image")}</label>
                   <input
                     type="file"
                     accept="image/*"
@@ -368,13 +370,13 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Description / Notes</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">{t("sfi.notes")}</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full border-gray-200 rounded-xl focus:ring-[#053d26] focus:border-[#053d26] resize-none"
                     rows={3}
-                    placeholder="e.g. First installment paid via Zenith Bank"
+                    placeholder={t("sfi.notes_ph")}
                   ></textarea>
                 </div>
                 <button
@@ -387,7 +389,7 @@ export default function StudentFinance({ studentInfo }: { studentInfo: any }) {
                   ) : (
                     <UploadCloud className="w-5 h-5" />
                   )}
-                  {isUploading ? "Uploading..." : "Submit Receipt"}
+                  {isUploading ? t("sfi.uploading") : t("sfi.submit")}
                 </button>
               </form>
             </div>
